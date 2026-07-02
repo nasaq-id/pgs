@@ -291,7 +291,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           transportasiKeSekolah: initialData.transportasiKeSekolah || "",
           waktuTempuhKeSekolah: initialData.waktuTempuhKeSekolah || "",
           usernameSiswa: initialData.usernameSiswa || "",
-          passwordSiswa: initialData.passwordSiswa || "",
+          passwordSiswa: "",
           sekolahAsal: initialData.sekolahAsal || "",
           diterimaPadaTanggal: initialData.diterimaPadaTanggal
             ? new Date(initialData.diterimaPadaTanggal).toISOString().split("T")[0]

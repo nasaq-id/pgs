@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2 } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
 import SiswaDetailDialog from "@/components/siswa/SiswaDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 
@@ -46,11 +48,17 @@ function getPaginationPages(current: number, total: number): (number | "...")[] 
 export default function SiswaPage() {
   const [search, setSearch] = useState("")
   const [querySearch, setQuerySearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [kelasFilter, setKelasFilter] = useState("")
   const [page, setPage] = useState(0)
   const limit = 25
 
+  const { data: kelasList } = api.kelas.getAll.useQuery({})
+
   const { data: siswaList, isLoading } = api.siswa.getAll.useQuery({
     search: querySearch || undefined,
+    status: (statusFilter as "aktif" | "tidak_aktif" | "mutasi_keluar") || undefined,
+    kelasId: kelasFilter || undefined,
     limit,
     offset: page * limit,
   })
@@ -60,17 +68,35 @@ export default function SiswaPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [resetId, setResetId] = useState<string | null>(null)
+  const [resetName, setResetName] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const utils = api.useUtils()
+
   const removeMutation = api.siswa.remove.useMutation({
     onSuccess: () => {
       toast.success("Data siswa berhasil dihapus")
       setDeleteId(null)
+      utils.siswa.getAll.invalidate()
     },
     onError: () => toast.error("Gagal menghapus data siswa"),
+  })
+
+  const resetPasswordMutation = api.siswa.resetPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password siswa berhasil direset")
+      setResetId(null)
+      setResetName("")
+      setNewPassword("")
+      setShowPassword(false)
+    },
+    onError: () => toast.error("Gagal mereset password siswa"),
   })
 
   const bulkCreateMutation = api.siswa.bulkCreate.useMutation({
@@ -84,8 +110,6 @@ export default function SiswaPage() {
       setImporting(false)
     },
   })
-
-  const utils = api.useUtils()
 
   const handleSearch = () => {
     setPage(0)
@@ -114,6 +138,11 @@ export default function SiswaPage() {
   const handleDelete = async () => {
     if (!deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetId || !newPassword) return
+    await resetPasswordMutation.mutateAsync({ id: resetId, password: newPassword })
   }
 
   const handleFormSuccess = () => {
@@ -272,8 +301,8 @@ export default function SiswaPage() {
       </div>
 
       <div className="glass-card rounded-xl p-4">
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="flex-1 flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
+          <div className="flex-1 flex items-center gap-2 min-w-[250px]">
             <Search className="h-5 w-5 text-muted-foreground shrink-0" />
             <Input
               placeholder="Cari nama atau NISN..."
@@ -286,6 +315,30 @@ export default function SiswaPage() {
               Cari
             </Button>
           </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? ""); setPage(0) }}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Semua Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Status</SelectItem>
+                <SelectItem value="aktif">Aktif</SelectItem>
+                <SelectItem value="tidak_aktif">Tidak Aktif</SelectItem>
+                <SelectItem value="mutasi_keluar">Mutasi / Keluar</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={kelasFilter} onValueChange={(v) => { setKelasFilter(v ?? ""); setPage(0) }}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Semua Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Kelas</SelectItem>
+                {kelasList?.map((k) => (
+                  <SelectItem key={k.id} value={k.id}>{k.namaKelas}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="rounded-md border overflow-x-auto">
@@ -294,6 +347,7 @@ export default function SiswaPage() {
               <TableRow>
                 <TableHead className="w-10">No</TableHead>
                 <TableHead className="min-w-[120px]">NISN</TableHead>
+                <TableHead className="min-w-[100px]">NIS</TableHead>
                 <TableHead className="min-w-[160px]">Nama Lengkap</TableHead>
                 <TableHead className="min-w-[50px]">JK</TableHead>
                 <TableHead className="min-w-[100px]">Tempat Lahir</TableHead>
@@ -306,14 +360,14 @@ export default function SiswaPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: 9 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : !siswaList || siswaList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     Tidak ada data siswa
                   </TableCell>
                 </TableRow>
@@ -322,6 +376,7 @@ export default function SiswaPage() {
                   <TableRow key={s.id}>
                     <TableCell className="text-muted-foreground text-sm">{page * limit + index + 1}</TableCell>
                     <TableCell className="font-mono text-sm tracking-wider">{s.nisn || "-"}</TableCell>
+                    <TableCell className="font-mono text-sm tracking-wider">{s.nisLokal || "-"}</TableCell>
                     <TableCell className="font-medium">{s.namaLengkap}</TableCell>
                     <TableCell>{s.jenisKelamin === "L" ? "L" : s.jenisKelamin === "P" ? "P" : "-"}</TableCell>
                     <TableCell>{s.tempatLahir || "-"}</TableCell>
@@ -346,6 +401,9 @@ export default function SiswaPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(s)} className="gap-2 cursor-pointer">
                             <Pencil className="h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setResetId(s.id); setResetName(s.namaLengkap) }} className="gap-2 cursor-pointer">
+                            <KeyRound className="h-4 w-4" /> Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -425,6 +483,47 @@ export default function SiswaPage() {
         onConfirm={handleDelete}
         loading={removeMutation.isPending}
       />
+
+      <AlertDialog open={!!resetId} onOpenChange={(open) => { if (!open) { setResetId(null); setResetName(""); setNewPassword(""); setShowPassword(false) } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Password Siswa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Masukkan password baru untuk <strong>{resetName}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Masukkan password baru"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="pr-10"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetPasswordMutation.isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetPassword}
+              disabled={!newPassword || resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mereset...</>
+              ) : (
+                "Reset Password"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

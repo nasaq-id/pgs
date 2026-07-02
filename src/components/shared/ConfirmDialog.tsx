@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   description: string
   onConfirm: () => void
   loading?: boolean
+  confirmText?: string
 }
 
 export default function ConfirmDialog({
@@ -19,6 +20,7 @@ export default function ConfirmDialog({
   description,
   onConfirm,
   loading,
+  confirmText = "Hapus",
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,7 +42,7 @@ export default function ConfirmDialog({
                 Menghapus...
               </>
             ) : (
-              "Hapus"
+              confirmText
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

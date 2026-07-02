@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { siswa, users } from "@/server/db/schema"
@@ -114,6 +114,8 @@ export const siswaRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
+        status: z.enum(["aktif", "tidak_aktif", "mutasi_keluar"]).optional(),
+        kelasId: z.string().optional(),
         sortBy: z.enum(["namaLengkap", "nisn", "createdAt"]).optional().default("namaLengkap"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
         limit: z.number().optional().default(50),
@@ -126,6 +128,16 @@ export const siswaRouter = router({
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
         conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+      }
+      if (input.status === "aktif") {
+        conditions.push(eq(siswa.status, "aktif"))
+      } else if (input.status === "tidak_aktif") {
+        conditions.push(inArray(siswa.status, ["lulus", "pindah", "keluar"]))
+      } else if (input.status === "mutasi_keluar") {
+        conditions.push(inArray(siswa.status, ["pindah", "keluar"]))
+      }
+      if (input.kelasId) {
+        conditions.push(eq(siswa.kelasId, input.kelasId))
       }
       const orderBy = input.sortOrder === "asc" ? asc(siswa[input.sortBy]) : desc(siswa[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -281,6 +293,24 @@ export const siswaRouter = router({
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       await db.delete(siswa).where(and(...conditions))
       await logAudit(ctx, { action: "delete", entity: "siswa", entityId: input.id })
+      return { success: true }
+    }),
+
+  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({ id: z.string(), password: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(siswa.id, input.id)]
+      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+      const passwordHash = await bcrypt.hash(input.password, 12)
+      await db.update(siswa).set({ passwordSiswa: passwordHash, updatedAt: new Date() }).where(and(...conditions))
+      const email = existing.usernameSiswa || existing.nisn || ""
+      if (email) {
+        await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute().catch(() => {})
+      }
+      await logAudit(ctx, { action: "reset_password", entity: "siswa", entityId: input.id })
       return { success: true }
     }),
 })

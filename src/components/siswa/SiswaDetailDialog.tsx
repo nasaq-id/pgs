@@ -82,32 +82,33 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
 <title>Buku Induk - ${s.namaLengkap || ""}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;padding:20px;font-size:11px}
-  .hero{display:flex;gap:16px;align-items:center;padding:16px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:12px;margin-bottom:16px}
-  .photo{width:72px;height:90px;border-radius:8px;border:2px solid rgba(255,255,255,0.5);overflow:hidden;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;font-size:10px;padding:0}
+  .hero{display:flex;gap:12px;align-items:center;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:12px;margin-bottom:12px}
+  .photo{width:64px;height:80px;border-radius:8px;border:2px solid rgba(255,255,255,0.5);overflow:hidden;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .photo img{width:100%;height:100%;object-fit:cover}
-  .hi h2{font-size:17px;font-weight:700}
-  .hi p{font-size:11px;opacity:.85;margin-top:3px}
-  .badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-  .badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+  .hi h2{font-size:15px;font-weight:700}
+  .hi p{font-size:10px;opacity:.85;margin-top:2px}
+  .badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .badge{padding:1px 6px;border-radius:20px;font-size:9px;font-weight:600}
   .b-green{background:#dcfce7;color:#166534}
   .b-blue{background:#dbeafe;color:#1e40af}
   .b-gray{background:#f1f5f9;color:#475569}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-  .sec{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px}
-  .sh{padding:6px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sec{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:10px}
+  .sh{padding:5px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
   .s-green{background:#dcfce7;color:#065f46}
   .s-blue{background:#dbeafe;color:#1e40af}
   .s-purple{background:#ede9fe;color:#5b21b6}
   .s-orange{background:#ffedd5;color:#9a3412}
   .s-rose{background:#ffe4e6;color:#9f1239}
   .s-cyan{background:#cffafe;color:#164e63}
-  .sb{padding:6px 12px}
-  .row{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #f8fafc;font-size:10.5px}
+  .sb{padding:4px 10px}
+  .row{display:flex;gap:4px;padding:2px 0;border-bottom:1px solid #f8fafc;font-size:9.5px}
   .row:last-child{border-bottom:none}
-  .rl{width:140px;flex-shrink:0;color:#64748b}
+  .rl{width:120px;flex-shrink:0;color:#64748b}
   .rv{font-weight:500;flex:1}
-  @media print{body{padding:10px}}
+  @page{margin:8mm}
+  @media print{body{font-size:9px}.row{font-size:8.5px}.sh{font-size:8px}}
 </style></head><body>
 <div class="hero">
   <div class="photo">${s.foto ? `<img src="${s.foto}"/>` : '<span style="font-size:28px;color:rgba(255,255,255,.7)">&#x1F464;</span>'}</div>
