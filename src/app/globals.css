@@ -122,11 +122,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
     background-image:
-      radial-gradient(at 20% 20%, oklch(0.85 0.12 260) 0%, transparent 50%),
-      radial-gradient(at 80% 10%, oklch(0.88 0.08 300) 0%, transparent 50%),
-      radial-gradient(at 50% 80%, oklch(0.82 0.1 200) 0%, transparent 50%);
+      radial-gradient(at 20% 20%, oklch(0.90 0.03 240) 0%, transparent 50%),
+      radial-gradient(at 80% 10%, oklch(0.92 0.02 260) 0%, transparent 50%),
+      radial-gradient(at 50% 80%, oklch(0.88 0.02 220) 0%, transparent 50%);
     background-attachment: fixed;
   }
   html {
@@ -202,6 +202,30 @@
     border: 1px solid oklch(1 0 0 / 40%);
     box-shadow: 0 2px 8px -2px oklch(0 0 0 / 6%);
   }
+
+  .glass-overlay {
+    background: oklch(0 0 0 / 20%);
+    backdrop-filter: blur(4px) saturate(150%);
+    -webkit-backdrop-filter: blur(4px) saturate(150%);
+  }
+
+  .glass-dialog {
+    background: oklch(1 0 0 / 80%);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 40%);
+    box-shadow:
+      0 8px 40px -8px oklch(0 0 0 / 12%),
+      0 0 0 1px oklch(1 0 0 / 20%),
+      inset 0 1px 0 oklch(1 0 0 / 60%);
+  }
+
+  .glass-dialog-footer {
+    background: oklch(1 0 0 / 40%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid oklch(1 0 0 / 30%);
+  }
 }
 
 .dark .glass,
@@ -231,4 +255,22 @@
 .dark .glass-badge {
   background: oklch(0.2 0 0 / 60%);
   border-color: oklch(1 0 0 / 8%);
+}
+
+.dark .glass-overlay {
+  background: oklch(0 0 0 / 40%);
+}
+
+.dark .glass-dialog {
+  background: oklch(0.16 0 0 / 80%);
+  border-color: oklch(1 0 0 / 8%);
+  box-shadow:
+    0 8px 40px -8px oklch(0 0 0 / 30%),
+    0 0 0 1px oklch(1 0 0 / 6%),
+    inset 0 1px 0 oklch(1 0 0 / 8%);
+}
+
+.dark .glass-dialog-footer {
+  background: oklch(0.2 0 0 / 40%);
+  border-top-color: oklch(1 0 0 / 6%);
 }

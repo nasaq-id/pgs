@@ -9,6 +9,10 @@ import { absensiRouter } from "./routers/absensi"
 import { keuanganRouter } from "./routers/keuangan"
 import { nilaiRouter } from "./routers/nilai"
 import { lembagaRouter } from "./routers/lembaga"
+import { ekstrakurikulerRouter } from "./routers/ekstrakurikuler"
+import { prestasiRouter } from "./routers/prestasi"
+import { ruangKelasRouter } from "./routers/ruang-kelas"
+import { pengumumanRouter } from "./routers/pengumuman"
 
 export const appRouter = router({
   siswa: siswaRouter,
@@ -21,6 +25,10 @@ export const appRouter = router({
   keuangan: keuanganRouter,
   nilai: nilaiRouter,
   lembaga: lembagaRouter,
+  ekstrakurikuler: ekstrakurikulerRouter,
+  prestasi: prestasiRouter,
+  ruangKelas: ruangKelasRouter,
+  pengumuman: pengumumanRouter,
 })
 
 export type AppRouter = typeof appRouter

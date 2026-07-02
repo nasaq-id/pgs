@@ -54,7 +54,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
         </button>
 
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 ml-1 cursor-pointer">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer">
           <span className="text-sm font-bold text-white">{initials}</span>
         </div>
       </div>

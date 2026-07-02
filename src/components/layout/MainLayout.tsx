@@ -29,9 +29,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </>
       )}
 
-      <div className="lg:pl-[4.75rem]">
+      <div className="lg:pl-56">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="py-5 px-4 sm:px-5 lg:px-6">
+        <main className="py-5 px-4 sm:px-5 lg:px-6 max-w-[1440px] mx-auto">
           {children}
         </main>
       </div>

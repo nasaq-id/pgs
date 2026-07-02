@@ -6,14 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2, GraduationCap } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -42,49 +35,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-800 via-green-700 to-green-900 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="text-center space-y-2 pb-6">
-          <div className="mx-auto h-14 w-14 rounded-full bg-gradient-to-br from-green-600 to-green-500 flex items-center justify-center mb-2">
-            <span className="text-white text-xl font-bold">E</span>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-500/10 via-background to-slate-500/10" />
+      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-slate-400/10 blur-3xl" />
+
+      <div className="w-full max-w-md glass-card rounded-3xl p-8 space-y-8">
+        <div className="text-center space-y-3">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20">
+            <GraduationCap className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">EduManage</CardTitle>
-          <CardDescription>Sistem Informasi Manajemen Sekolah</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@demo.com"
-                required
-              />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">EduManage</h1>
+            <p className="text-sm text-muted-foreground mt-1">Sistem Informasi Manajemen Sekolah</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="admin@demo.com"
+              required
+              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3">
+              <p className="text-sm text-destructive font-medium">{error}</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-red-500 font-medium">{error}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Masuk
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-sm shadow-blue-600/20 hover:shadow-blue-600/30 transition-all duration-200"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
+            Masuk
+          </Button>
+        </form>
+
+        <p className="text-center text-[11px] text-muted-foreground/60">
+          Portal Garda Sekolah
+        </p>
+      </div>
     </div>
   )
 }
