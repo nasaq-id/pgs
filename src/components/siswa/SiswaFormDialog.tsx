@@ -1124,7 +1124,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <Label>Status Wali</Label>
                     <Select value={form.statusWali} onValueChange={handleStatusWali}>
                       <SelectTrigger><SelectValue placeholder="Pilih Status Wali" /></SelectTrigger>
-                      <SelectContent>
+                      <SelectContent sideOffset={0}>
                         <SelectItem value="Ayah">Ayah</SelectItem>
                         <SelectItem value="Ibu">Ibu</SelectItem>
                         <SelectItem value="Lainnya">Lainnya</SelectItem>

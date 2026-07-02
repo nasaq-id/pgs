@@ -185,7 +185,7 @@ export default function SiswaPage() {
       const rows: any[] = XLSX.utils.sheet_to_json(ws)
       const mapped = rows.map((row: any) => ({
         nisn: String(row.NISN || "").trim(),
-        nisLokal: String(row["NIS Lokal"] || "").trim() || undefined,
+        nisLokal: String(row["NIS Lokal"] || "").trim(),
         namaLengkap: String(row["Nama Lengkap"] || row.NamaLengkap || "").trim(),
         jenisKelamin: (String(row["Jenis Kelamin"] || "").trim() === "Laki-laki" ? "L" : String(row["Jenis Kelamin"] || "").trim() === "Perempuan" ? "P" : undefined) as "L" | "P" | undefined,
         tempatLahir: String(row["Tempat Lahir"] || "").trim() || undefined,
