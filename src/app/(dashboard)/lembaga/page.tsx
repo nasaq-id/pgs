@@ -273,7 +273,7 @@ export default function LembagaPage() {
       </Card>
 
       <Card className="lg:col-span-3 glass-card rounded-2xl relative overflow-visible">
-        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl">
+        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl" title="Edit profil lembaga">
           <Pencil className="h-3.5 w-3.5" />
         </Button>
         <CardHeader className="flex-row items-center gap-3 border-b border-border">

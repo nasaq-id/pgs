@@ -137,6 +137,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <button
         onClick={onMenuClick}
         className="lg:hidden flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
+        title="Menu"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -150,13 +151,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" onClick={() => setShowCalendar(!showCalendar)}>
+        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" title="Kalender" onClick={() => setShowCalendar(!showCalendar)}>
           <CalendarDays className="h-3.5 w-3.5" />
           {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200">
+          <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200" title="Notifikasi">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
