@@ -409,12 +409,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.error("Nama lengkap wajib diisi")
       return
     }
-    if (!form.nisn) {
-      toast.error("NISN wajib diisi")
+    if (!form.nisLokal) {
+      toast.error("NIS wajib diisi")
       return
     }
-    if (form.nisn.length !== 10) {
-      toast.error("NISN harus terdiri dari 10 angka")
+    if (!isEdit && !form.passwordSiswa) {
+      toast.error("Password siswa wajib diisi")
       return
     }
     if (form.hobi === "Lainnya" && !form.hobiLainnya) {
@@ -438,7 +438,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
     const finalCitacita = form.citacita === "Lainnya" ? form.citacitaLainnya : form.citacita
 
     const payload: Record<string, unknown> = {
-      nisn: form.nisn,
+      nisn: form.nisn || undefined,
       nisLokal: form.nisLokal || undefined,
       namaLengkap: form.namaLengkap,
       jenisKelamin: form.jenisKelamin || undefined,
@@ -597,10 +597,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nisn">NISN *</Label>
+                  <Label htmlFor="nisn">NISN</Label>
                   <Input
                     id="nisn"
-                    required
                     maxLength={10}
                     value={form.nisn}
                     onChange={(e) => handleChange("nisn", e.target.value.replace(/\D/g, ""))}
@@ -612,9 +611,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nisLokal">NIS</Label>
+                  <Label htmlFor="nisLokal">NIS *</Label>
                   <Input
                     id="nisLokal"
+                    required
                     maxLength={6}
                     value={form.nisLokal}
                     onChange={(e) => {
@@ -651,7 +651,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   <p className="text-xs text-muted-foreground">Otomatis terisi dari NIS</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="passwordSiswa">Password Siswa</Label>
+                  <Label htmlFor="passwordSiswa">Password Siswa {!isEdit && "*"}</Label>
                   <div className="relative">
                     <Input
                       id="passwordSiswa"
@@ -659,6 +659,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       value={form.passwordSiswa as string}
                       onChange={(e) => handleChange("passwordSiswa", e.target.value)}
                       className="pr-10"
+                      required={!isEdit}
                     />
                     <button
                       type="button"

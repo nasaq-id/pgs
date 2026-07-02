@@ -11,8 +11,8 @@ const siswaCreateSchema = z.object({
   id: z.string().optional(),
   sekolahId: z.string(),
   kelasId: z.string().nullable().optional(),
-  nisn: z.string(),
-  nisLokal: z.string().nullable().optional(),
+  nisn: z.string().optional(),
+  nisLokal: z.string(),
   namaLengkap: z.string(),
   jenisKelamin: z.enum(["L", "P"]).nullable().optional(),
   tempatLahir: z.string().nullable().optional(),
@@ -95,7 +95,7 @@ const siswaCreateSchema = z.object({
   transportasiKeSekolah: z.string().nullable().optional(),
   waktuTempuhKeSekolah: z.string().nullable().optional(),
   usernameSiswa: z.string().nullable().optional(),
-  passwordSiswa: z.string().nullable().optional(),
+  passwordSiswa: z.string(),
   sekolahAsal: z.string().nullable().optional(),
   diterimaPadaTanggal: z.date().nullable().optional(),
   noHpWhatsapp: z.string().nullable().optional(),
@@ -164,7 +164,7 @@ export const siswaRouter = router({
       const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
       const result = await db.insert(siswa).values(data as any).returning()
       if (passwordHash) {
-        const email = input.usernameSiswa || input.nisn
+        const email = input.usernameSiswa || input.nisn || ""
         const nameParts = (input.namaLengkap || "").split(" ")
         await db.insert(users).values({
           id: crypto.randomUUID(),
