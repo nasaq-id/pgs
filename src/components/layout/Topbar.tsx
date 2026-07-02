@@ -133,7 +133,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const formatDate = (date: Date) => format(date, "d MMMM yyyy", { locale: id })
 
   return (
-    <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-2xl mx-2 mt-2">
+    <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-[26px] mx-2 mt-2">
       <button
         onClick={onMenuClick}
         className="lg:hidden flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
