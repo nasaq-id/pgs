@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { kelas, sekolah, tahunAjaran, guru } from "@/server/db/schema"
+import { kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const kelasCreateSchema = z.object({
@@ -76,8 +76,7 @@ export const kelasRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const { sekolahId: _, ...rest } = input
-      const result = await db.insert(kelas).values({ ...rest, sekolahId, id } as any).returning()
+      const result = await db.insert(kelas).values({ ...input, id, sekolahId } as any).returning()
       return result[0]
     }),
 
@@ -89,10 +88,9 @@ export const kelasRouter = router({
       if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
-      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(kelas)
-        .set(safeData as any)
+        .set(input.data as any)
         .where(and(...conditions))
         .returning()
       return result[0]

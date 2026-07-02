@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { guru, sekolah, users } from "@/server/db/schema"
+import { guru, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const guruCreateSchema = z.object({
@@ -151,7 +151,7 @@ export const guruRouter = router({
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
-      const { sekolahId: _, passwordGuru, ...rest } = input.data
+      const { passwordGuru, ...rest } = input.data
       let passwordHash = passwordGuru || null
       if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
       const updateData = { ...rest, passwordGuru: passwordHash || existing.passwordGuru, updatedAt: new Date() }

@@ -4,7 +4,7 @@ import { useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
+
 import { User, Printer, Loader2 } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 

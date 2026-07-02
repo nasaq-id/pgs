@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, or, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { mataPelajaran, sekolah } from "@/server/db/schema"
+import { mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const mapelCreateSchema = z.object({
@@ -75,8 +75,7 @@ export const mapelRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const { sekolahId: _, ...rest } = input
-      const result = await db.insert(mataPelajaran).values({ ...rest, sekolahId, id } as any).returning()
+      const result = await db.insert(mataPelajaran).values({ ...input, id, sekolahId } as any).returning()
       return result[0]
     }),
 
@@ -88,10 +87,9 @@ export const mapelRouter = router({
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
-      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(mataPelajaran)
-        .set(safeData as any)
+        .set(input.data as any)
         .where(and(...conditions))
         .returning()
       return result[0]

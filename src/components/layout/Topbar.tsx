@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { Bell, Menu, CalendarDays } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/lembaga": "Lembaga",
@@ -28,27 +27,35 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const pageTitle = pageTitles[pathname] ?? "Dashboard"
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 items-center gap-4 bg-card border-b border-border px-5">
-      <Button variant="ghost" size="icon" className="lg:hidden flex-shrink-0" onClick={onMenuClick}>
+    <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-2xl mx-2 mt-2">
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
+      >
         <Menu className="h-5 w-5" />
-      </Button>
+      </button>
+
       <div className="hidden lg:block flex-shrink-0">
         <p className="text-[15px] font-bold text-foreground leading-none">Hi, {displayName}</p>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-none">{pageTitle}</p>
       </div>
       <p className="lg:hidden text-base font-bold text-foreground flex-1">{pageTitle}</p>
+
       <div className="flex-1" />
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border transition-colors">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl glass-badge">
           <CalendarDays className="h-3.5 w-3.5" />
           {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
-        </button>
-        <button className="rounded-xl h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+        </div>
+
+        <button className="relative rounded-xl h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200">
           <Bell className="h-4 w-4" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
         </button>
-        <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shadow-sm ml-1">
-          <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 ml-1 cursor-pointer">
+          <span className="text-sm font-bold text-white">{initials}</span>
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
+
 import { api } from "@/lib/trpc/client"
 import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
 
@@ -97,7 +97,7 @@ export default function JadwalPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
-  const kelasRecords = (kelasList ?? []) as KelasRecord[]
+  const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
 
   useEffect(() => {
     if (!kelasId && kelasRecords.length > 0) {
@@ -130,9 +130,9 @@ export default function JadwalPage() {
     },
   })
 
-  const mapelRecords = (mapelList ?? []) as MapelRecord[]
-  const guruRecords = (guruList ?? []) as GuruRecord[]
-  const jadwalRecords = (jadwalList ?? []) as JadwalRecord[]
+  const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
+  const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
+  const jadwalRecords = useMemo(() => (jadwalList ?? []) as JadwalRecord[], [jadwalList])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
@@ -197,11 +197,6 @@ export default function JadwalPage() {
     })
     setFormOpen(true)
   }
-
-  const selectedKelas = kelasRecords.find((k) => k.id === kelasId)
-  const kelasLabel = selectedKelas
-    ? `${selectedKelas.tingkat ?? ""} - ${selectedKelas.namaKelas}`
-    : ""
 
   const entriesByDay = useMemo(() => {
     const map: Record<string, JadwalRecord[]> = {}

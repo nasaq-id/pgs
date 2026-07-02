@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,7 +38,7 @@ export default function NilaiPage() {
   const createNilai = api.nilai.create.useMutation()
   const updateNilai = api.nilai.update.useMutation()
 
-  const siswaDiKelas = (siswaAll || []).filter((s) => s.kelasId === kelasId)
+  const siswaDiKelas = useMemo(() => (siswaAll || []).filter((s) => s.kelasId === kelasId), [siswaAll, kelasId])
 
   useEffect(() => {
     if (nilaiQuery.data && nilaiQuery.data.length > 0) {
@@ -73,7 +73,7 @@ export default function NilaiPage() {
         setNilaiMap(map)
       }
     }
-  }, [kelasId, mataPelajaranId, siswaDiKelas])
+  }, [kelasId, mataPelajaranId, siswaDiKelas, nilaiQuery.data, nilaiQuery.isLoading])
 
   const updateNilaiField = useCallback((siswaId: string, field: "nilaiTugas" | "nilaiUts" | "nilaiUas", value: string) => {
     const num = value === "" ? null : Math.min(100, Math.max(0, parseInt(value) || 0))

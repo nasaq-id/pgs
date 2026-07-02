@@ -168,7 +168,7 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
               <div className="flex items-center gap-5">
                 <div className="h-20 w-20 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 shadow-lg">
                   {guru.foto ? (
-                    <img src={guru.foto} className="h-full w-full object-cover" />
+                    <img src={guru.foto} alt="Foto guru" className="h-full w-full object-cover" />
                   ) : (
                     <User className="h-10 w-10 text-white/70" />
                   )}

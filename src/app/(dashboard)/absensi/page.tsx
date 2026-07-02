@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ClipboardCheck, Save, Loader2, Calendar } from "lucide-react"
 import { toast } from "sonner"
-import { useSession } from "next-auth/react"
-
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha"
 
 const STATUS_OPTIONS: { value: StatusAbsensi; label: string }[] = [
@@ -29,7 +27,6 @@ const STATUS_COLORS: Record<StatusAbsensi, string> = {
 }
 
 export default function AbsensiPage() {
-  const { data: session } = useSession()
   const [kelasId, setKelasId] = useState("")
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split("T")[0])
   const [records, setRecords] = useState<Record<string, StatusAbsensi>>({})
@@ -46,7 +43,7 @@ export default function AbsensiPage() {
   const createAbsensi = api.absensi.create.useMutation()
   const updateAbsensi = api.absensi.update.useMutation()
 
-  const siswaDiKelas = (siswaAll || []).filter((s) => s.kelasId === kelasId)
+  const siswaDiKelas = useMemo(() => (siswaAll || []).filter((s) => s.kelasId === kelasId), [siswaAll, kelasId])
 
   useEffect(() => {
     if (absensiQuery.data && absensiQuery.data.length > 0) {
@@ -62,7 +59,7 @@ export default function AbsensiPage() {
       }
       setRecords(map)
     }
-  }, [absensiQuery.data, absensiQuery.isFetched, siswaDiKelas.length])
+  }, [absensiQuery.data, absensiQuery.isFetched, siswaDiKelas])
 
   useEffect(() => {
     setSiswaList(siswaDiKelas)
@@ -75,7 +72,7 @@ export default function AbsensiPage() {
         setRecords(map)
       }
     }
-  }, [kelasId, tanggal, siswaDiKelas])
+  }, [kelasId, tanggal, siswaDiKelas, absensiQuery.data, absensiQuery.isLoading])
 
   const updateStatus = useCallback((siswaId: string, status: StatusAbsensi) => {
     setRecords((prev) => ({ ...prev, [siswaId]: status }))

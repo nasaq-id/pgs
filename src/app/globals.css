@@ -123,8 +123,112 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(at 20% 20%, oklch(0.85 0.12 260) 0%, transparent 50%),
+      radial-gradient(at 80% 10%, oklch(0.88 0.08 300) 0%, transparent 50%),
+      radial-gradient(at 50% 80%, oklch(0.82 0.1 200) 0%, transparent 50%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
   }
+}
+
+@layer utilities {
+  .glass {
+    background: oklch(1 0 0 / 60%);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 30%);
+  }
+
+  .glass-strong {
+    background: oklch(1 0 0 / 75%);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 40%);
+  }
+
+  .glass-subtle {
+    background: oklch(1 0 0 / 40%);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 20%);
+  }
+
+  .glass-dark {
+    background: oklch(0.2 0 0 / 55%);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 10%);
+  }
+
+  .glass-card {
+    background: oklch(1 0 0 / 50%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 35%);
+    box-shadow:
+      0 4px 24px -4px oklch(0 0 0 / 6%),
+      inset 0 1px 0 oklch(1 0 0 / 50%);
+  }
+
+  .glass-nav-item {
+    transition: all 0.2s ease;
+  }
+  .glass-nav-item:hover {
+    background: oklch(1 0 0 / 50%);
+    box-shadow: 0 2px 12px -2px oklch(0 0 0 / 8%);
+  }
+
+  .glass-active {
+    background: oklch(0.205 0 0 / 90%);
+    color: oklch(0.985 0 0);
+    box-shadow:
+      0 2px 12px -2px oklch(0 0 0 / 20%),
+      inset 0 1px 0 oklch(1 0 0 / 10%);
+  }
+
+  .glass-glow {
+    box-shadow:
+      0 0 0 1px oklch(1 0 0 / 20%),
+      0 4px 24px -4px oklch(0.5 0.1 260 / 12%);
+  }
+
+  .glass-badge {
+    background: oklch(1 0 0 / 65%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid oklch(1 0 0 / 40%);
+    box-shadow: 0 2px 8px -2px oklch(0 0 0 / 6%);
+  }
+}
+
+.dark .glass,
+.dark .glass-strong,
+.dark .glass-card {
+  background: oklch(0.2 0 0 / 55%);
+  border-color: oklch(1 0 0 / 8%);
+}
+
+.dark .glass-subtle {
+  background: oklch(0.2 0 0 / 35%);
+  border-color: oklch(1 0 0 / 6%);
+}
+
+.dark .glass-nav-item:hover {
+  background: oklch(1 0 0 / 8%);
+}
+
+.dark .glass-active {
+  background: oklch(1 0 0 / 12%);
+  color: oklch(0.985 0 0);
+  box-shadow:
+    0 2px 12px -2px oklch(0 0 0 / 30%),
+    inset 0 1px 0 oklch(1 0 0 / 5%);
+}
+
+.dark .glass-badge {
+  background: oklch(0.2 0 0 / 60%);
+  border-color: oklch(1 0 0 / 8%);
 }

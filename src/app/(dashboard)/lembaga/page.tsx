@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useSession } from "next-auth/react"
-import { Building2, User, Mail, Globe, RefreshCw, ImageIcon, Pencil } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -13,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -54,7 +52,6 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function LembagaPage() {
-  const { data: session } = useSession()
   const { data: sekolah, isLoading } = api.lembaga.getSekolah.useQuery()
   const updateSekolah = api.lembaga.updateSekolah.useMutation()
   const utils = api.useUtils()

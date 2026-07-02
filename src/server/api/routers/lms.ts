@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, between, desc, asc, gte, lte } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jurnalMengajar, tugas, guru, kelas, mataPelajaran } from "@/server/db/schema"
+import { jurnalMengajar, tugas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const jurnalCreateSchema = z.object({
@@ -58,7 +58,7 @@ export const lmsRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const conditions = []
       if (input.guruId) conditions.push(eq(jurnalMengajar.guruId, input.guruId))
       if (input.kelasId) conditions.push(eq(jurnalMengajar.kelasId, input.kelasId))
@@ -84,7 +84,7 @@ export const lmsRouter = router({
 
   createJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(jurnalCreateSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(jurnalMengajar)
@@ -95,7 +95,7 @@ export const lmsRouter = router({
 
   updateJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: jurnalUpdateSchema }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
       })
@@ -110,7 +110,7 @@ export const lmsRouter = router({
 
   deleteJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
       })
@@ -132,7 +132,7 @@ export const lmsRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const conditions = []
       if (input.kelasId) conditions.push(eq(tugas.kelasId, input.kelasId))
       if (input.mapelId) conditions.push(eq(tugas.mataPelajaranId, input.mapelId))
@@ -152,7 +152,7 @@ export const lmsRouter = router({
 
   createTugas: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(tugasCreateSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(tugas)
@@ -163,7 +163,7 @@ export const lmsRouter = router({
 
   updateTugas: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: tugasUpdateSchema }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const existing = await db.query.tugas.findFirst({
         where: eq(tugas.id, input.id),
       })
@@ -178,7 +178,7 @@ export const lmsRouter = router({
 
   deleteTugas: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const existing = await db.query.tugas.findFirst({
         where: eq(tugas.id, input.id),
       })

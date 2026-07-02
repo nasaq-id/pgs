@@ -2,7 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server"
 import { auth } from "@/auth"
 import { db } from "@/server/db"
 
-export const createTRPCContext = async (opts: { req: Request }) => {
+export const createTRPCContext = async () => {
   const session = await auth()
 
   return {

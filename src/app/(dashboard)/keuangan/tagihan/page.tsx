@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { DollarSign, Plus, Search, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { DollarSign, Plus, Search, Loader2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {

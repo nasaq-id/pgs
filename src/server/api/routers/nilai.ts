@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, asc, inArray } from "drizzle-orm"
+import { eq, and, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { nilai, siswa, mataPelajaran, tahunAjaran } from "@/server/db/schema"
+import { nilai, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const nilaiCreateSchema = z.object({
@@ -30,7 +30,7 @@ export const nilaiRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const siswaDiKelas = await db
         .select({ id: siswa.id })
         .from(siswa)
@@ -51,7 +51,7 @@ export const nilaiRouter = router({
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(nilaiCreateSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(nilai).values({ ...input, id } as any).returning()
       return result[0]
@@ -59,7 +59,7 @@ export const nilaiRouter = router({
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: nilaiUpdateSchema }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const existing = await db.query.nilai.findFirst({
         where: eq(nilai.id, input.id),
       })

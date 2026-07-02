@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, sql, count } from "drizzle-orm"
+import { eq, and, like, or, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { siswa, kelas, sekolah, users } from "@/server/db/schema"
+import { siswa, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const siswaCreateSchema = z.object({
@@ -220,7 +220,7 @@ export const siswaRouter = router({
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
-      const { sekolahId: _, passwordSiswa, ...rest } = input.data
+      const { passwordSiswa, ...rest } = input.data
       let passwordHash = passwordSiswa || null
       if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
       const updateData = { ...rest, passwordSiswa: passwordHash || existing.passwordSiswa, updatedAt: new Date() }

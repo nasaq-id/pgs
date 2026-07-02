@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, asc, inArray, sql } from "drizzle-orm"
+import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, mataPelajaran, guru } from "@/server/db/schema"
+import { jadwalPelajaran, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const jadwalCreateSchema = z.object({

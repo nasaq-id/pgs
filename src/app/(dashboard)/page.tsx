@@ -1,8 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import Link from "next/link"
-import { Users, GraduationCap, BookOpen, ArrowRight } from "lucide-react"
+import { Users, GraduationCap, BookOpen } from "lucide-react"
 
 const statCards = [
   { label: "Total Siswa", value: "0", icon: Users, accent: "--chart-2" },
