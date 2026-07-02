@@ -166,17 +166,32 @@ export default function LembagaPage() {
           <InfoItem icon={Mail} label="Email Resmi" value={sekolah?.emailSekolah} />
           <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} isLink={true} href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined} />
           <InfoItem icon={MessageCircle} label="WhatsApp" value={sekolah?.whatsapp} isLink={true} href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined} />
-          {sekolah?.facebook && (
-            <InfoItem icon={FacebookIcon} label="Facebook" value={sekolah?.facebook} isLink={true} href={sekolah?.facebook?.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} />
-          )}
-          {sekolah?.instagram && (
-            <InfoItem icon={InstagramIcon} label="Instagram" value={sekolah?.instagram} isLink={true} href={sekolah?.instagram?.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} />
-          )}
-          {sekolah?.youtube && (
-            <InfoItem icon={YoutubeIcon} label="YouTube" value={sekolah?.youtube} isLink={true} href={sekolah?.youtube?.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} />
-          )}
-          {sekolah?.twitter && (
-            <InfoItem icon={TwitterIcon} label="X" value={sekolah?.twitter} isLink={true} href={sekolah?.twitter?.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} />
+          {(sekolah?.facebook || sekolah?.instagram || sekolah?.youtube || sekolah?.twitter) && (
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sosial Media</p>
+              <div className="flex items-center gap-2">
+                {sekolah?.facebook && (
+                  <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="Facebook">
+                    <FacebookIcon className="h-4 w-4 text-primary" />
+                  </a>
+                )}
+                {sekolah?.instagram && (
+                  <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="Instagram">
+                    <InstagramIcon className="h-4 w-4 text-primary" />
+                  </a>
+                )}
+                {sekolah?.youtube && (
+                  <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="YouTube">
+                    <YoutubeIcon className="h-4 w-4 text-primary" />
+                  </a>
+                )}
+                {sekolah?.twitter && (
+                  <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="X">
+                    <TwitterIcon className="h-4 w-4 text-primary" />
+                  </a>
+                )}
+              </div>
+            </div>
           )}
           </div>
         </CardContent>
