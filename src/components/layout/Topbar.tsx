@@ -150,7 +150,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl glass-badge cursor-pointer" onClick={() => setShowCalendar(!showCalendar)}>
+        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" onClick={() => setShowCalendar(!showCalendar)}>
           <CalendarDays className="h-3.5 w-3.5" />
           {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
         </div>
@@ -226,7 +226,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       {showCalendar && (
         <div
           ref={calendarRef}
-          className="absolute top-full right-0 mt-2 z-50 glass-card rounded-xl p-4 shadow-lg w-80 animate-fade-in"
+          className="absolute top-full right-0 mt-2 z-50 bg-card/95 backdrop-blur-xl border rounded-xl p-4 shadow-lg w-80 animate-fade-in"
         >
           <div className="flex items-center justify-between mb-4">
             <button onClick={prevMonth} className="p-1 rounded hover:bg-muted transition-colors">
