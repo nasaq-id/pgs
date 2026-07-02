@@ -1358,15 +1358,8 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Kode Pos</Label>
-                    <Select value={form.kodePosAyah} onValueChange={(v) => handleChange("kodePosAyah", v)} disabled={!kodePosAyah && !form.kodePosAyah}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={kodePosAyah || form.kodePosAyah || "Pilih Kode Pos"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(kodePosAyah || form.kodePosAyah) ? <SelectItem value={kodePosAyah || form.kodePosAyah}>{kodePosAyah || form.kodePosAyah}</SelectItem> : null}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="kodePosAyah">Kode Pos</Label>
+                    <Input id="kodePosAyah" maxLength={5} value={form.kodePosAyah} onChange={(e) => handleChange("kodePosAyah", e.target.value.replace(/\D/g, ""))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1467,13 +1460,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label>Kode Pos</Label>
-                        <Select value={form.kodePosIbu} onValueChange={(v) => handleChange("kodePosIbu", v)} disabled={!kodePosIbu && !form.kodePosIbu}>
-                          <SelectTrigger>
-                            <SelectValue placeholder={kodePosIbu || form.kodePosIbu || "Pilih Kode Pos"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(kodePosIbu || form.kodePosIbu) ? <SelectItem value={kodePosIbu || form.kodePosIbu}>{kodePosIbu || form.kodePosIbu}</SelectItem> : null}
-                          </SelectContent>
+                        <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} />
                         </Select>
                       </div>
                     </div>
