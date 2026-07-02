@@ -1,9 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Link2, Hash } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+
+const FacebookIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+)
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+)
+
+const YoutubeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98" fill="var(--background)"/></svg>
+)
+
+const TwitterIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+)
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/trpc/client"
@@ -43,7 +60,7 @@ function InfoItem({ icon: Icon, label, value, isLink = false, href }: { icon: Re
         ) : (
           <p className="text-sm font-medium text-foreground break-all">{value || "—"}</p>
         )}
-      </div>
+        </div>
     </div>
   )
 }
@@ -116,8 +133,9 @@ export default function LembagaPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col items-center gap-5">
-        <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
+      <Card className="lg:col-span-2 glass-card rounded-2xl">
+        <CardContent className="flex flex-col items-center gap-5 pt-6">
+          <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
           <ImageIcon className="h-10 w-10 text-muted-foreground" />
         </div>
         <div className="text-center">
@@ -149,32 +167,34 @@ export default function LembagaPage() {
           <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} isLink={true} href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined} />
           <InfoItem icon={MessageCircle} label="WhatsApp" value={sekolah?.whatsapp} isLink={true} href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined} />
           {sekolah?.facebook && (
-            <InfoItem icon={Link2} label="Facebook" value={sekolah?.facebook} isLink={true} href={sekolah?.facebook?.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} />
+            <InfoItem icon={FacebookIcon} label="Facebook" value={sekolah?.facebook} isLink={true} href={sekolah?.facebook?.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} />
           )}
           {sekolah?.instagram && (
-            <InfoItem icon={Link2} label="Instagram" value={sekolah?.instagram} isLink={true} href={sekolah?.instagram?.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} />
+            <InfoItem icon={InstagramIcon} label="Instagram" value={sekolah?.instagram} isLink={true} href={sekolah?.instagram?.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} />
           )}
           {sekolah?.youtube && (
-            <InfoItem icon={Link2} label="YouTube" value={sekolah?.youtube} isLink={true} href={sekolah?.youtube?.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} />
+            <InfoItem icon={YoutubeIcon} label="YouTube" value={sekolah?.youtube} isLink={true} href={sekolah?.youtube?.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} />
           )}
           {sekolah?.twitter && (
-            <InfoItem icon={Link2} label="X (Twitter)" value={sekolah?.twitter} isLink={true} href={sekolah?.twitter?.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} />
+            <InfoItem icon={TwitterIcon} label="X" value={sekolah?.twitter} isLink={true} href={sekolah?.twitter?.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} />
           )}
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="lg:col-span-3 glass-card rounded-2xl p-6 flex flex-col">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+      <Card className="lg:col-span-3 glass-card rounded-2xl">
+        <CardHeader className="flex-row items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />
-            <h3 className="text-xs font-black text-foreground uppercase tracking-widest">
+            <CardTitle className="text-xs font-black uppercase tracking-widest">
               Detail Identitas Lembaga
-            </h3>
+            </CardTitle>
           </div>
           <Button variant="outline" size="sm" onClick={openEdit} className="gap-2">
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
-        </div>
+        </CardHeader>
+        <CardContent>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 flex-1">
           <DetailRow label="Jenjang" value={sekolah?.jenjang ? (jenjangMap[sekolah.jenjang] || sekolah.jenjang) : "—"} />
@@ -194,7 +214,8 @@ export default function LembagaPage() {
             Status: Data Tersimpan
           </span>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
