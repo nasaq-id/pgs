@@ -1,0 +1,1 @@
+ALTER TABLE "siswa" ADD COLUMN "password_siswa" text;

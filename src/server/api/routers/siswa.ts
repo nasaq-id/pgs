@@ -2,7 +2,8 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc, sql, count } from "drizzle-orm"
 import { db } from "@/server/db"
-import { siswa, kelas, sekolah } from "@/server/db/schema"
+import bcrypt from "bcryptjs"
+import { siswa, kelas, sekolah, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const siswaCreateSchema = z.object({
@@ -93,6 +94,7 @@ const siswaCreateSchema = z.object({
   transportasiKeSekolah: z.string().nullable().optional(),
   waktuTempuhKeSekolah: z.string().nullable().optional(),
   usernameSiswa: z.string().nullable().optional(),
+  passwordSiswa: z.string().nullable().optional(),
   sekolahAsal: z.string().nullable().optional(),
   diterimaPadaTanggal: z.date().nullable().optional(),
   noHpWhatsapp: z.string().nullable().optional(),
@@ -156,8 +158,24 @@ export const siswaRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
       const id = input.id || crypto.randomUUID()
-      const data = { ...input, id, sekolahId, updatedAt: new Date() }
+      let passwordHash = input.passwordSiswa || null
+      if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
+      const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
       const result = await db.insert(siswa).values(data as any).returning()
+      if (passwordHash) {
+        const email = input.usernameSiswa || input.nisn
+        const nameParts = (input.namaLengkap || "").split(" ")
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          email,
+          firstName: nameParts[0] || "",
+          lastName: nameParts.slice(1).join(" ") || "",
+          password: passwordHash,
+          role: "siswa",
+          sekolahId,
+          active: true,
+        }).execute().catch(() => {})
+      }
       return result[0]
     }),
 
@@ -202,12 +220,23 @@ export const siswaRouter = router({
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
-      const { sekolahId: _, ...safeData } = input.data
+      const { sekolahId: _, passwordSiswa, ...rest } = input.data
+      let passwordHash = passwordSiswa || null
+      if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
+      const updateData = { ...rest, passwordSiswa: passwordHash || existing.passwordSiswa, updatedAt: new Date() }
       const result = await db
         .update(siswa)
-        .set({ ...safeData, updatedAt: new Date() })
+        .set(updateData)
         .where(and(...conditions))
         .returning()
+      if (passwordHash) {
+        const email = input.data.usernameSiswa || existing.nisn || existing.usernameSiswa || ""
+        await db
+          .update(users)
+          .set({ password: passwordHash, firstName: rest.namaLengkap?.split(" ")[0] || "", lastName: rest.namaLengkap?.split(" ").slice(1).join(" ") || "" })
+          .where(eq(users.email, email))
+          .execute().catch(() => {})
+      }
       return result[0]
     }),
 

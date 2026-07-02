@@ -15,6 +15,13 @@
       "when": 1782970913834,
       "tag": "0001_shallow_domino",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782973981106,
+      "tag": "0002_add-password-siswa",
+      "breakpoints": true
     }
   ]
 }

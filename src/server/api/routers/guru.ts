@@ -2,7 +2,8 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { guru, sekolah } from "@/server/db/schema"
+import bcrypt from "bcryptjs"
+import { guru, sekolah, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const guruCreateSchema = z.object({
@@ -89,7 +90,23 @@ export const guruRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
       const id = input.id || crypto.randomUUID()
-      const result = await db.insert(guru).values({ ...input, id, sekolahId } as any).returning()
+      let passwordHash = input.passwordGuru || null
+      if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
+      const result = await db.insert(guru).values({ ...input, id, passwordGuru: passwordHash, sekolahId } as any).returning()
+      if (passwordHash) {
+        const email = input.usernameGuru || input.email || input.nipnuptk || ""
+        const nameParts = (input.namaLengkap || "").split(" ")
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          email,
+          firstName: nameParts[0] || "",
+          lastName: nameParts.slice(1).join(" ") || "",
+          password: passwordHash,
+          role: "guru",
+          sekolahId,
+          active: true,
+        }).execute().catch(() => {})
+      }
       return result[0]
     }),
 
@@ -134,12 +151,23 @@ export const guruRouter = router({
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
-      const { sekolahId: _, ...safeData } = input.data
+      const { sekolahId: _, passwordGuru, ...rest } = input.data
+      let passwordHash = passwordGuru || null
+      if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
+      const updateData = { ...rest, passwordGuru: passwordHash || existing.passwordGuru, updatedAt: new Date() }
       const result = await db
         .update(guru)
-        .set({ ...safeData, updatedAt: new Date() })
+        .set(updateData)
         .where(and(...conditions))
         .returning()
+      if (passwordHash) {
+        const email = input.data.usernameGuru || existing.email || existing.usernameGuru || existing.nipnuptk || ""
+        await db
+          .update(users)
+          .set({ password: passwordHash, firstName: rest.namaLengkap?.split(" ")[0] || "", lastName: rest.namaLengkap?.split(" ").slice(1).join(" ") || "" })
+          .where(eq(users.email, email))
+          .execute().catch(() => {})
+      }
       return result[0]
     }),
 
