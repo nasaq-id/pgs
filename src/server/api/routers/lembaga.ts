@@ -37,6 +37,7 @@ export const lembagaRouter = router({
       youtube: z.string().optional(),
       twitter: z.string().optional(),
       akreditasi: z.string().optional(),
+      logo: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

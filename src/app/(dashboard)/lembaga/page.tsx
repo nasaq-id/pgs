@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash } from "lucide-react"
+import { useState, useRef } from "react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -81,6 +81,20 @@ export default function LembagaPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
+  const [logoPreview, setLogoPreview] = useState("")
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string
+      setLogoPreview(url)
+      setForm({ ...form, logo: url })
+    }
+    reader.readAsDataURL(file)
+  }
 
   const openEdit = () => {
     if (sekolah) {
@@ -102,7 +116,9 @@ export default function LembagaPage() {
         youtube: sekolah.youtube || "",
         twitter: sekolah.twitter || "",
         akreditasi: sekolah.akreditasi || "",
+        logo: sekolah.logo || "",
       })
+      setLogoPreview(sekolah.logo || "")
     }
     setEditOpen(true)
   }
@@ -136,8 +152,12 @@ export default function LembagaPage() {
       <Card className="lg:col-span-2 glass-card rounded-2xl">
         <CardContent className="flex flex-col items-center gap-5 pt-6">
           <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
-          <ImageIcon className="h-10 w-10 text-muted-foreground" />
-        </div>
+            {sekolah?.logo ? (
+              <img src={sekolah.logo} alt="Logo sekolah" className="w-full h-full object-cover" />
+            ) : (
+              <ImageIcon className="h-10 w-10 text-muted-foreground" />
+            )}
+          </div>
         <div className="text-center">
           <h2 className="text-xl font-black text-foreground uppercase tracking-wide">
             {sekolah?.namaSekolah || "—"}
@@ -236,6 +256,28 @@ export default function LembagaPage() {
             <DialogTitle>Edit Profil Lembaga</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => logoInputRef.current?.click()}
+              >
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo sekolah" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <Camera className="h-6 w-6" />
+                    <span className="text-[10px] font-medium">Upload</span>
+                  </div>
+                )}
+              </div>
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+              {logoPreview && (
+                <button type="button" onClick={() => { setLogoPreview(""); setForm({ ...form, logo: "" }) }} className="text-xs text-destructive hover:underline">
+                  Hapus foto
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground">Klik lingkaran untuk upload foto/logo sekolah</p>
+            </div>
             <div className="space-y-2">
               <Label>Nama Sekolah</Label>
               <Input value={form.namaSekolah || ""} onChange={(e) => setForm({ ...form, namaSekolah: e.target.value })} />
