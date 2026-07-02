@@ -36,14 +36,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-500/10 via-background to-slate-500/10" />
-      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-slate-400/10 blur-3xl" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-background to-primary/5" />
+      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
 
       <div className="w-full max-w-md glass-card rounded-3xl p-8 space-y-8">
         <div className="text-center space-y-3">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20">
-            <GraduationCap className="h-7 w-7 text-white" />
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm shadow-primary/20">
+            <GraduationCap className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">EduManage</h1>
@@ -60,7 +60,7 @@ export default function LoginPage() {
               type="email"
               placeholder="admin@demo.com"
               required
-              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200"
             />
           </div>
           <div className="space-y-2">
@@ -71,7 +71,7 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               required
-              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
+              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200"
             />
           </div>
 
@@ -84,7 +84,9 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-sm shadow-blue-600/20 hover:shadow-blue-600/30 transition-all duration-200"
+            variant="default"
+            size="lg"
+            className="w-full h-11 rounded-xl font-semibold shadow-sm shadow-primary/20 transition-all duration-200"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
