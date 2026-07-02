@@ -7,7 +7,7 @@ export const siswa = pgTable("siswa", {
   id: text("id").primaryKey(),
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   kelasId: text("kelas_id").references(() => kelas.id, { onDelete: "set null" }),
-  nisn: text("nisn").notNull(),
+  nisn: text("nisn"),
   nisLokal: text("nis_lokal"),
   namaLengkap: text("nama_lengkap").notNull(),
   jenisKelamin: text("jenis_kelamin", { enum: ["L", "P"] }),

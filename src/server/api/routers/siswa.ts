@@ -158,27 +158,33 @@ export const siswaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-      const id = input.id || crypto.randomUUID()
-      let passwordHash = input.passwordSiswa || null
-      if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
-      const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
-      const result = await db.insert(siswa).values(data as any).returning()
-      if (passwordHash) {
-        const email = input.usernameSiswa || input.nisn || ""
-        const nameParts = (input.namaLengkap || "").split(" ")
-        await db.insert(users).values({
-          id: crypto.randomUUID(),
-          email,
-          firstName: nameParts[0] || "",
-          lastName: nameParts.slice(1).join(" ") || "",
-          password: passwordHash,
-          role: "siswa",
-          sekolahId,
-          active: true,
-        }).execute()
+      try {
+        const id = input.id || crypto.randomUUID()
+        let passwordHash = input.passwordSiswa || null
+        if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
+        const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
+        const result = await db.insert(siswa).values(data as any).returning()
+        if (passwordHash) {
+          const email = input.usernameSiswa || input.nisn || ""
+          const nameParts = (input.namaLengkap || "").split(" ")
+          await db.insert(users).values({
+            id: crypto.randomUUID(),
+            email,
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(" ") || "",
+            password: passwordHash,
+            role: "siswa",
+            sekolahId,
+            active: true,
+          }).execute()
+        }
+        await logAudit(ctx, { action: "create", entity: "siswa", entityId: result[0]?.id, metadata: { nisn: input.nisn } })
+        return result[0]
+      } catch (error) {
+        console.error("Gagal membuat siswa:", error)
+        if (error instanceof TRPCError) throw error
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Gagal menyimpan data siswa. Periksa kembali isian Anda." })
       }
-      await logAudit(ctx, { action: "create", entity: "siswa", entityId: result[0]?.id, metadata: { nisn: input.nisn } })
-      return result[0]
     }),
 
   bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])

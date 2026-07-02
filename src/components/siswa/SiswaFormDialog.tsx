@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Loader2, Camera, User, Eye, EyeOff } from "lucide-react"
-import { useProvinsi, useKabupatenKota, useKecamatan, useKelurahan } from "@/hooks/useWilayah"
+import { useProvinsi, useKabupatenKota, useKecamatan, useKelurahan, useKodePos } from "@/hooks/useWilayah"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { statusTempatTinggalOptions, jarakTempatTinggalOptions, waktuTempuhOptions } from "@/data/wilayah-indonesia"
@@ -128,7 +128,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.success("Data siswa berhasil ditambahkan")
       onSuccess()
     },
-    onError: (err) => toast.error(err.message || "Gagal menyimpan data siswa"),
+    onError: (err) => {
+      console.error("Create siswa error:", err)
+      toast.error(err.message || "Gagal menyimpan data siswa. Periksa kembali isian Anda.", { duration: 6000 })
+    },
   })
 
   const updateMutation = api.siswa.update.useMutation({
@@ -136,7 +139,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.success("Data siswa berhasil diperbarui")
       onSuccess()
     },
-    onError: (err) => toast.error(err.message || "Gagal memperbarui data siswa"),
+    onError: (err) => {
+      console.error("Update siswa error:", err)
+      toast.error(err.message || "Gagal memperbarui data siswa. Periksa kembali isian Anda.", { duration: 6000 })
+    },
   })
 
   const isSaving = createMutation.isPending || updateMutation.isPending
@@ -152,6 +158,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const { data: kelurahanAyahOptions = [], isLoading: loadingKelAyah } = useKelurahan(form.kecamatanAyah)
   const { data: kelurahanIbuOptions = [], isLoading: loadingKelIbu } = useKelurahan(form.kecamatanIbu)
   const { data: kelurahanWaliOptions = [], isLoading: loadingKelWali } = useKelurahan(form.kecamatanWali)
+  const { data: kodePosAyah = "" } = useKodePos(form.kelurahanDesaAyah)
+  const { data: kodePosIbu = "" } = useKodePos(form.kelurahanDesaIbu)
+  const { data: kodePosWali = "" } = useKodePos(form.kelurahanDesaWali)
 
   const isAyahNotAlive = form.statusAyah === "Sudah Meninggal" || form.statusAyah === "Tidak Diketahui"
   const isIbuNotAlive = form.statusIbu === "Sudah Meninggal" || form.statusIbu === "Tidak Diketahui"
@@ -162,6 +171,24 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const alamatIbuTerisiOtomatis = form.alamatIbuSamaDenganAyah === "true"
 
   const emailError = form.emailSiswa && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailSiswa) ? "Format email tidak valid" : ""
+
+  useEffect(() => {
+    if (kodePosAyah && form.kelurahanDesaAyah) {
+      setForm((prev) => ({ ...prev, kodePosAyah: kodePosAyah }))
+    }
+  }, [kodePosAyah])
+
+  useEffect(() => {
+    if (kodePosIbu && form.kelurahanDesaIbu) {
+      setForm((prev) => ({ ...prev, kodePosIbu: kodePosIbu }))
+    }
+  }, [kodePosIbu])
+
+  useEffect(() => {
+    if (kodePosWali && form.kelurahanDesaWali) {
+      setForm((prev) => ({ ...prev, kodePosWali: kodePosWali }))
+    }
+  }, [kodePosWali])
 
   useEffect(() => {
     if (open) {
@@ -1331,8 +1358,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="kodePosAyah">Kode Pos</Label>
-                    <Input id="kodePosAyah" maxLength={5} value={form.kodePosAyah} onChange={(e) => handleChange("kodePosAyah", e.target.value.replace(/\D/g, ""))} />
+                    <Label>Kode Pos</Label>
+                    <Select value={form.kodePosAyah} onValueChange={(v) => handleChange("kodePosAyah", v)} disabled={!form.kelurahanDesaAyah}>
+                      <SelectTrigger className={form.kodePosAyah ? "" : "text-muted-foreground"}>
+                        <SelectValue placeholder="Pilih Kode Pos">{form.kodePosAyah || "Pilih Kode Pos"}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {kodePosAyah ? <SelectItem value={kodePosAyah}>{kodePosAyah}</SelectItem> : null}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1432,8 +1466,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kodePosIbu">Kode Pos</Label>
-                        <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} />
+                        <Label>Kode Pos</Label>
+                        <Select value={form.kodePosIbu} onValueChange={(v) => handleChange("kodePosIbu", v)} disabled={!form.kelurahanDesaIbu}>
+                          <SelectTrigger className={form.kodePosIbu ? "" : "text-muted-foreground"}>
+                            <SelectValue placeholder="Pilih Kode Pos">{form.kodePosIbu || "Pilih Kode Pos"}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {kodePosIbu ? <SelectItem value={kodePosIbu}>{kodePosIbu}</SelectItem> : null}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1542,8 +1583,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kodePosWali">Kode Pos</Label>
-                        <Input id="kodePosWali" maxLength={5} value={form.kodePosWali} onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))} />
+                        <Label>Kode Pos</Label>
+                        <Select value={form.kodePosWali} onValueChange={(v) => handleChange("kodePosWali", v)} disabled={!form.kelurahanDesaWali}>
+                          <SelectTrigger className={form.kodePosWali ? "" : "text-muted-foreground"}>
+                            <SelectValue placeholder="Pilih Kode Pos">{form.kodePosWali || "Pilih Kode Pos"}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {kodePosWali ? <SelectItem value={kodePosWali}>{kodePosWali}</SelectItem> : null}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

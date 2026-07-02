@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
 const BASE_URL = "https://www.emsifa.com/api-wilayah-indonesia/api"
+const KODE_POS_URL = "https://wilayah-id-restapi.vercel.app/api/v1/postal-codes"
 
 function normalizeName(name: string) {
   return name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
@@ -75,6 +76,25 @@ export function useKelurahan(kecamatanId?: string) {
       return toOptions(data)
     },
     enabled: !!kecamatanId,
+    staleTime: 24 * 60 * 60 * 1000,
+  })
+}
+
+interface KodePosResponse {
+  data: { kode_desa: string; nama_desa: string; kode_pos: string; status: string; confidence: string }[]
+}
+
+export function useKodePos(kelurahanId?: string) {
+  return useQuery({
+    queryKey: ["kode-pos", kelurahanId],
+    queryFn: async () => {
+      if (!kelurahanId) return ""
+      const res = await fetch(`${KODE_POS_URL}?village_code=${kelurahanId}`)
+      if (!res.ok) return ""
+      const json: KodePosResponse = await res.json()
+      return json.data?.[0]?.kode_pos || ""
+    },
+    enabled: !!kelurahanId,
     staleTime: 24 * 60 * 60 * 1000,
   })
 }
