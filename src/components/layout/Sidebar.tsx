@@ -10,6 +10,14 @@ import {
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown,
   Trophy, Megaphone, DoorOpen,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 interface MenuItem {
   icon: React.ElementType
@@ -52,6 +60,7 @@ interface SidebarProps { onClose?: () => void }
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     menuItems.forEach(item => {
@@ -168,7 +177,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       <div className="px-3 py-3">
         <button
-          onClick={() => signOut()}
+          onClick={() => setLogoutOpen(true)}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-muted-foreground glass-nav-item hover:text-destructive group"
         >
           <div className="h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted/50 group-hover:bg-destructive/10 transition-all duration-200">
@@ -177,6 +186,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <span>Keluar</span>
         </button>
       </div>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Keluar</DialogTitle>
+            <DialogDescription>
+              Apakah kamu yakin ingin keluar? Kamu akan kembali ke halaman login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setLogoutOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={() => { signOut(); setLogoutOpen(false) }}>
+              Ya, Keluar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
