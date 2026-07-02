@@ -91,7 +91,10 @@ export default function LembagaPage() {
   }
 
   const handleSave = async () => {
-    await updateSekolah.mutateAsync(form)
+    const cleanForm = Object.fromEntries(
+      Object.entries(form).filter(([_, v]) => v !== "")
+    )
+    await updateSekolah.mutateAsync(cleanForm)
     utils.lembaga.getSekolah.invalidate()
     setEditOpen(false)
   }
