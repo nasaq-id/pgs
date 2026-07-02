@@ -88,12 +88,12 @@ export default function LembagaPage() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 space-y-4">
           <Skeleton className="h-28 w-28 rounded-full mx-auto" />
           <Skeleton className="h-6 w-40 mx-auto" />
           <Skeleton className="h-4 w-28 mx-auto" />
         </div>
-        <div className="lg:col-span-3 bg-card rounded-2xl border border-border p-6 space-y-4">
+        <div className="lg:col-span-3 glass-card rounded-2xl p-6 space-y-4">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function LembagaPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-6 flex flex-col items-center gap-5">
+      <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col items-center gap-5">
         <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
           <ImageIcon className="h-10 w-10 text-muted-foreground" />
         </div>
@@ -136,7 +136,7 @@ export default function LembagaPage() {
         </div>
       </div>
 
-      <div className="lg:col-span-3 bg-card rounded-2xl border border-border p-6 flex flex-col">
+      <div className="lg:col-span-3 glass-card rounded-2xl p-6 flex flex-col">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />

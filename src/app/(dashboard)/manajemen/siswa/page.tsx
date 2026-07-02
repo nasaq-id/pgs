@@ -271,7 +271,7 @@ export default function SiswaPage() {
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border border-border p-4">
+      <div className="glass-card rounded-xl p-4">
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="flex-1 flex items-center gap-2">
             <Search className="h-5 w-5 text-muted-foreground shrink-0" />

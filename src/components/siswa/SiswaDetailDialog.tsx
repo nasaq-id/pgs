@@ -191,7 +191,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
         ) : (
           <div ref={printRef} className="space-y-4 pb-2">
             <div className="flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-              <div className="w-20 h-24 rounded-xl border-2 border-white/40 overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 shadow-lg">
+              <div className="w-20 h-24 rounded-xl border-2 border-white/40 overflow-hidden glass-subtle flex items-center justify-center flex-shrink-0">
                 {siswa.foto ? (
                   <img src={siswa.foto} alt={siswa.namaLengkap} className="w-full h-full object-cover" />
                 ) : (
@@ -212,7 +212,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
                       {siswa.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}
                     </Badge>
                   )}
-                  {siswa.agama && <Badge className="text-xs bg-white/20 text-white">{siswa.agama}</Badge>}
+                  {siswa.agama && <Badge className="text-xs glass-subtle text-white">{siswa.agama}</Badge>}
                 </div>
               </div>
             </div>

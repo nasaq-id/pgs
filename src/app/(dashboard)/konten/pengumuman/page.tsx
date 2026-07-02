@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
+
 import {
   Table,
   TableBody,
@@ -185,7 +185,7 @@ export default function PengumumanPage() {
         <p className="text-sm text-muted-foreground">Kelola pengumuman sekolah</p>
       </div>
 
-      <Card className="p-5">
+      <div className="glass-card rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -265,12 +265,12 @@ export default function PengumumanPage() {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
 
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-background rounded-lg shadow-xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">
+          <div className="glass-dialog rounded-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4">
               <h3 className="font-semibold text-foreground">
                 {formData.id ? "Edit Pengumuman" : "Buat Pengumuman"}
               </h3>
@@ -342,7 +342,7 @@ export default function PengumumanPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
+            <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer">
               <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
                 Batal
               </Button>

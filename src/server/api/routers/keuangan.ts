@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { tagihanSpp } from "@/server/db/schema"
+import { tagihanSpp, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 
 const tagihanCreateSchema = z.object({
@@ -22,6 +22,12 @@ const tagihanUpdateSchema = z.object({
   jumlah: z.number().optional(),
 })
 
+function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
+  const { role, sekolahId } = ctx.session.user
+  if (role === "super_admin") return null
+  return sekolahId ?? null
+}
+
 export const keuanganRouter = router({
   getBySiswa: protectedProcedure
     .input(
@@ -34,7 +40,16 @@ export const keuanganRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      if (sekolahIdFilter) {
+        const siswaRecord = await db.query.siswa.findFirst({
+          where: eq(siswa.id, input.siswaId),
+        })
+        if (!siswaRecord || siswaRecord.sekolahId !== sekolahIdFilter) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+        }
+      }
       const conditions = [eq(tagihanSpp.siswaId, input.siswaId)]
       if (input.tahun) conditions.push(eq(tagihanSpp.tahun, input.tahun))
       const orderBy = input.sortOrder === "asc" ? asc(tagihanSpp[input.sortBy]) : desc(tagihanSpp[input.sortBy])
@@ -50,7 +65,16 @@ export const keuanganRouter = router({
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(tagihanCreateSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      if (sekolahIdFilter) {
+        const siswaRecord = await db.query.siswa.findFirst({
+          where: and(eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahIdFilter)),
+        })
+        if (!siswaRecord) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Siswa tidak berada di sekolah Anda" })
+        }
+      }
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(tagihanSpp)
@@ -61,11 +85,16 @@ export const keuanganRouter = router({
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: tagihanUpdateSchema }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const existing = await db.query.tagihanSpp.findFirst({
         where: eq(tagihanSpp.id, input.id),
+        with: { siswa: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tagihan tidak ditemukan" })
+      if (sekolahIdFilter && existing.siswa?.sekolahId !== sekolahIdFilter) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tagihan tidak ditemukan" })
+      }
       const result = await db
         .update(tagihanSpp)
         .set(input.data as any)

@@ -198,7 +198,7 @@ export default function TugasFormDialog({ item, open, onClose, onSaved, defaultG
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-3 border-t bg-card flex-shrink-0">
+        <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Batal</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

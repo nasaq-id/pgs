@@ -20,7 +20,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {sidebarOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 z-40 lg:hidden glass-overlay"
             onClick={() => setSidebarOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 z-50 w-64 p-2 py-2 lg:hidden animate-in slide-in-from-left duration-300">

@@ -17,7 +17,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-card rounded-2xl border border-border p-6 flex items-center gap-5 shadow-sm">
+      <div className="glass-card rounded-2xl p-6 flex items-center gap-5">
         <span className="text-4xl select-none">👋</span>
         <div>
           <h2 className="text-xl font-bold text-foreground">
@@ -33,7 +33,7 @@ export default function Dashboard() {
         {statCards.map((s) => {
           const Icon = s.icon
           return (
-            <div key={s.label} className="bg-card rounded-2xl border border-border p-5 flex items-center gap-4 shadow-sm">
+            <div key={s.label} className="glass-card rounded-2xl p-5 flex items-center gap-4">
               <div
                 className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `hsl(var(${s.accent}) / 0.15)` }}
@@ -49,7 +49,7 @@ export default function Dashboard() {
         })}
       </div>
 
-      <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+      <div className="glass-card rounded-2xl p-6">
         <h3 className="font-semibold text-foreground">Modul Tersedia</h3>
         <p className="text-sm text-muted-foreground mt-1">
           Gunakan menu sidebar untuk mengakses modul Siswa, Guru, Akademik, LMS, dan lainnya.

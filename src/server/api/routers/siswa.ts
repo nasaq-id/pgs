@@ -174,7 +174,7 @@ export const siswaRouter = router({
           role: "siswa",
           sekolahId,
           active: true,
-        }).execute().catch(() => {})
+        }).execute()
       }
       return result[0]
     }),
@@ -187,13 +187,31 @@ export const siswaRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
       const now = new Date()
-      const values = input.data.map((d) => ({
-        ...d,
-        id: d.id || crypto.randomUUID(),
-        sekolahId,
-        updatedAt: now,
-      }))
+      const usersToCreate: any[] = []
+      const values = input.data.map((d) => {
+        const id = d.id || crypto.randomUUID()
+        let passwordHash = d.passwordSiswa || null
+        if (passwordHash) passwordHash = bcrypt.hashSync(passwordHash, 12)
+        if (passwordHash) {
+          const email = d.usernameSiswa || d.nisn
+          const nameParts = (d.namaLengkap || "").split(" ")
+          usersToCreate.push({
+            id: crypto.randomUUID(),
+            email,
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(" ") || "",
+            password: passwordHash,
+            role: "siswa",
+            sekolahId,
+            active: true,
+          })
+        }
+        return { ...d, id, sekolahId, passwordSiswa: passwordHash, updatedAt: now }
+      })
       const result = await db.insert(siswa).values(values as any).returning()
+      for (const u of usersToCreate) {
+        await db.insert(users).values(u).execute()
+      }
       return result
     }),
 

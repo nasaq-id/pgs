@@ -80,7 +80,7 @@ export default function TahunAjaranPage() {
         </Button>
       </div>
 
-      <div className="bg-card rounded-2xl border border-border shadow-sm">
+      <div className="glass-card rounded-2xl">
         {isLoading ? (
           <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
         ) : !list?.length ? (

@@ -5,7 +5,7 @@ import { X, Plus, Pencil, Trash2, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
+
 import {
   Table,
   TableBody,
@@ -90,9 +90,9 @@ function RuangKelasFormDialog({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-background rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">
+      <div className="glass-dialog rounded-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4">
           <h3 className="font-semibold text-foreground">Form Ruang Kelas</h3>
           <button
             onClick={onClose}
@@ -125,7 +125,7 @@ function RuangKelasFormDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
+        <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Batal
           </Button>
@@ -207,7 +207,7 @@ export default function RuangKelasPage() {
         <p className="text-sm text-muted-foreground">Kelola data ruang kelas</p>
       </div>
 
-      <Card className="p-5">
+      <div className="glass-card rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -287,7 +287,7 @@ export default function RuangKelasPage() {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
 
       <RuangKelasFormDialog
         open={formOpen}

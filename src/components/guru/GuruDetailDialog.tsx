@@ -166,7 +166,7 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
           <div ref={printRef} className="space-y-5 pb-2">
             <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white">
               <div className="flex items-center gap-5">
-                <div className="h-20 w-20 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0 shadow-lg">
+                <div className="h-20 w-20 rounded-full border-2 border-white/50 overflow-hidden glass-subtle flex items-center justify-center flex-shrink-0">
                   {guru.foto ? (
                     <img src={guru.foto} alt="Foto guru" className="h-full w-full object-cover" />
                   ) : (
@@ -179,7 +179,7 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
                     {guru.tugasUtama || "-"} {guru.statusKepegawaian ? `· ${guru.statusKepegawaian}` : ""}
                   </p>
                   <div className="flex gap-2 mt-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold glass-subtle text-white">
                       {guru.kategoriPegawai || "Guru"}
                     </span>
                     <span
