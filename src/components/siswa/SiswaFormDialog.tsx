@@ -648,7 +648,6 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     className="bg-muted text-muted-foreground cursor-not-allowed"
                     placeholder="Otomatis dari NIS"
                   />
-                  <p className="text-xs text-muted-foreground">Otomatis terisi dari NIS</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="passwordSiswa">Password Siswa {!isEdit && "*"}</Label>
