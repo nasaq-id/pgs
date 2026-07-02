@@ -156,7 +156,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200">
+          <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
@@ -204,7 +204,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             href={`https://wa.me/62${whatsappNumber.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
+            className="rounded-xl h-9 w-9 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-foreground/[0.06] transition-all duration-200"
             title="Hubungi Admin via WhatsApp"
           >
             <MessageCircle className="h-4 w-4" />
