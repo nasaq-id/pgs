@@ -1,0 +1,2236 @@
+{
+  "id": "e4b702d6-5af1-4a1b-a554-d326d153c7aa",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.absensi_siswa": {
+      "name": "absensi_siswa",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "siswa_id": {
+          "name": "siswa_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "absensi_siswa_siswa_id_siswa_id_fk": {
+          "name": "absensi_siswa_siswa_id_siswa_id_fk",
+          "tableFrom": "absensi_siswa",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "siswa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "absensi_siswa_kelas_id_kelas_id_fk": {
+          "name": "absensi_siswa_kelas_id_kelas_id_fk",
+          "tableFrom": "absensi_siswa",
+          "tableTo": "kelas",
+          "columnsFrom": [
+            "kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ekstrakurikuler": {
+      "name": "ekstrakurikuler",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_ekskul": {
+          "name": "nama_ekskul",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pembina_id": {
+          "name": "pembina_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deskripsi": {
+          "name": "deskripsi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hari": {
+          "name": "hari",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jam": {
+          "name": "jam",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ekstrakurikuler_sekolah_id_sekolah_id_fk": {
+          "name": "ekstrakurikuler_sekolah_id_sekolah_id_fk",
+          "tableFrom": "ekstrakurikuler",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ekstrakurikuler_pembina_id_guru_id_fk": {
+          "name": "ekstrakurikuler_pembina_id_guru_id_fk",
+          "tableFrom": "ekstrakurikuler",
+          "tableTo": "guru",
+          "columnsFrom": [
+            "pembina_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.guru": {
+      "name": "guru",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nipnuptk": {
+          "name": "nipnuptk",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nik": {
+          "name": "nik",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_lengkap": {
+          "name": "nama_lengkap",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_kelamin": {
+          "name": "jenis_kelamin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempat_lahir": {
+          "name": "tempat_lahir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_lahir": {
+          "name": "tanggal_lahir",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat": {
+          "name": "alamat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp": {
+          "name": "no_hp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pendidikan_terakhir": {
+          "name": "pendidikan_terakhir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_kepegawaian": {
+          "name": "status_kepegawaian",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kategori_pegawai": {
+          "name": "kategori_pegawai",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tugas_utama": {
+          "name": "tugas_utama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tugas_tambahan": {
+          "name": "tugas_tambahan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mulai_bertugas": {
+          "name": "mulai_bertugas",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "akhir_bertugas": {
+          "name": "akhir_bertugas",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jp": {
+          "name": "jp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto": {
+          "name": "foto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "username_guru": {
+          "name": "username_guru",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "guru_sekolah_id_sekolah_id_fk": {
+          "name": "guru_sekolah_id_sekolah_id_fk",
+          "tableFrom": "guru",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jadwal_pelajaran": {
+      "name": "jadwal_pelajaran",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guru_id": {
+          "name": "guru_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hari": {
+          "name": "hari",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jam_mulai": {
+          "name": "jam_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jam_selesai": {
+          "name": "jam_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jadwal_pelajaran_kelas_id_kelas_id_fk": {
+          "name": "jadwal_pelajaran_kelas_id_kelas_id_fk",
+          "tableFrom": "jadwal_pelajaran",
+          "tableTo": "kelas",
+          "columnsFrom": [
+            "kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jadwal_pelajaran_mata_pelajaran_id_mata_pelajaran_id_fk": {
+          "name": "jadwal_pelajaran_mata_pelajaran_id_mata_pelajaran_id_fk",
+          "tableFrom": "jadwal_pelajaran",
+          "tableTo": "mata_pelajaran",
+          "columnsFrom": [
+            "mata_pelajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jadwal_pelajaran_guru_id_guru_id_fk": {
+          "name": "jadwal_pelajaran_guru_id_guru_id_fk",
+          "tableFrom": "jadwal_pelajaran",
+          "tableTo": "guru",
+          "columnsFrom": [
+            "guru_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jurnal_mengajar": {
+      "name": "jurnal_mengajar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "guru_id": {
+          "name": "guru_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jadwal_pelajaran_id": {
+          "name": "jadwal_pelajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul_jurnal": {
+          "name": "judul_jurnal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tujuan_pembelajaran": {
+          "name": "tujuan_pembelajaran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "materi_konten": {
+          "name": "materi_konten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kegiatan_pembelajaran": {
+          "name": "kegiatan_pembelajaran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_kehadiran": {
+          "name": "status_kehadiran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail_kehadiran": {
+          "name": "detail_kehadiran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "jam_mulai": {
+          "name": "jam_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jam_selesai": {
+          "name": "jam_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jurnal_mengajar_guru_id_guru_id_fk": {
+          "name": "jurnal_mengajar_guru_id_guru_id_fk",
+          "tableFrom": "jurnal_mengajar",
+          "tableTo": "guru",
+          "columnsFrom": [
+            "guru_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jurnal_mengajar_kelas_id_kelas_id_fk": {
+          "name": "jurnal_mengajar_kelas_id_kelas_id_fk",
+          "tableFrom": "jurnal_mengajar",
+          "tableTo": "kelas",
+          "columnsFrom": [
+            "kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jurnal_mengajar_mata_pelajaran_id_mata_pelajaran_id_fk": {
+          "name": "jurnal_mengajar_mata_pelajaran_id_mata_pelajaran_id_fk",
+          "tableFrom": "jurnal_mengajar",
+          "tableTo": "mata_pelajaran",
+          "columnsFrom": [
+            "mata_pelajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jurnal_mengajar_jadwal_pelajaran_id_jadwal_pelajaran_id_fk": {
+          "name": "jurnal_mengajar_jadwal_pelajaran_id_jadwal_pelajaran_id_fk",
+          "tableFrom": "jurnal_mengajar",
+          "tableTo": "jadwal_pelajaran",
+          "columnsFrom": [
+            "jadwal_pelajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kelas": {
+      "name": "kelas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tahun_ajaran_id": {
+          "name": "tahun_ajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_kelas": {
+          "name": "nama_kelas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat": {
+          "name": "tingkat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wali_kelas_id": {
+          "name": "wali_kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kapasitas": {
+          "name": "kapasitas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "kelas_sekolah_id_sekolah_id_fk": {
+          "name": "kelas_sekolah_id_sekolah_id_fk",
+          "tableFrom": "kelas",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "kelas_tahun_ajaran_id_tahun_ajaran_id_fk": {
+          "name": "kelas_tahun_ajaran_id_tahun_ajaran_id_fk",
+          "tableFrom": "kelas",
+          "tableTo": "tahun_ajaran",
+          "columnsFrom": [
+            "tahun_ajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "kelas_wali_kelas_id_guru_id_fk": {
+          "name": "kelas_wali_kelas_id_guru_id_fk",
+          "tableFrom": "kelas",
+          "tableTo": "guru",
+          "columnsFrom": [
+            "wali_kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mata_pelajaran": {
+      "name": "mata_pelajaran",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_mapel": {
+          "name": "nama_mapel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kode_mapel": {
+          "name": "kode_mapel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelompok": {
+          "name": "kelompok",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kkm": {
+          "name": "kkm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 70
+        },
+        "aktif": {
+          "name": "aktif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "urutan": {
+          "name": "urutan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mata_pelajaran_sekolah_id_sekolah_id_fk": {
+          "name": "mata_pelajaran_sekolah_id_sekolah_id_fk",
+          "tableFrom": "mata_pelajaran",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.nilai": {
+      "name": "nilai",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "siswa_id": {
+          "name": "siswa_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tahun_ajaran_id": {
+          "name": "tahun_ajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nilai_tugas": {
+          "name": "nilai_tugas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nilai_uts": {
+          "name": "nilai_uts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nilai_uas": {
+          "name": "nilai_uas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nilai_akhir": {
+          "name": "nilai_akhir",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deskripsi": {
+          "name": "deskripsi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "nilai_siswa_id_siswa_id_fk": {
+          "name": "nilai_siswa_id_siswa_id_fk",
+          "tableFrom": "nilai",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "siswa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "nilai_mata_pelajaran_id_mata_pelajaran_id_fk": {
+          "name": "nilai_mata_pelajaran_id_mata_pelajaran_id_fk",
+          "tableFrom": "nilai",
+          "tableTo": "mata_pelajaran",
+          "columnsFrom": [
+            "mata_pelajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "nilai_tahun_ajaran_id_tahun_ajaran_id_fk": {
+          "name": "nilai_tahun_ajaran_id_tahun_ajaran_id_fk",
+          "tableFrom": "nilai",
+          "tableTo": "tahun_ajaran",
+          "columnsFrom": [
+            "tahun_ajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pengumuman": {
+      "name": "pengumuman",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "judul": {
+          "name": "judul",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "konten": {
+          "name": "konten",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target": {
+          "name": "target",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'semua'"
+        },
+        "tanggal_publish": {
+          "name": "tanggal_publish",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published": {
+          "name": "published",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pengumuman_sekolah_id_sekolah_id_fk": {
+          "name": "pengumuman_sekolah_id_sekolah_id_fk",
+          "tableFrom": "pengumuman",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.prestasi": {
+      "name": "prestasi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "siswa_id": {
+          "name": "siswa_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_prestasi": {
+          "name": "nama_prestasi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat": {
+          "name": "tingkat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "juara": {
+          "name": "juara",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sertifikat": {
+          "name": "sertifikat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "prestasi_siswa_id_siswa_id_fk": {
+          "name": "prestasi_siswa_id_siswa_id_fk",
+          "tableFrom": "prestasi",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "siswa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ruang_kelas": {
+      "name": "ruang_kelas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_ruang": {
+          "name": "nama_ruang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kapasitas": {
+          "name": "kapasitas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ruang_kelas_sekolah_id_sekolah_id_fk": {
+          "name": "ruang_kelas_sekolah_id_sekolah_id_fk",
+          "tableFrom": "ruang_kelas",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sekolah": {
+      "name": "sekolah",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nama_sekolah": {
+          "name": "nama_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "npsn": {
+          "name": "npsn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jenjang": {
+          "name": "jenjang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat": {
+          "name": "alamat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telepon": {
+          "name": "telepon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_sekolah": {
+          "name": "email_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kepala_sekolah": {
+          "name": "kepala_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo": {
+          "name": "logo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "penyelenggara": {
+          "name": "penyelenggara",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_sekolah": {
+          "name": "status_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kurikulum": {
+          "name": "kurikulum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "situs_web": {
+          "name": "situs_web",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "akreditasi": {
+          "name": "akreditasi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.siswa": {
+      "name": "siswa",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nisn": {
+          "name": "nisn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nis_lokal": {
+          "name": "nis_lokal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_lengkap": {
+          "name": "nama_lengkap",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_kelamin": {
+          "name": "jenis_kelamin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempat_lahir": {
+          "name": "tempat_lahir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_lahir": {
+          "name": "tanggal_lahir",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nik": {
+          "name": "nik",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agama": {
+          "name": "agama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat": {
+          "name": "alamat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp_ortu": {
+          "name": "no_hp_ortu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_siswa": {
+          "name": "email_siswa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto": {
+          "name": "foto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aktif'"
+        },
+        "hobi": {
+          "name": "hobi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "citacita": {
+          "name": "citacita",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jumlah_saudara": {
+          "name": "jumlah_saudara",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anak_ke": {
+          "name": "anak_ke",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kewarganegaraan": {
+          "name": "kewarganegaraan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'WNI'"
+        },
+        "pembiayaan_sekolah": {
+          "name": "pembiayaan_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_kartu_keluarga": {
+          "name": "no_kartu_keluarga",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_kepala_keluarga": {
+          "name": "nama_kepala_keluarga",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_ayah": {
+          "name": "nama_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nik_ayah": {
+          "name": "nik_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempat_lahir_ayah": {
+          "name": "tempat_lahir_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_lahir_ayah": {
+          "name": "tanggal_lahir_ayah",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pendidikan_ayah": {
+          "name": "pendidikan_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pekerjaan_ayah": {
+          "name": "pekerjaan_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "penghasilan_ayah": {
+          "name": "penghasilan_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_ayah": {
+          "name": "status_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp_ayah": {
+          "name": "no_hp_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kewarganegaraan_ayah": {
+          "name": "kewarganegaraan_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'WNI'"
+        },
+        "provinsi_ayah": {
+          "name": "provinsi_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kabupaten_kota_ayah": {
+          "name": "kabupaten_kota_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kecamatan_ayah": {
+          "name": "kecamatan_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelurahan_desa_ayah": {
+          "name": "kelurahan_desa_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rt_ayah": {
+          "name": "rt_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rw_ayah": {
+          "name": "rw_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat_lengkap_ayah": {
+          "name": "alamat_lengkap_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kode_pos_ayah": {
+          "name": "kode_pos_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_kepemilikan_rumah_ayah": {
+          "name": "status_kepemilikan_rumah_ayah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_ibu": {
+          "name": "nama_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nik_ibu": {
+          "name": "nik_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempat_lahir_ibu": {
+          "name": "tempat_lahir_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_lahir_ibu": {
+          "name": "tanggal_lahir_ibu",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pendidikan_ibu": {
+          "name": "pendidikan_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pekerjaan_ibu": {
+          "name": "pekerjaan_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "penghasilan_ibu": {
+          "name": "penghasilan_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_ibu": {
+          "name": "status_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp_ibu": {
+          "name": "no_hp_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kewarganegaraan_ibu": {
+          "name": "kewarganegaraan_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'WNI'"
+        },
+        "alamat_ibu_sama_dengan_ayah": {
+          "name": "alamat_ibu_sama_dengan_ayah",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "provinsi_ibu": {
+          "name": "provinsi_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kabupaten_kota_ibu": {
+          "name": "kabupaten_kota_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kecamatan_ibu": {
+          "name": "kecamatan_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelurahan_desa_ibu": {
+          "name": "kelurahan_desa_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rt_ibu": {
+          "name": "rt_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rw_ibu": {
+          "name": "rw_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat_lengkap_ibu": {
+          "name": "alamat_lengkap_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kode_pos_ibu": {
+          "name": "kode_pos_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_kepemilikan_rumah_ibu": {
+          "name": "status_kepemilikan_rumah_ibu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nama_wali": {
+          "name": "nama_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nik_wali": {
+          "name": "nik_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempat_lahir_wali": {
+          "name": "tempat_lahir_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_lahir_wali": {
+          "name": "tanggal_lahir_wali",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pendidikan_wali": {
+          "name": "pendidikan_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pekerjaan_wali": {
+          "name": "pekerjaan_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "penghasilan_wali": {
+          "name": "penghasilan_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_wali": {
+          "name": "status_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp_wali": {
+          "name": "no_hp_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kewarganegaraan_wali": {
+          "name": "kewarganegaraan_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'WNI'"
+        },
+        "status_kepemilikan_rumah_wali": {
+          "name": "status_kepemilikan_rumah_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provinsi_wali": {
+          "name": "provinsi_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kabupaten_kota_wali": {
+          "name": "kabupaten_kota_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kecamatan_wali": {
+          "name": "kecamatan_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelurahan_desa_wali": {
+          "name": "kelurahan_desa_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rt_wali": {
+          "name": "rt_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rw_wali": {
+          "name": "rw_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alamat_lengkap_wali": {
+          "name": "alamat_lengkap_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kode_pos_wali": {
+          "name": "kode_pos_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_tempat_tinggal_siswa": {
+          "name": "status_tempat_tinggal_siswa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jarak_tempat_tinggal_ke_sekolah": {
+          "name": "jarak_tempat_tinggal_ke_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transportasi_ke_sekolah": {
+          "name": "transportasi_ke_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "waktu_tempuh_ke_sekolah": {
+          "name": "waktu_tempuh_ke_sekolah",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username_siswa": {
+          "name": "username_siswa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sekolah_asal": {
+          "name": "sekolah_asal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diterima_pada_tanggal": {
+          "name": "diterima_pada_tanggal",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_hp_whatsapp": {
+          "name": "no_hp_whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "siswa_sekolah_id_sekolah_id_fk": {
+          "name": "siswa_sekolah_id_sekolah_id_fk",
+          "tableFrom": "siswa",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "siswa_kelas_id_kelas_id_fk": {
+          "name": "siswa_kelas_id_kelas_id_fk",
+          "tableFrom": "siswa",
+          "tableTo": "kelas",
+          "columnsFrom": [
+            "kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tagihan_spp": {
+      "name": "tagihan_spp",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "siswa_id": {
+          "name": "siswa_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "no_tagihan": {
+          "name": "no_tagihan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bulan": {
+          "name": "bulan",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tahun": {
+          "name": "tahun",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jumlah": {
+          "name": "jumlah",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_pembayaran": {
+          "name": "status_pembayaran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "tanggal_bayar": {
+          "name": "tanggal_bayar",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tagihan_spp_siswa_id_siswa_id_fk": {
+          "name": "tagihan_spp_siswa_id_siswa_id_fk",
+          "tableFrom": "tagihan_spp",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "siswa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tahun_ajaran": {
+      "name": "tahun_ajaran",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_tahun_ajaran": {
+          "name": "nama_tahun_ajaran",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_mulai": {
+          "name": "tanggal_mulai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_selesai": {
+          "name": "tanggal_selesai",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "semester": {
+          "name": "semester",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tahun_ajaran_sekolah_id_sekolah_id_fk": {
+          "name": "tahun_ajaran_sekolah_id_sekolah_id_fk",
+          "tableFrom": "tahun_ajaran",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tugas": {
+      "name": "tugas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "guru_id": {
+          "name": "guru_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jurnal_mengajar_id": {
+          "name": "jurnal_mengajar_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judul_tugas": {
+          "name": "judul_tugas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deskripsi": {
+          "name": "deskripsi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jenis_tugas": {
+          "name": "jenis_tugas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tanggal_diberikan": {
+          "name": "tanggal_diberikan",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deadline": {
+          "name": "deadline",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aktif'"
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tugas_guru_id_guru_id_fk": {
+          "name": "tugas_guru_id_guru_id_fk",
+          "tableFrom": "tugas",
+          "tableTo": "guru",
+          "columnsFrom": [
+            "guru_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tugas_kelas_id_kelas_id_fk": {
+          "name": "tugas_kelas_id_kelas_id_fk",
+          "tableFrom": "tugas",
+          "tableTo": "kelas",
+          "columnsFrom": [
+            "kelas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tugas_mata_pelajaran_id_mata_pelajaran_id_fk": {
+          "name": "tugas_mata_pelajaran_id_mata_pelajaran_id_fk",
+          "tableFrom": "tugas",
+          "tableTo": "mata_pelajaran",
+          "columnsFrom": [
+            "mata_pelajaran_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tugas_jurnal_mengajar_id_jurnal_mengajar_id_fk": {
+          "name": "tugas_jurnal_mengajar_id_jurnal_mengajar_id_fk",
+          "tableFrom": "tugas",
+          "tableTo": "jurnal_mengajar",
+          "columnsFrom": [
+            "jurnal_mengajar_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'siswa'"
+        },
+        "sekolah_id": {
+          "name": "sekolah_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo": {
+          "name": "photo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_sekolah_id_sekolah_id_fk": {
+          "name": "users_sekolah_id_sekolah_id_fk",
+          "tableFrom": "users",
+          "tableTo": "sekolah",
+          "columnsFrom": [
+            "sekolah_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

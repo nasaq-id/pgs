@@ -1,0 +1,1 @@
+ALTER TABLE "guru" ADD COLUMN "password_guru" text;
