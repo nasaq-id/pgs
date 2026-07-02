@@ -133,7 +133,7 @@ export default function LembagaPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <Card className="lg:col-span-2 glass-card rounded-2xl relative">
+      <Card className="lg:col-span-2 glass-card rounded-2xl relative overflow-visible">
         <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl">
           <Pencil className="h-3.5 w-3.5" />
         </Button>
