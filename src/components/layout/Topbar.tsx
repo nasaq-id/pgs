@@ -151,7 +151,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" title="Kalender" onClick={() => setShowCalendar(!showCalendar)}>
+        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-blue-600 px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" title="Kalender" onClick={() => setShowCalendar(!showCalendar)}>
           <CalendarDays className="h-3.5 w-3.5" />
           {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
         </div>
