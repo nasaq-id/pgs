@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash, Camera } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash, Camera, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -82,18 +82,60 @@ export default function LembagaPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
   const [logoPreview, setLogoPreview] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxSize: number): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        let { width, height } = img
+        const MAX_DIM = 800
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) { height = (height / width) * MAX_DIM; width = MAX_DIM }
+          else { width = (width / height) * MAX_DIM; height = MAX_DIM }
+        }
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")!
+        ctx.drawImage(img, 0, 0, width, height)
+
+        const tryCompress = (quality: number) => {
+          canvas.toBlob((blob) => {
+            if (!blob) { reject(new Error("Gagal kompres")); return }
+            if (blob.size <= maxSize || quality <= 0.1) resolve(blob)
+            else tryCompress(quality - 0.1)
+          }, "image/jpeg", quality)
+        }
+        tryCompress(0.9)
+      }
+      img.onerror = reject
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string
-      setLogoPreview(url)
-      setForm({ ...form, logo: url })
+
+    let uploadFile = file
+    if (file.size > 300 * 1024) {
+      uploadFile = new File([await compressImage(file, 300 * 1024)], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })
     }
-    reader.readAsDataURL(file)
+
+    const previewUrl = URL.createObjectURL(uploadFile)
+    setLogoPreview(previewUrl)
+
+    setIsUploading(true)
+    const fd = new FormData()
+    fd.append("file", uploadFile)
+    const res = await fetch("/api/upload", { method: "POST", body: fd })
+    const data = await res.json()
+    if (data.url) {
+      setForm({ ...form, logo: data.url })
+    }
+    setIsUploading(false)
   }
 
   const openEdit = () => {
@@ -261,7 +303,9 @@ export default function LembagaPage() {
                 className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => logoInputRef.current?.click()}
               >
-                {logoPreview ? (
+                {isUploading ? (
+                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+                ) : logoPreview ? (
                   <img src={logoPreview} alt="Logo sekolah" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-muted-foreground">
