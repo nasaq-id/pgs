@@ -1461,7 +1461,6 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <div className="space-y-2">
                         <Label>Kode Pos</Label>
                         <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} />
-                        </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1570,15 +1569,8 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Kode Pos</Label>
-                        <Select value={form.kodePosWali} onValueChange={(v) => handleChange("kodePosWali", v)} disabled={!kodePosWali && !form.kodePosWali}>
-                          <SelectTrigger>
-                            <SelectValue placeholder={kodePosWali || form.kodePosWali || "Pilih Kode Pos"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(kodePosWali || form.kodePosWali) ? <SelectItem value={kodePosWali || form.kodePosWali}>{kodePosWali || form.kodePosWali}</SelectItem> : null}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="kodePosWali">Kode Pos</Label>
+                        <Input id="kodePosWali" maxLength={5} value={form.kodePosWali} onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
