@@ -476,7 +476,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
     const finalCitacita = form.citacita === "Lainnya" ? form.citacitaLainnya : form.citacita
 
     const payload: Record<string, unknown> = {
-      nisn: form.nisn || undefined,
+      nisn: form.nisn || "",
       nisLokal: form.nisLokal || undefined,
       namaLengkap: form.namaLengkap,
       jenisKelamin: form.jenisKelamin || undefined,
