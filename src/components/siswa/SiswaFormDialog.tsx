@@ -1359,12 +1359,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   </div>
                   <div className="space-y-2">
                     <Label>Kode Pos</Label>
-                    <Select value={form.kodePosAyah} onValueChange={(v) => handleChange("kodePosAyah", v)} disabled={!form.kelurahanDesaAyah}>
+                    <Select value={form.kodePosAyah} onValueChange={(v) => handleChange("kodePosAyah", v)} disabled={!kodePosAyah && !form.kodePosAyah}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih Kode Pos" />
+                        <SelectValue placeholder={kodePosAyah || form.kodePosAyah || "Pilih Kode Pos"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {kodePosAyah ? <SelectItem value={kodePosAyah}>{kodePosAyah}</SelectItem> : form.kodePosAyah ? <SelectItem value={form.kodePosAyah}>{form.kodePosAyah}</SelectItem> : null}
+                        {(kodePosAyah || form.kodePosAyah) ? <SelectItem value={kodePosAyah || form.kodePosAyah}>{kodePosAyah || form.kodePosAyah}</SelectItem> : null}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1467,12 +1467,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label>Kode Pos</Label>
-                        <Select value={form.kodePosIbu} onValueChange={(v) => handleChange("kodePosIbu", v)} disabled={!form.kelurahanDesaIbu}>
+                        <Select value={form.kodePosIbu} onValueChange={(v) => handleChange("kodePosIbu", v)} disabled={!kodePosIbu && !form.kodePosIbu}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih Kode Pos" />
+                            <SelectValue placeholder={kodePosIbu || form.kodePosIbu || "Pilih Kode Pos"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {kodePosIbu ? <SelectItem value={kodePosIbu}>{kodePosIbu}</SelectItem> : form.kodePosIbu ? <SelectItem value={form.kodePosIbu}>{form.kodePosIbu}</SelectItem> : null}
+                            {(kodePosIbu || form.kodePosIbu) ? <SelectItem value={kodePosIbu || form.kodePosIbu}>{kodePosIbu || form.kodePosIbu}</SelectItem> : null}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1584,12 +1584,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label>Kode Pos</Label>
-                        <Select value={form.kodePosWali} onValueChange={(v) => handleChange("kodePosWali", v)} disabled={!form.kelurahanDesaWali}>
+                        <Select value={form.kodePosWali} onValueChange={(v) => handleChange("kodePosWali", v)} disabled={!kodePosWali && !form.kodePosWali}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih Kode Pos" />
+                            <SelectValue placeholder={kodePosWali || form.kodePosWali || "Pilih Kode Pos"} />
                           </SelectTrigger>
                           <SelectContent>
-                            {kodePosWali ? <SelectItem value={kodePosWali}>{kodePosWali}</SelectItem> : form.kodePosWali ? <SelectItem value={form.kodePosWali}>{form.kodePosWali}</SelectItem> : null}
+                            {(kodePosWali || form.kodePosWali) ? <SelectItem value={kodePosWali || form.kodePosWali}>{kodePosWali || form.kodePosWali}</SelectItem> : null}
                           </SelectContent>
                         </Select>
                       </div>

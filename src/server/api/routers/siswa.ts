@@ -183,7 +183,10 @@ export const siswaRouter = router({
       } catch (error) {
         console.error("Gagal membuat siswa:", error)
         if (error instanceof TRPCError) throw error
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Gagal menyimpan data siswa. Periksa kembali isian Anda." })
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Gagal menyimpan data siswa. Periksa kembali isian Anda.",
+        })
       }
     }),
 
