@@ -9,7 +9,7 @@ import { logAudit } from "@/server/audit"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
-  sekolahId: z.string(),
+  sekolahId: z.string().optional(),
   kelasId: z.string().nullable().optional(),
   nisn: z.string().optional(),
   nisLokal: z.string(),

@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Loader2, Camera, User, Eye, EyeOff } from "lucide-react"
+import { useProvinsi, useKabupatenKota, useKecamatan, useKelurahan } from "@/hooks/useWilayah"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
-import { provinsiList, kabupatenKotaList, statusTempatTinggalOptions, jarakTempatTinggalOptions, waktuTempuhOptions } from "@/data/wilayah-indonesia"
+import { statusTempatTinggalOptions, jarakTempatTinggalOptions, waktuTempuhOptions } from "@/data/wilayah-indonesia"
 
 interface SiswaFormDialogProps {
   open: boolean
@@ -140,17 +142,26 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const isSaving = createMutation.isPending || updateMutation.isPending
   const isEdit = !!initialData
 
+  const { data: provinsiOptions = [], isLoading: loadingProvinsi } = useProvinsi()
+  const { data: kabupatenAyahOptions = [], isLoading: loadingKabAyah } = useKabupatenKota(form.provinsiAyah)
+  const { data: kabupatenIbuOptions = [], isLoading: loadingKabIbu } = useKabupatenKota(form.provinsiIbu)
+  const { data: kabupatenWaliOptions = [], isLoading: loadingKabWali } = useKabupatenKota(form.provinsiWali)
+  const { data: kecamatanAyahOptions = [], isLoading: loadingKecAyah } = useKecamatan(form.kabupatenKotaAyah)
+  const { data: kecamatanIbuOptions = [], isLoading: loadingKecIbu } = useKecamatan(form.kabupatenKotaIbu)
+  const { data: kecamatanWaliOptions = [], isLoading: loadingKecWali } = useKecamatan(form.kabupatenKotaWali)
+  const { data: kelurahanAyahOptions = [], isLoading: loadingKelAyah } = useKelurahan(form.kecamatanAyah)
+  const { data: kelurahanIbuOptions = [], isLoading: loadingKelIbu } = useKelurahan(form.kecamatanIbu)
+  const { data: kelurahanWaliOptions = [], isLoading: loadingKelWali } = useKelurahan(form.kecamatanWali)
+
   const isAyahNotAlive = form.statusAyah === "Sudah Meninggal" || form.statusAyah === "Tidak Diketahui"
   const isIbuNotAlive = form.statusIbu === "Sudah Meninggal" || form.statusIbu === "Tidak Diketahui"
   const isAyahTidakBekerja = form.pekerjaanAyah === "Tidak Bekerja"
   const isIbuTidakBekerja = form.pekerjaanIbu === "Tidak Bekerja"
   const isWaliTidakBekerja = form.pekerjaanWali === "Tidak Bekerja"
 
-  const kabupatenAyahList = form.provinsiAyah ? kabupatenKotaList[form.provinsiAyah] || [] : []
-  const kabupatenIbuList = form.provinsiIbu ? kabupatenKotaList[form.provinsiIbu] || [] : []
-  const kabupatenWaliList = form.provinsiWali ? kabupatenKotaList[form.provinsiWali] || [] : []
-
   const alamatIbuTerisiOtomatis = form.alamatIbuSamaDenganAyah === "true"
+
+  const emailError = form.emailSiswa && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailSiswa) ? "Format email tidak valid" : ""
 
   useEffect(() => {
     if (open) {
@@ -284,7 +295,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       }
 
       if (key === "alamatWaliOption") {
-        if (value === "ayah") {
+        if (value === "sama_ayah") {
           updated.provinsiWali = updated.provinsiAyah
           updated.kabupatenKotaWali = updated.kabupatenKotaAyah
           updated.kecamatanWali = updated.kecamatanAyah
@@ -294,7 +305,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           updated.kodePosWali = updated.kodePosAyah
           updated.alamatWali = updated.alamatAyah
           updated.statusKepemilikanRumahWali = updated.statusKepemilikanRumahAyah
-        } else if (value === "ibu") {
+        } else if (value === "sama_ibu") {
           if (updated.alamatIbuSamaDenganAyah === "true") {
             updated.provinsiWali = updated.provinsiAyah
             updated.kabupatenKotaWali = updated.kabupatenKotaAyah
@@ -429,7 +440,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.error("Silakan isi hubungan wali dengan siswa")
       return
     }
-    if (form.emailSiswa && !form.emailSiswa.includes("@")) {
+    if (form.emailSiswa && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailSiswa)) {
       toast.error("Email harus mengandung @")
       return
     }
@@ -492,24 +503,24 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       alamatLengkapWali: form.alamatWali || form.alamatLengkapWali || undefined,
       alamatIbuSamaDenganAyah: form.alamatIbuSamaDenganAyah === "true" || undefined,
       statusKepemilikanRumahAyah: form.statusKepemilikanRumahAyah || undefined,
-      provinsiAyah: form.provinsiAyah ? provinsiList.find(p => p.id === form.provinsiAyah)?.nama || undefined : undefined,
-      kabupatenKotaAyah: form.kabupatenKotaAyah ? kabupatenKotaList[form.provinsiAyah]?.find(k => k.id === form.kabupatenKotaAyah)?.nama || undefined : undefined,
+      provinsiAyah: form.provinsiAyah || undefined,
+      kabupatenKotaAyah: form.kabupatenKotaAyah || undefined,
       kecamatanAyah: form.kecamatanAyah || undefined,
       kelurahanDesaAyah: form.kelurahanDesaAyah || undefined,
       rtAyah: form.rtAyah || undefined,
       rwAyah: form.rwAyah || undefined,
       kodePosAyah: form.kodePosAyah || undefined,
       statusKepemilikanRumahIbu: form.statusKepemilikanRumahIbu || undefined,
-      provinsiIbu: form.provinsiIbu ? provinsiList.find(p => p.id === form.provinsiIbu)?.nama || undefined : undefined,
-      kabupatenKotaIbu: form.kabupatenKotaIbu ? kabupatenKotaList[form.provinsiIbu]?.find(k => k.id === form.kabupatenKotaIbu)?.nama || undefined : undefined,
+      provinsiIbu: form.provinsiIbu || undefined,
+      kabupatenKotaIbu: form.kabupatenKotaIbu || undefined,
       kecamatanIbu: form.kecamatanIbu || undefined,
       kelurahanDesaIbu: form.kelurahanDesaIbu || undefined,
       rtIbu: form.rtIbu || undefined,
       rwIbu: form.rwIbu || undefined,
       kodePosIbu: form.kodePosIbu || undefined,
       statusKepemilikanRumahWali: form.statusKepemilikanRumahWali || undefined,
-      provinsiWali: form.provinsiWali ? provinsiList.find(p => p.id === form.provinsiWali)?.nama || undefined : undefined,
-      kabupatenKotaWali: form.kabupatenKotaWali ? kabupatenKotaList[form.provinsiWali]?.find(k => k.id === form.kabupatenKotaWali)?.nama || undefined : undefined,
+      provinsiWali: form.provinsiWali || undefined,
+      kabupatenKotaWali: form.kabupatenKotaWali || undefined,
       kecamatanWali: form.kecamatanWali || undefined,
       kelurahanDesaWali: form.kelurahanDesaWali || undefined,
       rtWali: form.rtWali || undefined,
@@ -765,7 +776,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     type="email"
                     value={form.emailSiswa}
                     onChange={(e) => handleChange("emailSiswa", e.target.value)}
+                    className={emailError ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/50" : ""}
                   />
+                  {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
                 </div>
               </div>
 
@@ -1258,35 +1271,48 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Provinsi</Label>
-                    <Select value={form.provinsiAyah} onValueChange={(v) => handleChange("provinsiAyah", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {provinsiList.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={provinsiOptions}
+                      value={form.provinsiAyah}
+                      onValueChange={(v) => { handleChange("provinsiAyah", v); handleChange("kabupatenKotaAyah", ""); handleChange("kecamatanAyah", ""); handleChange("kelurahanDesaAyah", "") }}
+                      placeholder="Pilih Provinsi"
+                      loading={loadingProvinsi}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Kabupaten/Kota</Label>
-                    <Select value={form.kabupatenKotaAyah} onValueChange={(v) => handleChange("kabupatenKotaAyah", v)} disabled={!form.provinsiAyah}>
-                      <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {kabupatenAyahList.map((k) => (
-                          <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={kabupatenAyahOptions}
+                      value={form.kabupatenKotaAyah}
+                      onValueChange={(v) => { handleChange("kabupatenKotaAyah", v); handleChange("kecamatanAyah", ""); handleChange("kelurahanDesaAyah", "") }}
+                      placeholder="Pilih Kab/Kota"
+                      disabled={!form.provinsiAyah}
+                      loading={loadingKabAyah}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="kecamatanAyah">Kecamatan</Label>
-                    <Input id="kecamatanAyah" value={form.kecamatanAyah} onChange={(e) => handleChange("kecamatanAyah", e.target.value)} />
+                    <Label>Kecamatan</Label>
+                    <SearchableSelect
+                      options={kecamatanAyahOptions}
+                      value={form.kecamatanAyah}
+                      onValueChange={(v) => { handleChange("kecamatanAyah", v); handleChange("kelurahanDesaAyah", "") }}
+                      placeholder="Pilih Kecamatan"
+                      disabled={!form.kabupatenKotaAyah}
+                      loading={loadingKecAyah}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="kelurahanDesaAyah">Kelurahan/Desa</Label>
-                    <Input id="kelurahanDesaAyah" value={form.kelurahanDesaAyah} onChange={(e) => handleChange("kelurahanDesaAyah", e.target.value)} />
+                    <Label>Kelurahan/Desa</Label>
+                    <SearchableSelect
+                      options={kelurahanAyahOptions}
+                      value={form.kelurahanDesaAyah}
+                      onValueChange={(v) => handleChange("kelurahanDesaAyah", v)}
+                      placeholder="Pilih Kelurahan/Desa"
+                      disabled={!form.kecamatanAyah}
+                      loading={loadingKelAyah}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1346,35 +1372,48 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Provinsi</Label>
-                        <Select value={form.provinsiIbu} onValueChange={(v) => handleChange("provinsiIbu", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            {provinsiList.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={provinsiOptions}
+                          value={form.provinsiIbu}
+                          onValueChange={(v) => { handleChange("provinsiIbu", v); handleChange("kabupatenKotaIbu", ""); handleChange("kecamatanIbu", ""); handleChange("kelurahanDesaIbu", "") }}
+                          placeholder="Pilih Provinsi"
+                          loading={loadingProvinsi}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Kabupaten/Kota</Label>
-                        <Select value={form.kabupatenKotaIbu} onValueChange={(v) => handleChange("kabupatenKotaIbu", v)} disabled={!form.provinsiIbu}>
-                          <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            {kabupatenIbuList.map((k) => (
-                              <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={kabupatenIbuOptions}
+                          value={form.kabupatenKotaIbu}
+                          onValueChange={(v) => { handleChange("kabupatenKotaIbu", v); handleChange("kecamatanIbu", ""); handleChange("kelurahanDesaIbu", "") }}
+                          placeholder="Pilih Kab/Kota"
+                          disabled={!form.provinsiIbu}
+                          loading={loadingKabIbu}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="kecamatanIbu">Kecamatan</Label>
-                        <Input id="kecamatanIbu" value={form.kecamatanIbu} onChange={(e) => handleChange("kecamatanIbu", e.target.value)} />
+                        <Label>Kecamatan</Label>
+                        <SearchableSelect
+                          options={kecamatanIbuOptions}
+                          value={form.kecamatanIbu}
+                          onValueChange={(v) => { handleChange("kecamatanIbu", v); handleChange("kelurahanDesaIbu", "") }}
+                          placeholder="Pilih Kecamatan"
+                          disabled={!form.kabupatenKotaIbu}
+                          loading={loadingKecIbu}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kelurahanDesaIbu">Kelurahan/Desa</Label>
-                        <Input id="kelurahanDesaIbu" value={form.kelurahanDesaIbu} onChange={(e) => handleChange("kelurahanDesaIbu", e.target.value)} />
+                        <Label>Kelurahan/Desa</Label>
+                        <SearchableSelect
+                          options={kelurahanIbuOptions}
+                          value={form.kelurahanDesaIbu}
+                          onValueChange={(v) => handleChange("kelurahanDesaIbu", v)}
+                          placeholder="Pilih Kelurahan/Desa"
+                          disabled={!form.kecamatanIbu}
+                          loading={loadingKelIbu}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1443,35 +1482,48 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Provinsi</Label>
-                        <Select value={form.provinsiWali} onValueChange={(v) => handleChange("provinsiWali", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            {provinsiList.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={provinsiOptions}
+                          value={form.provinsiWali}
+                          onValueChange={(v) => { handleChange("provinsiWali", v); handleChange("kabupatenKotaWali", ""); handleChange("kecamatanWali", ""); handleChange("kelurahanDesaWali", "") }}
+                          placeholder="Pilih Provinsi"
+                          loading={loadingProvinsi}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Kabupaten/Kota</Label>
-                        <Select value={form.kabupatenKotaWali} onValueChange={(v) => handleChange("kabupatenKotaWali", v)} disabled={!form.provinsiWali}>
-                          <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
-                          <SelectContent className="max-h-64">
-                            {kabupatenWaliList.map((k) => (
-                              <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={kabupatenWaliOptions}
+                          value={form.kabupatenKotaWali}
+                          onValueChange={(v) => { handleChange("kabupatenKotaWali", v); handleChange("kecamatanWali", ""); handleChange("kelurahanDesaWali", "") }}
+                          placeholder="Pilih Kab/Kota"
+                          disabled={!form.provinsiWali}
+                          loading={loadingKabWali}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="kecamatanWali">Kecamatan</Label>
-                        <Input id="kecamatanWali" value={form.kecamatanWali} onChange={(e) => handleChange("kecamatanWali", e.target.value)} />
+                        <Label>Kecamatan</Label>
+                        <SearchableSelect
+                          options={kecamatanWaliOptions}
+                          value={form.kecamatanWali}
+                          onValueChange={(v) => { handleChange("kecamatanWali", v); handleChange("kelurahanDesaWali", "") }}
+                          placeholder="Pilih Kecamatan"
+                          disabled={!form.kabupatenKotaWali}
+                          loading={loadingKecWali}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kelurahanDesaWali">Kelurahan/Desa</Label>
-                        <Input id="kelurahanDesaWali" value={form.kelurahanDesaWali} onChange={(e) => handleChange("kelurahanDesaWali", e.target.value)} />
+                        <Label>Kelurahan/Desa</Label>
+                        <SearchableSelect
+                          options={kelurahanWaliOptions}
+                          value={form.kelurahanDesaWali}
+                          onValueChange={(v) => handleChange("kelurahanDesaWali", v)}
+                          placeholder="Pilih Kelurahan/Desa"
+                          disabled={!form.kecamatanWali}
+                          loading={loadingKelWali}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
