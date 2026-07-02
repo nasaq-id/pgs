@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { Users, GraduationCap, BookOpen } from "lucide-react"
+import { Users, GraduationCap, BookOpen, Hand } from "lucide-react"
 
 const statCards = [
   { label: "Total Siswa", value: "0", icon: Users, accent: "--chart-2" },
@@ -18,7 +18,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <div className="glass-card rounded-2xl p-6 flex items-center gap-5">
-        <span className="text-4xl select-none">👋</span>
+        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Hand className="h-7 w-7 text-primary" />
+        </div>
         <div>
           <h2 className="text-xl font-bold text-foreground">
             Selamat datang, <span className="text-primary">{displayName}</span>
