@@ -113,7 +113,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <div className={cn(
                     "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
                     isGroupActive
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                      ? "bg-primary/10 text-primary"
                       : "bg-muted/50 text-muted-foreground"
                   )}>
                     <Icon className="h-3.5 w-3.5" />
@@ -162,7 +162,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <div className={cn(
                 "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
                 isItemActive
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                  ? "bg-primary/10 text-primary"
                   : "bg-muted/50 text-muted-foreground"
               )}>
                 <Icon className="h-3.5 w-3.5" />
