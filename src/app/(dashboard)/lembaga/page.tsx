@@ -133,10 +133,7 @@ export default function LembagaPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <Card className="lg:col-span-2 glass-card rounded-2xl relative overflow-visible">
-        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl">
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+      <Card className="lg:col-span-2 glass-card rounded-2xl">
         <CardContent className="flex flex-col items-center gap-5 pt-6">
           <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
           <ImageIcon className="h-10 w-10 text-muted-foreground" />
@@ -200,14 +197,15 @@ export default function LembagaPage() {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-3 glass-card rounded-2xl">
-        <CardHeader className="flex-row items-center justify-between border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />
-            <CardTitle className="text-xs font-black uppercase tracking-widest">
-              Detail Identitas Lembaga
-            </CardTitle>
-          </div>
+      <Card className="lg:col-span-3 glass-card rounded-2xl relative overflow-visible">
+        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <CardHeader className="flex-row items-center gap-3 border-b border-border">
+          <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />
+          <CardTitle className="text-xs font-black uppercase tracking-widest">
+            Detail Identitas Lembaga
+          </CardTitle>
         </CardHeader>
         <CardContent>
 
