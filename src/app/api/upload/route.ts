@@ -18,15 +18,15 @@ export async function POST(req: NextRequest) {
 
   const { fileName } = await req.json()
   const ext = (fileName || "image.png").split(".").pop() || "png"
-  const path = `sekolah/${session.user.sekolahId}/${crypto.randomUUID()}.${ext}`
+  const path = `lembaga/${session.user.sekolahId}/${crypto.randomUUID()}.${ext}`
 
-  const { data, error } = await supabaseAdmin.storage.from("pgs").createSignedUploadUrl(path)
+  const { data, error } = await supabaseAdmin.storage.from("avatar-lembaga").createSignedUploadUrl(path)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const { data: publicUrl } = supabaseAdmin.storage.from("pgs").getPublicUrl(path)
+  const { data: publicUrl } = supabaseAdmin.storage.from("avatar-lembaga").getPublicUrl(path)
 
   return NextResponse.json({
     signedUrl: data.signedUrl,
