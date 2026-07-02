@@ -95,7 +95,7 @@ const siswaCreateSchema = z.object({
   transportasiKeSekolah: z.string().nullable().optional(),
   waktuTempuhKeSekolah: z.string().nullable().optional(),
   usernameSiswa: z.string().nullable().optional(),
-  passwordSiswa: z.string(),
+  passwordSiswa: z.string().optional(),
   sekolahAsal: z.string().nullable().optional(),
   diterimaPadaTanggal: z.date().nullable().optional(),
   noHpWhatsapp: z.string().nullable().optional(),

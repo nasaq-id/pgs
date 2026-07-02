@@ -216,7 +216,7 @@ export default function SiswaPage() {
         pekerjaanIbu: String(row["Pekerjaan Ibu"] || "").trim() || undefined,
         penghasilanIbu: String(row["Penghasilan Ibu"] || "").trim() || undefined,
         noHpIbu: String(row["No HP Ibu"] || "").trim() || undefined,
-      })).filter((r) => r.namaLengkap && r.nisn)
+      })).filter((r) => r.namaLengkap && r.nisLokal)
 
       if (mapped.length === 0) {
         toast.error("Tidak ada data valid ditemukan di file Excel")
