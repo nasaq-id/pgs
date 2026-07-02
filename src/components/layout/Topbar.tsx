@@ -204,7 +204,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             href={`https://wa.me/62${whatsappNumber.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl h-9 w-9 flex items-center justify-center text-white hover:bg-green-700 transition-colors bg-green-600"
+            className="rounded-xl h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
             title="Hubungi Admin via WhatsApp"
           >
             <MessageCircle className="h-4 w-4" />

@@ -16,30 +16,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Storage tidak dikonfigurasi" }, { status: 500 })
   }
 
-  const formData = await req.formData()
-  const file = formData.get("file") as File | null
-  if (!file) {
-    return NextResponse.json({ error: "File tidak ditemukan" }, { status: 400 })
-  }
+  const { fileName } = await req.json()
+  const ext = (fileName || "image.png").split(".").pop() || "png"
+  const path = `sekolah/${session.user.sekolahId}/${crypto.randomUUID()}.${ext}`
 
-  if (file.size > 300 * 1024) {
-    return NextResponse.json({ error: "File maksimal 300KB" }, { status: 400 })
-  }
-
-  const ext = file.name.split(".").pop() || "png"
-  const filename = `sekolah/${session.user.sekolahId}/${crypto.randomUUID()}.${ext}`
-  const buffer = Buffer.from(await file.arrayBuffer())
-
-  const { error } = await supabaseAdmin.storage.from("pgs").upload(filename, buffer, {
-    contentType: file.type,
-    upsert: false,
-  })
+  const { data, error } = await supabaseAdmin.storage.from("pgs").createSignedUploadUrl(path)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const { data: publicUrl } = supabaseAdmin.storage.from("pgs").getPublicUrl(filename)
+  const { data: publicUrl } = supabaseAdmin.storage.from("pgs").getPublicUrl(path)
 
-  return NextResponse.json({ url: publicUrl.publicUrl })
+  return NextResponse.json({
+    signedUrl: data.signedUrl,
+    publicUrl: publicUrl.publicUrl,
+    path: data.path,
+    token: data.token,
+  })
 }
