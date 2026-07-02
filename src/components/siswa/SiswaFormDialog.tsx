@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Camera, User, Eye, EyeOff } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
+import { provinsiList, kabupatenKotaList, statusTempatTinggalOptions, jarakTempatTinggalOptions, waktuTempuhOptions } from "@/data/wilayah-indonesia"
 
 interface SiswaFormDialogProps {
   open: boolean
@@ -27,13 +28,14 @@ const defaultForm = {
   tanggalLahir: "",
   nik: "",
   agama: "",
-  alamat: "",
   noHpWhatsapp: "",
   emailSiswa: "",
   status: "aktif",
   kewarganegaraan: "WNI",
   hobi: "",
+  hobiLainnya: "",
   citacita: "",
+  citacitaLainnya: "",
   jumlahSaudara: "",
   anakKe: "",
   pembiayaanSekolah: "",
@@ -63,6 +65,7 @@ const defaultForm = {
   alamatLengkapIbu: "",
   statusWali: "",
   namaWali: "",
+  hubunganWali: "",
   kewarganegaraanWali: "WNI",
   nikWali: "",
   tempatLahirWali: "",
@@ -81,6 +84,7 @@ const defaultForm = {
   rtAyah: "",
   rwAyah: "",
   kodePosAyah: "",
+  alamatAyah: "",
   statusKepemilikanRumahIbu: "",
   provinsiIbu: "",
   kabupatenKotaIbu: "",
@@ -89,6 +93,8 @@ const defaultForm = {
   rtIbu: "",
   rwIbu: "",
   kodePosIbu: "",
+  alamatIbu: "",
+  alamatWaliOption: "",
   statusKepemilikanRumahWali: "",
   provinsiWali: "",
   kabupatenKotaWali: "",
@@ -97,6 +103,7 @@ const defaultForm = {
   rtWali: "",
   rwWali: "",
   kodePosWali: "",
+  alamatWali: "",
   statusTempatTinggalSiswa: "",
   jarakTempatTinggalKeSekolah: "",
   transportasiKeSekolah: "",
@@ -135,6 +142,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   const isAyahNotAlive = form.statusAyah === "Sudah Meninggal" || form.statusAyah === "Tidak Diketahui"
   const isIbuNotAlive = form.statusIbu === "Sudah Meninggal" || form.statusIbu === "Tidak Diketahui"
+  const isAyahTidakBekerja = form.pekerjaanAyah === "Tidak Bekerja"
+  const isIbuTidakBekerja = form.pekerjaanIbu === "Tidak Bekerja"
+  const isWaliTidakBekerja = form.pekerjaanWali === "Tidak Bekerja"
+
+  const kabupatenAyahList = form.provinsiAyah ? kabupatenKotaList[form.provinsiAyah] || [] : []
+  const kabupatenIbuList = form.provinsiIbu ? kabupatenKotaList[form.provinsiIbu] || [] : []
+  const kabupatenWaliList = form.provinsiWali ? kabupatenKotaList[form.provinsiWali] || [] : []
+
+  const alamatIbuTerisiOtomatis = form.alamatIbuSamaDenganAyah === "true"
 
   useEffect(() => {
     if (open) {
@@ -150,13 +166,14 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
             : "",
           nik: initialData.nik || "",
           agama: initialData.agama || "",
-          alamat: initialData.alamat || "",
           noHpWhatsapp: initialData.noHpWhatsapp || initialData.noHpOrtu || "",
           emailSiswa: initialData.emailSiswa || "",
           status: initialData.status || "aktif",
           kewarganegaraan: initialData.kewarganegaraan || "WNI",
           hobi: initialData.hobi || "",
+          hobiLainnya: initialData.hobiLainnya || "",
           citacita: initialData.citacita || "",
+          citacitaLainnya: initialData.citacitaLainnya || "",
           jumlahSaudara: initialData.jumlahSaudara?.toString() || "",
           anakKe: initialData.anakKe?.toString() || "",
           pembiayaanSekolah: initialData.pembiayaanSekolah || "",
@@ -190,6 +207,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           alamatLengkapIbu: initialData.alamatLengkapIbu || "",
           statusWali: initialData.statusWali || "",
           namaWali: initialData.namaWali || "",
+          hubunganWali: initialData.hubunganWali || "",
           kewarganegaraanWali: initialData.kewarganegaraanWali || "WNI",
           nikWali: initialData.nikWali || "",
           tempatLahirWali: initialData.tempatLahirWali || "",
@@ -210,6 +228,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           rtAyah: initialData.rtAyah || "",
           rwAyah: initialData.rwAyah || "",
           kodePosAyah: initialData.kodePosAyah || "",
+          alamatAyah: initialData.alamatAyah || "",
           statusKepemilikanRumahIbu: initialData.statusKepemilikanRumahIbu || "",
           provinsiIbu: initialData.provinsiIbu || "",
           kabupatenKotaIbu: initialData.kabupatenKotaIbu || "",
@@ -218,6 +237,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           rtIbu: initialData.rtIbu || "",
           rwIbu: initialData.rwIbu || "",
           kodePosIbu: initialData.kodePosIbu || "",
+          alamatIbu: initialData.alamatIbu || "",
           statusKepemilikanRumahWali: initialData.statusKepemilikanRumahWali || "",
           provinsiWali: initialData.provinsiWali || "",
           kabupatenKotaWali: initialData.kabupatenKotaWali || "",
@@ -226,6 +246,8 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
           rtWali: initialData.rtWali || "",
           rwWali: initialData.rwWali || "",
           kodePosWali: initialData.kodePosWali || "",
+          alamatWali: initialData.alamatWali || "",
+          alamatWaliOption: initialData.alamatWaliOption ?? "",
           statusTempatTinggalSiswa: initialData.statusTempatTinggalSiswa || "",
           jarakTempatTinggalKeSekolah: initialData.jarakTempatTinggalKeSekolah || "",
           transportasiKeSekolah: initialData.transportasiKeSekolah || "",
@@ -246,7 +268,76 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   const handleChange = (key: string, value: string | null) => {
     if (value === null) return
-    setForm((prev) => ({ ...prev, [key]: value }))
+    setForm((prev) => {
+      const updated = { ...prev, [key]: value }
+
+      if (key === "alamatIbuSamaDenganAyah" && value === "true") {
+        updated.provinsiIbu = updated.provinsiAyah
+        updated.kabupatenKotaIbu = updated.kabupatenKotaAyah
+        updated.kecamatanIbu = updated.kecamatanAyah
+        updated.kelurahanDesaIbu = updated.kelurahanDesaAyah
+        updated.rtIbu = updated.rtAyah
+        updated.rwIbu = updated.rwAyah
+        updated.kodePosIbu = updated.kodePosAyah
+        updated.alamatIbu = updated.alamatAyah
+        updated.statusKepemilikanRumahIbu = updated.statusKepemilikanRumahAyah
+      }
+
+      if (key === "alamatWaliOption") {
+        if (value === "ayah") {
+          updated.provinsiWali = updated.provinsiAyah
+          updated.kabupatenKotaWali = updated.kabupatenKotaAyah
+          updated.kecamatanWali = updated.kecamatanAyah
+          updated.kelurahanDesaWali = updated.kelurahanDesaAyah
+          updated.rtWali = updated.rtAyah
+          updated.rwWali = updated.rwAyah
+          updated.kodePosWali = updated.kodePosAyah
+          updated.alamatWali = updated.alamatAyah
+          updated.statusKepemilikanRumahWali = updated.statusKepemilikanRumahAyah
+        } else if (value === "ibu") {
+          if (updated.alamatIbuSamaDenganAyah === "true") {
+            updated.provinsiWali = updated.provinsiAyah
+            updated.kabupatenKotaWali = updated.kabupatenKotaAyah
+            updated.kecamatanWali = updated.kecamatanAyah
+            updated.kelurahanDesaWali = updated.kelurahanDesaAyah
+            updated.rtWali = updated.rtAyah
+            updated.rwWali = updated.rwAyah
+            updated.kodePosWali = updated.kodePosAyah
+            updated.alamatWali = updated.alamatAyah
+            updated.statusKepemilikanRumahWali = updated.statusKepemilikanRumahAyah
+          } else {
+            updated.provinsiWali = updated.provinsiIbu
+            updated.kabupatenKotaWali = updated.kabupatenKotaIbu
+            updated.kecamatanWali = updated.kecamatanIbu
+            updated.kelurahanDesaWali = updated.kelurahanDesaIbu
+            updated.rtWali = updated.rtIbu
+            updated.rwWali = updated.rwIbu
+            updated.kodePosWali = updated.kodePosIbu
+            updated.alamatWali = updated.alamatIbu
+            updated.statusKepemilikanRumahWali = updated.statusKepemilikanRumahIbu
+          }
+        }
+      }
+
+      if (key === "pekerjaanAyah" && value === "Tidak Bekerja") {
+        updated.penghasilanAyah = ""
+      }
+      if (key === "pekerjaanIbu" && value === "Tidak Bekerja") {
+        updated.penghasilanIbu = ""
+      }
+      if (key === "pekerjaanWali" && value === "Tidak Bekerja") {
+        updated.penghasilanWali = ""
+      }
+
+      if (key === "hobi" && value !== "Lainnya") {
+        updated.hobiLainnya = ""
+      }
+      if (key === "citacita" && value !== "Lainnya") {
+        updated.citacitaLainnya = ""
+      }
+
+      return updated
+    })
   }
 
   const handleStatusWali = (value: string | null) => {
@@ -322,6 +413,29 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.error("NISN wajib diisi")
       return
     }
+    if (form.nisn.length !== 10) {
+      toast.error("NISN harus terdiri dari 10 angka")
+      return
+    }
+    if (form.hobi === "Lainnya" && !form.hobiLainnya) {
+      toast.error("Silakan isi hobi lainnya")
+      return
+    }
+    if (form.citacita === "Lainnya" && !form.citacitaLainnya) {
+      toast.error("Silakan isi cita-cita lainnya")
+      return
+    }
+    if (form.statusWali === "Lainnya" && !form.hubunganWali) {
+      toast.error("Silakan isi hubungan wali dengan siswa")
+      return
+    }
+    if (form.emailSiswa && !form.emailSiswa.includes("@")) {
+      toast.error("Email harus mengandung @")
+      return
+    }
+
+    const finalHobi = form.hobi === "Lainnya" ? form.hobiLainnya : form.hobi
+    const finalCitacita = form.citacita === "Lainnya" ? form.citacitaLainnya : form.citacita
 
     const payload: Record<string, unknown> = {
       nisn: form.nisn,
@@ -332,13 +446,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       tanggalLahir: form.tanggalLahir ? new Date(form.tanggalLahir) : undefined,
       nik: form.nik || undefined,
       agama: form.agama || undefined,
-      alamat: form.alamat || undefined,
       noHpWhatsapp: form.noHpWhatsapp || undefined,
       emailSiswa: form.emailSiswa || undefined,
       status: form.status,
       kewarganegaraan: form.kewarganegaraan || undefined,
-      hobi: form.hobi || undefined,
-      citacita: form.citacita || undefined,
+      hobi: finalHobi || undefined,
+      citacita: finalCitacita || undefined,
       jumlahSaudara: form.jumlahSaudara ? Number(form.jumlahSaudara) : undefined,
       anakKe: form.anakKe ? Number(form.anakKe) : undefined,
       pembiayaanSekolah: form.pembiayaanSekolah || undefined,
@@ -354,7 +467,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       pekerjaanAyah: form.pekerjaanAyah || undefined,
       penghasilanAyah: form.penghasilanAyah || undefined,
       noHpAyah: form.noHpAyah || undefined,
-      alamatLengkapAyah: form.alamatLengkapAyah || undefined,
+      alamatLengkapAyah: form.alamatAyah || form.alamatLengkapAyah || undefined,
       namaIbu: form.namaIbu || undefined,
       statusIbu: form.statusIbu || undefined,
       kewarganegaraanIbu: form.kewarganegaraanIbu || undefined,
@@ -365,7 +478,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       pekerjaanIbu: form.pekerjaanIbu || undefined,
       penghasilanIbu: form.penghasilanIbu || undefined,
       noHpIbu: form.noHpIbu || undefined,
-      alamatLengkapIbu: form.alamatLengkapIbu || undefined,
+      alamatLengkapIbu: form.alamatIbu || form.alamatLengkapIbu || undefined,
       statusWali: form.statusWali || undefined,
       namaWali: form.namaWali || undefined,
       kewarganegaraanWali: form.kewarganegaraanWali || undefined,
@@ -376,27 +489,27 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       pekerjaanWali: form.pekerjaanWali || undefined,
       penghasilanWali: form.penghasilanWali || undefined,
       noHpWali: form.noHpWali || undefined,
-      alamatLengkapWali: form.alamatLengkapWali || undefined,
-      alamatIbuSamaDenganAyah: form.alamatIbuSamaDenganAyah || undefined,
+      alamatLengkapWali: form.alamatWali || form.alamatLengkapWali || undefined,
+      alamatIbuSamaDenganAyah: form.alamatIbuSamaDenganAyah === "true" || undefined,
       statusKepemilikanRumahAyah: form.statusKepemilikanRumahAyah || undefined,
-      provinsiAyah: form.provinsiAyah || undefined,
-      kabupatenKotaAyah: form.kabupatenKotaAyah || undefined,
+      provinsiAyah: form.provinsiAyah ? provinsiList.find(p => p.id === form.provinsiAyah)?.nama || undefined : undefined,
+      kabupatenKotaAyah: form.kabupatenKotaAyah ? kabupatenKotaList[form.provinsiAyah]?.find(k => k.id === form.kabupatenKotaAyah)?.nama || undefined : undefined,
       kecamatanAyah: form.kecamatanAyah || undefined,
       kelurahanDesaAyah: form.kelurahanDesaAyah || undefined,
       rtAyah: form.rtAyah || undefined,
       rwAyah: form.rwAyah || undefined,
       kodePosAyah: form.kodePosAyah || undefined,
       statusKepemilikanRumahIbu: form.statusKepemilikanRumahIbu || undefined,
-      provinsiIbu: form.provinsiIbu || undefined,
-      kabupatenKotaIbu: form.kabupatenKotaIbu || undefined,
+      provinsiIbu: form.provinsiIbu ? provinsiList.find(p => p.id === form.provinsiIbu)?.nama || undefined : undefined,
+      kabupatenKotaIbu: form.kabupatenKotaIbu ? kabupatenKotaList[form.provinsiIbu]?.find(k => k.id === form.kabupatenKotaIbu)?.nama || undefined : undefined,
       kecamatanIbu: form.kecamatanIbu || undefined,
       kelurahanDesaIbu: form.kelurahanDesaIbu || undefined,
       rtIbu: form.rtIbu || undefined,
       rwIbu: form.rwIbu || undefined,
       kodePosIbu: form.kodePosIbu || undefined,
       statusKepemilikanRumahWali: form.statusKepemilikanRumahWali || undefined,
-      provinsiWali: form.provinsiWali || undefined,
-      kabupatenKotaWali: form.kabupatenKotaWali || undefined,
+      provinsiWali: form.provinsiWali ? provinsiList.find(p => p.id === form.provinsiWali)?.nama || undefined : undefined,
+      kabupatenKotaWali: form.kabupatenKotaWali ? kabupatenKotaList[form.provinsiWali]?.find(k => k.id === form.kabupatenKotaWali)?.nama || undefined : undefined,
       kecamatanWali: form.kecamatanWali || undefined,
       kelurahanDesaWali: form.kelurahanDesaWali || undefined,
       rtWali: form.rtWali || undefined,
@@ -492,13 +605,14 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     value={form.nisn}
                     onChange={(e) => handleChange("nisn", e.target.value.replace(/\D/g, ""))}
                     className="font-mono tracking-widest text-sm"
+                    placeholder="terdiri dari 10 angka"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nisLokal">NIS Lokal</Label>
+                  <Label htmlFor="nisLokal">NIS</Label>
                   <Input
                     id="nisLokal"
                     maxLength={6}
@@ -509,6 +623,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       if (!isEdit) handleChange("usernameSiswa", val)
                     }}
                     className="font-mono tracking-widest text-sm"
+                    placeholder="terdiri dari 6 digit angka"
                   />
                 </div>
                 <div className="space-y-2">
@@ -564,6 +679,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     maxLength={16}
                     value={form.nik}
                     onChange={(e) => handleChange("nik", e.target.value.replace(/\D/g, ""))}
+                    placeholder="terdiri dari 16 digit angka"
                   />
                 </div>
                 <div className="space-y-2">
@@ -637,7 +753,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     id="noHpWhatsapp"
                     type="tel"
                     value={form.noHpWhatsapp}
-                    onChange={(e) => handleChange("noHpWhatsapp", e.target.value)}
+                    onChange={(e) => handleChange("noHpWhatsapp", e.target.value.replace(/\D/g, ""))}
+                    maxLength={13}
+                    placeholder="08xxxxxxxxxx"
                   />
                 </div>
                 <div className="space-y-2">
@@ -687,6 +805,14 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <SelectItem value="Lainnya">Lainnya</SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.hobi === "Lainnya" && (
+                    <Input
+                      placeholder="Tulis hobi lainnya"
+                      value={form.hobiLainnya}
+                      onChange={(e) => handleChange("hobiLainnya", e.target.value)}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Cita-cita</Label>
@@ -701,18 +827,18 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <SelectItem value="Lainnya">Lainnya</SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.citacita === "Lainnya" && (
+                    <Input
+                      placeholder="Tulis cita-cita lainnya"
+                      value={form.citacitaLainnya}
+                      onChange={(e) => handleChange("citacitaLainnya", e.target.value)}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="alamat">Alamat</Label>
-                  <Input
-                    id="alamat"
-                    value={form.alamat}
-                    onChange={(e) => handleChange("alamat", e.target.value)}
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label>Pembiayaan Sekolah</Label>
                   <Select value={form.pembiayaanSekolah} onValueChange={(v) => handleChange("pembiayaanSekolah", v)}>
@@ -725,9 +851,26 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>No Kartu Keluarga</Label>
+                  <Input
+                    id="noKartuKeluarga"
+                    maxLength={16}
+                    value={form.noKartuKeluarga}
+                    onChange={(e) => handleChange("noKartuKeluarga", e.target.value.replace(/\D/g, ""))}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nama Kepala Keluarga</Label>
+                  <Input
+                    id="namaKepalaKeluarga"
+                    value={form.namaKepalaKeluarga}
+                    onChange={(e) => handleChange("namaKepalaKeluarga", e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="sekolahAsal">Sekolah Asal</Label>
                   <Input
@@ -835,8 +978,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Penghasilan</Label>
-                        <Select value={form.penghasilanAyah} onValueChange={(v) => handleChange("penghasilanAyah", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                        <Select value={form.penghasilanAyah} onValueChange={(v) => handleChange("penghasilanAyah", v)} disabled={isAyahTidakBekerja}>
+                          <SelectTrigger className={isAyahTidakBekerja ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}>
+                            <SelectValue placeholder={isAyahTidakBekerja ? "Tidak bekerja" : "Pilih"} />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Dibawah 800.000">Dibawah 800.000</SelectItem>
                             <SelectItem value="800.001 - 1.200.000">800.001 - 1.200.000</SelectItem>
@@ -852,7 +997,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="noHpAyah">No HP</Label>
-                        <Input id="noHpAyah" type="tel" value={form.noHpAyah} onChange={(e) => handleChange("noHpAyah", e.target.value)} />
+                        <Input id="noHpAyah" type="tel" maxLength={13} value={form.noHpAyah} onChange={(e) => handleChange("noHpAyah", e.target.value.replace(/\D/g, ""))} placeholder="08xxxxxxxxxx" />
                       </div>
                     </div>
                   </>
@@ -893,7 +1038,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="nikIbu">NIK</Label>
-                        <Input id="nikIbu" maxLength={16} value={form.nikIbu} onChange={(e) => handleChange("nikIbu", e.target.value.replace(/\D/g, ""))} />
+                        <Input id="nikIbu" maxLength={16} value={form.nikIbu} onChange={(e) => handleChange("nikIbu", e.target.value.replace(/\D/g, ""))} placeholder="terdiri dari 16 digit angka" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -944,8 +1089,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Penghasilan</Label>
-                        <Select value={form.penghasilanIbu} onValueChange={(v) => handleChange("penghasilanIbu", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                        <Select value={form.penghasilanIbu} onValueChange={(v) => handleChange("penghasilanIbu", v)} disabled={isIbuTidakBekerja}>
+                          <SelectTrigger className={isIbuTidakBekerja ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}>
+                            <SelectValue placeholder={isIbuTidakBekerja ? "Tidak bekerja" : "Pilih"} />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Dibawah 800.000">Dibawah 800.000</SelectItem>
                             <SelectItem value="800.001 - 1.200.000">800.001 - 1.200.000</SelectItem>
@@ -961,7 +1108,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="noHpIbu">No HP</Label>
-                        <Input id="noHpIbu" type="tel" value={form.noHpIbu} onChange={(e) => handleChange("noHpIbu", e.target.value)} />
+                        <Input id="noHpIbu" type="tel" maxLength={13} value={form.noHpIbu} onChange={(e) => handleChange("noHpIbu", e.target.value.replace(/\D/g, ""))} placeholder="08xxxxxxxxxx" />
                       </div>
                     </div>
                   </>
@@ -995,6 +1142,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
                 {form.statusWali === "Lainnya" && (
                   <>
+                    <div className="space-y-2">
+                      <Label htmlFor="hubunganWali">Hubungan dengan Siswa *</Label>
+                      <Input
+                        id="hubunganWali"
+                        value={form.hubunganWali}
+                        onChange={(e) => handleChange("hubunganWali", e.target.value)}
+                        placeholder="Contoh: Paman, Bibi, Kakek, dll"
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="namaWali">Nama Lengkap Wali</Label>
@@ -1014,7 +1170,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="nikWali">NIK</Label>
-                        <Input id="nikWali" maxLength={16} value={form.nikWali} onChange={(e) => handleChange("nikWali", e.target.value.replace(/\D/g, ""))} />
+                        <Input id="nikWali" maxLength={16} value={form.nikWali} onChange={(e) => handleChange("nikWali", e.target.value.replace(/\D/g, ""))} placeholder="terdiri dari 16 digit angka" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="tempatLahirWali">Tempat Lahir</Label>
@@ -1063,8 +1219,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       </div>
                       <div className="space-y-2">
                         <Label>Penghasilan</Label>
-                        <Select value={form.penghasilanWali} onValueChange={(v) => handleChange("penghasilanWali", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                        <Select value={form.penghasilanWali} onValueChange={(v) => handleChange("penghasilanWali", v)} disabled={isWaliTidakBekerja}>
+                          <SelectTrigger className={isWaliTidakBekerja ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}>
+                            <SelectValue placeholder={isWaliTidakBekerja ? "Tidak bekerja" : "Pilih"} />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Dibawah 800.000">Dibawah 800.000</SelectItem>
                             <SelectItem value="800.001 - 1.200.000">800.001 - 1.200.000</SelectItem>
@@ -1082,7 +1240,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="noHpWali">No HP</Label>
-                        <Input id="noHpWali" type="tel" value={form.noHpWali} onChange={(e) => handleChange("noHpWali", e.target.value)} />
+                        <Input id="noHpWali" type="tel" maxLength={13} value={form.noHpWali} onChange={(e) => handleChange("noHpWali", e.target.value.replace(/\D/g, ""))} placeholder="08xxxxxxxxxx" />
                       </div>
                     </div>
                   </>
@@ -1093,6 +1251,44 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
             <TabsContent value="alamat" className="space-y-6 mt-4">
               <div className="border rounded-lg p-4 space-y-4">
                 <h3 className="font-semibold text-lg">Alamat Ayah</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="alamatAyah">Alamat Lengkap</Label>
+                  <Input id="alamatAyah" value={form.alamatAyah} onChange={(e) => handleChange("alamatAyah", e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Provinsi</Label>
+                    <Select value={form.provinsiAyah} onValueChange={(v) => handleChange("provinsiAyah", v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {provinsiList.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Kabupaten/Kota</Label>
+                    <Select value={form.kabupatenKotaAyah} onValueChange={(v) => handleChange("kabupatenKotaAyah", v)} disabled={!form.provinsiAyah}>
+                      <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {kabupatenAyahList.map((k) => (
+                          <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="kecamatanAyah">Kecamatan</Label>
+                    <Input id="kecamatanAyah" value={form.kecamatanAyah} onChange={(e) => handleChange("kecamatanAyah", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="kelurahanDesaAyah">Kelurahan/Desa</Label>
+                    <Input id="kelurahanDesaAyah" value={form.kelurahanDesaAyah} onChange={(e) => handleChange("kelurahanDesaAyah", e.target.value)} />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Status Kepemilikan Rumah</Label>
@@ -1109,26 +1305,6 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="provinsiAyah">Provinsi</Label>
-                    <Input id="provinsiAyah" value={form.provinsiAyah} onChange={(e) => handleChange("provinsiAyah", e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kabupatenKotaAyah">Kabupaten/Kota</Label>
-                    <Input id="kabupatenKotaAyah" value={form.kabupatenKotaAyah} onChange={(e) => handleChange("kabupatenKotaAyah", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kecamatanAyah">Kecamatan</Label>
-                    <Input id="kecamatanAyah" value={form.kecamatanAyah} onChange={(e) => handleChange("kecamatanAyah", e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kelurahanDesaAyah">Kelurahan/Desa</Label>
-                    <Input id="kelurahanDesaAyah" value={form.kelurahanDesaAyah} onChange={(e) => handleChange("kelurahanDesaAyah", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="kodePosAyah">Kode Pos</Label>
                     <Input id="kodePosAyah" maxLength={5} value={form.kodePosAyah} onChange={(e) => handleChange("kodePosAyah", e.target.value.replace(/\D/g, ""))} />
                   </div>
@@ -1136,133 +1312,200 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rtAyah">RT</Label>
-                    <Input id="rtAyah" maxLength={3} value={form.rtAyah} onChange={(e) => handleChange("rtAyah", e.target.value.replace(/\D/g, ""))} />
+                    <Input id="rtAyah" maxLength={3} value={form.rtAyah} onChange={(e) => handleChange("rtAyah", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rwAyah">RW</Label>
-                    <Input id="rwAyah" maxLength={3} value={form.rwAyah} onChange={(e) => handleChange("rwAyah", e.target.value.replace(/\D/g, ""))} />
+                    <Input id="rwAyah" maxLength={3} value={form.rwAyah} onChange={(e) => handleChange("rwAyah", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
                   </div>
                 </div>
               </div>
 
               <div className="border rounded-lg p-4 space-y-4">
                 <h3 className="font-semibold text-lg">Alamat Ibu</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="alamatIbuSamaDenganAyah"
-                      checked={form.alamatIbuSamaDenganAyah === "true"}
-                      onChange={(e) => handleChange("alamatIbuSamaDenganAyah", e.target.checked ? "true" : "false")}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <Label htmlFor="alamatIbuSamaDenganAyah" className="text-sm font-normal">Alamat Ibu sama dengan Alamat Ayah</Label>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="alamatIbuSamaDenganAyah"
+                    checked={form.alamatIbuSamaDenganAyah === "true"}
+                    onChange={(e) => handleChange("alamatIbuSamaDenganAyah", e.target.checked ? "true" : "false")}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="alamatIbuSamaDenganAyah" className="text-sm font-normal">Alamat Ibu sama dengan Alamat Ayah</Label>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Status Kepemilikan Rumah</Label>
-                    <Select value={form.statusKepemilikanRumahIbu} onValueChange={(v) => handleChange("statusKepemilikanRumahIbu", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
-                        <SelectItem value="Kontrakan">Kontrakan</SelectItem>
-                        <SelectItem value="Sewa">Sewa</SelectItem>
-                        <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
-                        <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
-                        <SelectItem value="Lainnya">Lainnya</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {form.alamatIbuSamaDenganAyah === "true" ? (
+                  <div className="bg-sky-50 border border-sky-100 text-sky-700 rounded-md px-3 py-2 text-sm">
+                    Alamat Ibu akan terisi otomatis sama dengan Alamat Ayah
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="provinsiIbu">Provinsi</Label>
-                    <Input id="provinsiIbu" value={form.provinsiIbu} onChange={(e) => handleChange("provinsiIbu", e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kabupatenKotaIbu">Kabupaten/Kota</Label>
-                    <Input id="kabupatenKotaIbu" value={form.kabupatenKotaIbu} onChange={(e) => handleChange("kabupatenKotaIbu", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kecamatanIbu">Kecamatan</Label>
-                    <Input id="kecamatanIbu" value={form.kecamatanIbu} onChange={(e) => handleChange("kecamatanIbu", e.target.value)} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kelurahanDesaIbu">Kelurahan/Desa</Label>
-                    <Input id="kelurahanDesaIbu" value={form.kelurahanDesaIbu} onChange={(e) => handleChange("kelurahanDesaIbu", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kodePosIbu">Kode Pos</Label>
-                    <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rtIbu">RT</Label>
-                    <Input id="rtIbu" maxLength={3} value={form.rtIbu} onChange={(e) => handleChange("rtIbu", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rwIbu">RW</Label>
-                    <Input id="rwIbu" maxLength={3} value={form.rwIbu} onChange={(e) => handleChange("rwIbu", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="alamatIbu">Alamat Lengkap</Label>
+                      <Input id="alamatIbu" value={form.alamatIbu} onChange={(e) => handleChange("alamatIbu", e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Provinsi</Label>
+                        <Select value={form.provinsiIbu} onValueChange={(v) => handleChange("provinsiIbu", v)}>
+                          <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {provinsiList.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Kabupaten/Kota</Label>
+                        <Select value={form.kabupatenKotaIbu} onValueChange={(v) => handleChange("kabupatenKotaIbu", v)} disabled={!form.provinsiIbu}>
+                          <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {kabupatenIbuList.map((k) => (
+                              <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="kecamatanIbu">Kecamatan</Label>
+                        <Input id="kecamatanIbu" value={form.kecamatanIbu} onChange={(e) => handleChange("kecamatanIbu", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="kelurahanDesaIbu">Kelurahan/Desa</Label>
+                        <Input id="kelurahanDesaIbu" value={form.kelurahanDesaIbu} onChange={(e) => handleChange("kelurahanDesaIbu", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Status Kepemilikan Rumah</Label>
+                        <Select value={form.statusKepemilikanRumahIbu} onValueChange={(v) => handleChange("statusKepemilikanRumahIbu", v)}>
+                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
+                            <SelectItem value="Kontrakan">Kontrakan</SelectItem>
+                            <SelectItem value="Sewa">Sewa</SelectItem>
+                            <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
+                            <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
+                            <SelectItem value="Lainnya">Lainnya</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="kodePosIbu">Kode Pos</Label>
+                        <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="rtIbu">RT</Label>
+                        <Input id="rtIbu" maxLength={3} value={form.rtIbu} onChange={(e) => handleChange("rtIbu", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rwIbu">RW</Label>
+                        <Input id="rwIbu" maxLength={3} value={form.rwIbu} onChange={(e) => handleChange("rwIbu", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border rounded-lg p-4 space-y-4">
                 <h3 className="font-semibold text-lg">Alamat Wali</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Status Kepemilikan Rumah</Label>
-                    <Select value={form.statusKepemilikanRumahWali} onValueChange={(v) => handleChange("statusKepemilikanRumahWali", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
-                        <SelectItem value="Kontrakan">Kontrakan</SelectItem>
-                        <SelectItem value="Sewa">Sewa</SelectItem>
-                        <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
-                        <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
-                        <SelectItem value="Lainnya">Lainnya</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="provinsiWali">Provinsi</Label>
-                    <Input id="provinsiWali" value={form.provinsiWali} onChange={(e) => handleChange("provinsiWali", e.target.value)} />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Opsi Alamat</Label>
+                  <Select value={form.alamatWaliOption} onValueChange={(v) => handleChange("alamatWaliOption", v)}>
+                    <SelectTrigger><SelectValue placeholder="Pilih opsi alamat" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sama_ayah">Sama dengan Alamat Ayah</SelectItem>
+                      <SelectItem value="sama_ibu">Sama dengan Alamat Ibu</SelectItem>
+                      <SelectItem value="lainnya">Isi manual</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kabupatenKotaWali">Kabupaten/Kota</Label>
-                    <Input id="kabupatenKotaWali" value={form.kabupatenKotaWali} onChange={(e) => handleChange("kabupatenKotaWali", e.target.value)} />
+                {form.alamatWaliOption === "sama_ayah" && (
+                  <div className="bg-sky-50 border border-sky-100 text-sky-700 rounded-md px-3 py-2 text-sm">
+                    Alamat Wali akan terisi otomatis sama dengan Alamat Ayah
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kecamatanWali">Kecamatan</Label>
-                    <Input id="kecamatanWali" value={form.kecamatanWali} onChange={(e) => handleChange("kecamatanWali", e.target.value)} />
+                )}
+                {form.alamatWaliOption === "sama_ibu" && (
+                  <div className="bg-sky-50 border border-sky-100 text-sky-700 rounded-md px-3 py-2 text-sm">
+                    Alamat Wali akan terisi otomatis sama dengan Alamat Ibu
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="kelurahanDesaWali">Kelurahan/Desa</Label>
-                    <Input id="kelurahanDesaWali" value={form.kelurahanDesaWali} onChange={(e) => handleChange("kelurahanDesaWali", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="kodePosWali">Kode Pos</Label>
-                    <Input id="kodePosWali" maxLength={5} value={form.kodePosWali} onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="rtWali">RT</Label>
-                    <Input id="rtWali" maxLength={3} value={form.rtWali} onChange={(e) => handleChange("rtWali", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rwWali">RW</Label>
-                    <Input id="rwWali" maxLength={3} value={form.rwWali} onChange={(e) => handleChange("rwWali", e.target.value.replace(/\D/g, ""))} />
-                  </div>
-                </div>
+                )}
+                {form.alamatWaliOption === "lainnya" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="alamatWali">Alamat Lengkap</Label>
+                      <Input id="alamatWali" value={form.alamatWali} onChange={(e) => handleChange("alamatWali", e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Provinsi</Label>
+                        <Select value={form.provinsiWali} onValueChange={(v) => handleChange("provinsiWali", v)}>
+                          <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {provinsiList.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.nama}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Kabupaten/Kota</Label>
+                        <Select value={form.kabupatenKotaWali} onValueChange={(v) => handleChange("kabupatenKotaWali", v)} disabled={!form.provinsiWali}>
+                          <SelectTrigger><SelectValue placeholder="Pilih Kab/Kota" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {kabupatenWaliList.map((k) => (
+                              <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="kecamatanWali">Kecamatan</Label>
+                        <Input id="kecamatanWali" value={form.kecamatanWali} onChange={(e) => handleChange("kecamatanWali", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="kelurahanDesaWali">Kelurahan/Desa</Label>
+                        <Input id="kelurahanDesaWali" value={form.kelurahanDesaWali} onChange={(e) => handleChange("kelurahanDesaWali", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Status Kepemilikan Rumah</Label>
+                        <Select value={form.statusKepemilikanRumahWali} onValueChange={(v) => handleChange("statusKepemilikanRumahWali", v)}>
+                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
+                            <SelectItem value="Kontrakan">Kontrakan</SelectItem>
+                            <SelectItem value="Sewa">Sewa</SelectItem>
+                            <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
+                            <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
+                            <SelectItem value="Lainnya">Lainnya</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="kodePosWali">Kode Pos</Label>
+                        <Input id="kodePosWali" maxLength={5} value={form.kodePosWali} onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="rtWali">RT</Label>
+                        <Input id="rtWali" maxLength={3} value={form.rtWali} onChange={(e) => handleChange("rtWali", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rwWali">RW</Label>
+                        <Input id="rwWali" maxLength={3} value={form.rwWali} onChange={(e) => handleChange("rwWali", e.target.value.replace(/\D/g, ""))} placeholder="3 digit angka" />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border rounded-lg p-4 space-y-4">
@@ -1273,11 +1516,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <Select value={form.statusTempatTinggalSiswa} onValueChange={(v) => handleChange("statusTempatTinggalSiswa", v)}>
                       <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Bersama Orang Tua">Bersama Orang Tua</SelectItem>
-                        <SelectItem value="Bersama Wali">Bersama Wali</SelectItem>
-                        <SelectItem value="Kos">Kos</SelectItem>
-                        <SelectItem value="Asrama">Asrama</SelectItem>
-                        <SelectItem value="Lainnya">Lainnya</SelectItem>
+                        {statusTempatTinggalOptions.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1299,12 +1540,26 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="jarakTempatTinggalKeSekolah">Jarak Tempat Tinggal ke Sekolah</Label>
-                    <Input id="jarakTempatTinggalKeSekolah" value={form.jarakTempatTinggalKeSekolah} onChange={(e) => handleChange("jarakTempatTinggalKeSekolah", e.target.value)} placeholder="Contoh: 2 km" />
+                    <Label>Jarak Tempat Tinggal ke Sekolah</Label>
+                    <Select value={form.jarakTempatTinggalKeSekolah} onValueChange={(v) => handleChange("jarakTempatTinggalKeSekolah", v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                      <SelectContent>
+                        {jarakTempatTinggalOptions.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="waktuTempuhKeSekolah">Waktu Tempuh ke Sekolah</Label>
-                    <Input id="waktuTempuhKeSekolah" value={form.waktuTempuhKeSekolah} onChange={(e) => handleChange("waktuTempuhKeSekolah", e.target.value)} placeholder="Contoh: 15 menit" />
+                    <Label>Waktu Tempuh ke Sekolah</Label>
+                    <Select value={form.waktuTempuhKeSekolah} onValueChange={(v) => handleChange("waktuTempuhKeSekolah", v)}>
+                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                      <SelectContent>
+                        {waktuTempuhOptions.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

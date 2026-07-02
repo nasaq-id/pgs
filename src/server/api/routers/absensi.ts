@@ -4,6 +4,7 @@ import { eq, and, desc, between } from "drizzle-orm"
 import { db } from "@/server/db"
 import { absensiSiswa, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const absensiBulkCreateSchema = z.object({
   absensi: z.array(
@@ -91,6 +92,7 @@ export const absensiRouter = router({
         id: a.id || crypto.randomUUID(),
       }))
       const result = await db.insert(absensiSiswa).values(values as any).returning()
+      await logAudit(ctx, { action: "bulk_create", entity: "absensi_siswa", metadata: { count: result.length } })
       return result
     }),
 
@@ -114,6 +116,7 @@ export const absensiRouter = router({
         })
         .where(eq(absensiSiswa.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "absensi_siswa", entityId: result[0]?.id, metadata: { status: input.status } })
       return result[0]
     }),
 })

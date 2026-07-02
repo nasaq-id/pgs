@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran } from "@/server/db/schema"
+import { logAudit } from "@/server/audit"
 
 export const lembagaRouter = router({
   getSekolah: protectedProcedure.query(async ({ ctx }) => {
@@ -30,6 +31,11 @@ export const lembagaRouter = router({
       statusSekolah: z.string().optional(),
       kurikulum: z.string().optional(),
       situsWeb: z.string().optional(),
+      whatsapp: z.string().optional(),
+      facebook: z.string().optional(),
+      instagram: z.string().optional(),
+      youtube: z.string().optional(),
+      twitter: z.string().optional(),
       akreditasi: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -37,6 +43,7 @@ export const lembagaRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
 
       await db.update(sekolah).set(input).where(eq(sekolah.id, sekolahId))
+      await logAudit(ctx, { action: "update", entity: "sekolah", entityId: sekolahId, metadata: { fields: Object.keys(input) } })
       return { success: true }
     }),
 
@@ -72,6 +79,7 @@ export const lembagaRouter = router({
         active: input.active,
       }).returning()
 
+      await logAudit(ctx, { action: "create", entity: "tahun_ajaran", entityId: inserted.id, metadata: { namaTahunAjaran: input.namaTahunAjaran } })
       return inserted
     }),
 
@@ -99,6 +107,7 @@ export const lembagaRouter = router({
       if (data.tanggalSelesai) updateData.tanggalSelesai = new Date(data.tanggalSelesai)
 
       await db.update(tahunAjaran).set(updateData).where(eq(tahunAjaran.id, id))
+      await logAudit(ctx, { action: "update", entity: "tahun_ajaran", entityId: id, metadata: { fields: Object.keys(data) } })
       return { success: true }
     }),
 
@@ -114,6 +123,7 @@ export const lembagaRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
       }
       await db.delete(tahunAjaran).where(eq(tahunAjaran.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "tahun_ajaran", entityId: input.id })
       return { success: true }
     }),
 })

@@ -4,6 +4,7 @@ import { eq, and, between, desc, asc, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jurnalMengajar, tugas, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const jurnalCreateSchema = z.object({
   id: z.string().optional(),
@@ -117,6 +118,7 @@ export const lmsRouter = router({
         .insert(jurnalMengajar)
         .values({ ...input, id } as any)
         .returning()
+      await logAudit(ctx, { action: "create", entity: "jurnal_mengajar", entityId: result[0]?.id, metadata: { kelasId: input.kelasId } })
       return result[0]
     }),
 
@@ -137,6 +139,7 @@ export const lmsRouter = router({
         .set({ ...input.data, updatedAt: new Date() })
         .where(eq(jurnalMengajar.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "jurnal_mengajar", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -153,6 +156,7 @@ export const lmsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
       }
       await db.delete(jurnalMengajar).where(eq(jurnalMengajar.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "jurnal_mengajar", entityId: input.id })
       return { success: true }
     }),
 
@@ -207,6 +211,7 @@ export const lmsRouter = router({
         .insert(tugas)
         .values({ ...input, id } as any)
         .returning()
+      await logAudit(ctx, { action: "create", entity: "tugas", entityId: result[0]?.id, metadata: { kelasId: input.kelasId } })
       return result[0]
     }),
 
@@ -227,6 +232,7 @@ export const lmsRouter = router({
         .set(input.data as any)
         .where(eq(tugas.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "tugas", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -243,6 +249,7 @@ export const lmsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Tugas tidak ditemukan" })
       }
       await db.delete(tugas).where(eq(tugas.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "tugas", entityId: input.id })
       return { success: true }
     }),
 })

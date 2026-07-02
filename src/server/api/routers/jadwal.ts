@@ -4,6 +4,7 @@ import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jadwalPelajaran, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const jadwalCreateSchema = z.object({
   id: z.string().optional(),
@@ -92,6 +93,7 @@ export const jadwalRouter = router({
       }
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(jadwalPelajaran).values({ ...input, id } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: result[0]?.id, metadata: { kelasId: input.kelasId } })
       return result[0]
     }),
 
@@ -118,6 +120,7 @@ export const jadwalRouter = router({
         .set(input.data as any)
         .where(eq(jadwalPelajaran.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "jadwal_pelajaran", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -134,6 +137,7 @@ export const jadwalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
       }
       await db.delete(jadwalPelajaran).where(eq(jadwalPelajaran.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "jadwal_pelajaran", entityId: input.id })
       return { success: true }
     }),
 })

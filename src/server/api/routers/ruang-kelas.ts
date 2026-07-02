@@ -4,6 +4,7 @@ import { eq, and, like } from "drizzle-orm"
 import { db } from "@/server/db"
 import { ruangKelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const ruangKelasCreateSchema = z.object({
   id: z.string().optional(),
@@ -66,6 +67,7 @@ export const ruangKelasRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ruangKelas).values({ ...input, id, sekolahId } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "ruang_kelas", entityId: result[0]?.id, metadata: { namaRuang: input.namaRuang } })
       return result[0]
     }),
 
@@ -84,6 +86,7 @@ export const ruangKelasRouter = router({
         .set(updateData as any)
         .where(and(...conditions))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "ruang_kelas", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
       return result[0]
     }),
 
@@ -96,6 +99,7 @@ export const ruangKelasRouter = router({
       const existing = await db.query.ruangKelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Ruang kelas tidak ditemukan" })
       await db.delete(ruangKelas).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "ruang_kelas", entityId: input.id })
       return { success: true }
     }),
 })

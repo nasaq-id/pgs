@@ -4,6 +4,7 @@ import { eq, and, like, desc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { pengumuman } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -76,6 +77,7 @@ export const pengumumanRouter = router({
         sekolahId,
         tanggalPublish,
       } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "pengumuman", entityId: result[0]?.id, metadata: { judul: input.judul } })
       return result[0]
     }),
 
@@ -97,6 +99,7 @@ export const pengumumanRouter = router({
         .set(updateData)
         .where(and(...conditions))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "pengumuman", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
       return result[0]
     }),
 
@@ -109,6 +112,7 @@ export const pengumumanRouter = router({
       const existing = await db.query.pengumuman.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
       await db.delete(pengumuman).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "pengumuman", entityId: input.id })
       return { success: true }
     }),
 })

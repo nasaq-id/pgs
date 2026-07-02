@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server"
+
+const WINDOW_MS = 15 * 60 * 1000
+const MAX_ATTEMPTS = 8
+
+type Bucket = {
+  count: number
+  resetAt: number
+}
+
+const buckets = new Map<string, Bucket>()
+
+function getClientKey(req: NextRequest) {
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const realIp = req.headers.get("x-real-ip")
+  return forwarded || realIp || "unknown"
+}
+
+export function middleware(req: NextRequest) {
+  if (req.method !== "POST") return NextResponse.next()
+
+  const now = Date.now()
+  const key = getClientKey(req)
+  const current = buckets.get(key)
+
+  if (!current || current.resetAt <= now) {
+    buckets.set(key, { count: 1, resetAt: now + WINDOW_MS })
+    return NextResponse.next()
+  }
+
+  if (current.count >= MAX_ATTEMPTS) {
+    return NextResponse.json(
+      { error: "Terlalu banyak percobaan login. Coba lagi nanti." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((current.resetAt - now) / 1000)),
+        },
+      },
+    )
+  }
+
+  current.count += 1
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ["/api/auth/callback/credentials"],
+}

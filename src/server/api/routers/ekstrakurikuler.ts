@@ -4,6 +4,7 @@ import { eq, and, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { ekstrakurikuler } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const ekstrakurikulerCreateSchema = z.object({
   id: z.string().optional(),
@@ -75,6 +76,7 @@ export const ekstrakurikulerRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ekstrakurikuler).values({ ...input, id, sekolahId } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { namaEkskul: input.namaEkskul } })
       return result[0]
     }),
 
@@ -93,6 +95,7 @@ export const ekstrakurikulerRouter = router({
         .set(updateData as any)
         .where(and(...conditions))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
       return result[0]
     }),
 
@@ -105,6 +108,7 @@ export const ekstrakurikulerRouter = router({
       const existing = await db.query.ekstrakurikuler.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Ekstrakurikuler tidak ditemukan" })
       await db.delete(ekstrakurikuler).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "ekstrakurikuler", entityId: input.id })
       return { success: true }
     }),
 })

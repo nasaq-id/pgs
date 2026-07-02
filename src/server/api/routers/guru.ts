@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { guru, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const guruCreateSchema = z.object({
   id: z.string().optional(),
@@ -107,6 +108,7 @@ export const guruRouter = router({
           active: true,
         }).execute()
       }
+      await logAudit(ctx, { action: "create", entity: "guru", entityId: result[0]?.id, metadata: { namaLengkap: input.namaLengkap } })
       return result[0]
     }),
 
@@ -143,6 +145,7 @@ export const guruRouter = router({
       for (const u of usersToCreate) {
         await db.insert(users).values(u).execute()
       }
+      await logAudit(ctx, { action: "bulk_create", entity: "guru", metadata: { count: result.length } })
       return result
     }),
 
@@ -186,6 +189,7 @@ export const guruRouter = router({
           .where(eq(users.email, email))
           .execute().catch(() => {})
       }
+      await logAudit(ctx, { action: "update", entity: "guru", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -198,6 +202,7 @@ export const guruRouter = router({
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       await db.delete(guru).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "guru", entityId: input.id })
       return { success: true }
     }),
 })

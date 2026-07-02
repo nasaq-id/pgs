@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Link2, Hash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,7 @@ const jenjangMap: Record<string, string> = {
   mts: "MTS (Madrasah Tsanawiyah)", ma: "MA (Madrasah Aliyah)",
 }
 
-function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
+function InfoItem({ icon: Icon, label, value, isLink = false, href }: { icon: React.ElementType; label: string; value?: string | null; isLink?: boolean; href?: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -36,7 +36,13 @@ function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
-        <p className="text-sm font-medium text-foreground break-all">{value || "—"}</p>
+        {isLink && href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline break-all">
+            {value || "—"}
+          </a>
+        ) : (
+          <p className="text-sm font-medium text-foreground break-all">{value || "—"}</p>
+        )}
       </div>
     </div>
   )
@@ -73,6 +79,11 @@ export default function LembagaPage() {
         statusSekolah: sekolah.statusSekolah || "",
         kurikulum: sekolah.kurikulum || "",
         situsWeb: sekolah.situsWeb || "",
+        whatsapp: sekolah.whatsapp || "",
+        facebook: sekolah.facebook || "",
+        instagram: sekolah.instagram || "",
+        youtube: sekolah.youtube || "",
+        twitter: sekolah.twitter || "",
         akreditasi: sekolah.akreditasi || "",
       })
     }
@@ -132,7 +143,20 @@ export default function LembagaPage() {
         <div className="w-full space-y-4">
           <InfoItem icon={User} label="Kepala Sekolah" value={sekolah?.kepalaSekolah} />
           <InfoItem icon={Mail} label="Email Resmi" value={sekolah?.emailSekolah} />
-          <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} />
+          <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} isLink={true} href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined} />
+          <InfoItem icon={MessageCircle} label="WhatsApp" value={sekolah?.whatsapp} isLink={true} href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined} />
+          {sekolah?.facebook && (
+            <InfoItem icon={Link2} label="Facebook" value={sekolah?.facebook} isLink={true} href={sekolah?.facebook?.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} />
+          )}
+          {sekolah?.instagram && (
+            <InfoItem icon={Link2} label="Instagram" value={sekolah?.instagram} isLink={true} href={sekolah?.instagram?.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} />
+          )}
+          {sekolah?.youtube && (
+            <InfoItem icon={Link2} label="YouTube" value={sekolah?.youtube} isLink={true} href={sekolah?.youtube?.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} />
+          )}
+          {sekolah?.twitter && (
+            <InfoItem icon={Link2} label="X (Twitter)" value={sekolah?.twitter} isLink={true} href={sekolah?.twitter?.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} />
+          )}
         </div>
       </div>
 
@@ -237,7 +261,32 @@ export default function LembagaPage() {
               </div>
               <div className="space-y-2">
                 <Label>Situs Web</Label>
-                <Input value={form.situsWeb || ""} onChange={(e) => setForm({ ...form, situsWeb: e.target.value })} />
+                <Input value={form.situsWeb || ""} onChange={(e) => setForm({ ...form, situsWeb: e.target.value })} placeholder="https://example.com" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp Admin (nomor tanpa +62)</Label>
+              <Input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, "") })} placeholder="81234567890" maxLength={13} />
+              <p className="text-xs text-muted-foreground">Format: 8xxxxxxxxxx (akan digunakan untuk link WhatsApp di header)</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Facebook</Label>
+                <Input value={form.facebook || ""} onChange={(e) => setForm({ ...form, facebook: e.target.value })} placeholder="https://facebook.com/sekolah" />
+              </div>
+              <div className="space-y-2">
+                <Label>Instagram</Label>
+                <Input value={form.instagram || ""} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="https://instagram.com/sekolah" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>YouTube</Label>
+                <Input value={form.youtube || ""} onChange={(e) => setForm({ ...form, youtube: e.target.value })} placeholder="https://youtube.com/@sekolah" />
+              </div>
+              <div className="space-y-2">
+                <Label>X (Twitter)</Label>
+                <Input value={form.twitter || ""} onChange={(e) => setForm({ ...form, twitter: e.target.value })} placeholder="https://twitter.com/sekolah" />
               </div>
             </div>
             <Button onClick={handleSave} className="w-full" disabled={updateSekolah.isPending}>

@@ -35,6 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           role: user.role,
           sekolahId: user.sekolahId,
+          photo: user.photo,
         }
       },
     }),
@@ -45,6 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id
         token.role = (user as { role: string }).role
         token.sekolahId = (user as { sekolahId: string | null }).sekolahId
+        token.photo = (user as { photo?: string | null }).photo
       }
       return token
     },
@@ -56,6 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: token.id as string,
           role: token.role as string,
           sekolahId: token.sekolahId as string | null,
+          photo: token.photo as string | undefined,
         },
       }
     },
@@ -65,5 +68,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 jam
+  },
+  jwt: {
+    maxAge: 8 * 60 * 60, // 8 jam
   },
 })

@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { siswa, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
@@ -176,6 +177,7 @@ export const siswaRouter = router({
           active: true,
         }).execute()
       }
+      await logAudit(ctx, { action: "create", entity: "siswa", entityId: result[0]?.id, metadata: { nisn: input.nisn } })
       return result[0]
     }),
 
@@ -212,6 +214,7 @@ export const siswaRouter = router({
       for (const u of usersToCreate) {
         await db.insert(users).values(u).execute()
       }
+      await logAudit(ctx, { action: "bulk_create", entity: "siswa", metadata: { count: result.length } })
       return result
     }),
 
@@ -255,6 +258,7 @@ export const siswaRouter = router({
           .where(eq(users.email, email))
           .execute().catch(() => {})
       }
+      await logAudit(ctx, { action: "update", entity: "siswa", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -267,6 +271,7 @@ export const siswaRouter = router({
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       await db.delete(siswa).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "siswa", entityId: input.id })
       return { success: true }
     }),
 })

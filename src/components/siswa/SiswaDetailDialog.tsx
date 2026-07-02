@@ -1,11 +1,11 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-import { User, Printer, Loader2 } from "lucide-react"
+import { User, Printer, Loader2, UserRound, Users, Home, CreditCard } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 
 interface SiswaDetailDialogProps {
@@ -47,8 +47,18 @@ function SectionBlock({ title, color, children }: { title: string; color: string
   )
 }
 
+const tabs = [
+  { id: "pribadi", label: "Data Pribadi", icon: UserRound },
+  { id: "ortu", label: "Orang Tua", icon: Users },
+  { id: "wali", label: "Wali & Tinggal", icon: Home },
+  { id: "kk", label: "Kartu Keluarga", icon: CreditCard },
+] as const
+
+type TabId = (typeof tabs)[number]["id"]
+
 export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: SiswaDetailDialogProps) {
   const printRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<TabId>("pribadi")
   const { data: siswa, isLoading } = api.siswa.getById.useQuery(
     { id: siswaId },
     { enabled: open && !!siswaId },
@@ -217,7 +227,31 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold
+                      transition-all duration-200 cursor-pointer
+                      ${isActive
+                        ? "bg-white dark:bg-neutral-800 shadow-sm text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800"
+                        : "text-muted-foreground hover:bg-white/50 dark:hover:bg-neutral-800/50 hover:text-foreground"
+                      }
+                    `}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {activeTab === "pribadi" && (
               <div className="space-y-4">
                 <SectionBlock title="A. Data Pribadi Siswa" color="bg-emerald-50 text-emerald-800">
                   <DataRow label="NISN" value={siswa.nisn} />
@@ -239,28 +273,11 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
                   <DataRow label="Sekolah Asal" value={siswa.sekolahAsal} />
                   <DataRow label="Diterima Tanggal" value={fmt(siswa.diterimaPadaTanggal)} />
                 </SectionBlock>
-
-                <SectionBlock title="B. Data Wali" color="bg-cyan-50 text-cyan-800">
-                  <DataRow label="Status Wali" value={siswa.statusWali} />
-                  <DataRow label="Nama Wali" value={siswa.namaWali} />
-                  <DataRow label="NIK" value={siswa.nikWali} />
-                  <DataRow label="Tempat Lahir" value={siswa.tempatLahirWali} />
-                  <DataRow label="Tanggal Lahir" value={fmt(siswa.tanggalLahirWali)} />
-                  <DataRow label="Pendidikan" value={siswa.pendidikanWali} />
-                  <DataRow label="Pekerjaan" value={siswa.pekerjaanWali} />
-                  <DataRow label="Penghasilan" value={siswa.penghasilanWali} />
-                  <DataRow label="No HP" value={siswa.noHpWali} />
-                </SectionBlock>
-
-                <SectionBlock title="C. Tempat Tinggal" color="bg-orange-50 text-orange-800">
-                  <DataRow label="Status Tinggal" value={siswa.statusTempatTinggalSiswa} />
-                  <DataRow label="Jarak ke Sekolah" value={siswa.jarakTempatTinggalKeSekolah} />
-                  <DataRow label="Transportasi" value={siswa.transportasiKeSekolah} />
-                  <DataRow label="Waktu Tempuh" value={siswa.waktuTempuhKeSekolah} />
-                </SectionBlock>
               </div>
+            )}
 
-              <div className="space-y-4">
+            {activeTab === "ortu" && (
+              <div className="grid grid-cols-2 gap-4">
                 <SectionBlock title="D. Ayah Kandung" color="bg-blue-50 text-blue-800">
                   <DataRow label="Nama Ayah" value={siswa.namaAyah} />
                   <DataRow label="Status" value={siswa.statusAyah} />
@@ -288,13 +305,38 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
                   <DataRow label="No HP" value={siswa.noHpIbu} />
                   <DataRow label="Alamat" value={siswa.alamatLengkapIbu} />
                 </SectionBlock>
+              </div>
+            )}
 
-                <SectionBlock title="F. Kartu Keluarga" color="bg-purple-50 text-purple-800">
-                  <DataRow label="No Kartu Keluarga" value={siswa.noKartuKeluarga} />
-                  <DataRow label="Nama Kepala Keluarga" value={siswa.namaKepalaKeluarga} />
+            {activeTab === "wali" && (
+              <div className="grid grid-cols-2 gap-4">
+                <SectionBlock title="B. Data Wali" color="bg-cyan-50 text-cyan-800">
+                  <DataRow label="Status Wali" value={siswa.statusWali} />
+                  <DataRow label="Nama Wali" value={siswa.namaWali} />
+                  <DataRow label="NIK" value={siswa.nikWali} />
+                  <DataRow label="Tempat Lahir" value={siswa.tempatLahirWali} />
+                  <DataRow label="Tanggal Lahir" value={fmt(siswa.tanggalLahirWali)} />
+                  <DataRow label="Pendidikan" value={siswa.pendidikanWali} />
+                  <DataRow label="Pekerjaan" value={siswa.pekerjaanWali} />
+                  <DataRow label="Penghasilan" value={siswa.penghasilanWali} />
+                  <DataRow label="No HP" value={siswa.noHpWali} />
+                </SectionBlock>
+
+                <SectionBlock title="C. Tempat Tinggal" color="bg-orange-50 text-orange-800">
+                  <DataRow label="Status Tinggal" value={siswa.statusTempatTinggalSiswa} />
+                  <DataRow label="Jarak ke Sekolah" value={siswa.jarakTempatTinggalKeSekolah} />
+                  <DataRow label="Transportasi" value={siswa.transportasiKeSekolah} />
+                  <DataRow label="Waktu Tempuh" value={siswa.waktuTempuhKeSekolah} />
                 </SectionBlock>
               </div>
-            </div>
+            )}
+
+            {activeTab === "kk" && (
+              <SectionBlock title="F. Kartu Keluarga" color="bg-purple-50 text-purple-800">
+                <DataRow label="No Kartu Keluarga" value={siswa.noKartuKeluarga} />
+                <DataRow label="Nama Kepala Keluarga" value={siswa.namaKepalaKeluarga} />
+              </SectionBlock>
+            )}
           </div>
         )}
       </DialogContent>

@@ -4,6 +4,7 @@ import { eq, and, like, or, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { prestasi, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const prestasiCreateSchema = z.object({
   id: z.string().optional(),
@@ -82,6 +83,7 @@ export const prestasiRouter = router({
       }
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(prestasi).values({ ...input, id } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "prestasi", entityId: result[0]?.id, metadata: { siswaId: input.siswaId } })
       return result[0]
     }),
 
@@ -107,6 +109,7 @@ export const prestasiRouter = router({
         .set(updateData as any)
         .where(eq(prestasi.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "prestasi", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
       return result[0]
     }),
 
@@ -126,6 +129,7 @@ export const prestasiRouter = router({
         .limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })
       await db.delete(prestasi).where(eq(prestasi.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "prestasi", entityId: input.id })
       return { success: true }
     }),
 })

@@ -4,6 +4,7 @@ import { eq, and, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const kelasCreateSchema = z.object({
   id: z.string().optional(),
@@ -77,6 +78,7 @@ export const kelasRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(kelas).values({ ...input, id, sekolahId } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "kelas", entityId: result[0]?.id, metadata: { namaKelas: input.namaKelas } })
       return result[0]
     }),
 
@@ -93,6 +95,7 @@ export const kelasRouter = router({
         .set(input.data as any)
         .where(and(...conditions))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "kelas", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -105,6 +108,7 @@ export const kelasRouter = router({
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
       await db.delete(kelas).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "kelas", entityId: input.id })
       return { success: true }
     }),
 })

@@ -4,6 +4,7 @@ import { eq, and, or, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const mapelCreateSchema = z.object({
   id: z.string().optional(),
@@ -76,6 +77,7 @@ export const mapelRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(mataPelajaran).values({ ...input, id, sekolahId } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { namaMapel: input.namaMapel } })
       return result[0]
     }),
 
@@ -92,6 +94,7 @@ export const mapelRouter = router({
         .set(input.data as any)
         .where(and(...conditions))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 
@@ -104,6 +107,7 @@ export const mapelRouter = router({
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await db.delete(mataPelajaran).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "mata_pelajaran", entityId: input.id })
       return { success: true }
     }),
 })

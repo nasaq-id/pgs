@@ -4,6 +4,7 @@ import { eq, and, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { nilai, siswa, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
 
 const nilaiCreateSchema = z.object({
   id: z.string().optional(),
@@ -86,6 +87,7 @@ export const nilaiRouter = router({
       }
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(nilai).values({ ...input, id } as any).returning()
+      await logAudit(ctx, { action: "create", entity: "nilai", entityId: result[0]?.id, metadata: { siswaId: input.siswaId, mataPelajaranId: input.mataPelajaranId } })
       return result[0]
     }),
 
@@ -106,6 +108,7 @@ export const nilaiRouter = router({
         .set(input.data as any)
         .where(eq(nilai.id, input.id))
         .returning()
+      await logAudit(ctx, { action: "update", entity: "nilai", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
 })
