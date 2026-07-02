@@ -73,8 +73,10 @@ export const mapelRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(mapelCreateSchema)
     .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const result = await db.insert(mataPelajaran).values({ ...input, id } as any).returning()
+      const { sekolahId: _, ...rest } = input
+      const result = await db.insert(mataPelajaran).values({ ...rest, sekolahId, id } as any).returning()
       return result[0]
     }),
 
@@ -86,9 +88,10 @@ export const mapelRouter = router({
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
+      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(mataPelajaran)
-        .set(input.data as any)
+        .set(safeData as any)
         .where(and(...conditions))
         .returning()
       return result[0]

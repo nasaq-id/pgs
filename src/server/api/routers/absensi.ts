@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, between } from "drizzle-orm"
+import { eq, and, desc, asc, between, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { absensiSiswa, siswa, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
@@ -24,6 +24,21 @@ const absensiUpdateSchema = z.object({
   keterangan: z.string().nullable().optional(),
 })
 
+function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
+  const { role, sekolahId } = ctx.session.user
+  if (role === "super_admin") return null
+  return sekolahId ?? null
+}
+
+async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
+  if (!sekolahId) return []
+  const rows = await db
+    .select({ id: kelas.id })
+    .from(kelas)
+    .where(eq(kelas.sekolahId, sekolahId))
+  return rows.map((r) => r.id)
+}
+
 export const absensiRouter = router({
   getByKelas: protectedProcedure
     .input(
@@ -37,6 +52,13 @@ export const absensiRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      if (sekolahIdFilter) {
+        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
+        if (!kelasIds.includes(input.kelasId)) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+        }
+      }
       const conditions = [eq(absensiSiswa.kelasId, input.kelasId)]
       if (input.tanggal) conditions.push(eq(absensiSiswa.tanggal, input.tanggal))
       if (input.tanggalMulai && input.tanggalSelesai) {
@@ -55,6 +77,15 @@ export const absensiRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(absensiBulkCreateSchema)
     .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      if (sekolahIdFilter) {
+        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
+        for (const a of input.absensi) {
+          if (!kelasIds.includes(a.kelasId)) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
+          }
+        }
+      }
       const values = input.absensi.map((a) => ({
         ...a,
         id: a.id || crypto.randomUUID(),
@@ -66,10 +97,15 @@ export const absensiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(absensiUpdateSchema)
     .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const existing = await db.query.absensiSiswa.findFirst({
         where: eq(absensiSiswa.id, input.id),
+        with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data absensi tidak ditemukan" })
+      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Data absensi tidak ditemukan" })
+      }
       const result = await db
         .update(absensiSiswa)
         .set({

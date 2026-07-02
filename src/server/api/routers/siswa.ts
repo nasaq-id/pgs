@@ -202,9 +202,10 @@ export const siswaRouter = router({
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(siswa)
-        .set({ ...input.data, updatedAt: new Date() })
+        .set({ ...safeData, updatedAt: new Date() })
         .where(and(...conditions))
         .returning()
       return result[0]

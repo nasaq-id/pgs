@@ -134,9 +134,10 @@ export const guruRouter = router({
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
+      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(guru)
-        .set({ ...input.data, updatedAt: new Date() })
+        .set({ ...safeData, updatedAt: new Date() })
         .where(and(...conditions))
         .returning()
       return result[0]

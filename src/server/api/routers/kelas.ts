@@ -39,7 +39,7 @@ export const kelasRouter = router({
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const conditions = []
-      const effectiveSekolahId = input.sekolahId || sekolahIdFilter
+      const effectiveSekolahId = sekolahIdFilter || input.sekolahId
       if (effectiveSekolahId) conditions.push(eq(kelas.sekolahId, effectiveSekolahId))
       if (input.tahunAjaranId) conditions.push(eq(kelas.tahunAjaranId, input.tahunAjaranId))
       if (input.search) {
@@ -74,8 +74,10 @@ export const kelasRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(kelasCreateSchema)
     .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const result = await db.insert(kelas).values({ ...input, id } as any).returning()
+      const { sekolahId: _, ...rest } = input
+      const result = await db.insert(kelas).values({ ...rest, sekolahId, id } as any).returning()
       return result[0]
     }),
 
@@ -87,9 +89,10 @@ export const kelasRouter = router({
       if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+      const { sekolahId: _, ...safeData } = input.data
       const result = await db
         .update(kelas)
-        .set(input.data as any)
+        .set(safeData as any)
         .where(and(...conditions))
         .returning()
       return result[0]

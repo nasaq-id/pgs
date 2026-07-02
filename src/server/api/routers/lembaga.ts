@@ -84,7 +84,15 @@ export const lembagaRouter = router({
       tanggalSelesai: z.string().optional(),
       active: z.boolean().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      const existing = await db.query.tahunAjaran.findFirst({
+        where: eq(tahunAjaran.id, input.id),
+      })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
+      if (sekolahId && existing.sekolahId !== sekolahId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
+      }
       const { id, ...data } = input
       const updateData: Record<string, any> = { ...data }
       if (data.tanggalMulai) updateData.tanggalMulai = new Date(data.tanggalMulai)
@@ -96,7 +104,15 @@ export const lembagaRouter = router({
 
   removeTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      const existing = await db.query.tahunAjaran.findFirst({
+        where: eq(tahunAjaran.id, input.id),
+      })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
+      if (sekolahId && existing.sekolahId !== sekolahId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
+      }
       await db.delete(tahunAjaran).where(eq(tahunAjaran.id, input.id))
       return { success: true }
     }),
