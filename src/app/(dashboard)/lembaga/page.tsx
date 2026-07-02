@@ -133,7 +133,10 @@ export default function LembagaPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <Card className="lg:col-span-2 glass-card rounded-2xl">
+      <Card className="lg:col-span-2 glass-card rounded-2xl relative">
+        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-3 h-8 w-8 rounded-xl">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
         <CardContent className="flex flex-col items-center gap-5 pt-6">
           <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
           <ImageIcon className="h-10 w-10 text-muted-foreground" />
@@ -171,23 +174,23 @@ export default function LembagaPage() {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sosial Media</p>
               <div className="flex items-center gap-2">
                 {sekolah?.facebook && (
-                  <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="Facebook">
-                    <FacebookIcon className="h-4 w-4 text-primary" />
+                  <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#1877F2]/10 flex items-center justify-center hover:bg-[#1877F2]/20 transition-all duration-200" title="Facebook">
+                    <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
                   </a>
                 )}
                 {sekolah?.instagram && (
-                  <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="Instagram">
-                    <InstagramIcon className="h-4 w-4 text-primary" />
+                  <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#E4405F]/10 flex items-center justify-center hover:bg-[#E4405F]/20 transition-all duration-200" title="Instagram">
+                    <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
                   </a>
                 )}
                 {sekolah?.youtube && (
-                  <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="YouTube">
-                    <YoutubeIcon className="h-4 w-4 text-primary" />
+                  <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#FF0000]/10 flex items-center justify-center hover:bg-[#FF0000]/20 transition-all duration-200" title="YouTube">
+                    <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
                   </a>
                 )}
                 {sekolah?.twitter && (
-                  <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all duration-200" title="X">
-                    <TwitterIcon className="h-4 w-4 text-primary" />
+                  <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-neutral-900/10 dark:bg-neutral-100/10 flex items-center justify-center hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" title="X">
+                    <TwitterIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
                   </a>
                 )}
               </div>
@@ -205,9 +208,6 @@ export default function LembagaPage() {
               Detail Identitas Lembaga
             </CardTitle>
           </div>
-          <Button variant="outline" size="sm" onClick={openEdit} className="gap-2">
-            <Pencil className="h-3.5 w-3.5" /> Edit
-          </Button>
         </CardHeader>
         <CardContent>
 
