@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc, inArray } from "drizzle-orm"
+import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { siswa, users } from "@/server/db/schema"
+import { siswa, users, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -251,7 +252,15 @@ export const siswaRouter = router({
         conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
       }
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      return db.select().from(siswa).where(whereClause).orderBy(asc(siswa.namaLengkap))
+      return db
+        .select({
+          ...getTableColumns(siswa),
+          namaKelas: kelas.namaKelas,
+        })
+        .from(siswa)
+        .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
+        .where(whereClause)
+        .orderBy(asc(siswa.namaLengkap))
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])

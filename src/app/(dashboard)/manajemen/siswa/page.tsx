@@ -185,22 +185,9 @@ export default function SiswaPage() {
       ])
 
       const keys = [
-        "No", "NISN", "NIS Lokal", "Nama Lengkap", "Username",
-        "Jenis Kelamin", "Tempat Lahir", "Tanggal Lahir", "NIK", "Agama",
-        "Kewarganegaraan", "Alamat", "No HP/WA", "Email", "Status",
-        "Hobi", "Cita-cita", "Jumlah Saudara", "Anak Ke",
-        "Status Tempat Tinggal", "Jarak ke Sekolah", "Transportasi",
-        "Waktu Tempuh", "Sekolah Asal", "Diterima Pada", "Pembiayaan Sekolah",
-        "No KK", "Nama Kepala Keluarga",
-        "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
-        "Tanggal Lahir Ayah", "Pendidikan Ayah", "Pekerjaan Ayah",
-        "Penghasilan Ayah", "No HP Ayah", "Kewarganegaraan Ayah",
-        "Nama Ibu", "Status Ibu", "NIK Ibu", "Tempat Lahir Ibu",
-        "Tanggal Lahir Ibu", "Pendidikan Ibu", "Pekerjaan Ibu",
-        "Penghasilan Ibu", "No HP Ibu", "Kewarganegaraan Ibu",
-        "Nama Wali", "Status Wali", "NIK Wali", "Tempat Lahir Wali",
-        "Tanggal Lahir Wali", "Pendidikan Wali", "Pekerjaan Wali",
-        "Penghasilan Wali", "No HP Wali", "Kewarganegaraan Wali",
+        "No", "NISN", "NIS", "Nama Siswa", "JK", "Kelas",
+        "Tempat Lahir", "Tanggal Lahir", "Nama Ayah", "Nama Ibu",
+        "Alamat", "No HP/WA",
       ]
 
       const dataRows = res.map((s: any, i: number) => [
@@ -208,60 +195,14 @@ export default function SiswaPage() {
         s.nisn || "",
         s.nisLokal || "",
         s.namaLengkap || "",
-        s.usernameSiswa || "",
         s.jenisKelamin === "L" ? "Laki-laki" : s.jenisKelamin === "P" ? "Perempuan" : "",
+        s.namaKelas || "",
         s.tempatLahir || "",
         toDdMmYyyy(s.tanggalLahir),
-        s.nik || "",
-        s.agama || "",
-        s.kewarganegaraan || "",
+        s.namaAyah || "",
+        s.namaIbu || "",
         s.alamat || "",
         s.noHpWhatsapp || s.noHpOrtu || "",
-        s.emailSiswa || "",
-        s.status || "",
-        s.hobi || "",
-        s.citacita || "",
-        s.jumlahSaudara ?? "",
-        s.anakKe ?? "",
-        s.statusTempatTinggalSiswa || "",
-        s.jarakTempatTinggalKeSekolah || "",
-        s.transportasiKeSekolah || "",
-        s.waktuTempuhKeSekolah || "",
-        s.sekolahAsal || "",
-        toDdMmYyyy(s.diterimaPadaTanggal),
-        s.pembiayaanSekolah || "",
-        s.noKartuKeluarga || "",
-        s.namaKepalaKeluarga || "",
-        s.namaAyah || "",
-        s.statusAyah || "",
-        s.nikAyah || "",
-        s.tempatLahirAyah || "",
-        toDdMmYyyy(s.tanggalLahirAyah),
-        s.pendidikanAyah || "",
-        s.pekerjaanAyah || "",
-        s.penghasilanAyah || "",
-        s.noHpAyah || "",
-        s.kewarganegaraanAyah || "",
-        s.namaIbu || "",
-        s.statusIbu || "",
-        s.nikIbu || "",
-        s.tempatLahirIbu || "",
-        toDdMmYyyy(s.tanggalLahirIbu),
-        s.pendidikanIbu || "",
-        s.pekerjaanIbu || "",
-        s.penghasilanIbu || "",
-        s.noHpIbu || "",
-        s.kewarganegaraanIbu || "",
-        s.namaWali || "",
-        s.statusWali || "",
-        s.nikWali || "",
-        s.tempatLahirWali || "",
-        toDdMmYyyy(s.tanggalLahirWali),
-        s.pendidikanWali || "",
-        s.pekerjaanWali || "",
-        s.penghasilanWali || "",
-        s.noHpWali || "",
-        s.kewarganegaraanWali || "",
       ])
 
       const headerRows: (string | number)[][] = [
@@ -319,17 +260,16 @@ export default function SiswaPage() {
         s.nisLokal || "-",
         s.namaLengkap || "-",
         s.jenisKelamin === "L" ? "Laki-laki" : s.jenisKelamin === "P" ? "Perempuan" : "-",
+        s.namaKelas || "-",
         s.tempatLahir || "-",
         toDdMmYyyy(s.tanggalLahir),
-        s.nik || "-",
-        s.agama || "-",
+        s.namaAyah || "-",
+        s.namaIbu || "-",
         s.alamat || "-",
         s.noHpWhatsapp || s.noHpOrtu || "-",
-        s.emailSiswa || "-",
-        s.status || "-",
       ])
 
-      const head = [["No", "NISN", "NIS", "Nama Lengkap", "JK", "Tempat Lahir", "Tgl. Lahir", "NIK", "Agama", "Alamat", "No. HP/WA", "Email", "Status"]]
+      const head = [["No", "NISN", "NIS", "Nama Siswa", "JK", "Kelas", "Tempat Lahir", "Tanggal Lahir", "Nama Ayah", "Nama Ibu", "Alamat", "No HP/WA"]]
 
       const doc = new jsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
@@ -386,14 +326,13 @@ export default function SiswaPage() {
           2: { cellWidth: 18, halign: "center" },
           3: { cellWidth: 45 },
           4: { cellWidth: 14, halign: "center" },
-          5: { cellWidth: 25 },
-          6: { cellWidth: 20, halign: "center" },
-          7: { cellWidth: 24, halign: "center" },
-          8: { cellWidth: 16, halign: "center" },
-          9: { cellWidth: 40 },
-          10: { cellWidth: 24 },
-          11: { cellWidth: 32 },
-          12: { cellWidth: 16, halign: "center" },
+          5: { cellWidth: 20, halign: "center" },
+          6: { cellWidth: 28 },
+          7: { cellWidth: 22, halign: "center" },
+          8: { cellWidth: 32 },
+          9: { cellWidth: 32 },
+          10: { cellWidth: 42 },
+          11: { cellWidth: 26 },
         },
         margin: { top: 37, bottom: 15 },
         pageBreak: "auto",
@@ -682,6 +621,7 @@ export default function SiswaPage() {
                 <TableHead className="min-w-[100px]">NIS</TableHead>
                 <TableHead className="min-w-[160px]">Nama Lengkap</TableHead>
                 <TableHead className="min-w-[50px]">JK</TableHead>
+                <TableHead className="min-w-[100px]">Kelas</TableHead>
                 <TableHead className="min-w-[100px]">Tempat Lahir</TableHead>
                 <TableHead className="min-w-[110px]">Tanggal Lahir</TableHead>
                 <TableHead className="min-w-[90px]">Status</TableHead>
@@ -692,14 +632,14 @@ export default function SiswaPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 10 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : !siswaList || siswaList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     Tidak ada data siswa
                   </TableCell>
                 </TableRow>
@@ -711,6 +651,7 @@ export default function SiswaPage() {
                     <TableCell className="font-mono text-sm tracking-wider">{s.nisLokal || "-"}</TableCell>
                     <TableCell className="font-medium">{s.namaLengkap}</TableCell>
                     <TableCell>{s.jenisKelamin === "L" ? "L" : s.jenisKelamin === "P" ? "P" : "-"}</TableCell>
+                    <TableCell>{kelasList?.find(k => k.id === s.kelasId)?.namaKelas || "-"}</TableCell>
                     <TableCell>{s.tempatLahir || "-"}</TableCell>
                     <TableCell>
                       {toDdMmYyyy(s.tanggalLahir) || "-"}
