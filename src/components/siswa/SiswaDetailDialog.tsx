@@ -17,11 +17,12 @@ interface SiswaDetailDialogProps {
 function fmt(date?: Date | string | null) {
   if (!date) return "-"
   try {
-    return new Date(date).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return String(date)
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
   } catch {
     return String(date)
   }
@@ -238,7 +239,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
                     onClick={() => setActiveTab(tab.id)}
                     className={`
                       flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold
-                      transition-all duration-200 cursor-pointer
+                      transition-all duration-200 clickable
                       ${isActive
                         ? "bg-white dark:bg-neutral-800 shadow-sm text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800"
                         : "text-muted-foreground hover:bg-white/50 dark:hover:bg-neutral-800/50 hover:text-foreground"

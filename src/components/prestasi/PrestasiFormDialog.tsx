@@ -93,8 +93,8 @@ export default function PrestasiFormDialog({ open, onClose, onSubmit, initial, s
       <div className="glass-dialog rounded-2xl w-full max-w-md mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4">
           <h3 className="font-semibold text-foreground">Form Prestasi</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] rounded-lg h-7 w-7 flex items-center justify-center transition-all duration-200 cursor-pointer">
+            <X className="h-4 w-4" />
           </button>
         </div>
 

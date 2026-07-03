@@ -26,6 +26,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 
@@ -173,30 +180,52 @@ export default function MapelPage() {
                   <TableCell>{r.urutan ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditData({
-                            id: r.id,
-                            namaMapel: r.namaMapel,
-                            kodeMapel: r.kodeMapel ?? "",
-                            kelompok: r.kelompok ?? "",
-                            aktif: r.aktif,
-                          })
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditData({
+                                  id: r.id,
+                                  namaMapel: r.namaMapel,
+                                  kodeMapel: r.kodeMapel ?? "",
+                                  kelompok: r.kelompok ?? "",
+                                  aktif: r.aktif,
+                                })
+                                setFormOpen(true)
+                              }}
+                            />
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Edit</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeleteId(r.id)}
+                            />
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Hapus</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

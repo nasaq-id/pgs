@@ -25,6 +25,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import EkstrakurikulerFormDialog, { type EkstrakurikulerFormData } from "@/components/ekstrakurikuler/EkstrakurikulerFormDialog"
@@ -184,31 +191,53 @@ export default function EkstrakurikulerPage() {
                   <TableCell>{r.jam ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditData({
-                            id: r.id,
-                            namaEkskul: r.namaEkskul,
-                            pembinaId: r.pembinaId,
-                            deskripsi: r.deskripsi,
-                            hari: r.hari,
-                            jam: r.jam,
-                          })
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditData({
+                                  id: r.id,
+                                  namaEkskul: r.namaEkskul,
+                                  pembinaId: r.pembinaId,
+                                  deskripsi: r.deskripsi,
+                                  hari: r.hari,
+                                  jam: r.jam,
+                                })
+                                setFormOpen(true)
+                              }}
+                            />
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Edit</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeleteId(r.id)}
+                            />
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Hapus</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -51,7 +51,7 @@ export default function GuruFormKepegawaianTab({ form, onChange }: Props) {
                 key={k}
                 type="button"
                 onClick={() => { onChange("kategoriPegawai", k); onChange("tugasUtama", "") }}
-                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer ${
                   kategori === k
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border hover:bg-muted"

@@ -103,12 +103,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <div key={item.label}>
                 <button
                   onClick={() => toggle(item.label)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm glass-nav-item",
-                    isGroupActive
-                      ? "text-foreground font-semibold bg-foreground/[0.06]"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm glass-nav-item cursor-pointer",
+                      isGroupActive
+                        ? "text-foreground font-semibold bg-foreground/[0.06]"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
                 >
                   <div className={cn(
                     "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
@@ -178,7 +178,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <div className="px-3 py-3">
         <button
           onClick={() => setLogoutOpen(true)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-muted-foreground glass-nav-item hover:text-destructive group"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-muted-foreground glass-nav-item hover:text-destructive group cursor-pointer"
         >
           <div className="h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted/50 group-hover:bg-destructive/10 transition-all duration-200">
             <LogOut className="h-3.5 w-3.5" />

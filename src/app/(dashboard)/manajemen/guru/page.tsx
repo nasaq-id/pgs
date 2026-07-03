@@ -14,6 +14,13 @@ import GuruDetailDialog from "@/components/guru/GuruDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 
 interface GuruItem {
   id: string
@@ -303,20 +310,29 @@ export default function GuruPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
+                        <Tooltip>
+                          <TooltipTrigger delay={0}>
+                            <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Aksi</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
                         <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={() => handleView(g)} className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleView(g)} className="gap-2 clickable">
                             <Eye className="h-4 w-4" /> Detail
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(g)} className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleEdit(g)} className="gap-2 clickable">
                             <Pencil className="h-4 w-4" /> Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => setDeleteId(g.id)}
-                            className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                            className="gap-2 clickable text-destructive focus:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" /> Hapus
                           </DropdownMenuItem>

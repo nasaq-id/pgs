@@ -81,7 +81,7 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
           <h3 className="font-semibold text-foreground">Form Mata Pelajaran</h3>
           <button
             onClick={onClose}
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
+            className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>

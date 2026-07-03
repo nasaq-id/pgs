@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -116,12 +123,30 @@ export default function TahunAjaranPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(ta)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(ta.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(ta)} />}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Edit</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(ta.id)} />}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Hapus</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

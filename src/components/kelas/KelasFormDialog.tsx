@@ -172,7 +172,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
                   {selectedSiswa.map((s) => (
                     <Badge key={s.id} variant="secondary" className="gap-1 pr-1">
                       {s.namaLengkap}
-                      <button onClick={() => removeSiswa(s)} className="ml-0.5 rounded-full hover:bg-foreground/10 p-0.5">
+                      <button onClick={() => removeSiswa(s)} className="ml-0.5 rounded-full hover:bg-foreground/10 p-0.5 cursor-pointer">
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -196,7 +196,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
                     <button
                       key={s.id}
                       onClick={() => addSiswa(s)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex justify-between items-center"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex justify-between items-center cursor-pointer"
                     >
                       <span className="font-medium">{s.namaLengkap}</span>
                       <span className="text-xs text-muted-foreground">{s.nisn}</span>

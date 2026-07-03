@@ -25,6 +25,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import PrestasiFormDialog, { type PrestasiFormData } from "@/components/prestasi/PrestasiFormDialog"
@@ -193,31 +200,53 @@ export default function PrestasiPage() {
                   <TableCell>{formatDate(r.tanggal)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditData({
-                            id: r.id,
-                            siswaId: r.siswaId,
-                            namaPrestasi: r.namaPrestasi,
-                            tingkat: r.tingkat,
-                            juara: r.juara,
-                            tanggal: r.tanggal ? new Date(r.tanggal).toISOString().split("T")[0] : null,
-                          })
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditData({
+                                  id: r.id,
+                                  siswaId: r.siswaId,
+                                  namaPrestasi: r.namaPrestasi,
+                                  tingkat: r.tingkat,
+                                  juara: r.juara,
+                                  tanggal: r.tanggal ? new Date(r.tanggal).toISOString().split("T")[0] : null,
+                                })
+                                setFormOpen(true)
+                              }}
+                            />
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Edit</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeleteId(r.id)}
+                            />
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Hapus</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

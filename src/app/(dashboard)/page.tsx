@@ -35,7 +35,7 @@ export default function Dashboard() {
         {statCards.map((s) => {
           const Icon = s.icon
           return (
-            <div key={s.label} className="glass-card rounded-2xl p-5 flex items-center gap-4">
+            <div key={s.label} className="glass-card rounded-2xl p-5 flex items-center gap-4 clickable">
               <div
                 className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `hsl(var(${s.accent}) / 0.15)` }}

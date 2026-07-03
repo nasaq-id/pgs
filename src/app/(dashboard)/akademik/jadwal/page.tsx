@@ -3,6 +3,13 @@
 import { useState, useMemo, useEffect } from "react"
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { Card } from "@/components/ui/card"
 import {
   Select,
@@ -346,18 +353,32 @@ export default function JadwalPage() {
                                         {guru?.namaLengkap ?? "-"}
                                       </div>
                                       <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-0.5">
-                                        <button
-                                          onClick={() => openEdit(e)}
-                                          className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
-                                        >
-                                          <Pencil className="h-3 w-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => setDeleteId(e.id)}
-                                          className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 text-destructive"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </button>
+                                        <Tooltip>
+                                          <TooltipTrigger
+                                            onClick={() => openEdit(e)}
+                                            className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </TooltipTrigger>
+                                          <TooltipPortal>
+                                            <TooltipPositioner>
+                                              <TooltipPopup>Edit</TooltipPopup>
+                                            </TooltipPositioner>
+                                          </TooltipPortal>
+                                        </Tooltip>
+                                        <Tooltip>
+                                          <TooltipTrigger
+                                            onClick={() => setDeleteId(e.id)}
+                                            className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 text-destructive cursor-pointer"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </TooltipTrigger>
+                                          <TooltipPortal>
+                                            <TooltipPositioner>
+                                              <TooltipPopup>Hapus</TooltipPopup>
+                                            </TooltipPositioner>
+                                          </TooltipPortal>
+                                        </Tooltip>
                                       </div>
                                     </div>
                                   )

@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Loader2, Camera, User, Eye, EyeOff } from "lucide-react"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { useProvinsi, useKabupatenKota, useKecamatan, useKelurahan, useKodePos } from "@/hooks/useWilayah"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
@@ -604,20 +611,28 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <User className="w-10 h-10 text-muted-foreground/50" />
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => fotoInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md hover:bg-primary/90 transition-colors"
-                  >
-                    <Camera className="w-3 h-3" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      delay={0}
+                      type="button"
+                      onClick={() => fotoInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3" />
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>Upload foto</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                   <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
                 </div>
                 <div>
                   <p className="font-medium text-sm">Foto Siswa</p>
                   <p className="text-xs text-muted-foreground mt-1">Klik ikon kamera untuk upload foto (opsional)</p>
                   {fotoUrl && (
-                    <button type="button" onClick={() => { setFotoUrl(""); handleChange("foto", "") }} className="text-xs text-destructive mt-1 hover:underline">
+                    <button type="button" onClick={() => { setFotoUrl(""); handleChange("foto", "") }} className="text-xs text-destructive mt-1 hover:underline cursor-pointer">
                       Hapus foto
                     </button>
                   )}
@@ -698,13 +713,21 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       className="pr-10"
                       required={!isEdit}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        delay={0}
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </TooltipTrigger>
+                      <TooltipPortal>
+                        <TooltipPositioner>
+                          <TooltipPopup>{showPassword ? "Sembunyikan password" : "Tampilkan password"}</TooltipPopup>
+                        </TooltipPositioner>
+                      </TooltipPortal>
+                    </Tooltip>
                   </div>
                 </div>
               </div>

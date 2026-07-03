@@ -7,15 +7,25 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
 import SiswaDetailDialog from "@/components/siswa/SiswaDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
+import jsPDF from "jspdf"
+import { autoTable } from "jspdf-autotable"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 
 interface SiswaItem {
   id: string
@@ -35,6 +45,16 @@ interface SiswaItem {
   noHpOrtu: string | null
 }
 
+const toDdMmYyyy = (d: any) => {
+  if (!d) return ""
+  const date = new Date(d)
+  if (isNaN(date.getTime())) return ""
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
 function getPaginationPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | "...")[] = [1]
@@ -51,7 +71,7 @@ export default function SiswaPage() {
   const [statusFilter, setStatusFilter] = useState("")
   const [kelasFilter, setKelasFilter] = useState("")
   const [page, setPage] = useState(0)
-  const limit = 25
+  const [limit, setLimit] = useState(25)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
 
@@ -75,6 +95,12 @@ export default function SiswaPage() {
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importMode, setImportMode] = useState<"quick" | "regular" | null>(null)
+  const [importPreviewData, setImportPreviewData] = useState<any[] | null>(null)
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const utils = api.useUtils()
@@ -153,49 +179,125 @@ export default function SiswaPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await utils.client.siswa.getAllExport.query({ search: querySearch || undefined })
-      const ws = XLSX.utils.json_to_sheet(res.map((s: any, i: number) => ({
-        No: i + 1,
-        NISN: s.nisn || "",
-        "NIS Lokal": s.nisLokal || "",
-        "Nama Lengkap": s.namaLengkap || "",
-        "Jenis Kelamin": s.jenisKelamin === "L" ? "Laki-laki" : s.jenisKelamin === "P" ? "Perempuan" : "",
-        "Tempat Lahir": s.tempatLahir || "",
-        "Tanggal Lahir": s.tanggalLahir ? new Date(s.tanggalLahir).toLocaleDateString("id-ID") : "",
-        NIK: s.nik || "",
-        Agama: s.agama || "",
-        Alamat: s.alamat || "",
-        "No HP/WA": s.noHpWhatsapp || s.noHpOrtu || "",
-        Email: s.emailSiswa || "",
-        Status: s.status || "",
-        Hobi: s.hobi || "",
-        "Cita-cita": s.citacita || "",
-        "Pembiayaan Sekolah": s.pembiayaanSekolah || "",
-        "No KK": s.noKartuKeluarga || "",
-        "Nama Kepala Keluarga": s.namaKepalaKeluarga || "",
-        "Nama Ayah": s.namaAyah || "",
-        "Status Ayah": s.statusAyah || "",
-        "NIK Ayah": s.nikAyah || "",
-        "Tempat Lahir Ayah": s.tempatLahirAyah || "",
-        "Tanggal Lahir Ayah": s.tanggalLahirAyah ? new Date(s.tanggalLahirAyah).toLocaleDateString("id-ID") : "",
-        "Pendidikan Ayah": s.pendidikanAyah || "",
-        "Pekerjaan Ayah": s.pekerjaanAyah || "",
-        "Penghasilan Ayah": s.penghasilanAyah || "",
-        "No HP Ayah": s.noHpAyah || "",
-        "Nama Ibu": s.namaIbu || "",
-        "Status Ibu": s.statusIbu || "",
-        "NIK Ibu": s.nikIbu || "",
-        "Tempat Lahir Ibu": s.tempatLahirIbu || "",
-        "Tanggal Lahir Ibu": s.tanggalLahirIbu ? new Date(s.tanggalLahirIbu).toLocaleDateString("id-ID") : "",
-        "Pendidikan Ibu": s.pendidikanIbu || "",
-        "Pekerjaan Ibu": s.pekerjaanIbu || "",
-        "Penghasilan Ibu": s.penghasilanIbu || "",
-        "No HP Ibu": s.noHpIbu || "",
-      })))
+      const [res, sekolah] = await Promise.all([
+        utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.lembaga.getSekolah.query(),
+      ])
+
+      const keys = [
+        "No", "NISN", "NIS Lokal", "Nama Lengkap", "Username",
+        "Jenis Kelamin", "Tempat Lahir", "Tanggal Lahir", "NIK", "Agama",
+        "Kewarganegaraan", "Alamat", "No HP/WA", "Email", "Status",
+        "Hobi", "Cita-cita", "Jumlah Saudara", "Anak Ke",
+        "Status Tempat Tinggal", "Jarak ke Sekolah", "Transportasi",
+        "Waktu Tempuh", "Sekolah Asal", "Diterima Pada", "Pembiayaan Sekolah",
+        "No KK", "Nama Kepala Keluarga",
+        "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
+        "Tanggal Lahir Ayah", "Pendidikan Ayah", "Pekerjaan Ayah",
+        "Penghasilan Ayah", "No HP Ayah", "Kewarganegaraan Ayah",
+        "Nama Ibu", "Status Ibu", "NIK Ibu", "Tempat Lahir Ibu",
+        "Tanggal Lahir Ibu", "Pendidikan Ibu", "Pekerjaan Ibu",
+        "Penghasilan Ibu", "No HP Ibu", "Kewarganegaraan Ibu",
+        "Nama Wali", "Status Wali", "NIK Wali", "Tempat Lahir Wali",
+        "Tanggal Lahir Wali", "Pendidikan Wali", "Pekerjaan Wali",
+        "Penghasilan Wali", "No HP Wali", "Kewarganegaraan Wali",
+      ]
+
+      const dataRows = res.map((s: any, i: number) => [
+        i + 1,
+        s.nisn || "",
+        s.nisLokal || "",
+        s.namaLengkap || "",
+        s.usernameSiswa || "",
+        s.jenisKelamin === "L" ? "Laki-laki" : s.jenisKelamin === "P" ? "Perempuan" : "",
+        s.tempatLahir || "",
+        toDdMmYyyy(s.tanggalLahir),
+        s.nik || "",
+        s.agama || "",
+        s.kewarganegaraan || "",
+        s.alamat || "",
+        s.noHpWhatsapp || s.noHpOrtu || "",
+        s.emailSiswa || "",
+        s.status || "",
+        s.hobi || "",
+        s.citacita || "",
+        s.jumlahSaudara ?? "",
+        s.anakKe ?? "",
+        s.statusTempatTinggalSiswa || "",
+        s.jarakTempatTinggalKeSekolah || "",
+        s.transportasiKeSekolah || "",
+        s.waktuTempuhKeSekolah || "",
+        s.sekolahAsal || "",
+        toDdMmYyyy(s.diterimaPadaTanggal),
+        s.pembiayaanSekolah || "",
+        s.noKartuKeluarga || "",
+        s.namaKepalaKeluarga || "",
+        s.namaAyah || "",
+        s.statusAyah || "",
+        s.nikAyah || "",
+        s.tempatLahirAyah || "",
+        toDdMmYyyy(s.tanggalLahirAyah),
+        s.pendidikanAyah || "",
+        s.pekerjaanAyah || "",
+        s.penghasilanAyah || "",
+        s.noHpAyah || "",
+        s.kewarganegaraanAyah || "",
+        s.namaIbu || "",
+        s.statusIbu || "",
+        s.nikIbu || "",
+        s.tempatLahirIbu || "",
+        toDdMmYyyy(s.tanggalLahirIbu),
+        s.pendidikanIbu || "",
+        s.pekerjaanIbu || "",
+        s.penghasilanIbu || "",
+        s.noHpIbu || "",
+        s.kewarganegaraanIbu || "",
+        s.namaWali || "",
+        s.statusWali || "",
+        s.nikWali || "",
+        s.tempatLahirWali || "",
+        toDdMmYyyy(s.tanggalLahirWali),
+        s.pendidikanWali || "",
+        s.pekerjaanWali || "",
+        s.penghasilanWali || "",
+        s.noHpWali || "",
+        s.kewarganegaraanWali || "",
+      ])
+
+      const headerRows: (string | number)[][] = [
+        [sekolah?.namaSekolah || "SEKOLAH"],
+        [sekolah?.alamat || ""],
+        ["DATA SISWA"],
+        [],
+        keys,
+      ]
+      const totalCols = keys.length
+
       const wb = XLSX.utils.book_new()
+      const aoa = [...headerRows, ...dataRows]
+      const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+      ws["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
+      ]
+
+      ws["!cols"] = keys.map((key) => ({
+        wch: Math.max(key.length, 12),
+      }))
+
+      ws["!rows"] = [
+        { hpt: 30 }, // row 0: school name
+        { hpt: 18 }, // row 1: address
+        { hpt: 22 }, // row 2: title
+        { hpt: 8 },  // row 3: spacer
+        { hpt: 18 }, // row 4: header
+      ]
+
       XLSX.utils.book_append_sheet(wb, ws, "Data Siswa")
       XLSX.writeFile(wb, `data_siswa_${new Date().toISOString().split("T")[0]}.xlsx`)
-      toast.success("Data berhasil diexport")
+      toast.success(`Data berhasil diexport (${res.length} siswa)`)
     } catch {
       toast.error("Gagal mengexport data")
     } finally {
@@ -203,21 +305,166 @@ export default function SiswaPage() {
     }
   }
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImporting(true)
+  const handleExportPdf = async () => {
+    setExportingPdf(true)
     try {
-      const buffer = await file.arrayBuffer()
-      const wb = XLSX.read(buffer, { type: "array" })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows: any[] = XLSX.utils.sheet_to_json(ws)
-      const mapped = rows.map((row: any) => ({
+      const [res, sekolah] = await Promise.all([
+        utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.lembaga.getSekolah.query(),
+      ])
+
+      const rows: (string | number)[][] = res.map((s: any, i: number) => [
+        i + 1,
+        s.nisn || "-",
+        s.nisLokal || "-",
+        s.namaLengkap || "-",
+        s.jenisKelamin === "L" ? "Laki-laki" : s.jenisKelamin === "P" ? "Perempuan" : "-",
+        s.tempatLahir || "-",
+        toDdMmYyyy(s.tanggalLahir),
+        s.nik || "-",
+        s.agama || "-",
+        s.alamat || "-",
+        s.noHpWhatsapp || s.noHpOrtu || "-",
+        s.emailSiswa || "-",
+        s.status || "-",
+      ])
+
+      const head = [["No", "NISN", "NIS", "Nama Lengkap", "JK", "Tempat Lahir", "Tgl. Lahir", "NIK", "Agama", "Alamat", "No. HP/WA", "Email", "Status"]]
+
+      const doc = new jsPDF("landscape", "mm", "a4")
+      const pageW = doc.internal.pageSize.getWidth()
+
+      const kopY = 14
+      doc.setFillColor(59, 130, 246)
+      doc.rect(0, 0, pageW, kopY, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(9)
+      doc.text(sekolah?.namaSekolah || "SEKOLAH", pageW / 2, 6, { align: "center" })
+      doc.setFontSize(7)
+      doc.text(sekolah?.alamat || "", pageW / 2, 10.5, { align: "center" })
+
+      doc.setFillColor(37, 99, 235)
+      doc.rect(0, kopY, pageW, 8, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(8)
+      doc.text("DATA SISWA", pageW / 2, kopY + 5.5, { align: "center" })
+
+      doc.setTextColor(100, 100, 100)
+      doc.setFontSize(7)
+      const now = new Date()
+      const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
+      const tglStr = `Diexport pada: ${hari}, ${toDdMmYyyy(now)}`
+      doc.text(tglStr, pageW - 14, 33, { align: "right" })
+      doc.text(`Total data: ${res.length} siswa`, 14, 33)
+
+      autoTable(doc, {
+        startY: 37,
+        head,
+        body: rows,
+        styles: {
+          fontSize: 5.5,
+          cellPadding: 1.5,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.25,
+          textColor: [50, 50, 50],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: [255, 255, 255],
+          fontSize: 6.5,
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250],
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: "center" },
+          1: { cellWidth: 22, halign: "center" },
+          2: { cellWidth: 18, halign: "center" },
+          3: { cellWidth: 45 },
+          4: { cellWidth: 14, halign: "center" },
+          5: { cellWidth: 25 },
+          6: { cellWidth: 20, halign: "center" },
+          7: { cellWidth: 24, halign: "center" },
+          8: { cellWidth: 16, halign: "center" },
+          9: { cellWidth: 40 },
+          10: { cellWidth: 24 },
+          11: { cellWidth: 32 },
+          12: { cellWidth: 16, halign: "center" },
+        },
+        margin: { top: 37, bottom: 15 },
+        pageBreak: "auto",
+        showFoot: "everyPage",
+        footStyles: {
+          fillColor: [245, 247, 250],
+          textColor: [100, 100, 100],
+          fontSize: 6,
+          fontStyle: "italic",
+          halign: "center",
+        },
+        didDrawPage: (data: any) => {
+          const pageCount = doc.getNumberOfPages()
+          const pg = data.pageNumber
+          doc.setFontSize(6)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Halaman ${pg} dari ${pageCount}`,
+            pageW / 2,
+            doc.internal.pageSize.getHeight() - 8,
+            { align: "center" }
+          )
+        },
+      })
+
+      doc.save(`data_siswa_${new Date().toISOString().split("T")[0]}.pdf`)
+      toast.success("PDF berhasil diexport")
+    } catch {
+      toast.error("Gagal mengexport PDF")
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const validateImportData = (data: any[], mode: "quick" | "regular") => {
+    const errors: string[] = []
+    data.forEach((row, i) => {
+      const line = i + 2
+      if (!row.namaLengkap) errors.push(`Baris ${line}: Nama Lengkap wajib diisi`)
+      if (!row.nisLokal) errors.push(`Baris ${line}: NIS Lokal wajib diisi`)
+      if (mode === "regular") {
+        if (!row.nik) errors.push(`Baris ${line}: NIK wajib diisi untuk Regular Import`)
+        if (!row.tempatLahir) errors.push(`Baris ${line}: Tempat Lahir wajib diisi untuk Regular Import`)
+        if (!row.namaAyah) errors.push(`Baris ${line}: Nama Ayah wajib diisi untuk Regular Import`)
+        if (!row.namaIbu) errors.push(`Baris ${line}: Nama Ibu wajib diisi untuk Regular Import`)
+      }
+    })
+    return errors
+  }
+
+  const parseAndMap = (data: any[], mode: "quick" | "regular") => {
+    const mapped = data.map((row: any) => {
+      let tglLahir: Date | undefined
+      if (row["Tanggal Lahir"]) {
+        const raw = String(row["Tanggal Lahir"]).trim()
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+          const [d, m, y] = raw.split("/")
+          tglLahir = new Date(Number(y), Number(m) - 1, Number(d))
+        } else {
+          const parsed = new Date(raw)
+          if (!isNaN(parsed.getTime())) tglLahir = parsed
+        }
+      }
+
+      return {
         nisn: String(row.NISN || "").trim(),
-        nisLokal: String(row["NIS Lokal"] || "").trim(),
+        nisLokal: String(row["NIS Lokal"] || row.NISLokal || "").trim(),
         namaLengkap: String(row["Nama Lengkap"] || row.NamaLengkap || "").trim(),
         jenisKelamin: (String(row["Jenis Kelamin"] || "").trim() === "Laki-laki" ? "L" : String(row["Jenis Kelamin"] || "").trim() === "Perempuan" ? "P" : undefined) as "L" | "P" | undefined,
         tempatLahir: String(row["Tempat Lahir"] || "").trim() || undefined,
+        tanggalLahir: tglLahir || undefined,
         nik: String(row.NIK || "").trim() || undefined,
         agama: String(row.Agama || "").trim() || undefined,
         alamat: String(row.Alamat || "").trim() || undefined,
@@ -245,26 +492,97 @@ export default function SiswaPage() {
         pekerjaanIbu: String(row["Pekerjaan Ibu"] || "").trim() || undefined,
         penghasilanIbu: String(row["Penghasilan Ibu"] || "").trim() || undefined,
         noHpIbu: String(row["No HP Ibu"] || "").trim() || undefined,
-      })).filter((r) => r.namaLengkap && r.nisLokal)
-
-      if (mapped.length === 0) {
-        toast.error("Tidak ada data valid ditemukan di file Excel")
-        setImporting(false)
-        return
       }
+    }).filter((r) => r.namaLengkap && r.nisLokal)
 
-      const confirmed = confirm(`Import ${mapped.length} data siswa?`)
-      if (!confirmed) {
-        setImporting(false)
-        return
-      }
+    const errors = validateImportData(mapped, mode)
+    if (errors.length > 0) {
+      const msg = errors.slice(0, 5).join("\n") + (errors.length > 5 ? `\n... dan ${errors.length - 5} error lainnya` : "")
+      toast.error(msg, { duration: 8000 })
+      return null
+    }
+    return mapped
+  }
 
-      await bulkCreateMutation.mutateAsync({ data: mapped })
+  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !importMode) return
+    setImportModalOpen(false)
+    try {
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer, { type: "array" })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" })
+      const mapped = parseAndMap(rows, importMode)
+
+      if (!mapped) return
+
+      setImportPreviewData(mapped)
+      setImportPreviewOpen(true)
     } catch {
-      toast.error("Gagal membaca file Excel")
+      toast.error("Gagal membaca file Excel. Pastikan format file sesuai template.")
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleImportConfirm = async () => {
+    if (!importPreviewData) return
+    setImporting(true)
+    setImportPreviewOpen(false)
+    try {
+      await bulkCreateMutation.mutateAsync({ data: importPreviewData })
+      setImportPreviewData(null)
+    } catch {
+      // error handled by mutation
+    } finally {
       setImporting(false)
     }
-    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const handleDownloadTemplate = () => {
+    const headers = [
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tempat Lahir",
+      "Tanggal Lahir", "NIK", "Agama", "Alamat", "No HP/WA", "Email", "Status",
+      "Hobi", "Cita-cita", "Pembiayaan Sekolah", "No KK", "Nama Kepala Keluarga",
+      "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
+      "Pendidikan Ayah", "Pekerjaan Ayah", "Penghasilan Ayah", "No HP Ayah",
+      "Nama Ibu", "Status Ibu", "NIK Ibu", "Tempat Lahir Ibu",
+      "Pendidikan Ibu", "Pekerjaan Ibu", "Penghasilan Ibu", "No HP Ibu",
+    ]
+
+    const ws = XLSX.utils.aoa_to_sheet([
+      headers,
+      [
+        "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", "Jakarta",
+        "01/01/2010", "3171234567890123", "Islam", "Jl. Contoh No. 1", "08123456789",
+        "siswa@sekolah.sch.id", "aktif", "Membaca", "Dokter", "Swasta",
+        "1234567890123456", "Ayah Contoh", "Masih Hidup", "3171234567890123", "Jakarta",
+        "SMA", "Karyawan Swasta", "Rp 3.000.000 - Rp 5.000.000", "08123456788",
+        "Ibu Contoh", "Masih Hidup", "3171234567890124", "Jakarta",
+        "SMA", "Ibu Rumah Tangga", "Kurang dari Rp 1.000.000", "08123456787",
+      ],
+    ])
+
+    ws["!cols"] = [
+      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 },
+      { wch: 16 }, { wch: 20 }, { wch: 10 }, { wch: 28 }, { wch: 16 },
+      { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 18 },
+      { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 14 }, { wch: 20 },
+      { wch: 18 }, { wch: 14 }, { wch: 20 }, { wch: 22 }, { wch: 16 },
+      { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 14 },
+      { wch: 20 }, { wch: 22 }, { wch: 16 },
+    ]
+
+    headers.forEach((_, i) => {
+      const cell = XLSX.utils.encode_cell({ r: 1, c: i })
+      if (ws[cell]) ws[cell].t = "s"
+    })
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Template Siswa")
+    XLSX.writeFile(wb, "template_import_siswa.xlsx")
+    toast.success("Template berhasil didownload")
   }
 
   const hasMore = siswaList ? siswaList.length >= limit : false
@@ -283,15 +601,15 @@ export default function SiswaPage() {
             type="file"
             accept=".xlsx,.xls"
             className="hidden"
-            onChange={handleFileImport}
+            onChange={handleImportFileSelected}
           />
-          <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+          <Button variant="outline" className="gap-2" onClick={() => setImportModalOpen(true)} disabled={importing}>
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Import Excel
+            Import
           </Button>
-          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Export Excel
+          <Button variant="outline" className="gap-2" onClick={() => setExportModalOpen(true)}>
+            <Download className="h-4 w-4" />
+            Export
           </Button>
           <Button onClick={handleCreate} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -338,6 +656,20 @@ export default function SiswaPage() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <span>Tampil</span>
+              <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
+                <SelectTrigger className="w-16 h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>data</span>
+            </div>
           </div>
         </div>
 
@@ -381,9 +713,7 @@ export default function SiswaPage() {
                     <TableCell>{s.jenisKelamin === "L" ? "L" : s.jenisKelamin === "P" ? "P" : "-"}</TableCell>
                     <TableCell>{s.tempatLahir || "-"}</TableCell>
                     <TableCell>
-                      {s.tanggalLahir
-                        ? new Date(s.tanggalLahir).toLocaleDateString("id-ID")
-                        : "-"}
+                      {toDdMmYyyy(s.tanggalLahir) || "-"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={s.status === "aktif" ? "default" : "secondary"} className={s.status === "aktif" ? "bg-green-600 text-white" : ""}>
@@ -392,23 +722,32 @@ export default function SiswaPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
+                        <Tooltip>
+                          <TooltipTrigger delay={0}>
+                            <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Aksi</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
                         <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={() => handleView(s)} className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleView(s)} className="gap-2 clickable">
                             <Eye className="h-4 w-4" /> Detail
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(s)} className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => handleEdit(s)} className="gap-2 clickable">
                             <Pencil className="h-4 w-4" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setResetId(s.id); setResetName(s.namaLengkap) }} className="gap-2 cursor-pointer">
+                          <DropdownMenuItem onClick={() => { setResetId(s.id); setResetName(s.namaLengkap) }} className="gap-2 clickable">
                             <KeyRound className="h-4 w-4" /> Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => setDeleteId(s.id)}
-                            className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                            className="gap-2 clickable text-destructive focus:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" /> Hapus
                           </DropdownMenuItem>
@@ -460,6 +799,186 @@ export default function SiswaPage() {
         )}
       </div>
 
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Export Data Siswa</DialogTitle>
+            <DialogDescription>Pilih format file untuk mengexport data siswa</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              onClick={() => { setExportModalOpen(false); handleExport() }}
+              disabled={exporting}
+              className="group flex flex-col items-center gap-2.5 rounded-xl border-2 border-dashed border-border p-5 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
+                <FileSpreadsheet className="size-6" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-foreground">Excel</p>
+                <p className="text-xs text-muted-foreground mt-0.5">.xlsx — Semua data siswa lengkap</p>
+              </div>
+            </button>
+            <button
+              onClick={() => { setExportModalOpen(false); handleExportPdf() }}
+              disabled={exportingPdf}
+              className="group flex flex-col items-center gap-2.5 rounded-xl border-2 border-dashed border-border p-5 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive transition-transform duration-200 group-hover:scale-110">
+                <FileText className="size-6" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-foreground">PDF</p>
+                <p className="text-xs text-muted-foreground mt-0.5">.pdf — Data ringkas siap cetak</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex justify-end pt-1">
+            <Button variant="ghost" size="sm" onClick={() => setExportModalOpen(false)}>Batal</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importModalOpen} onOpenChange={(open) => { if (!open) setImportMode(null); setImportModalOpen(open) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Import Data Siswa</DialogTitle>
+            <DialogDescription>Pilih metode import data siswa dari file Excel</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            <button
+              onClick={() => { setImportMode("quick"); setImportModalOpen(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
+              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-emerald-400/40 hover:bg-emerald-500/5 cursor-pointer"
+            >
+              <div className="flex size-11 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <Upload className="size-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Quick Import</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Preview ringkas — lihat jumlah & data pertama, lalu langsung import</p>
+              </div>
+            </button>
+            <button
+              onClick={() => { setImportMode("regular"); setImportModalOpen(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
+              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-blue-400/40 hover:bg-blue-500/5 cursor-pointer"
+            >
+              <div className="flex size-11 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <Eye className="size-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Regular Import</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Preview lengkap — lihat tabel semua data, teliti dulu baru import</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => { setImportModalOpen(false); setImportMode(null) }}>Batal</Button>
+            </div>
+            <div className="border-t border-border pt-3">
+              <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleDownloadTemplate}>
+                <Download className="h-3.5 w-3.5" />
+                Download Template Excel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) } }}>
+        <DialogContent className={importMode === "quick" ? "sm:max-w-sm" : "sm:max-w-2xl max-h-[80vh] flex flex-col"}>
+          {importMode === "quick" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Quick Import</DialogTitle>
+                <DialogDescription>
+                  {importPreviewData ? `${importPreviewData.length} data siswa akan diimport.` : ""}
+                </DialogDescription>
+              </DialogHeader>
+              {importPreviewData && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 p-4">
+                    <Upload className="size-8 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold">{importPreviewData.length} Data Siswa</p>
+                      <p className="text-xs text-muted-foreground">Siap diimport</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border divide-y divide-border max-h-40 overflow-auto">
+                    {importPreviewData.slice(0, 5).map((d, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                        <span className="text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                        <span className="font-medium truncate">{d.namaLengkap}</span>
+                        <span className="text-muted-foreground shrink-0">{d.nisn}</span>
+                      </div>
+                    ))}
+                    {importPreviewData.length > 5 && (
+                      <div className="px-3 py-1.5 text-xs text-muted-foreground text-center">
+                        ... dan {importPreviewData.length - 5} data lainnya
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4">
+                <Button variant="outline" onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) }}>Batal</Button>
+                <Button onClick={handleImportConfirm} disabled={importing} className="bg-emerald-600 hover:bg-emerald-700">
+                  {importing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengimport...</> : `Quick Import (${importPreviewData?.length || 0})`}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Preview Data Import</DialogTitle>
+                <DialogDescription>
+                  {importPreviewData ? `${importPreviewData.length} data siswa akan diimport. Pastikan data sudah sesuai.` : ""}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto -mx-5 px-5">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8">No</TableHead>
+                      <TableHead>NISN</TableHead>
+                      <TableHead>NIS</TableHead>
+                      <TableHead>Nama Lengkap</TableHead>
+                      <TableHead>JK</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importPreviewData?.slice(0, 50).map((d, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{d.nisn}</TableCell>
+                        <TableCell className="font-mono text-xs">{d.nisLokal}</TableCell>
+                        <TableCell className="font-medium">{d.namaLengkap}</TableCell>
+                        <TableCell>{d.jenisKelamin === "L" ? "L" : d.jenisKelamin === "P" ? "P" : "-"}</TableCell>
+                        <TableCell>{d.status}</TableCell>
+                      </TableRow>
+                    ))}
+                    {importPreviewData && importPreviewData.length > 50 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground text-sm py-4">
+                          ... dan {importPreviewData.length - 50} data lainnya
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4">
+                <Button variant="outline" onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) }}>Batal</Button>
+                <Button onClick={handleImportConfirm} disabled={importing}>
+                  {importing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengimport...</> : `Import ${importPreviewData?.length || 0} Data`}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <SiswaFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -501,13 +1020,21 @@ export default function SiswaPage() {
               className="pr-10"
               autoFocus
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            <Tooltip>
+              <TooltipTrigger
+                delay={0}
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </TooltipTrigger>
+              <TooltipPortal>
+                <TooltipPositioner>
+                  <TooltipPopup>{showPassword ? "Sembunyikan password" : "Tampilkan password"}</TooltipPopup>
+                </TooltipPositioner>
+              </TooltipPortal>
+            </Tooltip>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={resetPasswordMutation.isPending}>Batal</AlertDialogCancel>

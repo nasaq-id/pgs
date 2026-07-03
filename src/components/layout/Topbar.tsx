@@ -4,6 +4,13 @@ import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { Bell, Menu, CalendarDays, MessageCircle, User, ChevronRight, BellOff } from "lucide-react"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import { Button } from "@/components/ui/button"
 import {
@@ -134,13 +141,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-[26px] mx-2 mt-2">
-      <button
-        onClick={onMenuClick}
-        className="lg:hidden flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
-        title="Menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger
+          onClick={onMenuClick}
+          className="lg:hidden flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer"
+        >
+          <Menu className="h-5 w-5" />
+        </TooltipTrigger>
+        <TooltipPortal>
+          <TooltipPositioner>
+            <TooltipPopup>Menu</TooltipPopup>
+          </TooltipPositioner>
+        </TooltipPortal>
+      </Tooltip>
 
       <div className="hidden lg:block flex-shrink-0">
         <p className="text-[15px] font-bold text-foreground leading-none">Hi, {displayName}</p>
@@ -151,18 +164,34 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-blue-600 px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border cursor-pointer hover:bg-card transition-colors" title="Kalender" onClick={() => setShowCalendar(!showCalendar)}>
+        <Tooltip>
+          <TooltipTrigger className="clickable hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-blue-600 px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border hover:bg-card transition-colors" onClick={() => setShowCalendar(!showCalendar)}>
           <CalendarDays className="h-3.5 w-3.5" />
           {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
-        </div>
+        </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner>
+              <TooltipPopup>Kalender</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200">
-              <span title="Notifikasi" className="flex items-center justify-center"><Bell className="h-4 w-4" /></span>
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
-              )}
-          </DropdownMenuTrigger>
+          <Tooltip>
+            <TooltipTrigger delay={0}>
+              <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer">
+                <span className="flex items-center justify-center"><Bell className="h-4 w-4" /></span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
+                )}
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipPositioner>
+                <TooltipPopup>Notifikasi</TooltipPopup>
+              </TooltipPositioner>
+            </TooltipPortal>
+          </Tooltip>
           <DropdownMenuContent align="end" className="w-80 p-0">
             <div className="p-3 border-b flex items-center justify-between">
               <h4 className="font-semibold">Notifikasi</h4>
@@ -201,27 +230,41 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </DropdownMenu>
 
         {whatsappNumber && (
-          <a
-            href={`https://wa.me/62${whatsappNumber.replace(/\D/g, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl h-9 w-9 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-foreground/[0.06] transition-all duration-200"
-            title="Hubungi Admin via WhatsApp"
-          >
-            <MessageCircle className="h-4 w-4" />
-          </a>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <a
+                  href={`https://wa.me/62${whatsappNumber.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl h-9 w-9 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-foreground/[0.06] transition-all duration-200"
+                />
+              }
+            >
+              <MessageCircle className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipPositioner>
+                <TooltipPopup>Hubungi Admin via WhatsApp</TooltipPopup>
+              </TooltipPositioner>
+            </TooltipPortal>
+          </Tooltip>
         )}
 
-        <div
-          className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer"
-          onClick={() => {}}
-        >
-          {userPhoto ? (
-            <img src={userPhoto} alt={displayName} className="w-full h-full rounded-xl object-cover" />
-          ) : (
-            <span className="text-sm font-bold text-white">{initials}</span>
-          )}
-        </div>
+        <Tooltip>
+          <TooltipTrigger className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer">
+            {userPhoto ? (
+              <img src={userPhoto} alt={displayName} className="w-full h-full rounded-xl object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-white">{initials}</span>
+            )}
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner>
+              <TooltipPopup>{displayName}</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
       </div>
 
       {showCalendar && (
@@ -230,11 +273,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           className="absolute top-full right-0 mt-2 z-50 bg-card/95 backdrop-blur-xl border rounded-xl p-4 shadow-lg w-80 animate-fade-in"
         >
           <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMonth} className="p-1 rounded hover:bg-muted transition-colors">
+            <button onClick={prevMonth} className="p-1 rounded hover:bg-muted transition-colors cursor-pointer">
               <ChevronRight className="h-4 w-4 rotate-180" />
             </button>
             <h4 className="font-semibold text-sm capitalize">{format(currentMonth, "MMMM yyyy", { locale: id })}</h4>
-            <button onClick={nextMonth} className="p-1 rounded hover:bg-muted transition-colors">
+            <button onClick={nextMonth} className="p-1 rounded hover:bg-muted transition-colors cursor-pointer">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -255,7 +298,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                 <button
                   key={day.toISOString()}
                   onClick={() => handleDateClick(day)}
-                  className={`h-8 rounded-lg text-xs font-medium transition-all ${
+                  className={`h-8 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     selected
                       ? "bg-primary text-white"
                       : today

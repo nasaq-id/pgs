@@ -25,6 +25,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 
@@ -96,7 +103,7 @@ function RuangKelasFormDialog({
           <h3 className="font-semibold text-foreground">Form Ruang Kelas</h3>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -258,28 +265,50 @@ export default function RuangKelasPage() {
                   <TableCell>{r.kapasitas ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditData({
-                            id: r.id,
-                            namaRuang: r.namaRuang,
-                            kapasitas: r.kapasitas,
-                          })
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditData({
+                                  id: r.id,
+                                  namaRuang: r.namaRuang,
+                                  kapasitas: r.kapasitas,
+                                })
+                                setFormOpen(true)
+                              }}
+                            />
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Edit</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeleteId(r.id)}
+                            />
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipPortal>
+                          <TooltipPositioner>
+                            <TooltipPopup>Hapus</TooltipPopup>
+                          </TooltipPositioner>
+                        </TooltipPortal>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

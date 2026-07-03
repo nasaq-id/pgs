@@ -5,6 +5,13 @@ import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash, Camera, Load
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
@@ -246,24 +253,68 @@ export default function LembagaPage() {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sosial Media</p>
               <div className="flex items-center gap-2">
                 {sekolah?.facebook && (
-                  <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#1877F2]/10 flex items-center justify-center hover:bg-[#1877F2]/20 transition-all duration-200" title="Facebook">
-                    <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#1877F2]/10 flex items-center justify-center hover:bg-[#1877F2]/20 transition-all duration-200" />
+                      }
+                    >
+                      <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>Facebook</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                 )}
                 {sekolah?.instagram && (
-                  <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#E4405F]/10 flex items-center justify-center hover:bg-[#E4405F]/20 transition-all duration-200" title="Instagram">
-                    <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#E4405F]/10 flex items-center justify-center hover:bg-[#E4405F]/20 transition-all duration-200" />
+                      }
+                    >
+                      <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>Instagram</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                 )}
                 {sekolah?.youtube && (
-                  <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#FF0000]/10 flex items-center justify-center hover:bg-[#FF0000]/20 transition-all duration-200" title="YouTube">
-                    <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#FF0000]/10 flex items-center justify-center hover:bg-[#FF0000]/20 transition-all duration-200" />
+                      }
+                    >
+                      <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>YouTube</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                 )}
                 {sekolah?.twitter && (
-                  <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-neutral-900/10 dark:bg-neutral-100/10 flex items-center justify-center hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" title="X">
-                    <TwitterIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-neutral-900/10 dark:bg-neutral-100/10 flex items-center justify-center hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" />
+                      }
+                    >
+                      <TwitterIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
+                    </TooltipTrigger>
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>X</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                 )}
               </div>
             </div>
@@ -273,9 +324,16 @@ export default function LembagaPage() {
       </Card>
 
       <Card className="lg:col-span-3 glass-card rounded-2xl relative overflow-visible">
-        <Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-5 h-8 w-8 rounded-xl" title="Edit profil lembaga">
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-5 h-8 w-8 rounded-xl" />}>
+            <Pencil className="h-3.5 w-3.5" />
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner>
+              <TooltipPopup>Edit Profil Lembaga</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
         <CardHeader className="flex-row items-center gap-3 border-b border-border">
           <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />
           <CardTitle className="text-xs font-black uppercase tracking-widest">
@@ -313,7 +371,7 @@ export default function LembagaPage() {
           <div className="space-y-4">
             <div className="flex flex-col items-center gap-3">
               <div
-                className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden clickable hover:border-primary/50 transition-colors"
                 onClick={() => logoInputRef.current?.click()}
               >
                 {isUploading ? (
@@ -329,7 +387,7 @@ export default function LembagaPage() {
               </div>
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               {logoPreview && (
-                <button type="button" onClick={() => { setLogoPreview(""); setForm({ ...form, logo: "" }) }} className="text-xs text-destructive hover:underline">
+                <button type="button" onClick={() => { setLogoPreview(""); setForm({ ...form, logo: "" }) }} className="text-xs text-destructive hover:underline cursor-pointer">
                   Hapus foto
                 </button>
               )}
