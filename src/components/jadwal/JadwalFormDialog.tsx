@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Loader2, Clock } from "lucide-react"
+import { DAY_OPTIONS, timeToMinutes, minutesToTime } from "./constants"
+import { Badge } from "@/components/ui/badge"
 
 export interface JadwalFormData {
   id?: string
@@ -27,16 +29,9 @@ export interface JadwalFormData {
   jamSelesai: string
   mataPelajaranId: string
   guruId: string
+  jpMulai?: number | null
+  jpCount?: number | null
 }
-
-const DAY_OPTIONS = [
-  { value: "senin", label: "Senin" },
-  { value: "selasa", label: "Selasa" },
-  { value: "rabu", label: "Rabu" },
-  { value: "kamis", label: "Kamis" },
-  { value: "jumat", label: "Jumat" },
-  { value: "sabtu", label: "Sabtu" },
-]
 
 interface MapelItem {
   id: string
@@ -49,6 +44,30 @@ interface GuruItem {
   namaLengkap: string
 }
 
+interface PengaturanData {
+  durasiJP: number
+  jamMulai: string
+  jamPulang: string
+  hariAktif: string
+}
+
+interface AgendaData {
+  id: string
+  hari: string
+  nama: string
+  icon: string | null
+  jamMulai: string
+  jamSelesai: string
+  urutan: number
+}
+
+interface ExistingJadwalItem {
+  id: string
+  hari: string
+  jpMulai: number | null
+  jpCount: number | null
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -57,6 +76,9 @@ interface Props {
   mapelList: MapelItem[]
   guruList: GuruItem[]
   saving?: boolean
+  pengaturan?: PengaturanData | null
+  existingJadwal?: ExistingJadwalItem[]
+  agendaKhusus?: AgendaData[]
 }
 
 export default function JadwalFormDialog({
@@ -67,44 +89,88 @@ export default function JadwalFormDialog({
   mapelList,
   guruList,
   saving,
+  pengaturan,
+  existingJadwal = [],
+  agendaKhusus = [],
 }: Props) {
   const [hari, setHari] = useState("senin")
-  const [jamMulai, setJamMulai] = useState("")
-  const [jamSelesai, setJamSelesai] = useState("")
+  const [jpCount, setJpCount] = useState(1)
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
+
+  const durasiJP = pengaturan?.durasiJP ?? 40
+  const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
+
+  const occupiedJpSlots = useMemo(() => {
+    const occupied = new Set<number>()
+    const hariEntries = existingJadwal.filter(
+      (e) => e.hari === hari && e.jpMulai !== null && e.jpCount !== null
+    )
+    for (const entry of hariEntries) {
+      if (entry.id === initial?.id) continue
+      for (let i = 0; i < entry.jpCount!; i++) {
+        occupied.add(entry.jpMulai! + i)
+      }
+    }
+    const hariAgenda = agendaKhusus.filter((a) => a.hari === hari)
+    for (const agenda of hariAgenda) {
+      const startJp = Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
+      const endJp = Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
+      for (let i = startJp; i <= endJp; i++) {
+        if (i > 0) occupied.add(i)
+      }
+    }
+    return occupied
+  }, [existingJadwal, agendaKhusus, hari, durasiJP, startMinutes, initial?.id])
+
+  const suggestedJpMulai = useMemo(() => {
+    const fromInitial = initial?.jpMulai ?? null
+    if (fromInitial && !occupiedJpSlots.has(fromInitial)) return fromInitial
+    let slot = 1
+    while (occupiedJpSlots.has(slot)) {
+      slot++
+    }
+    return slot
+  }, [occupiedJpSlots, initial])
+
+  const autoJpMulai = suggestedJpMulai
+
+  const computedJamMulai = minutesToTime(startMinutes + (autoJpMulai - 1) * durasiJP)
+  const computedJamSelesai = minutesToTime(startMinutes + (autoJpMulai - 1 + jpCount) * durasiJP)
 
   useEffect(() => {
     if (!open) return
     if (initial) {
       setHari(initial.hari || "senin")
-      setJamMulai(initial.jamMulai || "")
-      setJamSelesai(initial.jamSelesai || "")
+      setJpCount(initial.jpCount || 1)
       setMataPelajaranId(initial.mataPelajaranId || "")
       setGuruId(initial.guruId || "")
     } else {
       setHari("senin")
-      setJamMulai("")
-      setJamSelesai("")
+      setJpCount(1)
       setMataPelajaranId("")
       setGuruId("")
     }
   }, [open, initial])
 
+  const isEdit = !!initial?.id
+
   const handleSubmit = async () => {
-    if (!hari || !mataPelajaranId || !guruId || !jamMulai || !jamSelesai) return
+    if (!hari || !mataPelajaranId || !guruId || !jpCount) return
+    if (jpCount < 1 || jpCount > 5) return
     await onSubmit({
       id: initial?.id,
       hari,
-      jamMulai,
-      jamSelesai,
+      jamMulai: computedJamMulai,
+      jamSelesai: computedJamSelesai,
       mataPelajaranId,
       guruId,
+      jpMulai: autoJpMulai,
+      jpCount,
     })
   }
 
-  const isEdit = !!initial?.id
-  const isValid = hari && mataPelajaranId && guruId && jamMulai && jamSelesai
+  const isValid = hari && mataPelajaranId && guruId && jpCount >= 1 && jpCount <= 5
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -132,26 +198,38 @@ export default function JadwalFormDialog({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>
-                Jam Mulai <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="time"
-                value={jamMulai}
-                onChange={(e) => setJamMulai(e.target.value)}
-              />
+          <div className="space-y-1.5">
+            <Label>
+              Jumlah JP <span className="text-destructive">*</span>
+              <span className="text-xs text-muted-foreground ml-2">(maks. 5 JP)</span>
+            </Label>
+            <Input
+              type="number"
+              min={1}
+              max={5}
+              value={jpCount}
+              onChange={(e) => {
+                const v = parseInt(e.target.value)
+                if (v >= 1 && v <= 5) setJpCount(v)
+                else if (e.target.value === "") setJpCount(1)
+              }}
+            />
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Posisi JP:</span>
+              <Badge variant="secondary" className="font-mono">
+                JP ke-{autoJpMulai}
+              </Badge>
             </div>
-            <div className="space-y-1.5">
-              <Label>
-                Jam Selesai <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="time"
-                value={jamSelesai}
-                onChange={(e) => setJamSelesai(e.target.value)}
-              />
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Waktu:</span>
+              <span className="font-mono text-xs">
+                {computedJamMulai} - {computedJamSelesai}
+              </span>
             </div>
           </div>
 

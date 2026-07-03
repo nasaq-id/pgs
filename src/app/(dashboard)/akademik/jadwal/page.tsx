@@ -1,7 +1,19 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Settings,
+  Printer,
+  Clock,
+  Flag,
+  Sun,
+  Moon,
+  BookOpen,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -28,9 +40,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
 import { api } from "@/lib/trpc/client"
 import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
+import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
+import CetakJadwal from "@/components/jadwal/CetakJadwal"
+import { DAYS, DAY_LABEL, toTimeInputValue, timeStringToDate, timeToMinutes, minutesToTime } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
   id: string
@@ -40,6 +54,8 @@ interface JadwalRecord {
   hari: string
   jamMulai: string | null
   jamSelesai: string | null
+  jpMulai: number | null
+  jpCount: number | null
 }
 
 interface KelasRecord {
@@ -59,42 +75,32 @@ interface GuruRecord {
   namaLengkap: string
 }
 
-const DAYS = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
-
-const DAY_LABEL: Record<string, string> = {
-  senin: "Senin",
-  selasa: "Selasa",
-  rabu: "Rabu",
-  kamis: "Kamis",
-  jumat: "Jumat",
-  sabtu: "Sabtu",
-  minggu: "Minggu",
+interface PengaturanData {
+  id: string
+  sekolahId: string
+  durasiJP: number
+  hariAktif: string
+  jamMulai: string
+  jamPulang: string
 }
 
-function formatTime(dateStr: string | null) {
-  if (!dateStr) return "-"
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
-  } catch {
-    return dateStr.slice(0, 5)
-  }
+interface AgendaRecord {
+  id: string
+  sekolahId: string
+  hari: string
+  nama: string
+  icon: string | null
+  jamMulai: string
+  jamSelesai: string
+  urutan: number
 }
 
-function toTimeInputValue(dateStr: string | null) {
-  if (!dateStr) return ""
-  try {
-    const d = new Date(dateStr)
-    return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
-  } catch {
-    return dateStr.slice(0, 5)
-  }
-}
-
-function timeStringToDate(time: string): Date {
-  const [h, m] = time.split(":").map(Number)
-  const d = new Date(1970, 0, 1, h, m, 0)
-  return d
+const AGENDA_ICONS: Record<string, React.ElementType> = {
+  clock: Clock,
+  flag: Flag,
+  sun: Sun,
+  moon: Moon,
+  "book-open": BookOpen,
 }
 
 export default function JadwalPage() {
@@ -102,6 +108,8 @@ export default function JadwalPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<JadwalFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [pengaturanOpen, setPengaturanOpen] = useState(false)
+  const [cetakOpen, setCetakOpen] = useState(false)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
@@ -111,12 +119,16 @@ export default function JadwalPage() {
       setKelasId(kelasRecords[0].id)
     }
   }, [kelasId, kelasRecords])
+
   const { data: mapelList } = api.mapel.getAll.useQuery({})
   const { data: guruList } = api.guru.getAll.useQuery({})
   const { data: jadwalList, isLoading } = api.jadwal.getAll.useQuery(
     { kelasId: kelasId || undefined },
     { enabled: !!kelasId }
   )
+  const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({})
+  const { data: agendaList } = api.pengaturanJadwal.getAgenda.useQuery({})
+
   const utils = api.useUtils()
 
   const createMutation = api.jadwal.create.useMutation({
@@ -140,6 +152,8 @@ export default function JadwalPage() {
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => (jadwalList ?? []) as JadwalRecord[], [jadwalList])
+  const pengaturanData = (pengaturan ?? null) as PengaturanData | null
+  const agendaRecords = useMemo(() => (agendaList ?? []) as AgendaRecord[], [agendaList])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
@@ -150,6 +164,21 @@ export default function JadwalPage() {
     () => new Map(guruRecords.map((g) => [g.id, g])),
     [guruRecords]
   )
+
+  const durasiJP = pengaturanData?.durasiJP ?? 40
+  const startMinutes = pengaturanData?.jamMulai ? timeToMinutes(pengaturanData.jamMulai) : 420
+  const endMinutes = pengaturanData?.jamPulang ? timeToMinutes(pengaturanData.jamPulang) : 900
+  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
+
+  const aktifDays = useMemo(() => {
+    if (!pengaturanData?.hariAktif) return DAYS
+    try {
+      const parsed = JSON.parse(pengaturanData.hariAktif)
+      return Array.isArray(parsed) ? parsed : DAYS
+    } catch {
+      return DAYS
+    }
+  }, [pengaturanData])
 
   const handleSubmit = async (data: JadwalFormData) => {
     if (data.id) {
@@ -162,6 +191,8 @@ export default function JadwalPage() {
           hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
           jamMulai: data.jamMulai ? timeStringToDate(data.jamMulai) : null,
           jamSelesai: data.jamSelesai ? timeStringToDate(data.jamSelesai) : null,
+          jpMulai: data.jpMulai ?? null,
+          jpCount: data.jpCount ?? null,
         },
       })
     } else {
@@ -172,6 +203,8 @@ export default function JadwalPage() {
         hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
         jamMulai: data.jamMulai ? timeStringToDate(data.jamMulai) : null,
         jamSelesai: data.jamSelesai ? timeStringToDate(data.jamSelesai) : null,
+        jpMulai: data.jpMulai ?? null,
+        jpCount: data.jpCount ?? null,
       })
     }
   }
@@ -184,11 +217,13 @@ export default function JadwalPage() {
 
   const openAdd = () => {
     setEditEntry({
-      hari: "senin",
+      hari: aktifDays[0] || "senin",
       jamMulai: "",
       jamSelesai: "",
       mataPelajaranId: "",
       guruId: "",
+      jpMulai: null,
+      jpCount: 1,
     })
     setFormOpen(true)
   }
@@ -201,32 +236,47 @@ export default function JadwalPage() {
       jamSelesai: toTimeInputValue(entry.jamSelesai),
       mataPelajaranId: entry.mataPelajaranId,
       guruId: entry.guruId,
+      jpMulai: entry.jpMulai,
+      jpCount: entry.jpCount,
     })
     setFormOpen(true)
   }
 
-  const entriesByDay = useMemo(() => {
-    const map: Record<string, JadwalRecord[]> = {}
-    for (const day of DAYS) {
-      map[day] = []
-    }
-    for (const entry of jadwalRecords) {
-      const day = entry.hari
-      if (map[day]) {
-        map[day].push(entry)
-      }
-    }
-    for (const day of DAYS) {
-      map[day].sort((a, b) => {
-        const ta = a.jamMulai ? new Date(a.jamMulai).getTime() : 0
-        const tb = b.jamMulai ? new Date(b.jamMulai).getTime() : 0
-        return ta - tb
+  const jpGrid = useMemo(() => {
+    const slots: { jp: number; timeStart: string; timeEnd: string }[] = []
+    for (let i = 0; i < totalJpSlots; i++) {
+      slots.push({
+        jp: i + 1,
+        timeStart: minutesToTime(startMinutes + i * durasiJP),
+        timeEnd: minutesToTime(startMinutes + (i + 1) * durasiJP),
       })
     }
-    return map
-  }, [jadwalRecords])
+    return slots
+  }, [totalJpSlots, startMinutes, durasiJP])
 
-  const hasData = Object.values(entriesByDay).some((arr) => arr.length > 0)
+  const getEntryAtSlot = (day: string, jpSlot: number): JadwalRecord | null => {
+    const entries = jadwalRecords.filter(
+      (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
+    )
+    for (const entry of entries) {
+      const start = entry.jpMulai!
+      const end = start + entry.jpCount!
+      if (jpSlot >= start && jpSlot < end) return entry
+    }
+    return null
+  }
+
+  const getAgendaAtSlot = (day: string, jpSlot: number): AgendaRecord | null => {
+    const hariAgenda = agendaRecords.filter((a) => a.hari === day)
+    for (const agenda of hariAgenda) {
+      const startJp = Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
+      const endJp = Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
+      if (jpSlot >= startJp && jpSlot <= endJp) return agenda
+    }
+    return null
+  }
+
+  const hasData = jadwalRecords.length > 0
 
   if (kelasRecords.length === 0) {
     return (
@@ -264,14 +314,31 @@ export default function JadwalPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button
-            className="gap-2"
-            style={{ backgroundColor: "hsl(142 72% 40%)" }}
-            disabled={!kelasId}
-            onClick={openAdd}
-          >
-            <Plus className="h-4 w-4" /> Tambah
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setCetakOpen(true)}
+              disabled={!kelasId || !hasData}
+            >
+              <Printer className="h-4 w-4" /> Cetak
+            </Button>
+            <Button
+              className="gap-2"
+              variant="outline"
+              onClick={() => setPengaturanOpen(true)}
+            >
+              <Settings className="h-4 w-4" /> Pengaturan Jadwal
+            </Button>
+            <Button
+              className="gap-2"
+              style={{ backgroundColor: "hsl(142 72% 40%)" }}
+              disabled={!kelasId}
+              onClick={openAdd}
+            >
+              <Plus className="h-4 w-4" /> Tambah
+            </Button>
+          </div>
         </div>
 
         {!kelasId ? (
@@ -292,9 +359,9 @@ export default function JadwalPage() {
               <thead>
                 <tr>
                   <th className="border border-border bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground w-24">
-                    Jam
+                    JP
                   </th>
-                  {DAYS.map((day) => (
+                  {aktifDays.map((day) => (
                     <th
                       key={day}
                       className="border border-border bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground min-w-[120px]"
@@ -305,101 +372,83 @@ export default function JadwalPage() {
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const allTimes = new Set<string>()
-                  for (const entry of jadwalRecords) {
-                    const key = `${formatTime(entry.jamMulai)} - ${formatTime(entry.jamSelesai)}`
-                    allTimes.add(key)
-                  }
-                  const sortedTimes = Array.from(allTimes).sort()
-                  if (sortedTimes.length === 0) {
-                    return (
-                      <tr>
-                        <td
-                          colSpan={DAYS.length + 1}
-                          className="border border-border px-3 py-8 text-center text-muted-foreground"
-                        >
-                          Tidak ada jadwal
-                        </td>
-                      </tr>
-                    )
-                  }
-                  return sortedTimes.map((timeSlot) => (
-                    <tr key={timeSlot}>
-                      <td className="border border-border px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
-                        {timeSlot}
-                      </td>
-                      {DAYS.map((day) => {
-                        const entries = entriesByDay[day] ?? []
-                        const match = entries.filter(
-                          (e) => `${formatTime(e.jamMulai)} - ${formatTime(e.jamSelesai)}` === timeSlot
-                        )
-                        return (
-                          <td key={day} className="border border-border px-2 py-1.5 align-top">
-                            {match.length > 0 ? (
-                              <div className="space-y-1">
-                                {match.map((e) => {
-                                  const mapel = mapelMap.get(e.mataPelajaranId)
-                                  const guru = guruMap.get(e.guruId)
-                                  return (
-                                    <div
-                                      key={e.id}
-                                      className="group relative rounded-lg border border-[hsl(142_30%_80%)] bg-[hsl(142_50%_95%)] p-2 dark:border-[hsl(142_30%_30%)] dark:bg-[hsl(142_30%_15%)]"
-                                    >
-                                      <div className="text-xs font-medium leading-tight">
-                                        {mapel?.namaMapel ?? "-"}
-                                      </div>
-                                      <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                                        {guru?.namaLengkap ?? "-"}
-                                      </div>
-                                      <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-0.5">
-                                        <Tooltip>
-                                          <TooltipTrigger
-                                            onClick={() => openEdit(e)}
-                                            className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
-                                          >
-                                            <Pencil className="h-3 w-3" />
-                                          </TooltipTrigger>
-                                          <TooltipPortal>
-                                            <TooltipPositioner>
-                                              <TooltipPopup>Edit</TooltipPopup>
-                                            </TooltipPositioner>
-                                          </TooltipPortal>
-                                        </Tooltip>
-                                        <Tooltip>
-                                          <TooltipTrigger
-                                            onClick={() => setDeleteId(e.id)}
-                                            className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 text-destructive cursor-pointer"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </TooltipTrigger>
-                                          <TooltipPortal>
-                                            <TooltipPositioner>
-                                              <TooltipPopup>Hapus</TooltipPopup>
-                                            </TooltipPositioner>
-                                          </TooltipPortal>
-                                        </Tooltip>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
+                {jpGrid.map((slot) => (
+                  <tr key={slot.jp}>
+                    <td className="border border-border px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span>JP {slot.jp}</span>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          {slot.timeStart} - {slot.timeEnd}
+                        </span>
+                      </div>
+                    </td>
+                    {aktifDays.map((day) => {
+                      const agenda = getAgendaAtSlot(day, slot.jp)
+                      const entry = agenda ? null : getEntryAtSlot(day, slot.jp)
+                      return (
+                        <td key={day} className="border border-border px-2 py-1.5 align-top">
+                          {agenda ? (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-1.5">
+                              <div className="flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                                {(() => {
+                                  const Icon = AGENDA_ICONS[agenda.icon || "clock"] || Clock
+                                  return <Icon className="h-3 w-3" />
+                                })()}
+                                <span>{agenda.nama}</span>
                               </div>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">&mdash;</span>
-                            )}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))
-                })()}
+                            </div>
+                          ) : entry ? (
+                            <div className="group relative rounded-lg border border-[hsl(142_30%_80%)] bg-[hsl(142_50%_95%)] p-2 dark:border-[hsl(142_30%_30%)] dark:bg-[hsl(142_30%_15%)]">
+                              <div className="text-xs font-medium leading-tight">
+                                {mapelMap.get(entry.mataPelajaranId)?.namaMapel ?? "-"}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                                {guruMap.get(entry.guruId)?.namaLengkap ?? "-"}
+                              </div>
+                              <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    onClick={() => openEdit(entry)}
+                                    className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </TooltipTrigger>
+                                  <TooltipPortal>
+                                    <TooltipPositioner>
+                                      <TooltipPopup>Edit</TooltipPopup>
+                                    </TooltipPositioner>
+                                  </TooltipPortal>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    onClick={() => setDeleteId(entry.id)}
+                                    className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 text-destructive cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </TooltipTrigger>
+                                  <TooltipPortal>
+                                    <TooltipPositioner>
+                                      <TooltipPopup>Hapus</TooltipPopup>
+                                    </TooltipPositioner>
+                                  </TooltipPortal>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">&mdash;</span>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
 
         {hasData && !isLoading && (
-          <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <span>
               <strong className="text-foreground">{jadwalRecords.length}</strong> jadwal
             </span>
@@ -415,6 +464,11 @@ export default function JadwalPage() {
               </strong>{" "}
               mapel
             </span>
+            {pengaturanData && (
+              <span>
+                1 JP = <strong className="text-foreground">{pengaturanData.durasiJP}</strong> menit
+              </span>
+            )}
           </div>
         )}
       </Card>
@@ -430,6 +484,19 @@ export default function JadwalPage() {
         mapelList={mapelRecords}
         guruList={guruRecords}
         saving={createMutation.isPending || updateMutation.isPending}
+        pengaturan={pengaturanData}
+        existingJadwal={jadwalRecords as any}
+        agendaKhusus={agendaRecords as any}
+      />
+
+      <PengaturanJadwalDialog
+        open={pengaturanOpen}
+        onClose={() => setPengaturanOpen(false)}
+      />
+
+      <CetakJadwal
+        open={cetakOpen}
+        onClose={() => setCetakOpen(false)}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>

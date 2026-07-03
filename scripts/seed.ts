@@ -1,5 +1,5 @@
 import { db } from "../src/server/db"
-import { users, sekolah, guru, kelas, mataPelajaran, siswa, jadwalPelajaran } from "../src/server/db/schema"
+import { users, sekolah, guru, kelas, mataPelajaran, siswa, jadwalPelajaran, pengaturanJadwal, agendaKhusus } from "../src/server/db/schema"
 import bcrypt from "bcryptjs"
 
 async function seed() {
@@ -115,6 +115,32 @@ async function seed() {
     await db.insert(jadwalPelajaran).values(j).onConflictDoNothing()
   }
   console.log(`✅ ${jadwalData.length} jadwal pelajaran created`)
+
+  // Pengaturan Jadwal
+  await db.insert(pengaturanJadwal).values({
+    id: "pengaturan-1",
+    sekolahId: "sekolah-1",
+    durasiJP: 40,
+    hariAktif: '["senin","selasa","rabu","kamis","jumat"]',
+    jamMulai: "07:00",
+    jamPulang: "15:00",
+  }).onConflictDoNothing()
+  console.log("✅ Pengaturan jadwal created")
+
+  // Agenda Khusus
+  const agendaData = [
+    { id: "agenda-senin-1", sekolahId: "sekolah-1", hari: "senin", nama: "Upacara", icon: "flag", jamMulai: "07:00", jamSelesai: "07:30", urutan: 1 },
+    { id: "agenda-senin-2", sekolahId: "sekolah-1", hari: "senin", nama: "Literasi", icon: "book-open", jamMulai: "08:30", jamSelesai: "08:50", urutan: 3 },
+    { id: "agenda-senin-3", sekolahId: "sekolah-1", hari: "senin", nama: "Istirahat", icon: "coffee", jamMulai: "09:30", jamSelesai: "10:00", urutan: 5 },
+    { id: "agenda-senin-4", sekolahId: "sekolah-1", hari: "senin", nama: "Sholat Dzuhur", icon: "pray", jamMulai: "12:00", jamSelesai: "12:30", urutan: 7 },
+    { id: "agenda-selasa-1", sekolahId: "sekolah-1", hari: "selasa", nama: "Literasi", icon: "book-open", jamMulai: "07:00", jamSelesai: "07:20", urutan: 1 },
+    { id: "agenda-selasa-2", sekolahId: "sekolah-1", hari: "selasa", nama: "Istirahat", icon: "coffee", jamMulai: "09:30", jamSelesai: "10:00", urutan: 4 },
+    { id: "agenda-selasa-3", sekolahId: "sekolah-1", hari: "selasa", nama: "Sholat Dzuhur", icon: "pray", jamMulai: "12:00", jamSelesai: "12:30", urutan: 6 },
+  ]
+  for (const a of agendaData) {
+    await db.insert(agendaKhusus).values(a).onConflictDoNothing()
+  }
+  console.log(`✅ ${agendaData.length} agenda khusus created`)
 
   console.log("\n📋 Data login:")
   console.log("   Admin:    admin@demo.com / admin123")

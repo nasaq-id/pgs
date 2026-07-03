@@ -14,6 +14,8 @@ const jadwalCreateSchema = z.object({
   hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
   jamMulai: z.date().nullable().optional(),
   jamSelesai: z.date().nullable().optional(),
+  jpMulai: z.number().nullable().optional(),
+  jpCount: z.number().nullable().optional(),
 })
 
 const jadwalUpdateSchema = jadwalCreateSchema.partial()
