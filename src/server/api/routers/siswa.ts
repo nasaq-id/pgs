@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, inArray } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, inArray, isNull } from "drizzle-orm"
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
@@ -115,7 +115,7 @@ export const siswaRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
-        status: z.enum(["aktif", "tidak_aktif", "mutasi_keluar"]).optional(),
+        status: z.enum(["aktif", "aktif_tanpa_rombel", "tidak_aktif", "mutasi_keluar"]).optional(),
         kelasId: z.string().optional(),
         sortBy: z.enum(["namaLengkap", "nisn", "createdAt"]).optional().default("namaLengkap"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
@@ -132,6 +132,8 @@ export const siswaRouter = router({
       }
       if (input.status === "aktif") {
         conditions.push(eq(siswa.status, "aktif"))
+      } else if (input.status === "aktif_tanpa_rombel") {
+        conditions.push(eq(siswa.status, "aktif"), isNull(siswa.kelasId))
       } else if (input.status === "tidak_aktif") {
         conditions.push(inArray(siswa.status, ["lulus", "pindah", "keluar"]))
       } else if (input.status === "mutasi_keluar") {

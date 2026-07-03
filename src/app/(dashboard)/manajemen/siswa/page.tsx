@@ -77,7 +77,7 @@ export default function SiswaPage() {
 
   const { data: siswaList, isLoading } = api.siswa.getAll.useQuery({
     search: querySearch || undefined,
-    status: (statusFilter as "aktif" | "tidak_aktif" | "mutasi_keluar") || undefined,
+    status: (statusFilter as "aktif" | "aktif_tanpa_rombel" | "tidak_aktif" | "mutasi_keluar") || undefined,
     kelasId: kelasFilter || undefined,
     limit,
     offset: page * limit,
@@ -632,6 +632,7 @@ export default function SiswaPage() {
               <SelectContent>
                 <SelectItem value="">Semua Status</SelectItem>
                 <SelectItem value="aktif">Aktif</SelectItem>
+                <SelectItem value="aktif_tanpa_rombel">Aktif Tanpa Rombel</SelectItem>
                 <SelectItem value="tidak_aktif">Tidak Aktif</SelectItem>
                 <SelectItem value="mutasi_keluar">Mutasi / Keluar</SelectItem>
               </SelectContent>
