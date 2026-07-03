@@ -425,9 +425,11 @@ export default function SiswaPage() {
       const line = i + 2
       if (!row.namaLengkap) errors.push(`Baris ${line}: Nama Lengkap wajib diisi`)
       if (!row.nisLokal) errors.push(`Baris ${line}: NIS Lokal wajib diisi`)
+      if (!row.jenisKelamin) errors.push(`Baris ${line}: Jenis Kelamin wajib diisi (Laki-laki/Perempuan)`)
       if (mode === "regular") {
         if (!row.nik) errors.push(`Baris ${line}: NIK wajib diisi untuk Regular Import`)
         if (!row.tempatLahir) errors.push(`Baris ${line}: Tempat Lahir wajib diisi untuk Regular Import`)
+        if (!row.tanggalLahir) errors.push(`Baris ${line}: Tanggal Lahir wajib diisi (dd/mm/yyyy) untuk Regular Import`)
         if (!row.namaAyah) errors.push(`Baris ${line}: Nama Ayah wajib diisi untuk Regular Import`)
         if (!row.namaIbu) errors.push(`Baris ${line}: Nama Ibu wajib diisi untuk Regular Import`)
       }
@@ -503,7 +505,7 @@ export default function SiswaPage() {
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" })
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false })
       const mapped = parseAndMap(rows, importMode)
 
       if (!mapped) return
@@ -565,10 +567,16 @@ export default function SiswaPage() {
       { wch: 20 }, { wch: 22 }, { wch: 16 },
     ]
 
-    headers.forEach((_, i) => {
-      const cell = XLSX.utils.encode_cell({ r: 1, c: i })
-      if (ws[cell]) ws[cell].t = "s"
-    })
+    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:AG1")
+    for (let r = colRange.s.r; r <= colRange.e.r; r++) {
+      for (let c = colRange.s.c; c <= colRange.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c })
+        if (ws[addr]) {
+          ws[addr].t = "s"
+          ws[addr].z = "@"
+        }
+      }
+    }
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, "Template Siswa")
