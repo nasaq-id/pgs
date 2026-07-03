@@ -44,6 +44,7 @@ import { api } from "@/lib/trpc/client"
 import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
 import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
 import CetakJadwal from "@/components/jadwal/CetakJadwal"
+import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
 import { DAYS, DAY_LABEL, toTimeInputValue, timeStringToDate, timeToMinutes, minutesToTime } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
@@ -323,6 +324,7 @@ export default function JadwalPage() {
             >
               <Printer className="h-4 w-4" /> Cetak
             </Button>
+            <ExportExcelJadwal />
             <Button
               className="gap-2"
               variant="outline"

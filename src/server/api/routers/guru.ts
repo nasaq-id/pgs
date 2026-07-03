@@ -205,4 +205,22 @@ export const guruRouter = router({
       await logAudit(ctx, { action: "delete", entity: "guru", entityId: input.id })
       return { success: true }
     }),
+
+  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({ id: z.string(), password: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(guru.id, input.id)]
+      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+      const existing = await db.query.guru.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
+      const passwordHash = await bcrypt.hash(input.password, 12)
+      await db.update(guru).set({ passwordGuru: passwordHash }).where(and(...conditions))
+      const email = existing.usernameGuru || existing.nipnuptk || ""
+      if (email) {
+        await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute().catch(() => {})
+      }
+      await logAudit(ctx, { action: "reset_password", entity: "guru", entityId: input.id })
+      return { success: true }
+    }),
 })

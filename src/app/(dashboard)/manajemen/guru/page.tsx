@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2 } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import GuruFormDialog from "@/components/guru/GuruFormDialog"
 import GuruDetailDialog from "@/components/guru/GuruDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import {
@@ -73,6 +74,10 @@ export default function GuruPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [resetId, setResetId] = useState<string | null>(null)
+  const [resetName, setResetName] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -84,6 +89,17 @@ export default function GuruPage() {
       setDeleteId(null)
     },
     onError: () => toast.error("Gagal menghapus data guru"),
+  })
+
+  const resetPasswordMutation = api.guru.resetPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password guru berhasil direset")
+      setResetId(null)
+      setResetName("")
+      setNewPassword("")
+      setShowPassword(false)
+    },
+    onError: () => toast.error("Gagal mereset password guru"),
   })
 
   const bulkCreateMutation = api.guru.bulkCreate.useMutation({
@@ -127,6 +143,11 @@ export default function GuruPage() {
   const handleDelete = async () => {
     if (!deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetId || !newPassword) return
+    await resetPasswordMutation.mutateAsync({ id: resetId, password: newPassword })
   }
 
   const handleFormSuccess = () => {
@@ -377,6 +398,13 @@ export default function GuruPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
+                            onClick={() => { setResetId(g.id); setResetName(g.namaLengkap); setNewPassword(""); setShowPassword(false) }}
+                            className="gap-2 clickable"
+                          >
+                            <KeyRound className="h-4 w-4" /> Reset Password
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
                             onClick={() => setDeleteId(g.id)}
                             className="gap-2 clickable text-destructive focus:text-destructive"
                           >
@@ -444,6 +472,48 @@ export default function GuruPage() {
           guruId={detailId}
         />
       )}
+
+      <AlertDialog open={!!resetId} onOpenChange={(open) => { if (!open) { setResetId(null); setResetName(""); setNewPassword(""); setShowPassword(false) } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Password Guru</AlertDialogTitle>
+            <AlertDialogDescription>
+              Reset password untuk <strong>{resetName}</strong>. Password baru akan menggantikan password yang lama.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Password Baru</label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Masukkan password baru"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? "Sembunyikan" : "Tampilkan"}
+                </button>
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetPasswordMutation.isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetPassword}
+              disabled={resetPasswordMutation.isPending || !newPassword}
+            >
+              {resetPasswordMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Reset Password
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ConfirmDialog
         open={!!deleteId}
