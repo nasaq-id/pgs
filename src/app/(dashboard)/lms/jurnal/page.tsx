@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,27 +11,93 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock } from "lucide-react"
+import { Plus, Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react"
 import { toast } from "sonner"
 import JurnalFormDialog from "@/components/jurnal/JurnalFormDialog"
 
 export default function JurnalMengajarPage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
+
   const [kelasFilter, setKelasFilter] = useState("all")
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split("T")[0])
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [adminGuruFilter, setAdminGuruFilter] = useState<string | null>(null)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
+  const { data: guruListAll } = api.guru.getAll.useQuery({})
+
   const { data: jurnalList, isLoading } = api.lms.getJurnal.useQuery({
     kelasId: kelasFilter !== "all" ? kelasFilter : undefined,
+    guruId: adminGuruFilter || undefined,
     tanggal: tanggal ? new Date(tanggal + "T00:00:00") : undefined,
   })
 
   const deleteJurnal = api.lms.deleteJurnal.useMutation()
+  const utils = api.useUtils()
 
-  const filtered = (jurnalList || []).filter((j) => {
+  const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+  const selectedDate = tanggal ? new Date(tanggal + "T00:00:00") : new Date()
+  const hariName = hariList[selectedDate.getDay()]
+
+  const { data: monitoringJurnal } = api.lms.getJurnal.useQuery(
+    { tanggal: selectedDate, limit: 500 },
+    { enabled: isAdmin },
+  )
+
+  const { data: allJadwal } = api.jadwal.getAll.useQuery(
+    { hari: hariName as any, limit: 500 },
+    { enabled: isAdmin },
+  )
+
+  const generateJurnal = api.lms.generateJurnalDariJadwal.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Berhasil generate ${data.created} jurnal`)
+      utils.lms.getJurnal.invalidate()
+    },
+    onError: () => {
+      toast.error("Gagal generate jurnal")
+    },
+  })
+
+  const guruStats = useMemo(() => {
+    if (!isAdmin || !guruListAll || !monitoringJurnal || !allJadwal) return []
+    return guruListAll.map((guru: any) => {
+      const jadwalCount = allJadwal.filter((j: any) => j.guruId === guru.id).length
+      const guruJurnal = monitoringJurnal.filter((j: any) => j.guruId === guru.id)
+      const totalJurnal = guruJurnal.length
+      const selesaiCount = guruJurnal.filter((j: any) => j.status === "selesai").length
+      const draftCount = totalJurnal - selesaiCount
+
+      let status: "complete" | "partial" | "none" | "nojadwal" = "nojadwal"
+      if (jadwalCount > 0) {
+        if (selesaiCount >= jadwalCount) {
+          status = "complete"
+        } else if (totalJurnal > 0) {
+          status = "partial"
+        } else {
+          status = "none"
+        }
+      }
+
+      return {
+        id: guru.id,
+        nama: guru.namaLengkap,
+        nip: guru.nipnuptk,
+        jadwalCount,
+        totalJurnal,
+        selesaiCount,
+        draftCount,
+        status,
+        isSelected: adminGuruFilter === guru.id,
+      }
+    })
+  }, [isAdmin, guruListAll, monitoringJurnal, allJadwal, adminGuruFilter])
+
+  const filtered = (jurnalList || []).filter((j: any) => {
     if (!search) return true
     const q = search.toLowerCase()
     return (j.judulJurnal || "").toLowerCase().includes(q)
@@ -47,6 +114,12 @@ export default function JurnalMengajarPage() {
     }
   }
 
+  const handleGenerateJurnal = async (guruId: string) => {
+    try {
+      await generateJurnal.mutateAsync({ guruId, tanggal: selectedDate })
+    } catch {}
+  }
+
   const fmtTime = (d: Date | string | null | undefined) => {
     if (!d) return "-"
     return new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
@@ -55,6 +128,10 @@ export default function JurnalMengajarPage() {
   const fmtDate = (d: Date | string) => {
     return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
   }
+
+  const selectedGuru = adminGuruFilter
+    ? guruListAll?.find((g: any) => g.id === adminGuruFilter)
+    : null
 
   return (
     <div className="space-y-5">
@@ -67,6 +144,105 @@ export default function JurnalMengajarPage() {
           <Plus className="h-4 w-4" /> Buat Jurnal
         </Button>
       </div>
+
+      {isAdmin && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-lg font-semibold">Monitoring Guru &mdash; {fmtDate(selectedDate)}</h3>
+          </div>
+
+          {guruStats.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-32 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {guruStats.map((stat) => (
+                <Card
+                  key={stat.id}
+                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${stat.isSelected ? "ring-2 ring-primary" : ""}`}
+                  onClick={() => {
+                    setAdminGuruFilter(stat.isSelected ? null : stat.id)
+                    setKelasFilter("all")
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate">{stat.nama}</p>
+                      {stat.nip && <p className="text-xs text-muted-foreground truncate">{stat.nip}</p>}
+                    </div>
+                    {stat.status === "complete" && <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
+                    {stat.status === "partial" && <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />}
+                    {stat.status === "none" && <XCircle className="h-5 w-5 text-red-500 shrink-0" />}
+                    {stat.status === "nojadwal" && <Clock className="h-5 w-5 text-muted-foreground shrink-0" />}
+                  </div>
+
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Jadwal</span>
+                      <span className="font-medium">{stat.jadwalCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Selesai</span>
+                      <span className="font-medium text-emerald-600">{stat.selesaiCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Draft</span>
+                      <span className="font-medium text-amber-600">{stat.draftCount}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${stat.status === "complete" ? "bg-emerald-500" : stat.status === "partial" ? "bg-amber-500" : stat.status === "none" ? "bg-red-500" : "bg-muted-foreground/20"}`}
+                      style={{ width: stat.jadwalCount > 0 ? `${Math.round((stat.selesaiCount / stat.jadwalCount) * 100)}%` : "0%" }}
+                    />
+                  </div>
+
+                  {stat.jadwalCount > 0 && stat.totalJurnal < stat.jadwalCount && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full h-7 text-xs gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateJurnal(stat.id)
+                      }}
+                      disabled={generateJurnal.isPending}
+                    >
+                      <RefreshCw className={`h-3 w-3 ${generateJurnal.isPending ? "animate-spin" : ""}`} />
+                      Generate
+                    </Button>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {adminGuruFilter && selectedGuru && (
+            <Card className="p-3 bg-muted/50">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Menampilkan jurnal untuk:</span>
+                  <span className="font-semibold">{selectedGuru.namaLengkap}</span>
+                  <Badge variant="outline" className="text-xs">{fmtDate(selectedDate)}</Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setAdminGuruFilter(null)}>
+                    Tampilkan Semua
+                  </Button>
+                  <Button size="sm" variant="default" onClick={() => { setEditItem(null); setFormOpen(true) }}>
+                    <Plus className="h-4 w-4 mr-1" /> Tambah Jurnal
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
 
       <Card className="p-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
@@ -157,6 +333,7 @@ export default function JurnalMengajarPage() {
           setFormOpen(false)
           setEditItem(null)
         }}
+        defaultGuruId={isAdmin && adminGuruFilter && !editItem ? adminGuruFilter : undefined}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null) }}>

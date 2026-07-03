@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { kelas } from "./kelas"
 import { mataPelajaran } from "./mata-pelajaran"
@@ -12,6 +12,8 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   hari: text("hari", { enum: ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"] }).notNull(),
   jamMulai: timestamp("jam_mulai"),
   jamSelesai: timestamp("jam_selesai"),
+  jpMulai: integer("jp_mulai"),
+  jpCount: integer("jp_count"),
 })
 
 export const jadwalPelajaranRelations = relations(jadwalPelajaran, ({ one }) => ({

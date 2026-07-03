@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, BookOpen } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { cn } from "@/lib/utils"
 
 interface JurnalItem {
   id: string
@@ -22,10 +24,19 @@ interface JurnalItem {
   materiKonten?: string | null
   kegiatanPembelajaran?: string | null
   catatan?: string | null
+  statusKehadiran?: string | null
+  detailKehadiran?: string | null
   status: "draft" | "selesai"
   jamMulai?: Date | null
   jamSelesai?: Date | null
 }
+
+interface AttendanceItem {
+  siswaId: string
+  status: "H" | "I" | "S" | "A"
+}
+
+type AttStatus = "H" | "I" | "S" | "A"
 
 interface Props {
   item?: JurnalItem | null
@@ -33,6 +44,15 @@ interface Props {
   onClose: () => void
   onSaved: () => void
   defaultGuruId?: string
+}
+
+const ATT_STATUS: Record<AttStatus, string> = { H: "Hadir", I: "Izin", S: "Sakit", A: "Alpa" }
+
+const ATT_BTN: Record<AttStatus, string> = {
+  H: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 data-[active=true]:bg-emerald-500 data-[active=true]:text-white",
+  I: "bg-amber-100 text-amber-700 hover:bg-amber-200 data-[active=true]:bg-amber-500 data-[active=true]:text-white",
+  S: "bg-orange-100 text-orange-700 hover:bg-orange-200 data-[active=true]:bg-orange-500 data-[active=true]:text-white",
+  A: "bg-red-100 text-red-700 hover:bg-red-200 data-[active=true]:bg-red-500 data-[active=true]:text-white",
 }
 
 export default function JurnalFormDialog({ item, open, onClose, onSaved, defaultGuruId }: Props) {
@@ -49,9 +69,16 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   const [status, setStatus] = useState<"draft" | "selesai">("draft")
   const [guruId, setGuruId] = useState("")
   const [saving, setSaving] = useState(false)
+  const [hadirSemua, setHadirSemua] = useState(true)
+  const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const { data: mapelList } = api.mapel.getAll.useQuery({})
+
+  const { data: siswaList } = api.siswa.getAll.useQuery(
+    { kelasId, status: "aktif", limit: 100 },
+    { enabled: !!kelasId },
+  )
 
   const createJurnal = api.lms.createJurnal.useMutation()
   const updateJurnal = api.lms.updateJurnal.useMutation()
@@ -85,19 +112,62 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
       setStatus("draft")
       setGuruId(defaultGuruId || "")
     }
+    setAttendance({})
+    setHadirSemua(true)
   }, [open, item, defaultGuruId])
+
+  useEffect(() => {
+    if (!open || !siswaList) return
+
+    if (item?.detailKehadiran) {
+      try {
+        const parsed: AttendanceItem[] = JSON.parse(item.detailKehadiran)
+        const attMap: Record<string, AttStatus> = {}
+        let allHadir = true
+        for (const a of parsed) {
+          attMap[a.siswaId] = a.status
+          if (a.status !== "H") allHadir = false
+        }
+        setAttendance(attMap)
+        setHadirSemua(allHadir)
+        return
+      } catch {}
+    }
+
+    const defaultAtt: Record<string, AttStatus> = {}
+    for (const s of siswaList) {
+      defaultAtt[s.id] = "H"
+    }
+    setAttendance(defaultAtt)
+    setHadirSemua(true)
+  }, [siswaList, open, item?.detailKehadiran])
+
+  const computeStatusKehadiran = () => {
+    const counts = { H: 0, I: 0, S: 0, A: 0 }
+    for (const s of Object.values(attendance)) {
+      counts[s]++
+    }
+    return `Hadir: ${counts.H}, Izin: ${counts.I}, Sakit: ${counts.S}, Alpa: ${counts.A}`
+  }
 
   const handleSave = async () => {
     if (!judulJurnal.trim()) { toast.error("Judul jurnal wajib diisi"); return }
     if (!kelasId) { toast.error("Kelas wajib dipilih"); return }
     if (!mataPelajaranId) { toast.error("Mata pelajaran wajib dipilih"); return }
     if (!tanggal) { toast.error("Tanggal wajib diisi"); return }
+    if (!tujuanPembelajaran.trim()) { toast.error("Tujuan pembelajaran wajib diisi"); return }
+    if (!materiKonten.trim()) { toast.error("Materi/konten wajib diisi"); return }
 
     setSaving(true)
     try {
       const tanggalDate = new Date(tanggal + "T00:00:00")
       const jamMulaiDate = jamMulai ? new Date(`${tanggal}T${jamMulai}:00`) : null
       const jamSelesaiDate = jamSelesai ? new Date(`${tanggal}T${jamSelesai}:00`) : null
+
+      const detailKehadiran = JSON.stringify(
+        Object.entries(attendance).map(([siswaId, st]) => ({ siswaId, status: st })),
+      )
+      const statusKehadiran = computeStatusKehadiran()
 
       if (item) {
         await updateJurnal.mutateAsync({
@@ -109,10 +179,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
             tanggal: tanggalDate,
             jamMulai: jamMulaiDate,
             jamSelesai: jamSelesaiDate,
-            tujuanPembelajaran: tujuanPembelajaran || null,
-            materiKonten: materiKonten || null,
+            tujuanPembelajaran,
+            materiKonten,
             kegiatanPembelajaran: kegiatanPembelajaran || null,
             catatan: catatan || null,
+            statusKehadiran,
+            detailKehadiran,
             status,
           },
         })
@@ -126,10 +198,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
           judulJurnal,
           jamMulai: jamMulaiDate,
           jamSelesai: jamSelesaiDate,
-          tujuanPembelajaran: tujuanPembelajaran || null,
-          materiKonten: materiKonten || null,
+          tujuanPembelajaran,
+          materiKonten,
           kegiatanPembelajaran: kegiatanPembelajaran || null,
           catatan: catatan || null,
+          statusKehadiran,
+          detailKehadiran,
           status,
         })
         toast.success("Jurnal berhasil dibuat")
@@ -144,7 +218,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -160,7 +234,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
               <Input value={judulJurnal} onChange={(e) => setJudulJurnal(e.target.value)} placeholder="Contoh: Bab 1 Bilangan" />
             </FieldWrap>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FieldWrap label="Kelas" required>
                 <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
                   <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
@@ -179,7 +253,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
               </FieldWrap>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <FieldWrap label="Tanggal" required>
                 <Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
               </FieldWrap>
@@ -191,21 +265,93 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
               </FieldWrap>
             </div>
 
-            <FieldWrap label="Tujuan Pembelajaran">
+            <FieldWrap label="Tujuan Pembelajaran" required>
               <Textarea value={tujuanPembelajaran} onChange={(e) => setTujuanPembelajaran(e.target.value)} placeholder="Tujuan pembelajaran..." rows={2} className="resize-none" />
             </FieldWrap>
 
-            <FieldWrap label="Materi / Konten">
+            <FieldWrap label="Materi / Konten" required>
               <Textarea value={materiKonten} onChange={(e) => setMateriKonten(e.target.value)} placeholder="Materi yang diajarkan..." rows={2} className="resize-none" />
             </FieldWrap>
 
-            <FieldWrap label="Kegiatan Pembelajaran">
+            <FieldWrap label="Kegiatan Pembelajaran" optional>
               <Textarea value={kegiatanPembelajaran} onChange={(e) => setKegiatanPembelajaran(e.target.value)} placeholder="Deskripsi kegiatan..." rows={2} className="resize-none" />
             </FieldWrap>
 
-            <FieldWrap label="Catatan">
+            <FieldWrap label="Catatan" optional>
               <Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan tambahan..." rows={2} className="resize-none" />
             </FieldWrap>
+
+            {kelasId && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-sm">Presensi Siswa</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {siswaList?.length ?? 0} siswa
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="hadir-semua"
+                    checked={hadirSemua}
+                    onCheckedChange={(checked) => {
+                      setHadirSemua(checked === true)
+                      if (checked) {
+                        setAttendance((prev) => {
+                          const next = { ...prev }
+                          for (const key of Object.keys(next)) {
+                            next[key] = "H"
+                          }
+                          return next
+                        })
+                      }
+                    }}
+                  />
+                  <Label htmlFor="hadir-semua" className="text-sm cursor-pointer">
+                    Hadir Semua
+                  </Label>
+                </div>
+
+                {siswaList && siswaList.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                    {siswaList.map((siswa) => {
+                      const s = attendance[siswa.id] || "H"
+                      return (
+                        <div
+                          key={siswa.id}
+                          className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                        >
+                          <span className="truncate min-w-0 flex-1">{siswa.namaLengkap}</span>
+                          {hadirSemua ? (
+                            <span className="text-xs font-medium text-emerald-600 shrink-0">Hadir</span>
+                          ) : (
+                            <div className="flex gap-1 shrink-0">
+                              {(Object.keys(ATT_STATUS) as AttStatus[]).map((key) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setAttendance((prev) => ({ ...prev, [siswa.id]: key }))}
+                                  data-active={s === key}
+                                  className={cn(
+                                    "h-7 w-7 rounded text-xs font-semibold transition-colors",
+                                    ATT_BTN[key],
+                                    s === key && "ring-2 ring-offset-1 ring-primary",
+                                  )}
+                                >
+                                  {key}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Tidak ada siswa aktif di kelas ini.</p>
+                )}
+              </div>
+            )}
 
             <FieldWrap label="Status">
               <Select value={status} onValueChange={(v) => setStatus(v as "draft" | "selesai")}>

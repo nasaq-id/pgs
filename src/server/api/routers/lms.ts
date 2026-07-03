@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, between, desc, asc, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jurnalMengajar, tugas, kelas } from "@/server/db/schema"
+import { jurnalMengajar, tugas, kelas, jadwalPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -251,5 +251,63 @@ export const lmsRouter = router({
       await db.delete(tugas).where(eq(tugas.id, input.id))
       await logAudit(ctx, { action: "delete", entity: "tugas", entityId: input.id })
       return { success: true }
+    }),
+
+  generateJurnalDariJadwal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .input(z.object({
+      guruId: z.string(),
+      tanggal: z.date(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+      const hari = hariList[input.tanggal.getDay()]
+
+      const jadwalList = await db
+        .select()
+        .from(jadwalPelajaran)
+        .where(and(
+          eq(jadwalPelajaran.guruId, input.guruId),
+          eq(jadwalPelajaran.hari, hari),
+        ))
+
+      if (jadwalList.length === 0) {
+        return { created: 0, message: `Tidak ada jadwal untuk hari ${hari}` }
+      }
+
+      const created: any[] = []
+      for (const jadwal of jadwalList) {
+        const existing = await db
+          .select()
+          .from(jurnalMengajar)
+          .where(and(
+            eq(jurnalMengajar.guruId, input.guruId),
+            eq(jurnalMengajar.kelasId, jadwal.kelasId),
+            eq(jurnalMengajar.mataPelajaranId, jadwal.mataPelajaranId),
+            eq(jurnalMengajar.tanggal, input.tanggal),
+          ))
+          .limit(1)
+
+        if (existing.length === 0) {
+          const id = crypto.randomUUID()
+          const result = await db
+            .insert(jurnalMengajar)
+            .values({
+              id,
+              guruId: input.guruId,
+              kelasId: jadwal.kelasId,
+              mataPelajaranId: jadwal.mataPelajaranId,
+              jadwalPelajaranId: jadwal.id,
+              tanggal: input.tanggal,
+              jamMulai: jadwal.jamMulai,
+              jamSelesai: jadwal.jamSelesai,
+              status: "draft",
+            })
+            .returning()
+          created.push(result[0])
+        }
+      }
+
+      await logAudit(ctx, { action: "generate_jurnal", entity: "jurnal_mengajar", entityId: input.guruId, metadata: { tanggal: input.tanggal.toISOString(), jumlah: created.length } })
+      return { created: created.length, data: created }
     }),
 })

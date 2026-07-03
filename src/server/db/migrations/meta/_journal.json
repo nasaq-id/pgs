@@ -43,6 +43,13 @@
       "when": 1783011114937,
       "tag": "0005_make-nisn-nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783096030605,
+      "tag": "0006_handy_black_panther",
+      "breakpoints": true
     }
   ]
 }
