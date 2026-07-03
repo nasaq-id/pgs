@@ -137,30 +137,76 @@ export default function GuruPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await utils.client.guru.getAllExport.query({ search: querySearch || undefined })
-      const ws = XLSX.utils.json_to_sheet(res.map((g: any, i: number) => ({
-        No: i + 1,
-        "NIP/NUPTK": g.nipnuptk || "",
-        NIK: g.nik || "",
-        "Nama Lengkap": g.namaLengkap || "",
-        "Jenis Kelamin": g.jenisKelamin === "L" ? "Laki-laki" : g.jenisKelamin === "P" ? "Perempuan" : "",
-        "Tempat Lahir": g.tempatLahir || "",
-        "Tanggal Lahir": g.tanggalLahir ? new Date(g.tanggalLahir).toLocaleDateString("id-ID") : "",
-        Alamat: g.alamat || "",
-        "No HP": g.noHp || "",
-        Email: g.email || "",
-        "Pendidikan Terakhir": g.pendidikanTerakhir || "",
-        "Status Kepegawaian": g.statusKepegawaian || "",
-        "Kategori Pegawai": g.kategoriPegawai || "",
-        "Tugas Utama": g.tugasUtama || "",
-        "Tugas Tambahan": g.tugasTambahan || "",
-        "Username": g.usernameGuru || "",
-        Status: g.active !== false ? "Aktif" : "Non Aktif",
-      })))
+      const [res, sekolah, aktifTa] = await Promise.all([
+        utils.client.guru.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.lembaga.getSekolah.query(),
+        utils.client.lembaga.getActiveTahunAjaran.query(),
+      ])
+
+      const keys = [
+        "No", "NIP/NUPTK", "NIK", "Nama Lengkap", "Jenis Kelamin",
+        "Tempat Lahir", "Tanggal Lahir", "Alamat", "No HP", "Email",
+        "Pendidikan Terakhir", "Status Kepegawaian", "Kategori Pegawai",
+        "Tugas Utama", "Tugas Tambahan", "Username", "Status",
+      ]
+
+      const dataRows = res.map((g: any, i: number) => [
+        i + 1,
+        g.nipnuptk || "",
+        g.nik || "",
+        g.namaLengkap || "",
+        g.jenisKelamin === "L" ? "Laki-laki" : g.jenisKelamin === "P" ? "Perempuan" : "",
+        g.tempatLahir || "",
+        g.tanggalLahir ? new Date(g.tanggalLahir).toLocaleDateString("id-ID") : "",
+        g.alamat || "",
+        g.noHp || "",
+        g.email || "",
+        g.pendidikanTerakhir || "",
+        g.statusKepegawaian || "",
+        g.kategoriPegawai || "",
+        g.tugasUtama || "",
+        g.tugasTambahan || "",
+        g.usernameGuru || "",
+        g.active !== false ? "Aktif" : "Non Aktif",
+      ])
+
+      const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
+      const titleText = `Data Guru${taLabel}`
+
+      const totalCols = keys.length
+      const headerRows: (string | number)[][] = [
+        [sekolah?.namaSekolah || "SEKOLAH"],
+        [sekolah?.alamat || ""],
+        [titleText],
+        [],
+        keys,
+      ]
+
       const wb = XLSX.utils.book_new()
+      const aoa = [...headerRows, ...dataRows]
+      const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+      ws["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
+      ]
+
+      ws["!cols"] = keys.map((key) => ({
+        wch: Math.max(key.length, 12),
+      }))
+
+      ws["!rows"] = [
+        { hpt: 30 },
+        { hpt: 18 },
+        { hpt: 22 },
+        { hpt: 8 },
+        { hpt: 18 },
+      ]
+
       XLSX.utils.book_append_sheet(wb, ws, "Data Guru")
       XLSX.writeFile(wb, `data_guru_${new Date().toISOString().split("T")[0]}.xlsx`)
-      toast.success("Data berhasil diexport")
+      toast.success(`Data berhasil diexport (${res.length} guru)`)
     } catch {
       toast.error("Gagal mengexport data")
     } finally {

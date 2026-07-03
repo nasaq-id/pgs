@@ -179,9 +179,10 @@ export default function SiswaPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const [res, sekolah] = await Promise.all([
+      const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
         utils.client.lembaga.getSekolah.query(),
+        utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
 
       const keys = [
@@ -205,10 +206,13 @@ export default function SiswaPage() {
         s.noHpWhatsapp || s.noHpOrtu || "",
       ])
 
+      const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
+      const titleText = `Data Siswa${taLabel}`
+
       const headerRows: (string | number)[][] = [
         [sekolah?.namaSekolah || "SEKOLAH"],
         [sekolah?.alamat || ""],
-        ["DATA SISWA"],
+        [titleText],
         [],
         keys,
       ]
@@ -246,13 +250,34 @@ export default function SiswaPage() {
     }
   }
 
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(url)
+      const blob = await resp.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      return null
+    }
+  }
+
   const handleExportPdf = async () => {
     setExportingPdf(true)
     try {
-      const [res, sekolah] = await Promise.all([
+      const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
         utils.client.lembaga.getSekolah.query(),
+        utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
+
+      let logoBase64: string | null = null
+      if (sekolah?.logo) {
+        logoBase64 = await urlToBase64(sekolah.logo)
+      }
 
       const rows: (string | number)[][] = res.map((s: any, i: number) => [
         i + 1,
@@ -274,31 +299,58 @@ export default function SiswaPage() {
       const doc = new jsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
 
-      const kopY = 14
+      const kopH = 18
+      const logoSize = 12
+      const logoX = 10
+      const logoY = 3
+      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 0
+
       doc.setFillColor(59, 130, 246)
-      doc.rect(0, 0, pageW, kopY, "F")
+      doc.rect(0, 0, pageW, kopH, "F")
+
+      if (logoBase64) {
+        try {
+          doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
+        } catch {
+          try {
+            doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
+          } catch {}
+        }
+      }
+
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(9)
-      doc.text(sekolah?.namaSekolah || "SEKOLAH", pageW / 2, 6, { align: "center" })
+      doc.setFontSize(10)
+      const centerX = textLeftMargin > 0 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
+      doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 6.5, { align: "center" })
       doc.setFontSize(7)
-      doc.text(sekolah?.alamat || "", pageW / 2, 10.5, { align: "center" })
+      doc.text(sekolah?.alamat || "", centerX, 11, { align: "center" })
+      if (sekolah?.npsn || sekolah?.telepon) {
+        const infoParts = []
+        if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
+        if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
+        doc.text(infoParts.join(" | "), centerX, 14.5, { align: "center" })
+      }
+
+      const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
+      const titleText = `Data Siswa${taLabel}`
 
       doc.setFillColor(37, 99, 235)
-      doc.rect(0, kopY, pageW, 8, "F")
+      doc.rect(0, kopH, pageW, 8, "F")
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(8)
-      doc.text("DATA SISWA", pageW / 2, kopY + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
 
+      const infoY = kopH + 12
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(7)
       const now = new Date()
       const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
       const tglStr = `Diexport pada: ${hari}, ${toDdMmYyyy(now)}`
-      doc.text(tglStr, pageW - 14, 33, { align: "right" })
-      doc.text(`Total data: ${res.length} siswa`, 14, 33)
+      doc.text(tglStr, pageW - 14, infoY + 1, { align: "right" })
+      doc.text(`Total data: ${res.length} siswa`, 14, infoY + 1)
 
       autoTable(doc, {
-        startY: 37,
+        startY: infoY + 5,
         head,
         body: rows,
         styles: {

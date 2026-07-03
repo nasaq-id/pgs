@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran } from "@/server/db/schema"
@@ -56,6 +56,16 @@ export const lembagaRouter = router({
       where: eq(tahunAjaran.sekolahId, sekolahId),
       orderBy: (ta, { desc }) => [desc(ta.createdAt)],
     })
+  }),
+
+  getActiveTahunAjaran: protectedProcedure.query(async ({ ctx }) => {
+    const sekolahId = ctx.session.user.sekolahId
+    if (!sekolahId) return null
+
+    const data = await db.query.tahunAjaran.findFirst({
+      where: and(eq(tahunAjaran.sekolahId, sekolahId), eq(tahunAjaran.active, true)),
+    })
+    return data || null
   }),
 
   createTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
