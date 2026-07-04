@@ -105,17 +105,17 @@ export const asesmenRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(asesmenCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      if (sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
-        if (!kelasIds.includes(input.kelasId)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
-        }
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan di sesi" })
+
+      const kelasIds = await getKelasIdsForSekolah(sekolahId)
+      if (!kelasIds.includes(input.kelasId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
       }
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(asesmen)
-        .values({ ...input, id } as any)
+        .values({ ...input, id, sekolahId } as any)
         .returning()
 
       await logAudit(ctx, { action: "create", entity: "asesmen", entityId: id, metadata: { judul: input.judul, kelasId: input.kelasId } })
