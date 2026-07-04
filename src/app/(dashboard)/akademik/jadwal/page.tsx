@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   BookOpen,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,6 +46,7 @@ import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/Jadwa
 import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
 import CetakJadwal from "@/components/jadwal/CetakJadwal"
 import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
+import AiGenerateDialog from "@/components/jadwal/AiGenerateDialog"
 import { DAYS, DAY_LABEL, toTimeInputValue, timeStringToDate, timeToMinutes, minutesToTime } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
@@ -111,6 +113,7 @@ export default function JadwalPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [pengaturanOpen, setPengaturanOpen] = useState(false)
   const [cetakOpen, setCetakOpen] = useState(false)
+  const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
@@ -255,14 +258,42 @@ export default function JadwalPage() {
     return slots
   }, [totalJpSlots, startMinutes, durasiJP])
 
+  const academicJpMap = useMemo(() => {
+    const map = new Map<string, number | null>()
+    for (const day of aktifDays) {
+      let counter = 1
+      for (let jp = 1; jp <= totalJpSlots; jp++) {
+        const slotStart = startMinutes + (jp - 1) * durasiJP
+        const slotEnd = startMinutes + jp * durasiJP
+
+        const isAgenda = agendaRecords.some((a) => {
+          if (a.hari !== day) return false
+          const agendaStart = timeToMinutes(a.jamMulai)
+          const agendaEnd = timeToMinutes(a.jamSelesai)
+          return slotStart < agendaEnd && slotEnd > agendaStart
+        })
+
+        if (isAgenda) {
+          map.set(`${day}-${jp}`, null)
+        } else {
+          map.set(`${day}-${jp}`, counter++)
+        }
+      }
+    }
+    return map
+  }, [aktifDays, totalJpSlots, startMinutes, durasiJP, agendaRecords])
+
   const getEntryAtSlot = (day: string, jpSlot: number): JadwalRecord | null => {
+    const academicJp = academicJpMap.get(`${day}-${jpSlot}`)
+    if (academicJp === null || academicJp === undefined) return null
+
     const entries = jadwalRecords.filter(
       (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
     )
     for (const entry of entries) {
       const start = entry.jpMulai!
       const end = start + entry.jpCount!
-      if (jpSlot >= start && jpSlot < end) return entry
+      if (academicJp >= start && academicJp < end) return entry
     }
     return null
   }
@@ -328,6 +359,13 @@ export default function JadwalPage() {
             <Button
               className="gap-2"
               variant="outline"
+              onClick={() => setAiGenerateOpen(true)}
+            >
+              <Sparkles className="h-4 w-4 text-[hsl(142_72%_40%)]" /> AI Generate
+            </Button>
+            <Button
+              className="gap-2"
+              variant="outline"
               onClick={() => setPengaturanOpen(true)}
             >
               <Settings className="h-4 w-4" /> Pengaturan Jadwal
@@ -338,7 +376,7 @@ export default function JadwalPage() {
               disabled={!kelasId}
               onClick={openAdd}
             >
-              <Plus className="h-4 w-4" /> Tambah
+              <Plus className="h-4 w-4" /> Tambah Jadwal
             </Button>
           </div>
         </div>
@@ -499,6 +537,15 @@ export default function JadwalPage() {
       <CetakJadwal
         open={cetakOpen}
         onClose={() => setCetakOpen(false)}
+      />
+
+      <AiGenerateDialog
+        open={aiGenerateOpen}
+        onClose={() => setAiGenerateOpen(false)}
+        kelasRecords={kelasRecords}
+        mapelRecords={mapelRecords}
+        guruRecords={guruRecords}
+        existingJadwal={jadwalRecords as any}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>

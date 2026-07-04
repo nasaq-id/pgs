@@ -260,7 +260,7 @@ export const lmsRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
-      const hari = hariList[input.tanggal.getDay()]
+      const hari = hariList[input.tanggal.getDay()] as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu"
 
       const jadwalList = await db
         .select()

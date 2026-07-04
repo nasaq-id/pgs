@@ -2,10 +2,17 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -179,54 +186,44 @@ export default function MapelPage() {
                   </TableCell>
                   <TableCell>{r.urutan ?? "-"}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <DropdownMenu>
                       <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditData({
-                                  id: r.id,
-                                  namaMapel: r.namaMapel,
-                                  kodeMapel: r.kodeMapel ?? "",
-                                  kelompok: r.kelompok ?? "",
-                                  aktif: r.aktif,
-                                })
-                                setFormOpen(true)
-                              }}
-                            />
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
+                        <TooltipTrigger delay={0}>
+                          <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-950/20 text-muted-foreground hover:text-[hsl(142_72%_40%)] focus-visible:ring-2 focus-visible:ring-[hsl(142_72%_40%)] rounded-md focus:outline-none transition-colors cursor-pointer">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
                         </TooltipTrigger>
                         <TooltipPortal>
                           <TooltipPositioner>
-                            <TooltipPopup>Edit</TooltipPopup>
+                            <TooltipPopup>Aksi</TooltipPopup>
                           </TooltipPositioner>
                         </TooltipPortal>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive"
-                              onClick={() => setDeleteId(r.id)}
-                            />
-                          }
+                      <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditData({
+                              id: r.id,
+                              namaMapel: r.namaMapel,
+                              kodeMapel: r.kodeMapel ?? "",
+                              kelompok: r.kelompok ?? "",
+                              aktif: r.aktif,
+                            })
+                            setFormOpen(true)
+                          }}
+                          className="gap-2 clickable"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Hapus</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                    </div>
+                          <Pencil className="h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setDeleteId(r.id)}
+                          className="gap-2 clickable text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" /> Hapus
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

@@ -57,11 +57,15 @@ interface AgendaData {
 }
 
 function getEntryAtSlot(
+  academicJpMap: Map<string, number | null>,
   jadwalRecords: JadwalRecord[],
   kelasId: string,
   hari: string,
   jpSlot: number
 ): JadwalRecord | null {
+  const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
+  if (academicJp === null || academicJp === undefined) return null
+
   const entries = jadwalRecords.filter(
     (e) =>
       e.kelasId === kelasId &&
@@ -72,7 +76,7 @@ function getEntryAtSlot(
   for (const entry of entries) {
     const start = entry.jpMulai!
     const end = start + entry.jpCount!
-    if (jpSlot >= start && jpSlot < end) return entry
+    if (academicJp >= start && academicJp < end) return entry
   }
   return null
 }
@@ -172,6 +176,56 @@ export default function ExportExcelJadwal() {
         : ""
 
       const totalCols = 3 + sortedKelas.length
+
+      const academicJpMap = new Map<string, number | null>()
+      for (const day of aktifDays) {
+        let counter = 1
+        for (let jp = 1; jp <= totalJpSlots; jp++) {
+          const slotStart = startMinutes + (jp - 1) * durasiJP
+          const slotEnd = startMinutes + jp * durasiJP
+
+          const isAgenda = agendaRecords.some((a) => {
+            if (a.hari !== day) return false
+            const agendaStart = timeToMinutes(a.jamMulai)
+            const agendaEnd = timeToMinutes(a.jamSelesai)
+            return slotStart < agendaEnd && slotEnd > agendaStart
+          })
+
+          if (isAgenda) {
+            academicJpMap.set(`${day}-${jp}`, null)
+          } else {
+            academicJpMap.set(`${day}-${jp}`, counter++)
+          }
+        }
+      }
+
+      // Build sequential codes map: key: `${guruId}-${mataPelajaranId}` -> code
+      const codesMap = new Map<string, string>()
+      const sortedTeachers = [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
+      let teacherCounter = 1
+
+      for (const teacher of sortedTeachers) {
+        const teacherSchedules = jadwalRecords.filter((j) => j.guruId === teacher.id)
+        const uniqueSubjectIds = Array.from(new Set(teacherSchedules.map((j) => j.mataPelajaranId)))
+
+        let subjectOffset = 0
+        for (const mapelId of uniqueSubjectIds) {
+          const suffix = subjectOffset === 0 ? "" : String.fromCharCode(96 + subjectOffset)
+          const code = `${teacherCounter}${suffix}`
+          codesMap.set(`${teacher.id}-${mapelId}`, code)
+          subjectOffset++
+        }
+
+        if (uniqueSubjectIds.length > 0) {
+          teacherCounter++
+        }
+      }
+
+      const getKode = (entry: JadwalRecord | null): string => {
+        if (!entry) return ""
+        const key = `${entry.guruId}-${entry.mataPelajaranId}`
+        return codesMap.get(key) || ""
+      }
 
       const wb = XLSX.utils.book_new()
 
@@ -302,7 +356,7 @@ export default function ExportExcelJadwal() {
             const kelas = sortedKelas[ki]
             const col = 3 + ki
             const agendaItem = getAgendaAtSlot(agendaRecords, day, jp, startMinutes, durasiJP)
-            const entry = agendaItem ? null : getEntryAtSlot(jadwalRecords, kelas.id, day, jp)
+            const entry = agendaItem ? null : getEntryAtSlot(academicJpMap, jadwalRecords, kelas.id, day, jp)
 
             const cellAddr = XLSX.utils.encode_cell({ r: currentRow, c: col })
 
@@ -322,19 +376,12 @@ export default function ExportExcelJadwal() {
                 },
               }
             } else if (entry) {
-              const mapel = mapelMap.get(entry.mataPelajaranId)
-              const guru = guruMap.get(entry.guruId)
-              const mapelName = mapel?.namaMapel || "-"
-              const guruName = guru?.namaLengkap || "-"
-
               ws[cellAddr] = {
                 t: "s",
-                r: [
-                  { t: mapelName, s: { font: { bold: true, sz: 9 } } },
-                  { t: `\n${guruName}`, s: { font: { sz: 8 } } },
-                ],
+                v: getKode(entry),
                 s: {
-                  alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                  font: { bold: true, sz: 9 },
+                  alignment: { horizontal: "center", vertical: "center" },
                   border: {
                     top: { style: "thin" },
                     bottom: { style: "thin" },
@@ -372,6 +419,59 @@ export default function ExportExcelJadwal() {
             s: { r: d.startRow, c: 0 },
             e: { r: d.endRow, c: 0 },
           })
+        }
+      }
+
+      // Add codes legend at the bottom
+      if (codesMap.size > 0) {
+        currentRow += 2
+        const legendTitleAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
+        ws[legendTitleAddr] = {
+          t: "s",
+          v: "Keterangan Kode Guru & Mata Pelajaran:",
+          s: { font: { bold: true, sz: 10 } }
+        }
+        ws["!merges"]!.push({
+          s: { r: currentRow, c: 0 },
+          e: { r: currentRow, c: 3 }
+        })
+
+        currentRow++
+        let colIndex = 0
+        for (const [key, code] of codesMap.entries()) {
+          const [guruId, mapelId] = key.split("-")
+          const guru = guruMap.get(guruId)
+          const mapel = mapelMap.get(mapelId)
+          const mapelName = mapel?.namaMapel || "Mapel"
+          const guruName = guru?.namaLengkap || "Guru"
+
+          const cellAddr = XLSX.utils.encode_cell({ r: currentRow, c: colIndex })
+          ws[cellAddr] = {
+            t: "s",
+            r: [
+              { t: `${code}: `, s: { font: { bold: true, sz: 8 } } },
+              { t: mapelName, s: { font: { bold: true, sz: 8 } } },
+              { t: `\n${guruName}`, s: { font: { sz: 7 } } }
+            ],
+            s: {
+              alignment: { horizontal: "left", vertical: "center", wrapText: true },
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              }
+            }
+          }
+
+          colIndex++
+          if (colIndex >= 4) {
+            colIndex = 0
+            currentRow++
+          }
+        }
+        if (colIndex > 0) {
+          currentRow++
         }
       }
 

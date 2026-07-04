@@ -125,14 +125,42 @@ export default function CetakJadwal({ open, onClose }: Props) {
     [kelasRecords]
   )
 
+  const academicJpMap = useMemo(() => {
+    const map = new Map<string, number | null>()
+    for (const day of aktifDays) {
+      let counter = 1
+      for (let jp = 1; jp <= totalJpSlots; jp++) {
+        const slotStart = startMinutes + (jp - 1) * durasiJP
+        const slotEnd = startMinutes + jp * durasiJP
+
+        const isAgenda = agendaRecords.some((a) => {
+          if (a.hari !== day) return false
+          const agendaStart = timeToMinutes(a.jamMulai)
+          const agendaEnd = timeToMinutes(a.jamSelesai)
+          return slotStart < agendaEnd && slotEnd > agendaStart
+        })
+
+        if (isAgenda) {
+          map.set(`${day}-${jp}`, null)
+        } else {
+          map.set(`${day}-${jp}`, counter++)
+        }
+      }
+    }
+    return map
+  }, [aktifDays, totalJpSlots, startMinutes, durasiJP, agendaRecords])
+
   const getEntry = (kelasId: string, hari: string, jpSlot: number): JadwalRecord | null => {
+    const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
+    if (academicJp === null || academicJp === undefined) return null
+
     const entries = jadwalRecords.filter(
       (e) => e.kelasId === kelasId && e.hari === hari && e.jpMulai !== null && e.jpCount !== null
     )
     for (const entry of entries) {
       const start = entry.jpMulai!
       const end = start + entry.jpCount!
-      if (jpSlot >= start && jpSlot < end) return entry
+      if (academicJp >= start && academicJp < end) return entry
     }
     return null
   }
@@ -147,13 +175,36 @@ export default function CetakJadwal({ open, onClose }: Props) {
     return null
   }
 
+  // Build the sequential codes map: key: `${guruId}-${mataPelajaranId}` -> code
+  const codesMap = useMemo(() => {
+    const map = new Map<string, string>()
+    const sortedTeachers = [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
+    let teacherCounter = 1
+
+    for (const teacher of sortedTeachers) {
+      // Find unique combinations of subjects for this teacher in the schedules
+      const teacherSchedules = jadwalRecords.filter((j) => j.guruId === teacher.id)
+      const uniqueSubjectIds = Array.from(new Set(teacherSchedules.map((j) => j.mataPelajaranId)))
+
+      let subjectOffset = 0
+      for (const mapelId of uniqueSubjectIds) {
+        const suffix = subjectOffset === 0 ? "" : String.fromCharCode(96 + subjectOffset) // a, b, c...
+        const code = `${teacherCounter}${suffix}`
+        map.set(`${teacher.id}-${mapelId}`, code)
+        subjectOffset++
+      }
+
+      if (uniqueSubjectIds.length > 0) {
+        teacherCounter++
+      }
+    }
+    return map
+  }, [guruRecords, jadwalRecords])
+
   const getKode = (entry: JadwalRecord | null): string => {
     if (!entry) return ""
-    const mapel = mapelMap.get(entry.mataPelajaranId)
-    const guru = guruMap.get(entry.guruId)
-    const kodeMapel = mapel?.kodeMapel || mapel?.namaMapel.slice(0, 3).toUpperCase() || "?"
-    const kodeGuru = guru?.nipnuptk || guru?.namaLengkap.slice(0, 3).toUpperCase() || "?"
-    return `${kodeMapel}/${kodeGuru}`
+    const key = `${entry.guruId}-${entry.mataPelajaranId}`
+    return codesMap.get(key) || ""
   }
 
   const handlePrint = () => {
@@ -183,21 +234,24 @@ export default function CetakJadwal({ open, onClose }: Props) {
         <style>
           ${styles}
           @page { size: landscape; margin: 12mm; }
-          body { font-family: Arial, sans-serif; padding: 0; margin: 0; font-size: 10px; }
+          body { font-family: Arial, sans-serif; padding: 0; margin: 0; font-size: 10px; color: #000; }
           .print-area { padding: 15px; }
-          .kop-sekolah { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 8px; }
-          .kop-sekolah h1 { font-size: 16px; margin: 0; font-weight: bold; }
-          .kop-sekolah p { font-size: 11px; margin: 2px 0; }
+          .kop-container { display: flex; align-items: center; justify-content: center; gap: 20px; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; }
+          .kop-container h1 { font-size: 18px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+          .kop-container p { font-size: 11px; margin: 2px 0; font-style: italic; }
           .judul { text-align: center; margin: 12px 0; }
           .judul h2 { font-size: 14px; margin: 0; font-weight: bold; }
           .judul p { font-size: 11px; margin: 2px 0; }
-          table { width: 100%; border-collapse: collapse; font-size: 8px; }
-          th, td { border: 1px solid #000; padding: 1.5px 2px; text-align: center; vertical-align: middle; }
+          table { width: 100%; border-collapse: collapse; font-size: 8px; margin-bottom: 15px; }
+          th, td { border: 1px solid #000; padding: 3px 4px; text-align: center; vertical-align: middle; }
           th { background: #f0f0f0; font-weight: bold; }
           .day-cell { font-weight: bold; background: #fafafa; font-size: 9px; }
           .jp-cell { font-size: 7px; white-space: nowrap; }
-          .agenda-cell { font-style: italic; color: #555; }
-          .signature { display: flex; justify-content: space-around; margin-top: 35px; }
+          .agenda-cell { font-style: italic; color: #555; background: #f9f9f9; }
+          .legend-section { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+          .legend-title { font-size: 10px; font-weight: bold; margin-bottom: 5px; }
+          .legend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 8px; }
+          .signature { display: flex; justify-content: space-around; margin-top: 35px; page-break-inside: avoid; }
           .signature div { text-align: center; min-width: 200px; }
           .signature .name { margin-top: 55px; font-weight: bold; font-size: 11px; }
           .signature .label { font-size: 10px; margin-bottom: 50px; }
@@ -240,14 +294,21 @@ export default function CetakJadwal({ open, onClose }: Props) {
           <DialogTitle>Cetak Jadwal Pelajaran</DialogTitle>
         </DialogHeader>
 
-        <div ref={printRef}>
-          <div className="kop-sekolah" style={{ textAlign: "center", marginBottom: 15, borderBottom: "2px solid #000", paddingBottom: 8 }}>
-            <h1 style={{ fontSize: 16, margin: 0, fontWeight: "bold" }}>
-              {sekolah?.namaSekolah || "Nama Sekolah"}
-            </h1>
-            <p style={{ fontSize: 11, margin: "2px 0" }}>
-              {sekolah?.alamat || ""}{sekolah?.npsn ? ` | NPSN: ${sekolah.npsn}` : ""}
-            </p>
+        <div ref={printRef} className="bg-white text-black p-4">
+          <div className="kop-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", borderBottom: "3px double #000", paddingBottom: "10px", marginBottom: "15px" }}>
+            {sekolah?.logo ? (
+              <img src={sekolah.logo} alt="Logo" style={{ height: 60, width: 60, objectFit: "contain" }} />
+            ) : (
+              <div style={{ height: 60, width: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f0f0", border: "1px solid #ccc", borderRadius: "50%", fontWeight: "bold", fontSize: 10 }}>LOGO</div>
+            )}
+            <div style={{ textAlign: "center" }}>
+              <h1 style={{ fontSize: 18, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
+                {sekolah?.namaSekolah || "Nama Lembaga Pendidikan"}
+              </h1>
+              <p style={{ fontSize: 11, margin: "2px 0", fontStyle: "italic" }}>
+                {sekolah?.alamat || ""}{sekolah?.npsn ? ` | NPSN: ${sekolah.npsn}` : ""}
+              </p>
+            </div>
           </div>
 
           <div style={{ textAlign: "center", margin: "12px 0" }}>
@@ -292,7 +353,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
                               {agenda.nama}
                             </span>
                           ) : entry ? (
-                            getKode(entry)
+                            <strong>{getKode(entry)}</strong>
                           ) : (
                             "\u2014"
                           )}
@@ -305,7 +366,26 @@ export default function CetakJadwal({ open, onClose }: Props) {
             </tbody>
           </table>
 
-          <div style={{ display: "flex", justifyContent: "space-around", marginTop: 35 }}>
+          {/* Codes Legend Section */}
+          {codesMap.size > 0 && (
+            <div className="legend-section" style={{ marginTop: 20, borderTop: "1px solid #ccc", paddingTop: 10 }}>
+              <p className="legend-title" style={{ fontSize: 10, fontWeight: "bold", marginBottom: 5 }}>Keterangan Kode Guru & Mata Pelajaran:</p>
+              <div className="legend-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", fontSize: 8 }}>
+                {Array.from(codesMap.entries()).map(([key, code]) => {
+                  const [guruId, mapelId] = key.split("-")
+                  const guru = guruMap.get(guruId)
+                  const mapel = mapelMap.get(mapelId)
+                  return (
+                    <div key={key}>
+                      <strong>{code}</strong>: {guru?.namaLengkap || "Guru"} - {mapel?.namaMapel || "Mapel"}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="signature" style={{ display: "flex", justifyContent: "space-around", marginTop: 35 }}>
             <div style={{ textAlign: "center", minWidth: 200 }}>
               <p style={{ fontSize: 10, margin: 0, marginBottom: 50 }}>Kepala Sekolah,</p>
               <div style={{ width: 200, borderBottom: "1px solid #000", margin: "0 auto" }} />

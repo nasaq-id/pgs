@@ -54,9 +54,7 @@ async function seed() {
     { id: "mapel-3", sekolahId: "sekolah-1", namaMapel: "Bahasa Indonesia", kodeMapel: "BIND", kelompok: "A" },
     { id: "mapel-4", sekolahId: "sekolah-1", namaMapel: "IPA", kodeMapel: "IPA", kelompok: "B" },
   ]
-  for (const m of mapelData) {
-    await db.insert(mataPelajaran).values(m).onConflictDoNothing()
-  }
+  await db.insert(mataPelajaran).values(mapelData as any).onConflictDoNothing()
   console.log(`✅ ${mapelData.length} mata pelajaran created`)
 
   // Kelas
@@ -65,9 +63,7 @@ async function seed() {
     { id: "kelas-7b", sekolahId: "sekolah-1", namaKelas: "7B", tingkat: "7", waliKelasId: "guru-2" },
     { id: "kelas-8a", sekolahId: "sekolah-1", namaKelas: "8A", tingkat: "8", waliKelasId: "guru-3" },
   ]
-  for (const k of kelasData) {
-    await db.insert(kelas).values(k).onConflictDoNothing()
-  }
+  await db.insert(kelas).values(kelasData as any).onConflictDoNothing()
   console.log(`✅ ${kelasData.length} kelas created`)
 
   // Siswa (5 per kelas)
@@ -91,9 +87,7 @@ async function seed() {
     { id: "siswa-8a-4", sekolahId: "sekolah-1", kelasId: "kelas-8a", nisn: "0012345694", namaLengkap: "Naufal Rizky", jenisKelamin: "L" },
     { id: "siswa-8a-5", sekolahId: "sekolah-1", kelasId: "kelas-8a", nisn: "0012345695", namaLengkap: "Olivia Putri", jenisKelamin: "P" },
   ]
-  for (const s of siswaData) {
-    await db.insert(siswa).values(s).onConflictDoNothing()
-  }
+  await db.insert(siswa).values(siswaData as any).onConflictDoNothing()
   console.log(`✅ ${siswaData.length} siswa created`)
 
   // Jadwal Pelajaran
@@ -111,9 +105,7 @@ async function seed() {
     { id: "jadwal-8", kelasId: "kelas-7b", mataPelajaranId: "mapel-3", guruId: "guru-3", hari: "kamis", jamMulai: new Date("2024-01-01T10:00:00"), jamSelesai: new Date("2024-01-01T11:30:00") },
     { id: "jadwal-9", kelasId: "kelas-8a", mataPelajaranId: "mapel-4", guruId: "guru-3", hari: "jumat", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
   ]
-  for (const j of jadwalData) {
-    await db.insert(jadwalPelajaran).values(j).onConflictDoNothing()
-  }
+  await db.insert(jadwalPelajaran).values(jadwalData as any).onConflictDoNothing()
   console.log(`✅ ${jadwalData.length} jadwal pelajaran created`)
 
   // Pengaturan Jadwal
@@ -137,9 +129,7 @@ async function seed() {
     { id: "agenda-selasa-2", sekolahId: "sekolah-1", hari: "selasa", nama: "Istirahat", icon: "coffee", jamMulai: "09:30", jamSelesai: "10:00", urutan: 4 },
     { id: "agenda-selasa-3", sekolahId: "sekolah-1", hari: "selasa", nama: "Sholat Dzuhur", icon: "pray", jamMulai: "12:00", jamSelesai: "12:30", urutan: 6 },
   ]
-  for (const a of agendaData) {
-    await db.insert(agendaKhusus).values(a).onConflictDoNothing()
-  }
+  await db.insert(agendaKhusus).values(agendaData as any).onConflictDoNothing()
   console.log(`✅ ${agendaData.length} agenda khusus created`)
 
   console.log("\n📋 Data login:")

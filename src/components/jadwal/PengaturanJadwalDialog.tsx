@@ -359,6 +359,20 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                 ))}
               </select>
             </div>
+            <div className="space-y-1.5">
+              <Label>Icon Agenda</Label>
+              <select
+                value={afIcon}
+                onChange={(e) => setAfIcon(e.target.value)}
+                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm"
+              >
+                <option value="book-open">Pembiasaan (Buku)</option>
+                <option value="flag">Upacara (Bendera)</option>
+                <option value="coffee">Istirahat (Kopi)</option>
+                <option value="sparkles">Sholat (Bintang/Sinar)</option>
+                <option value="clock">Lainnya (Jam)</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Jam Mulai</Label>

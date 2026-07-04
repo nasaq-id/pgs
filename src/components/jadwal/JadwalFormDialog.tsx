@@ -97,9 +97,40 @@ export default function JadwalFormDialog({
   const [jpCount, setJpCount] = useState(1)
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
+  const [jpMulaiState, setJpMulaiState] = useState<number>(1)
 
   const durasiJP = pengaturan?.durasiJP ?? 40
   const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
+  const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
+  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
+
+  const academicJpMap = useMemo(() => {
+    const map: { absoluteJp: number; academicJp: number | null }[] = []
+    let academicCounter = 1
+
+    for (let jp = 1; jp <= totalJpSlots; jp++) {
+      const slotStart = startMinutes + (jp - 1) * durasiJP
+      const slotEnd = startMinutes + jp * durasiJP
+
+      const isAgenda = agendaKhusus.some((a) => {
+        if (a.hari !== hari) return false
+        const agendaStart = timeToMinutes(a.jamMulai)
+        const agendaEnd = timeToMinutes(a.jamSelesai)
+        return slotStart < agendaEnd && slotEnd > agendaStart
+      })
+
+      if (isAgenda) {
+        map.push({ absoluteJp: jp, academicJp: null })
+      } else {
+        map.push({ absoluteJp: jp, academicJp: academicCounter++ })
+      }
+    }
+    return map
+  }, [hari, agendaKhusus, totalJpSlots, startMinutes, durasiJP])
+
+  const academicSlots = useMemo(() => {
+    return academicJpMap.filter((s) => s.academicJp !== null)
+  }, [academicJpMap])
 
   const occupiedJpSlots = useMemo(() => {
     const occupied = new Set<number>()
@@ -112,31 +143,19 @@ export default function JadwalFormDialog({
         occupied.add(entry.jpMulai! + i)
       }
     }
-    const hariAgenda = agendaKhusus.filter((a) => a.hari === hari)
-    for (const agenda of hariAgenda) {
-      const startJp = Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
-      const endJp = Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
-      for (let i = startJp; i <= endJp; i++) {
-        if (i > 0) occupied.add(i)
-      }
-    }
     return occupied
-  }, [existingJadwal, agendaKhusus, hari, durasiJP, startMinutes, initial?.id])
+  }, [existingJadwal, hari, initial?.id])
 
   const suggestedJpMulai = useMemo(() => {
     const fromInitial = initial?.jpMulai ?? null
     if (fromInitial && !occupiedJpSlots.has(fromInitial)) return fromInitial
     let slot = 1
+    // Find first empty academic JP slot
     while (occupiedJpSlots.has(slot)) {
       slot++
     }
     return slot
   }, [occupiedJpSlots, initial])
-
-  const autoJpMulai = suggestedJpMulai
-
-  const computedJamMulai = minutesToTime(startMinutes + (autoJpMulai - 1) * durasiJP)
-  const computedJamSelesai = minutesToTime(startMinutes + (autoJpMulai - 1 + jpCount) * durasiJP)
 
   useEffect(() => {
     if (!open) return
@@ -145,13 +164,33 @@ export default function JadwalFormDialog({
       setJpCount(initial.jpCount || 1)
       setMataPelajaranId(initial.mataPelajaranId || "")
       setGuruId(initial.guruId || "")
+      setJpMulaiState(initial.jpMulai || 1)
     } else {
       setHari("senin")
       setJpCount(1)
       setMataPelajaranId("")
       setGuruId("")
+      setJpMulaiState(suggestedJpMulai)
     }
-  }, [open, initial])
+  }, [open, initial, suggestedJpMulai])
+
+  const autoJpMulai = jpMulaiState
+
+  const computedTimes = useMemo(() => {
+    const startSlot = academicSlots.find((s) => s.academicJp === autoJpMulai)
+    const endSlot = academicSlots.find((s) => s.academicJp === autoJpMulai + jpCount - 1)
+
+    const startAbs = startSlot ? startSlot.absoluteJp : autoJpMulai
+    const endAbs = endSlot ? endSlot.absoluteJp : autoJpMulai + jpCount - 1
+
+    const slotStartMin = startMinutes + (startAbs - 1) * durasiJP
+    const slotEndMin = startMinutes + endAbs * durasiJP
+
+    return {
+      start: minutesToTime(slotStartMin),
+      end: minutesToTime(slotEndMin),
+    }
+  }, [academicSlots, autoJpMulai, jpCount, startMinutes, durasiJP])
 
   const isEdit = !!initial?.id
 
@@ -161,8 +200,8 @@ export default function JadwalFormDialog({
     await onSubmit({
       id: initial?.id,
       hari,
-      jamMulai: computedJamMulai,
-      jamSelesai: computedJamSelesai,
+      jamMulai: computedTimes.start,
+      jamSelesai: computedTimes.end,
       mataPelajaranId,
       guruId,
       jpMulai: autoJpMulai,
@@ -216,19 +255,37 @@ export default function JadwalFormDialog({
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>
+              JP Mulai (Jam Ke-) <span className="text-destructive">*</span>
+            </Label>
+            <Select value={String(jpMulaiState)} onValueChange={(v) => setJpMulaiState(Number(v))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih JP Mulai" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicSlots.map((s) => (
+                  <SelectItem key={s.academicJp} value={String(s.academicJp)}>
+                    JP ke-{s.academicJp} (Slot {s.absoluteJp})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Posisi JP:</span>
               <Badge variant="secondary" className="font-mono">
-                JP ke-{autoJpMulai}
+                JP ke-{autoJpMulai} sampai {autoJpMulai + jpCount - 1}
               </Badge>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Waktu:</span>
-              <span className="font-mono text-xs">
-                {computedJamMulai} - {computedJamSelesai}
+              <span className="text-muted-foreground">Estimasi Waktu:</span>
+              <span className="font-mono text-xs font-semibold text-green-600 dark:text-green-400">
+                {computedTimes.start} - {computedTimes.end}
               </span>
             </div>
           </div>
