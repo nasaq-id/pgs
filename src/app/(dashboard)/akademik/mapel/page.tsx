@@ -120,7 +120,7 @@ export default function MapelPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-5">
+      <div className="glass-card rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -233,7 +233,7 @@ export default function MapelPage() {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
 
       <MapelFormDialog
         open={formOpen}

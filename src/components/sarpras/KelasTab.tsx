@@ -110,7 +110,7 @@ export default function KelasTab() {
 
   return (
     <>
-      <Card className="p-5">
+      <div className="glass-card rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -224,7 +224,7 @@ export default function KelasTab() {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
 
       <KelasFormDialog
         open={formOpen}

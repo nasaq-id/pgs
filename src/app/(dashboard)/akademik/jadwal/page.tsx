@@ -319,21 +319,21 @@ export default function JadwalPage() {
   if (kelasRecords.length === 0) {
     return (
       <div className="space-y-6">
-        <Card className="p-6">
+        <div className="glass-card rounded-2xl p-6">
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <h3 className="text-lg font-semibold text-foreground mb-1">Belum Ada Kelas</h3>
             <p className="text-sm text-muted-foreground">
               Tambahkan kelas terlebih dahulu sebelum mengatur jadwal pelajaran.
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <Card className="p-5">
+      <div className="glass-card rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
@@ -517,7 +517,7 @@ export default function JadwalPage() {
             )}
           </div>
         )}
-      </Card>
+      </div>
 
       <JadwalFormDialog
         open={formOpen}

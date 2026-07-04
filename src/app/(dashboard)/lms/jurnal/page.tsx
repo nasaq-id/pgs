@@ -213,7 +213,7 @@ export default function JurnalMengajarPage() {
                 return (
                   <Card
                     key={stat.id}
-                    className={`p-4 cursor-pointer transition-all duration-300 rounded-2xl bg-card border border-border/50 ${borderLeftClass} ${isSelectedClass}`}
+                    className={`p-4 cursor-pointer transition-all duration-300 rounded-2xl glass-card ${borderLeftClass} ${isSelectedClass}`}
                     onClick={() => {
                       setAdminGuruFilter(stat.isSelected ? null : stat.id)
                       setKelasFilter("all")
@@ -322,7 +322,7 @@ export default function JurnalMengajarPage() {
         </div>
       )}
 
-      <Card className="p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+      <div className="glass-card rounded-2xl p-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
           <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
             <SelectTrigger className="w-[200px] h-9 rounded-xl">
@@ -346,7 +346,7 @@ export default function JurnalMengajarPage() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari judul jurnal..." className="pl-9.5 h-9 rounded-xl w-full" />
           </div>
         </div>
-      </Card>
+      </div>
 
       {isLoading ? (
         <div className="space-y-3.5">
@@ -378,7 +378,7 @@ export default function JurnalMengajarPage() {
               : "border-l-4 border-l-amber-500 shadow-[0_4px_20px_-2px_rgba(245,158,11,0.04)]"
 
             return (
-              <Card key={j.id} className={`p-5 transition-all duration-300 rounded-2xl bg-card border border-border/50 hover:shadow-md hover:-translate-y-0.5 ${leftBorder}`}>
+              <Card key={j.id} className={`p-5 transition-all duration-300 rounded-2xl glass-card hover:shadow-md hover:-translate-y-0.5 ${leftBorder}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-3">
                     {/* Badges metadata */}
