@@ -5,6 +5,7 @@ import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { kalenderEvent } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { createNotifikasi } from "@/server/notifikasi"
 import { getLiburNasional } from "@/lib/libur-nasional"
 
 export const kalenderRouter = router({
@@ -93,6 +94,12 @@ export const kalenderRouter = router({
         .returning()
 
       await logAudit(ctx, { action: "create", entity: "kalender", entityId: created.id, metadata: { judul: input.judul } })
+      await createNotifikasi(ctx, {
+        judul: "Event Baru",
+        pesan: `Event "${input.judul}" telah ditambahkan ke kalender akademik.`,
+        tipe: "info",
+        link: "/pengaturan/kalender",
+      })
       return created
     }),
 
@@ -197,6 +204,12 @@ export const kalenderRouter = router({
 
       if (created > 0) {
         await logAudit(ctx, { action: "seed", entity: "kalender", entityId: "bulk", metadata: { tahun: input.tahun, count: created } })
+        await createNotifikasi(ctx, {
+          judul: "Libur Nasional",
+          pesan: `${created} hari libur nasional tahun ${input.tahun} berhasil ditambahkan ke kalender akademik.`,
+          tipe: "success",
+          link: "/pengaturan/kalender",
+        })
       }
 
       return { created }
