@@ -93,8 +93,7 @@ export const lmsRouter = router({
       const conditions = []
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       if (sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
-        conditions.push(inArray(jurnalMengajar.kelasId, kelasIds))
+        conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       }
 
       if (ctx.session.user.role === "guru") {
@@ -120,7 +119,13 @@ export const lmsRouter = router({
       }
 
       if (input.kelasId) conditions.push(eq(jurnalMengajar.kelasId, input.kelasId))
-      if (input.tanggal) conditions.push(eq(jurnalMengajar.tanggal, input.tanggal))
+      if (input.tanggal) {
+        const start = new Date(input.tanggal)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(input.tanggal)
+        end.setHours(23, 59, 59, 999)
+        conditions.push(between(jurnalMengajar.tanggal, start, end))
+      }
       if (input.tanggalMulai && input.tanggalSelesai) {
         conditions.push(between(jurnalMengajar.tanggal, input.tanggalMulai, input.tanggalSelesai))
       } else if (input.tanggalMulai) {
@@ -131,8 +136,28 @@ export const lmsRouter = router({
       const orderBy = input.sortOrder === "asc" ? asc(jurnalMengajar[input.sortBy]) : desc(jurnalMengajar[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
       const data = await db
-        .select()
+        .select({
+          id: jurnalMengajar.id,
+          guruId: jurnalMengajar.guruId,
+          kelasId: jurnalMengajar.kelasId,
+          mataPelajaranId: jurnalMengajar.mataPelajaranId,
+          jadwalPelajaranId: jurnalMengajar.jadwalPelajaranId,
+          tanggal: jurnalMengajar.tanggal,
+          judulJurnal: jurnalMengajar.judulJurnal,
+          tujuanPembelajaran: jurnalMengajar.tujuanPembelajaran,
+          materiKonten: jurnalMengajar.materiKonten,
+          kegiatanPembelajaran: jurnalMengajar.kegiatanPembelajaran,
+          catatan: jurnalMengajar.catatan,
+          statusKehadiran: jurnalMengajar.statusKehadiran,
+          detailKehadiran: jurnalMengajar.detailKehadiran,
+          status: jurnalMengajar.status,
+          jamMulai: jurnalMengajar.jamMulai,
+          jamSelesai: jurnalMengajar.jamSelesai,
+          createdAt: jurnalMengajar.createdAt,
+          updatedAt: jurnalMengajar.updatedAt,
+        })
         .from(jurnalMengajar)
+        .innerJoin(kelas, eq(jurnalMengajar.kelasId, kelas.id))
         .where(whereClause)
         .orderBy(orderBy)
         .limit(input.limit)
@@ -368,6 +393,11 @@ export const lmsRouter = router({
         return { created: 0, message: `Tidak ada jadwal untuk hari ${hari}` }
       }
 
+      const startOfDay = new Date(input.tanggal)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(input.tanggal)
+      endOfDay.setHours(23, 59, 59, 999)
+
       const created: any[] = []
       for (const jadwal of jadwalList) {
         const existing = await db
@@ -377,7 +407,7 @@ export const lmsRouter = router({
             eq(jurnalMengajar.guruId, input.guruId),
             eq(jurnalMengajar.kelasId, jadwal.kelasId),
             eq(jurnalMengajar.mataPelajaranId, jadwal.mataPelajaranId),
-            eq(jurnalMengajar.tanggal, input.tanggal),
+            between(jurnalMengajar.tanggal, startOfDay, endOfDay),
           ))
           .limit(1)
 
@@ -391,7 +421,7 @@ export const lmsRouter = router({
               kelasId: jadwal.kelasId,
               mataPelajaranId: jadwal.mataPelajaranId,
               jadwalPelajaranId: jadwal.id,
-              tanggal: input.tanggal,
+              tanggal: startOfDay,
               jamMulai: jadwal.jamMulai,
               jamSelesai: jadwal.jamSelesai,
               status: "draft",
