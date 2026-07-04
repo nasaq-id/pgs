@@ -12,8 +12,8 @@ const jadwalCreateSchema = z.object({
   mataPelajaranId: z.string(),
   guruId: z.string(),
   hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
-  jamMulai: z.date().nullable().optional(),
-  jamSelesai: z.date().nullable().optional(),
+  jamMulai: z.coerce.date().nullable().optional(),
+  jamSelesai: z.coerce.date().nullable().optional(),
   jpMulai: z.number().nullable().optional(),
   jpCount: z.number().nullable().optional(),
 })
@@ -224,7 +224,7 @@ function runBacktrackingSolver(
   const block = blocks[blockIndex]
 
   // Heuristic: try to distribute subjects across days
-  const mapelKey = `${block.kelasId}-${block.mataPelajaranId}`
+  const mapelKey = `${block.kelasId}|${block.mataPelajaranId}`
   const mapelDays = kelasDaysMap.get(mapelKey) || new Set<string>()
 
   for (const day of daysList) {
@@ -240,8 +240,8 @@ function runBacktrackingSolver(
 
       for (let offset = 0; offset < block.jpCount; offset++) {
         const jp = startJp + offset
-        const slotKey = `${block.kelasId}-${day}-${jp}`
-        const teacherKey = `${block.guruId}-${day}-${jp}`
+        const slotKey = `${block.kelasId}|${day}|${jp}`
+        const teacherKey = `${block.guruId}|${day}|${jp}`
 
         if (assigned.has(slotKey) || teacherBusy.has(teacherKey) || teacherExclusions.has(teacherKey)) {
           canPlace = false
@@ -253,8 +253,8 @@ function runBacktrackingSolver(
         // Place
         for (let offset = 0; offset < block.jpCount; offset++) {
           const jp = startJp + offset
-          assigned.set(`${block.kelasId}-${day}-${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
-          teacherBusy.set(`${block.guruId}-${day}-${jp}`, true)
+          assigned.set(`${block.kelasId}|${day}|${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+          teacherBusy.set(`${block.guruId}|${day}|${jp}`, true)
         }
         mapelDays.add(day)
         kelasDaysMap.set(mapelKey, mapelDays)
@@ -266,8 +266,8 @@ function runBacktrackingSolver(
         // Backtrack
         for (let offset = 0; offset < block.jpCount; offset++) {
           const jp = startJp + offset
-          assigned.delete(`${block.kelasId}-${day}-${jp}`)
-          teacherBusy.delete(`${block.guruId}-${day}-${jp}`)
+          assigned.delete(`${block.kelasId}|${day}|${jp}`)
+          teacherBusy.delete(`${block.guruId}|${day}|${jp}`)
         }
         mapelDays.delete(day)
       }
@@ -283,8 +283,8 @@ function runBacktrackingSolver(
 
       for (let offset = 0; offset < block.jpCount; offset++) {
         const jp = startJp + offset
-        const slotKey = `${block.kelasId}-${day}-${jp}`
-        const teacherKey = `${block.guruId}-${day}-${jp}`
+        const slotKey = `${block.kelasId}|${day}|${jp}`
+        const teacherKey = `${block.guruId}|${day}|${jp}`
 
         if (assigned.has(slotKey) || teacherBusy.has(teacherKey) || teacherExclusions.has(teacherKey)) {
           canPlace = false
@@ -295,8 +295,8 @@ function runBacktrackingSolver(
       if (canPlace) {
         for (let offset = 0; offset < block.jpCount; offset++) {
           const jp = startJp + offset
-          assigned.set(`${block.kelasId}-${day}-${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
-          teacherBusy.set(`${block.guruId}-${day}-${jp}`, true)
+          assigned.set(`${block.kelasId}|${day}|${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+          teacherBusy.set(`${block.guruId}|${day}|${jp}`, true)
         }
 
         if (runBacktrackingSolver(blocks, blockIndex + 1, assigned, teacherBusy, daysList, academicSlotsPerDay, teacherExclusions, kelasDaysMap)) {
@@ -305,8 +305,8 @@ function runBacktrackingSolver(
 
         for (let offset = 0; offset < block.jpCount; offset++) {
           const jp = startJp + offset
-          assigned.delete(`${block.kelasId}-${day}-${jp}`)
-          teacherBusy.delete(`${block.guruId}-${day}-${jp}`)
+          assigned.delete(`${block.kelasId}|${day}|${jp}`)
+          teacherBusy.delete(`${block.guruId}|${day}|${jp}`)
         }
       }
     }
@@ -537,7 +537,7 @@ export const jadwalRouter = router({
               })
               if (!xAgenda) academicIndex++
             }
-            teacherExclusions.add(`${c.guruId}-${c.hari}-${academicIndex}`)
+             teacherExclusions.add(`${c.guruId}|${c.hari}|${academicIndex}`)
           }
         }
       }
@@ -603,7 +603,7 @@ export const jadwalRouter = router({
       }[] = []
 
       const assignmentsList = Array.from(assigned.entries()).map(([key, val]) => {
-        const [kelasId, hari, academicJpStr] = key.split("-")
+        const [kelasId, hari, academicJpStr] = key.split("|")
         return {
           kelasId,
           hari,

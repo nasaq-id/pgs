@@ -12,7 +12,7 @@ const prestasiCreateSchema = z.object({
   namaPrestasi: z.string(),
   tingkat: z.enum(["sekolah", "kecamatan", "kabupaten", "provinsi", "nasional", "internasional"]).nullable().optional(),
   juara: z.string().nullable().optional(),
-  tanggal: z.date().nullable().optional(),
+  tanggal: z.coerce.date().nullable().optional(),
   sertifikat: z.string().nullable().optional(),
 })
 

@@ -12,7 +12,7 @@ const jurnalCreateSchema = z.object({
   kelasId: z.string(),
   mataPelajaranId: z.string(),
   jadwalPelajaranId: z.string().nullable().optional(),
-  tanggal: z.date(),
+  tanggal: z.coerce.date(),
   judulJurnal: z.string().nullable().optional(),
   tujuanPembelajaran: z.string().nullable().optional(),
   materiKonten: z.string().nullable().optional(),
@@ -21,8 +21,8 @@ const jurnalCreateSchema = z.object({
   statusKehadiran: z.string().nullable().optional(),
   detailKehadiran: z.string().nullable().optional(),
   status: z.enum(["draft", "selesai"]).optional(),
-  jamMulai: z.date().nullable().optional(),
-  jamSelesai: z.date().nullable().optional(),
+  jamMulai: z.coerce.date().nullable().optional(),
+  jamSelesai: z.coerce.date().nullable().optional(),
 })
 
 const jurnalUpdateSchema = jurnalCreateSchema.partial()
@@ -36,8 +36,8 @@ const tugasCreateSchema = z.object({
   judulTugas: z.string(),
   deskripsi: z.string().nullable().optional(),
   jenisTugas: z.string().nullable().optional(),
-  tanggalDiberikan: z.date().nullable().optional(),
-  deadline: z.date().nullable().optional(),
+  tanggalDiberikan: z.coerce.date().nullable().optional(),
+  deadline: z.coerce.date().nullable().optional(),
   status: z.enum(["aktif", "ditutup"]).optional(),
   catatan: z.string().nullable().optional(),
 })
@@ -80,9 +80,9 @@ export const lmsRouter = router({
       z.object({
         guruId: z.string().optional(),
         kelasId: z.string().optional(),
-        tanggal: z.date().optional(),
-        tanggalMulai: z.date().optional(),
-        tanggalSelesai: z.date().optional(),
+        tanggal: z.coerce.date().optional(),
+        tanggalMulai: z.coerce.date().optional(),
+        tanggalSelesai: z.coerce.date().optional(),
         sortBy: z.enum(["tanggal", "createdAt"]).optional().default("tanggal"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
         limit: z.number().optional().default(50),
@@ -350,7 +350,7 @@ export const lmsRouter = router({
   generateJurnalDariJadwal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({
       guruId: z.string(),
-      tanggal: z.date(),
+      tanggal: z.coerce.date(),
     }))
     .mutation(async ({ ctx, input }) => {
       const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]

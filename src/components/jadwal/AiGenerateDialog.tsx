@@ -100,6 +100,22 @@ export default function AiGenerateDialog({
   const [newGuruId, setNewGuruId] = useState("")
   const [newJpCount, setNewJpCount] = useState(2)
 
+  // Memos for selected dropdown labels to fix Radix/Base UI select trigger value display bugs
+  const selectedKelasLabel = useMemo(() => {
+    const cls = kelasRecords.find((k) => k.id === newKelasId)
+    return cls ? `${cls.tingkat ? `${cls.tingkat}-` : ""}${cls.namaKelas}` : ""
+  }, [newKelasId, kelasRecords])
+
+  const selectedMapelLabel = useMemo(() => {
+    const mpl = mapelRecords.find((m) => m.id === newMapelId)
+    return mpl ? mpl.namaMapel : ""
+  }, [newMapelId, mapelRecords])
+
+  const selectedGuruLabel = useMemo(() => {
+    const gr = guruRecords.find((g) => g.id === newGuruId)
+    return gr ? gr.namaLengkap : ""
+  }, [newGuruId, guruRecords])
+
   const utils = api.useUtils()
   const generateMutation = api.jadwal.autoGenerate.useMutation({
     onSuccess: async () => {
@@ -273,7 +289,7 @@ export default function AiGenerateDialog({
                   <Label>Kelas</Label>
                   <Select value={newKelasId} onValueChange={(v) => v && setNewKelasId(v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Kelas" />
+                      <SelectValue placeholder="Pilih Kelas">{selectedKelasLabel || "Pilih Kelas"}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {kelasRecords.map((k) => (
@@ -288,7 +304,7 @@ export default function AiGenerateDialog({
                   <Label>Mata Pelajaran</Label>
                   <Select value={newMapelId} onValueChange={(v) => v && setNewMapelId(v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Mapel" />
+                      <SelectValue placeholder="Pilih Mapel">{selectedMapelLabel || "Pilih Mapel"}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {mapelRecords.map((m) => (
@@ -303,7 +319,7 @@ export default function AiGenerateDialog({
                   <Label>Guru Pengampu</Label>
                   <Select value={newGuruId} onValueChange={(v) => v && setNewGuruId(v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih Guru" />
+                      <SelectValue placeholder="Pilih Guru">{selectedGuruLabel || "Pilih Guru"}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {guruRecords.map((g) => (

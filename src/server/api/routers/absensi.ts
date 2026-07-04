@@ -12,7 +12,7 @@ const absensiBulkCreateSchema = z.object({
       id: z.string().optional(),
       siswaId: z.string(),
       kelasId: z.string(),
-      tanggal: z.date(),
+      tanggal: z.coerce.date(),
       status: z.enum(["hadir", "izin", "sakit", "alpha"]),
       keterangan: z.string().nullable().optional(),
     }),
@@ -45,9 +45,9 @@ export const absensiRouter = router({
     .input(
       z.object({
         kelasId: z.string(),
-        tanggal: z.date().optional(),
-        tanggalMulai: z.date().optional(),
-        tanggalSelesai: z.date().optional(),
+        tanggal: z.coerce.date().optional(),
+        tanggalMulai: z.coerce.date().optional(),
+        tanggalSelesai: z.coerce.date().optional(),
         limit: z.number().optional().default(100),
         offset: z.number().optional().default(0),
       }),

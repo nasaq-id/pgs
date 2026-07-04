@@ -15,7 +15,7 @@ export const pengaturanJadwalRouter = router({
       const result = await db.query.pengaturanJadwal.findFirst({
         where: eq(pengaturanJadwal.sekolahId, sekolahId),
       })
-      return result
+      return result ?? null
     }),
 
   upsert: roleProtectedProcedure(["super_admin", "admin_sekolah"])

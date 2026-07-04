@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -76,9 +76,25 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
 
-  const { data: kelasList } = api.kelas.getAll.useQuery({})
-  const { data: mapelList } = api.mapel.getAll.useQuery({})
-  const { data: guruList } = api.guru.getAll.useQuery({}, { enabled: isAdmin })
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
+  const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
+  const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 }, { enabled: isAdmin })
+
+  // Memos for selected dropdown labels to fix Radix/Base UI select trigger value display bugs
+  const selectedGuruLabel = useMemo(() => {
+    const g = guruList?.find((gr) => gr.id === guruId)
+    return g ? g.namaLengkap : ""
+  }, [guruId, guruList])
+
+  const selectedKelasLabel = useMemo(() => {
+    const k = kelasList?.find((kl) => kl.id === kelasId)
+    return k ? (k.tingkat ? `${k.tingkat}-${k.namaKelas}` : k.namaKelas) : ""
+  }, [kelasId, kelasList])
+
+  const selectedMapelLabel = useMemo(() => {
+    const m = mapelList?.find((mp) => mp.id === mataPelajaranId)
+    return m ? m.namaMapel : ""
+  }, [mataPelajaranId, mapelList])
 
   const { data: siswaList } = api.siswa.getAll.useQuery(
     { kelasId, status: "aktif", limit: 100 },
@@ -250,7 +266,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
             {isAdmin && (
               <FieldWrap label="Guru Pengampu" required>
                 <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")}>
-                  <SelectTrigger><SelectValue placeholder="Pilih guru pengampu" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Pilih guru pengampu">{selectedGuruLabel || "Pilih guru pengampu"}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {guruList?.map((g) => <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>)}
                   </SelectContent>
@@ -265,7 +281,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FieldWrap label="Kelas" required>
                 <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
-                  <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Pilih kelas">{selectedKelasLabel || "Pilih kelas"}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {kelasList?.map((k) => <SelectItem key={k.id} value={k.id}>{k.namaKelas}</SelectItem>)}
                   </SelectContent>
@@ -273,7 +289,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
               </FieldWrap>
               <FieldWrap label="Mata Pelajaran" required>
                 <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")}>
-                  <SelectTrigger><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Pilih mapel">{selectedMapelLabel || "Pilih mapel"}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {mapelList?.map((m) => <SelectItem key={m.id} value={m.id}>{m.namaMapel}</SelectItem>)}
                   </SelectContent>

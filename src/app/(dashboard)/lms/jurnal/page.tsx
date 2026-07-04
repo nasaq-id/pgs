@@ -21,7 +21,7 @@ export default function JurnalMengajarPage() {
   const isGuru = session?.user?.role === "guru"
 
   const [kelasFilter, setKelasFilter] = useState("all")
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().split("T")[0])
+  const [tanggal, setTanggal] = useState("")
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
@@ -29,8 +29,19 @@ export default function JurnalMengajarPage() {
   const [adminGuruFilter, setAdminGuruFilter] = useState<string | null>(null)
   const [hasGenerated, setHasGenerated] = useState(false)
 
-  const { data: kelasList } = api.kelas.getAll.useQuery({})
-  const { data: guruListAll } = api.guru.getAll.useQuery({})
+  useEffect(() => {
+    setTanggal(new Date().toISOString().split("T")[0])
+  }, [])
+
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
+  const { data: guruListAll } = api.guru.getAll.useQuery({ limit: 500 })
+
+  // Memo for selected class filter label to fix Radix/Base UI select trigger value display bugs
+  const selectedKelasFilterLabel = useMemo(() => {
+    if (kelasFilter === "all") return "Semua Kelas"
+    const k = kelasList?.find((kl) => kl.id === kelasFilter)
+    return k ? k.namaKelas : "Semua Kelas"
+  }, [kelasFilter, kelasList])
 
   const { data: currentGuru } = api.lms.getCurrentGuru.useQuery(undefined, {
     enabled: isGuru,
@@ -41,6 +52,8 @@ export default function JurnalMengajarPage() {
     kelasId: kelasFilter !== "all" ? kelasFilter : undefined,
     guruId: adminGuruFilter || currentGuruId || undefined,
     tanggal: tanggal ? new Date(tanggal + "T00:00:00") : undefined,
+  }, {
+    enabled: tanggal !== "",
   })
 
   const deleteJurnal = api.lms.deleteJurnal.useMutation()
@@ -52,12 +65,12 @@ export default function JurnalMengajarPage() {
 
   const { data: monitoringJurnal } = api.lms.getJurnal.useQuery(
     { tanggal: selectedDate, limit: 500 },
-    { enabled: isAdmin },
+    { enabled: isAdmin && tanggal !== "" },
   )
 
   const { data: allJadwal } = api.jadwal.getAll.useQuery(
     { hari: hariName as any, limit: 500 },
-    { enabled: isAdmin },
+    { enabled: isAdmin && tanggal !== "" },
   )
 
   const generateJurnal = api.lms.generateJurnalDariJadwal.useMutation({
@@ -268,7 +281,7 @@ export default function JurnalMengajarPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
           <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
             <SelectTrigger className="w-[180px] h-9">
-              <SelectValue placeholder="Semua Kelas" />
+              <SelectValue placeholder="Semua Kelas">{selectedKelasFilterLabel || "Semua Kelas"}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Kelas</SelectItem>

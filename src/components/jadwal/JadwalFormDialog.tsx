@@ -99,6 +99,21 @@ export default function JadwalFormDialog({
   const [guruId, setGuruId] = useState("")
   const [jpMulaiState, setJpMulaiState] = useState<number>(1)
 
+  // Memos for selected dropdown labels to fix Radix/Base UI select trigger value display bugs
+  const selectedMapelLabel = useMemo(() => {
+    const m = mapelList.find((mpl) => mpl.id === mataPelajaranId)
+    return m ? m.namaMapel : ""
+  }, [mataPelajaranId, mapelList])
+
+  const selectedGuruLabel = useMemo(() => {
+    const g = guruList.find((gr) => gr.id === guruId)
+    return g ? g.namaLengkap : ""
+  }, [guruId, guruList])
+
+  const selectedJpMulaiLabel = useMemo(() => {
+    return jpMulaiState ? `JP ${jpMulaiState}` : ""
+  }, [jpMulaiState])
+
   const durasiJP = pengaturan?.durasiJP ?? 40
   const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
   const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
@@ -261,7 +276,7 @@ export default function JadwalFormDialog({
             </Label>
             <Select value={String(jpMulaiState)} onValueChange={(v) => setJpMulaiState(Number(v))}>
               <SelectTrigger>
-                <SelectValue placeholder="Pilih JP Mulai" />
+                <SelectValue placeholder="Pilih JP Mulai">{selectedJpMulaiLabel || "Pilih JP Mulai"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {academicSlots.map((s) => (
@@ -296,7 +311,7 @@ export default function JadwalFormDialog({
             </Label>
             <Select value={mataPelajaranId} onValueChange={(v) => v && setMataPelajaranId(v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Pilih mata pelajaran" />
+                <SelectValue placeholder="Pilih mata pelajaran">{selectedMapelLabel || "Pilih mata pelajaran"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {mapelList.map((m) => (
@@ -315,7 +330,7 @@ export default function JadwalFormDialog({
             </Label>
             <Select value={guruId} onValueChange={(v) => v && setGuruId(v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Pilih guru" />
+                <SelectValue placeholder="Pilih guru">{selectedGuruLabel || "Pilih guru"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {guruList.map((g) => (

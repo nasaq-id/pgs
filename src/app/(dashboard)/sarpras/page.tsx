@@ -22,8 +22,11 @@ export default function SarprasPage() {
         <TabsList>
           <TabsTrigger value="kelas">Kelas</TabsTrigger>
           <Tooltip>
-            <TooltipTrigger delay={0}>
-              <TabsTrigger value="perpus" disabled>Perpustakaan</TabsTrigger>
+            <TooltipTrigger
+              delay={0}
+              render={<TabsTrigger value="perpus" disabled />}
+            >
+              Perpustakaan
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipPositioner>

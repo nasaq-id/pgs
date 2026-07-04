@@ -115,8 +115,14 @@ export default function JadwalPage() {
   const [cetakOpen, setCetakOpen] = useState(false)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
 
-  const { data: kelasList } = api.kelas.getAll.useQuery({})
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
+
+  // Memo for selected class name on main page select box trigger
+  const selectedKelasMain = useMemo(() => {
+    const cls = kelasRecords.find((k) => k.id === kelasId)
+    return cls ? `${cls.tingkat ?? ""} - ${cls.namaKelas}` : ""
+  }, [kelasId, kelasRecords])
 
   useEffect(() => {
     if (!kelasId && kelasRecords.length > 0) {
@@ -124,8 +130,8 @@ export default function JadwalPage() {
     }
   }, [kelasId, kelasRecords])
 
-  const { data: mapelList } = api.mapel.getAll.useQuery({})
-  const { data: guruList } = api.guru.getAll.useQuery({})
+  const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
+  const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
   const { data: jadwalList, isLoading } = api.jadwal.getAll.useQuery(
     { kelasId: kelasId || undefined },
     { enabled: !!kelasId }
@@ -335,7 +341,7 @@ export default function JadwalPage() {
             </span>
             <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
               <SelectTrigger className="w-52">
-                <SelectValue placeholder="Pilih kelas" />
+                <SelectValue placeholder="Pilih kelas">{selectedKelasMain || "Pilih kelas"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {kelasRecords.map((k) => (

@@ -28,9 +28,13 @@ const STATUS_COLORS: Record<StatusAbsensi, string> = {
 
 export default function AbsensiPage() {
   const [kelasId, setKelasId] = useState("")
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().split("T")[0])
+  const [tanggal, setTanggal] = useState("")
   const [records, setRecords] = useState<Record<string, StatusAbsensi>>({})
   const [siswaList, setSiswaList] = useState<any[]>([])
+
+  useEffect(() => {
+    setTanggal(new Date().toISOString().split("T")[0])
+  }, [])
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const { data: siswaAll } = api.siswa.getAll.useQuery({})

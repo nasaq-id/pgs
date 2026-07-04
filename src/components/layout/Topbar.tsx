@@ -178,13 +178,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         <DropdownMenu>
           <Tooltip>
-            <TooltipTrigger delay={0}>
-              <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer">
-                <span className="flex items-center justify-center"><Bell className="h-4 w-4" /></span>
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
-                )}
-              </DropdownMenuTrigger>
+            <TooltipTrigger
+              delay={0}
+              render={
+                <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer" />
+              }
+            >
+              <span className="flex items-center justify-center"><Bell className="h-4 w-4" /></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
+              )}
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipPositioner>

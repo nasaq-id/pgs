@@ -14,12 +14,12 @@ const tagihanCreateSchema = z.object({
   tahun: z.number(),
   jumlah: z.number(),
   statusPembayaran: z.enum(["pending", "lunas", "tertunggak"]).optional(),
-  tanggalBayar: z.date().nullable().optional(),
+  tanggalBayar: z.coerce.date().nullable().optional(),
 })
 
 const tagihanUpdateSchema = z.object({
   statusPembayaran: z.enum(["pending", "lunas", "tertunggak"]).optional(),
-  tanggalBayar: z.date().nullable().optional(),
+  tanggalBayar: z.coerce.date().nullable().optional(),
   jumlah: z.number().optional(),
 })
 
