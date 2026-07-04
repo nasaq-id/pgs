@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -50,6 +50,18 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
   const createMutation = api.asesmen.create.useMutation()
   const updateMutation = api.asesmen.update.useMutation()
+
+  const selectedKelasLabel = useMemo(() => {
+    if (!kelasId) return ""
+    const k = kelasList?.find((k) => k.id === kelasId)
+    return k ? `${k.tingkat ?? ""} - ${k.namaKelas}` : ""
+  }, [kelasId, kelasList])
+
+  const selectedMapelLabel = useMemo(() => {
+    if (!mataPelajaranId) return ""
+    const m = mapelList?.find((m) => m.id === mataPelajaranId)
+    return m ? m.namaMapel : ""
+  }, [mataPelajaranId, mapelList])
 
   useEffect(() => {
     if (!open) return
@@ -188,7 +200,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             <FieldWrap label="Kelas" required>
               <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
                 <SelectTrigger className="h-9 rounded-xl">
-                  <SelectValue placeholder="Pilih kelas" />
+                  <SelectValue placeholder="Pilih kelas">{selectedKelasLabel || "Pilih kelas"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {kelasList?.map((k) => (
@@ -201,7 +213,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             <FieldWrap label="Mata Pelajaran" required>
               <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")}>
                 <SelectTrigger className="h-9 rounded-xl">
-                  <SelectValue placeholder="Pilih mapel" />
+                  <SelectValue placeholder="Pilih mapel">{selectedMapelLabel || "Pilih mapel"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {mapelList?.map((m) => (
