@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,8 +73,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   const [hadirSemua, setHadirSemua] = useState(true)
   const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
 
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
+
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const { data: mapelList } = api.mapel.getAll.useQuery({})
+  const { data: guruList } = api.guru.getAll.useQuery({}, { enabled: isAdmin })
 
   const { data: siswaList } = api.siswa.getAll.useQuery(
     { kelasId, status: "aktif", limit: 100 },
@@ -151,12 +156,24 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   }
 
   const handleSave = async () => {
-    if (!judulJurnal.trim()) { toast.error("Judul jurnal wajib diisi"); return }
     if (!kelasId) { toast.error("Kelas wajib dipilih"); return }
     if (!mataPelajaranId) { toast.error("Mata pelajaran wajib dipilih"); return }
     if (!tanggal) { toast.error("Tanggal wajib diisi"); return }
     if (!tujuanPembelajaran.trim()) { toast.error("Tujuan pembelajaran wajib diisi"); return }
     if (!materiKonten.trim()) { toast.error("Materi/konten wajib diisi"); return }
+
+    const targetGuruId = guruId || defaultGuruId || ""
+    if (!targetGuruId) { toast.error("Guru pengampu wajib dipilih"); return }
+
+    let finalJudul = judulJurnal.trim()
+    if (!finalJudul) {
+      const kelasName = kelasList?.find((k) => k.id === kelasId)?.namaKelas || ""
+      const mapelName = mapelList?.find((m) => m.id === mataPelajaranId)?.namaMapel || ""
+      const formattedDate = tanggal ? new Date(tanggal + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""
+      finalJudul = `${kelasName} - ${mapelName} - ${formattedDate}`.trim()
+      if (finalJudul.startsWith(" - ")) finalJudul = finalJudul.slice(3)
+      if (!finalJudul) finalJudul = "Tanpa Judul"
+    }
 
     setSaving(true)
     try {
@@ -173,7 +190,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
         await updateJurnal.mutateAsync({
           id: item.id,
           data: {
-            judulJurnal,
+            judulJurnal: finalJudul,
             kelasId,
             mataPelajaranId,
             tanggal: tanggalDate,
@@ -191,11 +208,11 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
         toast.success("Jurnal berhasil diperbarui")
       } else {
         await createJurnal.mutateAsync({
-          guruId: guruId || defaultGuruId || "",
+          guruId: targetGuruId,
           kelasId,
           mataPelajaranId,
           tanggal: tanggalDate,
-          judulJurnal,
+          judulJurnal: finalJudul,
           jamMulai: jamMulaiDate,
           jamSelesai: jamSelesaiDate,
           tujuanPembelajaran,
@@ -230,8 +247,19 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 
         <div className="flex-1 overflow-y-auto px-6 pb-4">
           <div className="space-y-4">
-            <FieldWrap label="Judul Jurnal" required>
-              <Input value={judulJurnal} onChange={(e) => setJudulJurnal(e.target.value)} placeholder="Contoh: Bab 1 Bilangan" />
+            {isAdmin && (
+              <FieldWrap label="Guru Pengampu" required>
+                <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")}>
+                  <SelectTrigger><SelectValue placeholder="Pilih guru pengampu" /></SelectTrigger>
+                  <SelectContent>
+                    {guruList?.map((g) => <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FieldWrap>
+            )}
+
+            <FieldWrap label="Judul Jurnal" optional>
+              <Input value={judulJurnal} onChange={(e) => setJudulJurnal(e.target.value)} placeholder="Contoh: Bab 1 Bilangan (Kosongkan untuk isi otomatis)" />
             </FieldWrap>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -367,7 +395,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 
         <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer flex-shrink-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Batal</Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: "hsl(142 72% 40%)" }} className="text-white hover:bg-[hsl(142_72%_35%)]">
             {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {item ? "Simpan Perubahan" : "Buat Jurnal"}
           </Button>

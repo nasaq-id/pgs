@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
@@ -18,6 +18,7 @@ import JurnalFormDialog from "@/components/jurnal/JurnalFormDialog"
 export default function JurnalMengajarPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
+  const isGuru = session?.user?.role === "guru"
 
   const [kelasFilter, setKelasFilter] = useState("all")
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().split("T")[0])
@@ -26,13 +27,19 @@ export default function JurnalMengajarPage() {
   const [editItem, setEditItem] = useState<any>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [adminGuruFilter, setAdminGuruFilter] = useState<string | null>(null)
+  const [hasGenerated, setHasGenerated] = useState(false)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const { data: guruListAll } = api.guru.getAll.useQuery({})
 
+  const { data: currentGuru } = api.lms.getCurrentGuru.useQuery(undefined, {
+    enabled: isGuru,
+  })
+  const currentGuruId = currentGuru?.id
+
   const { data: jurnalList, isLoading } = api.lms.getJurnal.useQuery({
     kelasId: kelasFilter !== "all" ? kelasFilter : undefined,
-    guruId: adminGuruFilter || undefined,
+    guruId: adminGuruFilter || currentGuruId || undefined,
     tanggal: tanggal ? new Date(tanggal + "T00:00:00") : undefined,
   })
 
@@ -55,13 +62,26 @@ export default function JurnalMengajarPage() {
 
   const generateJurnal = api.lms.generateJurnalDariJadwal.useMutation({
     onSuccess: (data) => {
-      toast.success(`Berhasil generate ${data.created} jurnal`)
-      utils.lms.getJurnal.invalidate()
+      if (data.created > 0) {
+        toast.success(`Berhasil generate ${data.created} jurnal`)
+        utils.lms.getJurnal.invalidate()
+      }
     },
     onError: () => {
       toast.error("Gagal generate jurnal")
     },
   })
+
+  // Auto-generate Jurnal harian jika log-in sebagai guru
+  useEffect(() => {
+    if (isGuru && currentGuruId && !hasGenerated) {
+      setHasGenerated(true)
+      generateJurnal.mutate({
+        guruId: currentGuruId,
+        tanggal: new Date(),
+      })
+    }
+  }, [currentGuruId, isGuru, hasGenerated])
 
   const guruStats = useMemo(() => {
     if (!isAdmin || !guruListAll || !monitoringJurnal || !allJadwal) return []
@@ -333,7 +353,7 @@ export default function JurnalMengajarPage() {
           setFormOpen(false)
           setEditItem(null)
         }}
-        defaultGuruId={isAdmin && adminGuruFilter && !editItem ? adminGuruFilter : undefined}
+        defaultGuruId={isAdmin ? (adminGuruFilter && !editItem ? adminGuruFilter : undefined) : (currentGuruId || undefined)}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null) }}>

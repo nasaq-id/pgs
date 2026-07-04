@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, between, desc, asc, gte, lte, inArray } from "drizzle-orm"
+import { eq, and, or, between, desc, asc, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jurnalMengajar, tugas, kelas, jadwalPelajaran } from "@/server/db/schema"
+import { jurnalMengajar, tugas, kelas, jadwalPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -60,6 +60,21 @@ async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]
 }
 
 export const lmsRouter = router({
+  getCurrentGuru: protectedProcedure
+    .query(async ({ ctx }) => {
+      if (ctx.session.user.role !== "guru") return null
+      const userEmail = ctx.session.user.email
+      if (!userEmail) return null
+      const record = await db.query.guru.findFirst({
+        where: or(
+          eq(guru.email, userEmail),
+          eq(guru.usernameGuru, userEmail),
+          eq(guru.nipnuptk, userEmail)
+        )
+      })
+      return record ?? null
+    }),
+
   getJurnal: protectedProcedure
     .input(
       z.object({
@@ -81,7 +96,29 @@ export const lmsRouter = router({
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         conditions.push(inArray(jurnalMengajar.kelasId, kelasIds))
       }
-      if (input.guruId) conditions.push(eq(jurnalMengajar.guruId, input.guruId))
+
+      if (ctx.session.user.role === "guru") {
+        const userEmail = ctx.session.user.email
+        if (userEmail) {
+          const guruRecord = await db.query.guru.findFirst({
+            where: or(
+              eq(guru.email, userEmail),
+              eq(guru.usernameGuru, userEmail),
+              eq(guru.nipnuptk, userEmail)
+            )
+          })
+          if (guruRecord) {
+            conditions.push(eq(jurnalMengajar.guruId, guruRecord.id))
+          } else {
+            conditions.push(eq(jurnalMengajar.guruId, "impossible-nonexistent-guru-id"))
+          }
+        } else {
+          conditions.push(eq(jurnalMengajar.guruId, "impossible-nonexistent-guru-id"))
+        }
+      } else if (input.guruId) {
+        conditions.push(eq(jurnalMengajar.guruId, input.guruId))
+      }
+
       if (input.kelasId) conditions.push(eq(jurnalMengajar.kelasId, input.kelasId))
       if (input.tanggal) conditions.push(eq(jurnalMengajar.tanggal, input.tanggal))
       if (input.tanggalMulai && input.tanggalSelesai) {
@@ -113,6 +150,25 @@ export const lmsRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
         }
       }
+
+      if (ctx.session.user.role === "guru") {
+        const userEmail = ctx.session.user.email
+        if (userEmail) {
+          const guruRecord = await db.query.guru.findFirst({
+            where: or(
+              eq(guru.email, userEmail),
+              eq(guru.usernameGuru, userEmail),
+              eq(guru.nipnuptk, userEmail)
+            )
+          })
+          if (!guruRecord || guruRecord.id !== input.guruId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Anda hanya dapat membuat jurnal untuk diri sendiri" })
+          }
+        } else {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akses ditolak" })
+        }
+      }
+
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(jurnalMengajar)
@@ -134,6 +190,25 @@ export const lmsRouter = router({
       if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
       }
+
+      if (ctx.session.user.role === "guru") {
+        const userEmail = ctx.session.user.email
+        if (userEmail) {
+          const guruRecord = await db.query.guru.findFirst({
+            where: or(
+              eq(guru.email, userEmail),
+              eq(guru.usernameGuru, userEmail),
+              eq(guru.nipnuptk, userEmail)
+            )
+          })
+          if (!guruRecord || existing.guruId !== guruRecord.id) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Anda hanya dapat mengedit jurnal Anda sendiri" })
+          }
+        } else {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akses ditolak" })
+        }
+      }
+
       const result = await db
         .update(jurnalMengajar)
         .set({ ...input.data, updatedAt: new Date() })
@@ -155,6 +230,25 @@ export const lmsRouter = router({
       if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
       }
+
+      if (ctx.session.user.role === "guru") {
+        const userEmail = ctx.session.user.email
+        if (userEmail) {
+          const guruRecord = await db.query.guru.findFirst({
+            where: or(
+              eq(guru.email, userEmail),
+              eq(guru.usernameGuru, userEmail),
+              eq(guru.nipnuptk, userEmail)
+            )
+          })
+          if (!guruRecord || existing.guruId !== guruRecord.id) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Anda hanya dapat menghapus jurnal Anda sendiri" })
+          }
+        } else {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akses ditolak" })
+        }
+      }
+
       await db.delete(jurnalMengajar).where(eq(jurnalMengajar.id, input.id))
       await logAudit(ctx, { action: "delete", entity: "jurnal_mengajar", entityId: input.id })
       return { success: true }
