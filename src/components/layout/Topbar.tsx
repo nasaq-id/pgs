@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
-import { Bell, Menu, CalendarDays, MessageCircle, User, ChevronRight, BellOff } from "lucide-react"
+import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -48,16 +48,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [showNotifications, setShowNotifications] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [events, setEvents] = useState<any[]>([])
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedDateEvents, setSelectedDateEvents] = useState<any[]>([])
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const calendarRef = useRef<HTMLDivElement>(null)
   const utils = api.useUtils()
+
+  const { data: monthEvents } = api.kalender.getAll.useQuery({
+    bulan: currentMonth.getMonth() + 1,
+    tahun: currentMonth.getFullYear(),
+  })
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -103,9 +104,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       }
     }
     if (notif.link) {
-      window.location.href = notif.link
+      window.location.href = notif.link // eslint-disable-line react-hooks/immutability
     }
-    setShowNotifications(false)
   }
 
   const handleMarkAllRead = async () => {
@@ -116,7 +116,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     } catch (e) {
       console.error("Failed to mark all as read", e)
     }
-    setShowNotifications(false)
   }
 
   const daysInMonth = eachDayOfInterval({
@@ -125,14 +124,22 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   })
 
   const getEventsForDate = (date: Date) => {
-    // Placeholder - would filter events from API
-    return []
+    if (!monthEvents) return []
+    const dateStr = format(date, "yyyy-MM-dd")
+    return monthEvents.filter((ev: any) => {
+      const startStr = format(new Date(ev.tanggalMulai), "yyyy-MM-dd")
+      const endStr = ev.tanggalSelesai
+        ? format(new Date(ev.tanggalSelesai), "yyyy-MM-dd")
+        : startStr
+      return dateStr >= startStr && dateStr <= endStr
+    })
   }
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
-    setSelectedDateEvents(getEventsForDate(date))
   }
+
+  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : []
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
@@ -285,8 +292,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </button>
           </div>
           <div className="grid grid-cols-7 gap-0.5 text-center text-xs mb-2">
-            {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((d) => (
-              <div key={d} className="text-muted-foreground font-medium py-1">{d}</div>
+            {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((d, i) => (
+              <div key={d} className={`font-medium py-1 ${i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-muted-foreground"}`}>{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-0.5">
@@ -295,23 +302,45 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             ))}
             {daysInMonth.map((day) => {
               const today = isToday(day)
-              const hasEvent = getEventsForDate(day).length > 0
+              const dayEvents = getEventsForDate(day)
               const selected = selectedDate && isSameDay(day, selectedDate)
+              const dayOfWeek = day.getDay()
+              const hasEvent = dayEvents.length > 0
+              const isLibur = dayEvents.some((ev: any) => ev.tipe === "libur" || ev.isLiburNasional)
+              const eventTooltip = dayEvents.map((ev: any) => ev.judul).join(", ")
+              const eventColors: string[] = []
+              dayEvents.forEach((ev: any) => {
+                const c = ev.warna || (ev.isLiburNasional || ev.tipe === "libur" ? "#ef4444" : ev.tipe === "kegiatan" ? "#3b82f6" : "#22c55e")
+                if (!eventColors.includes(c)) eventColors.push(c)
+              })
               return (
                 <button
                   key={day.toISOString()}
                   onClick={() => handleDateClick(day)}
+                  title={hasEvent ? eventTooltip : undefined}
                   className={`h-8 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     selected
                       ? "bg-primary text-white"
                       : today
-                      ? "bg-primary/10 text-primary font-bold"
+                      ? isLibur || dayOfWeek === 0
+                        ? "bg-red-50 dark:bg-red-950/20 text-red-600 font-bold"
+                        : "bg-primary/10 text-primary font-bold"
+                      : hasEvent && !isLibur
+                      ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                      : isLibur || dayOfWeek === 0
+                      ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      : dayOfWeek === 6
+                      ? "text-blue-500 hover:bg-muted"
                       : "hover:bg-muted"
                   } ${hasEvent ? "relative" : ""}`}
                 >
                   {format(day, "d")}
                   {hasEvent && (
-                    <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${today ? "bg-primary" : "bg-orange-500"}`} />
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                      {eventColors.map((c, i) => (
+                        <span key={i} className="h-1 w-1 rounded-full" style={{ backgroundColor: c }} />
+                      ))}
+                    </span>
                   )}
                 </button>
               )
@@ -321,9 +350,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <div className="mt-4 pt-3 border-t space-y-2 max-h-40 overflow-y-auto">
               <p className="text-xs font-medium text-muted-foreground">Acara pada {formatDate(selectedDate)}:</p>
               {selectedDateEvents.map((ev: any) => (
-                <div key={ev.id} className="text-xs p-2 rounded bg-muted">
-                  <p className="font-medium">{ev.judul}</p>
-                  <p className="text-muted-foreground truncate">{ev.deskripsi}</p>
+                <div key={ev.id} className="text-xs p-2 rounded bg-muted flex items-start gap-2">
+                  <span className="h-3 w-3 rounded-full mt-0.5 flex-shrink-0" style={{ backgroundColor: ev.warna || (ev.isLiburNasional || ev.tipe === "libur" ? "#ef4444" : ev.tipe === "kegiatan" ? "#3b82f6" : "#22c55e") }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{ev.judul}</p>
+                    {ev.deskripsi && <p className="text-muted-foreground truncate">{ev.deskripsi}</p>}
+                  </div>
                 </div>
               ))}
             </div>

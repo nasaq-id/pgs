@@ -1,19 +1,21 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, asc, gte, lte } from "drizzle-orm"
+import { eq, and, asc, gte, lte, like } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
-import { kalenderEvent, sekolah } from "@/server/db/schema"
+import { kalenderEvent } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { getLiburNasional } from "@/lib/libur-nasional"
 
 export const kalenderRouter = router({
   getAll: protectedProcedure
     .input(
       z.object({
+        search: z.string().optional(),
         bulan: z.number().optional(),
         tahun: z.number().optional(),
         tipe: z.enum(["kegiatan", "libur", "lainnya"]).optional(),
-        limit: z.number().optional().default(100),
+        limit: z.number().optional().default(200),
         offset: z.number().optional().default(0),
       }),
     )
@@ -22,6 +24,10 @@ export const kalenderRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
       const conditions = [eq(kalenderEvent.sekolahId, sekolahId)]
+
+      if (input.search) {
+        conditions.push(like(kalenderEvent.judul, `%${input.search}%`))
+      }
 
       if (input.bulan && input.tahun) {
         const startDate = new Date(input.tahun, input.bulan - 1, 1)
@@ -64,6 +70,7 @@ export const kalenderRouter = router({
         tanggalSelesai: z.string().optional(),
         tipe: z.enum(["kegiatan", "libur", "lainnya"]).optional().default("kegiatan"),
         isLiburNasional: z.boolean().optional().default(false),
+        warna: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -81,6 +88,7 @@ export const kalenderRouter = router({
           tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null,
           tipe: input.tipe,
           isLiburNasional: input.isLiburNasional,
+          warna: input.warna || null,
         })
         .returning()
 
@@ -98,6 +106,7 @@ export const kalenderRouter = router({
         tanggalSelesai: z.string().optional(),
         tipe: z.enum(["kegiatan", "libur", "lainnya"]).optional(),
         isLiburNasional: z.boolean().optional(),
+        warna: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -152,5 +161,44 @@ export const kalenderRouter = router({
         ),
         orderBy: asc(kalenderEvent.tanggalMulai),
       })
+    }),
+
+  seedLiburNasional: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ tahun: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+
+      const holidays = getLiburNasional(input.tahun)
+      let created = 0
+
+      for (const h of holidays) {
+        const existing = await db.query.kalenderEvent.findFirst({
+          where: and(
+            eq(kalenderEvent.sekolahId, sekolahId),
+            eq(kalenderEvent.judul, h.judul),
+            eq(kalenderEvent.tanggalMulai, new Date(h.tanggalMulai)),
+          ),
+        })
+        if (existing) continue
+
+        await db.insert(kalenderEvent).values({
+          id: crypto.randomUUID(),
+          sekolahId,
+          judul: h.judul,
+          tanggalMulai: new Date(h.tanggalMulai),
+          tanggalSelesai: h.tanggalSelesai ? new Date(h.tanggalSelesai) : null,
+          tipe: "libur",
+          isLiburNasional: true,
+          warna: "#ef4444",
+        })
+        created++
+      }
+
+      if (created > 0) {
+        await logAudit(ctx, { action: "seed", entity: "kalender", entityId: "bulk", metadata: { tahun: input.tahun, count: created } })
+      }
+
+      return { created }
     }),
 })

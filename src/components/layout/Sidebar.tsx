@@ -53,7 +53,10 @@ const menuItems: MenuItem[] = [
     { label: "Pengumuman", path: "/konten/pengumuman" },
   ]},
   { icon: Building2, label: "Keuangan", path: "/keuangan/tagihan" },
-  { icon: Settings, label: "Pengaturan", path: "/pengaturan" },
+  { icon: Settings, label: "Pengaturan", children: [
+    { label: "Umum", path: "/pengaturan" },
+    { label: "Kalender Akademik", path: "/pengaturan/kalender" },
+  ]},
 ]
 
 interface SidebarProps { onClose?: () => void }
