@@ -1,5 +1,5 @@
 import { db } from "../src/server/db"
-import { users, sekolah, guru, kelas, mataPelajaran, siswa, jadwalPelajaran, pengaturanJadwal, agendaKhusus } from "../src/server/db/schema"
+import { users, sekolah, guru, kelas, mataPelajaran, siswa, jadwalPelajaran, pengaturanJadwal, timelineItem } from "../src/server/db/schema"
 import bcrypt from "bcryptjs"
 
 async function seed() {
@@ -113,24 +113,31 @@ async function seed() {
     id: "pengaturan-1",
     sekolahId: "sekolah-1",
     durasiJP: 40,
-    hariAktif: '["senin","selasa","rabu","kamis","jumat"]',
     jamMulai: "07:00",
-    jamPulang: "15:00",
   }).onConflictDoNothing()
   console.log("✅ Pengaturan jadwal created")
 
-  // Agenda Khusus
-  const agendaData = [
-    { id: "agenda-senin-1", sekolahId: "sekolah-1", hari: "senin", nama: "Upacara", icon: "flag", jamMulai: "07:00", jamSelesai: "07:30", urutan: 1 },
-    { id: "agenda-senin-2", sekolahId: "sekolah-1", hari: "senin", nama: "Literasi", icon: "book-open", jamMulai: "08:30", jamSelesai: "08:50", urutan: 3 },
-    { id: "agenda-senin-3", sekolahId: "sekolah-1", hari: "senin", nama: "Istirahat", icon: "coffee", jamMulai: "09:30", jamSelesai: "10:00", urutan: 5 },
-    { id: "agenda-senin-4", sekolahId: "sekolah-1", hari: "senin", nama: "Sholat Dzuhur", icon: "pray", jamMulai: "12:00", jamSelesai: "12:30", urutan: 7 },
-    { id: "agenda-selasa-1", sekolahId: "sekolah-1", hari: "selasa", nama: "Literasi", icon: "book-open", jamMulai: "07:00", jamSelesai: "07:20", urutan: 1 },
-    { id: "agenda-selasa-2", sekolahId: "sekolah-1", hari: "selasa", nama: "Istirahat", icon: "coffee", jamMulai: "09:30", jamSelesai: "10:00", urutan: 4 },
-    { id: "agenda-selasa-3", sekolahId: "sekolah-1", hari: "selasa", nama: "Sholat Dzuhur", icon: "pray", jamMulai: "12:00", jamSelesai: "12:30", urutan: 6 },
+  // Timeline items (agenda khusus migrated to timeline_item)
+  const timelineData = [
+    { id: "timeline-senin-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:00", jamSelesai: "07:40", urutan: 1 },
+    { id: "timeline-senin-2", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:40", jamSelesai: "08:20", urutan: 2 },
+    { id: "timeline-senin-3", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "upacara", label: "Upacara", jamMulai: "08:20", jamSelesai: "08:50", urutan: 3 },
+    { id: "timeline-senin-4", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "08:50", jamSelesai: "09:30", urutan: 4 },
+    { id: "timeline-senin-5", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "09:30", jamSelesai: "10:10", urutan: 5 },
+    { id: "timeline-senin-6", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "istirahat", label: "Istirahat", jamMulai: "10:10", jamSelesai: "10:40", urutan: 6 },
+    { id: "timeline-senin-7", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "10:40", jamSelesai: "11:20", urutan: 7 },
+    { id: "timeline-senin-8", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "11:20", jamSelesai: "12:00", urutan: 8 },
+    { id: "timeline-selasa-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "pembiasaan", label: "Pembiasaan : Literasi Pagi", jamMulai: "07:00", jamSelesai: "07:20", urutan: 1 },
+    { id: "timeline-selasa-2", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "07:20", jamSelesai: "08:00", urutan: 2 },
+    { id: "timeline-selasa-3", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:00", jamSelesai: "08:40", urutan: 3 },
+    { id: "timeline-selasa-4", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:40", jamSelesai: "09:20", urutan: 4 },
+    { id: "timeline-selasa-5", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "istirahat", label: "Istirahat", jamMulai: "09:20", jamSelesai: "09:50", urutan: 5 },
+    { id: "timeline-selasa-6", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "09:50", jamSelesai: "10:30", urutan: 6 },
+    { id: "timeline-selasa-7", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "10:30", jamSelesai: "11:10", urutan: 7 },
+    { id: "timeline-selasa-8", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "11:10", jamSelesai: "11:50", urutan: 8 },
   ]
-  await db.insert(agendaKhusus).values(agendaData as any).onConflictDoNothing()
-  console.log(`✅ ${agendaData.length} agenda khusus created`)
+  await db.insert(timelineItem).values(timelineData as any).onConflictDoNothing()
+  console.log(`✅ ${timelineData.length} timeline items created`)
 
   console.log("\n📋 Data login:")
   console.log("   Admin:    admin@demo.com / admin123")

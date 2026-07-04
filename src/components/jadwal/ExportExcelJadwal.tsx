@@ -46,57 +46,14 @@ interface SekolahData {
   kepalaSekolah: string | null
 }
 
-interface AgendaData {
+interface TimelineRecord {
   id: string
   hari: string
-  nama: string
-  icon: string | null
+  tipe: string
+  label: string | null
   jamMulai: string
   jamSelesai: string
   urutan: number
-}
-
-function getEntryAtSlot(
-  academicJpMap: Map<string, number | null>,
-  jadwalRecords: JadwalRecord[],
-  kelasId: string,
-  hari: string,
-  jpSlot: number
-): JadwalRecord | null {
-  const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
-  if (academicJp === null || academicJp === undefined) return null
-
-  const entries = jadwalRecords.filter(
-    (e) =>
-      e.kelasId === kelasId &&
-      e.hari === hari &&
-      e.jpMulai !== null &&
-      e.jpCount !== null
-  )
-  for (const entry of entries) {
-    const start = entry.jpMulai!
-    const end = start + entry.jpCount!
-    if (academicJp >= start && academicJp < end) return entry
-  }
-  return null
-}
-
-function getAgendaAtSlot(
-  agendaRecords: AgendaData[],
-  hari: string,
-  jpSlot: number,
-  startMinutes: number,
-  durasiJP: number
-): AgendaData | null {
-  const hariAgenda = agendaRecords.filter((a) => a.hari === hari)
-  for (const agenda of hariAgenda) {
-    const startJp =
-      Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
-    const endJp =
-      Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
-    if (jpSlot >= startJp && jpSlot <= endJp) return agenda
-  }
-  return null
 }
 
 export default function ExportExcelJadwal() {
@@ -106,7 +63,7 @@ export default function ExportExcelJadwal() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const [sekolah, tahunAjaran, kelas, mapel, guru, jadwal, pengaturan, agenda] =
+      const [sekolah, tahunAjaran, kelas, mapel, guru, jadwal, pengaturan, timeline] =
         await Promise.all([
           utils.client.lembaga.getSekolah.query(),
           utils.client.lembaga.getActiveTahunAjaran.query(),
@@ -115,7 +72,7 @@ export default function ExportExcelJadwal() {
           utils.client.guru.getAll.query({}),
           utils.client.jadwal.getAll.query({}),
           utils.client.pengaturanJadwal.get.query({}),
-          utils.client.pengaturanJadwal.getAgenda.query({}),
+          utils.client.pengaturanJadwal.getTimeline.query({}),
         ])
 
       const sekolahData = (sekolah ?? null) as SekolahData | null
@@ -127,35 +84,59 @@ export default function ExportExcelJadwal() {
       const mapelRecords = (mapel ?? []) as MapelRecord[]
       const guruRecords = (guru ?? []) as GuruRecord[]
       const jadwalRecords = (jadwal ?? []) as JadwalRecord[]
-      const agendaRecords = (agenda ?? []) as AgendaData[]
+      const timelineRecords = (timeline ?? []) as TimelineRecord[]
       const pengaturanData = (pengaturan ?? null) as {
         durasiJP: number
         jamMulai: string
-        jamPulang: string
-        hariAktif: string
       } | null
 
       const mapelMap = new Map(mapelRecords.map((m) => [m.id, m]))
       const guruMap = new Map(guruRecords.map((g) => [g.id, g]))
 
       const durasiJP = pengaturanData?.durasiJP ?? 40
-      const startMinutes = pengaturanData?.jamMulai
-        ? timeToMinutes(pengaturanData.jamMulai)
-        : 420
-      const endMinutes = pengaturanData?.jamPulang
-        ? timeToMinutes(pengaturanData.jamPulang)
-        : 900
-      const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
 
-      const aktifDays: string[] = (() => {
-        if (!pengaturanData?.hariAktif) return DAYS
-        try {
-          const parsed = JSON.parse(pengaturanData.hariAktif)
-          return Array.isArray(parsed) ? parsed : DAYS
-        } catch {
-          return DAYS
+      // Get active days from timeline
+      const aktifDays = (() => {
+        const days = new Set<string>()
+        for (const t of timelineRecords) {
+          if (t.tipe === "jp") days.add(t.hari)
         }
+        if (days.size === 0) return DAYS
+        return DAYS.filter((d) => days.has(d))
       })()
+
+      // Build timeline-based JP mapping per day
+      const timelineByDay = new Map<string, TimelineRecord[]>()
+      for (const day of aktifDays) {
+        timelineByDay.set(day, timelineRecords.filter((t) => t.hari === day).sort((a, b) => a.urutan - b.urutan))
+      }
+
+      // Get max JP slots across days
+      let maxJpSlots = 0
+      for (const day of aktifDays) {
+        const jpCount = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp").length
+        if (jpCount > maxJpSlots) maxJpSlots = jpCount
+      }
+
+      // Determine totalJpSlots to use for the grid (uniform across days)
+      const totalJpSlots = Math.max(maxJpSlots, 1)
+
+      // Build academic JP mapping
+      const academicJpMap = new Map<string, number | null>()
+      for (const day of aktifDays) {
+        const dayItems = timelineByDay.get(day) ?? []
+        let academicCounter = 1
+        for (let jp = 1; jp <= totalJpSlots; jp++) {
+          const timelineItem = dayItems[jp - 1]
+          if (timelineItem && timelineItem.tipe !== "jp") {
+            academicJpMap.set(`${day}-${jp}`, null)
+          } else if (timelineItem && timelineItem.tipe === "jp") {
+            academicJpMap.set(`${day}-${jp}`, academicCounter++)
+          } else {
+            academicJpMap.set(`${day}-${jp}`, null)
+          }
+        }
+      }
 
       const sortedKelas = [...kelasRecords].sort((a, b) => {
         const tA = parseInt(a.tingkat || "0")
@@ -177,37 +158,13 @@ export default function ExportExcelJadwal() {
 
       const totalCols = 3 + sortedKelas.length
 
-      const academicJpMap = new Map<string, number | null>()
-      for (const day of aktifDays) {
-        let counter = 1
-        for (let jp = 1; jp <= totalJpSlots; jp++) {
-          const slotStart = startMinutes + (jp - 1) * durasiJP
-          const slotEnd = startMinutes + jp * durasiJP
-
-          const isAgenda = agendaRecords.some((a) => {
-            if (a.hari !== day) return false
-            const agendaStart = timeToMinutes(a.jamMulai)
-            const agendaEnd = timeToMinutes(a.jamSelesai)
-            return slotStart < agendaEnd && slotEnd > agendaStart
-          })
-
-          if (isAgenda) {
-            academicJpMap.set(`${day}-${jp}`, null)
-          } else {
-            academicJpMap.set(`${day}-${jp}`, counter++)
-          }
-        }
-      }
-
-      // Build sequential codes map: key: `${guruId}-${mataPelajaranId}` -> code
+      // Build sequential codes map
       const codesMap = new Map<string, string>()
       const sortedTeachers = [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
       let teacherCounter = 1
-
       for (const teacher of sortedTeachers) {
         const teacherSchedules = jadwalRecords.filter((j) => j.guruId === teacher.id)
         const uniqueSubjectIds = Array.from(new Set(teacherSchedules.map((j) => j.mataPelajaranId)))
-
         let subjectOffset = 0
         for (const mapelId of uniqueSubjectIds) {
           const suffix = subjectOffset === 0 ? "" : String.fromCharCode(96 + subjectOffset)
@@ -215,7 +172,6 @@ export default function ExportExcelJadwal() {
           codesMap.set(`${teacher.id}-${mapelId}`, code)
           subjectOffset++
         }
-
         if (uniqueSubjectIds.length > 0) {
           teacherCounter++
         }
@@ -225,6 +181,27 @@ export default function ExportExcelJadwal() {
         if (!entry) return ""
         const key = `${entry.guruId}-${entry.mataPelajaranId}`
         return codesMap.get(key) || ""
+      }
+
+      const getEntryAtSlot = (hari: string, jpSlot: number): JadwalRecord | null => {
+        const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
+        if (academicJp === null || academicJp === undefined) return null
+        const entries = jadwalRecords.filter(
+          (e) => e.hari === hari && e.jpMulai !== null && e.jpCount !== null
+        )
+        for (const entry of entries) {
+          const start = entry.jpMulai!
+          const end = start + entry.jpCount!
+          if (academicJp >= start && academicJp < end) return entry
+        }
+        return null
+      }
+
+      const getAgendaAtSlot = (hari: string, jpSlot: number): TimelineRecord | null => {
+        const dayItems = timelineByDay.get(hari) ?? []
+        const item = dayItems[jpSlot - 1]
+        if (item && item.tipe !== "jp") return item
+        return null
       }
 
       const wb = XLSX.utils.book_new()
@@ -251,7 +228,7 @@ export default function ExportExcelJadwal() {
         { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
       ]
 
-      // Style header rows (kop)
+      // Style header rows
       for (let c = 0; c < totalCols; c++) {
         const addr = XLSX.utils.encode_cell({ r: 0, c })
         if (!ws[addr]) continue
@@ -273,7 +250,7 @@ export default function ExportExcelJadwal() {
         ws[addr].s = { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } }
       }
 
-      // Style header row (row 5 = index 5)
+      // Style header row
       for (let c = 0; c < totalCols; c++) {
         const addr = XLSX.utils.encode_cell({ r: 5, c })
         if (!ws[addr]) continue
@@ -297,10 +274,12 @@ export default function ExportExcelJadwal() {
         dayStartRows.push({ day, startRow: currentRow, endRow: currentRow + totalJpSlots - 1 })
 
         for (let jp = 1; jp <= totalJpSlots; jp++) {
-          const timeStart = minutesToTime(startMinutes + (jp - 1) * durasiJP)
-          const timeEnd = minutesToTime(startMinutes + jp * durasiJP)
+          const dayItems = timelineByDay.get(day) ?? []
+          const item = dayItems[jp - 1]
+          const timeStart = item?.jamMulai ?? minutesToTime(420 + (jp - 1) * durasiJP)
+          const timeEnd = item?.jamSelesai ?? minutesToTime(420 + jp * durasiJP)
 
-          // Col 0: Day (will be merged later)
+          // Day merge cell
           const dayCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
           ws[dayCellAddr] = {
             t: "s",
@@ -317,7 +296,7 @@ export default function ExportExcelJadwal() {
             },
           }
 
-          // Col 1: JP number
+          // JP number
           const jpCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 1 })
           ws[jpCellAddr] = {
             t: "s",
@@ -334,7 +313,7 @@ export default function ExportExcelJadwal() {
             },
           }
 
-          // Col 2: Time
+          // Time
           const timeCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 2 })
           ws[timeCellAddr] = {
             t: "s",
@@ -351,19 +330,19 @@ export default function ExportExcelJadwal() {
             },
           }
 
-          // Cols 3+: Kelas columns
+          // Kelas columns
           for (let ki = 0; ki < sortedKelas.length; ki++) {
             const kelas = sortedKelas[ki]
             const col = 3 + ki
-            const agendaItem = getAgendaAtSlot(agendaRecords, day, jp, startMinutes, durasiJP)
-            const entry = agendaItem ? null : getEntryAtSlot(academicJpMap, jadwalRecords, kelas.id, day, jp)
+            const agendaItem = getAgendaAtSlot(day, jp)
+            const entry = agendaItem ? null : getEntryAtSlot(day, jp)
 
             const cellAddr = XLSX.utils.encode_cell({ r: currentRow, c: col })
 
             if (agendaItem) {
               ws[cellAddr] = {
                 t: "s",
-                v: agendaItem.nama,
+                v: agendaItem.label || agendaItem.tipe,
                 s: {
                   font: { italic: true, sz: 8, color: { rgb: "888888" } },
                   alignment: { horizontal: "center", vertical: "center", wrapText: true },
@@ -412,7 +391,7 @@ export default function ExportExcelJadwal() {
         }
       }
 
-      // Merge day cells vertically for each day
+      // Merge day cells
       for (const d of dayStartRows) {
         if (d.startRow !== d.endRow) {
           ws["!merges"]!.push({
@@ -422,7 +401,7 @@ export default function ExportExcelJadwal() {
         }
       }
 
-      // Add codes legend at the bottom
+      // Legend
       if (codesMap.size > 0) {
         currentRow += 2
         const legendTitleAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
@@ -508,7 +487,6 @@ export default function ExportExcelJadwal() {
 
       ws["!cols"] = colWidths.map((w) => ({ wch: w }))
 
-      // Row heights
       const rowHeights: { hpt: number }[] = []
       for (let r = 0; r < currentRow; r++) {
         if (r <= 4) {

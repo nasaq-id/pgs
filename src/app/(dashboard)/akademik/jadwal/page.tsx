@@ -82,28 +82,36 @@ interface PengaturanData {
   id: string
   sekolahId: string
   durasiJP: number
-  hariAktif: string
   jamMulai: string
-  jamPulang: string
 }
 
-interface AgendaRecord {
+interface TimelineRecord {
   id: string
-  sekolahId: string
+  pengaturanJadwalId: string
   hari: string
-  nama: string
-  icon: string | null
+  tipe: string
+  label: string | null
   jamMulai: string
   jamSelesai: string
   urutan: number
+  warna: string | null
 }
 
-const AGENDA_ICONS: Record<string, React.ElementType> = {
+const TIMELINE_ICONS: Record<string, React.ElementType> = {
   clock: Clock,
   flag: Flag,
   sun: Sun,
   moon: Moon,
   "book-open": BookOpen,
+  pembiasaan: BookOpen,
+  upacara: Flag,
+  istirahat: Coffee,
+  sholat: Sparkles,
+  lainnya: Clock,
+}
+
+function Coffee({ className }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
 }
 
 export default function JadwalPage() {
@@ -118,7 +126,6 @@ export default function JadwalPage() {
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
 
-  // Memo for selected class name on main page select box trigger
   const selectedKelasMain = useMemo(() => {
     const cls = kelasRecords.find((k) => k.id === kelasId)
     return cls ? `${cls.tingkat ?? ""} - ${cls.namaKelas}` : ""
@@ -137,7 +144,7 @@ export default function JadwalPage() {
     { enabled: !!kelasId }
   )
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({})
-  const { data: agendaList } = api.pengaturanJadwal.getAgenda.useQuery({})
+  const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({})
 
   const utils = api.useUtils()
 
@@ -163,7 +170,7 @@ export default function JadwalPage() {
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => (jadwalList ?? []) as JadwalRecord[], [jadwalList])
   const pengaturanData = (pengaturan ?? null) as PengaturanData | null
-  const agendaRecords = useMemo(() => (agendaList ?? []) as AgendaRecord[], [agendaList])
+  const timelineRecords = useMemo(() => (timelineList ?? []) as TimelineRecord[], [timelineList])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
@@ -177,18 +184,37 @@ export default function JadwalPage() {
 
   const durasiJP = pengaturanData?.durasiJP ?? 40
   const startMinutes = pengaturanData?.jamMulai ? timeToMinutes(pengaturanData.jamMulai) : 420
-  const endMinutes = pengaturanData?.jamPulang ? timeToMinutes(pengaturanData.jamPulang) : 900
-  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
 
+  // Get active days from timeline items
   const aktifDays = useMemo(() => {
-    if (!pengaturanData?.hariAktif) return DAYS
-    try {
-      const parsed = JSON.parse(pengaturanData.hariAktif)
-      return Array.isArray(parsed) ? parsed : DAYS
-    } catch {
-      return DAYS
+    const days = new Set<string>()
+    for (const t of timelineRecords) {
+      if (t.tipe === "jp") days.add(t.hari)
     }
-  }, [pengaturanData])
+    if (days.size === 0) return DAYS
+    return DAYS.filter((d) => days.has(d))
+  }, [timelineRecords])
+
+  // Build timeline-based academic JP mapping
+  const timelineByDay = useMemo(() => {
+    const map = new Map<string, TimelineRecord[]>()
+    for (const day of aktifDays) {
+      const items = timelineRecords
+        .filter((t) => t.hari === day)
+        .sort((a, b) => a.urutan - b.urutan)
+      map.set(day, items)
+    }
+    return map
+  }, [timelineRecords, aktifDays])
+
+  // Count total JP slots per day
+  const totalJpSlotsByDay = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const [day, items] of timelineByDay) {
+      map.set(day, items.filter((t) => t.tipe === "jp").length)
+    }
+    return map
+  }, [timelineByDay])
 
   const handleSubmit = async (data: JadwalFormData) => {
     if (data.id) {
@@ -252,47 +278,40 @@ export default function JadwalPage() {
     setFormOpen(true)
   }
 
-  const jpGrid = useMemo(() => {
-    const slots: { jp: number; timeStart: string; timeEnd: string }[] = []
-    for (let i = 0; i < totalJpSlots; i++) {
-      slots.push({
-        jp: i + 1,
-        timeStart: minutesToTime(startMinutes + i * durasiJP),
-        timeEnd: minutesToTime(startMinutes + (i + 1) * durasiJP),
-      })
+  // Get non-JP timeline items (agenda-like) for a slot
+  const getAgendaAtSlot = (day: string, jpSlotIndex: number): TimelineRecord | null => {
+    const dayItems = timelineByDay.get(day) ?? []
+    // jpSlotIndex is 0-based into jp-only array
+    // We need to find the actual timeline item at this absolute position
+    const jpItems = dayItems.filter((t) => t.tipe === "jp")
+    const targetJpItem = jpItems[jpSlotIndex]
+    if (!targetJpItem) return null
+
+    // Find non-JP items that overlap with this JP's time range
+    const jpStart = timeToMinutes(targetJpItem.jamMulai)
+    const jpEnd = timeToMinutes(targetJpItem.jamSelesai)
+
+    for (const item of dayItems) {
+      if (item.tipe === "jp") continue
+      const itemStart = timeToMinutes(item.jamMulai)
+      const itemEnd = timeToMinutes(item.jamSelesai)
+      if (jpStart < itemEnd && jpEnd > itemStart) return item
     }
-    return slots
-  }, [totalJpSlots, startMinutes, durasiJP])
+    return null
+  }
 
-  const academicJpMap = useMemo(() => {
-    const map = new Map<string, number | null>()
-    for (const day of aktifDays) {
-      let counter = 1
-      for (let jp = 1; jp <= totalJpSlots; jp++) {
-        const slotStart = startMinutes + (jp - 1) * durasiJP
-        const slotEnd = startMinutes + jp * durasiJP
+  // Get entry at a specific JP slot
+  const getEntryAtSlot = (day: string, jpSlotIndex: number): JadwalRecord | null => {
+    const jpItems = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp")
+    const targetJpItem = jpItems[jpSlotIndex]
+    if (!targetJpItem) return null
 
-        const isAgenda = agendaRecords.some((a) => {
-          if (a.hari !== day) return false
-          const agendaStart = timeToMinutes(a.jamMulai)
-          const agendaEnd = timeToMinutes(a.jamSelesai)
-          return slotStart < agendaEnd && slotEnd > agendaStart
-        })
+    // Check if this JP slot is blocked by a non-JP item
+    const isBlocked = getAgendaAtSlot(day, jpSlotIndex) !== null
+    if (isBlocked) return null
 
-        if (isAgenda) {
-          map.set(`${day}-${jp}`, null)
-        } else {
-          map.set(`${day}-${jp}`, counter++)
-        }
-      }
-    }
-    return map
-  }, [aktifDays, totalJpSlots, startMinutes, durasiJP, agendaRecords])
-
-  const getEntryAtSlot = (day: string, jpSlot: number): JadwalRecord | null => {
-    const academicJp = academicJpMap.get(`${day}-${jpSlot}`)
-    if (academicJp === null || academicJp === undefined) return null
-
+    // Academic JP = 1-based index into jpItems
+    const academicJp = jpSlotIndex + 1
     const entries = jadwalRecords.filter(
       (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
     )
@@ -304,15 +323,29 @@ export default function JadwalPage() {
     return null
   }
 
-  const getAgendaAtSlot = (day: string, jpSlot: number): AgendaRecord | null => {
-    const hariAgenda = agendaRecords.filter((a) => a.hari === day)
-    for (const agenda of hariAgenda) {
-      const startJp = Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
-      const endJp = Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
-      if (jpSlot >= startJp && jpSlot <= endJp) return agenda
+  // Build JP grid: for each active day, list all JP items
+  const jpGridByDay = useMemo(() => {
+    const grid: { day: string; jpSlots: { jpNumber: number; timeStart: string; timeEnd: string }[] }[] = []
+    for (const day of aktifDays) {
+      const jpItems = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp")
+      const slots = jpItems.map((item, idx) => ({
+        jpNumber: idx + 1,
+        timeStart: item.jamMulai,
+        timeEnd: item.jamSelesai,
+      }))
+      grid.push({ day, jpSlots: slots })
     }
-    return null
-  }
+    return grid
+  }, [timelineByDay, aktifDays])
+
+  // Derive total JpSlots count for display (use max across days for uniform grid)
+  const maxJpSlots = useMemo(() => {
+    let max = 0
+    for (const { jpSlots } of jpGridByDay) {
+      if (jpSlots.length > max) max = jpSlots.length
+    }
+    return max
+  }, [jpGridByDay])
 
   const hasData = jadwalRecords.length > 0
 
@@ -418,29 +451,36 @@ export default function JadwalPage() {
                 </tr>
               </thead>
               <tbody>
-                {jpGrid.map((slot) => (
-                  <tr key={slot.jp}>
+                {Array.from({ length: maxJpSlots }, (_, slotIdx) => (
+                  <tr key={slotIdx}>
                     <td className="border border-border px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span>JP {slot.jp}</span>
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {slot.timeStart} - {slot.timeEnd}
-                        </span>
+                        <span>JP {slotIdx + 1}</span>
+                        {jpGridByDay[0]?.jpSlots[slotIdx] && (
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {jpGridByDay[0].jpSlots[slotIdx].timeStart} - {jpGridByDay[0].jpSlots[slotIdx].timeEnd}
+                          </span>
+                        )}
                       </div>
                     </td>
                     {aktifDays.map((day) => {
-                      const agenda = getAgendaAtSlot(day, slot.jp)
-                      const entry = agenda ? null : getEntryAtSlot(day, slot.jp)
+                      const agenda = getAgendaAtSlot(day, slotIdx)
+                      const entry = agenda ? null : getEntryAtSlot(day, slotIdx)
+                      const daySlots = jpGridByDay.find((g) => g.day === day)?.jpSlots
+                      const hasSlot = daySlots && slotIdx < daySlots.length
+                      if (!hasSlot) {
+                        return (
+                          <td key={day} className="border border-border px-2 py-1.5 align-top">
+                            <span className="text-[10px] text-muted-foreground">&mdash;</span>
+                          </td>
+                        )
+                      }
                       return (
                         <td key={day} className="border border-border px-2 py-1.5 align-top">
                           {agenda ? (
                             <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-1.5">
                               <div className="flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">
-                                {(() => {
-                                  const Icon = AGENDA_ICONS[agenda.icon || "clock"] || Clock
-                                  return <Icon className="h-3 w-3" />
-                                })()}
-                                <span>{agenda.nama}</span>
+                                {agenda.label || agenda.tipe}
                               </div>
                             </div>
                           ) : entry ? (
@@ -530,9 +570,8 @@ export default function JadwalPage() {
         mapelList={mapelRecords}
         guruList={guruRecords}
         saving={createMutation.isPending || updateMutation.isPending}
-        pengaturan={pengaturanData}
         existingJadwal={jadwalRecords as any}
-        agendaKhusus={agendaRecords as any}
+        timelineItems={timelineRecords as any}
       />
 
       <PengaturanJadwalDialog

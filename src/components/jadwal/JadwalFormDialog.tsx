@@ -44,18 +44,10 @@ interface GuruItem {
   namaLengkap: string
 }
 
-interface PengaturanData {
-  durasiJP: number
-  jamMulai: string
-  jamPulang: string
-  hariAktif: string
-}
-
-interface AgendaData {
+interface TimelineItemData {
   id: string
-  hari: string
-  nama: string
-  icon: string | null
+  tipe: string
+  label: string | null
   jamMulai: string
   jamSelesai: string
   urutan: number
@@ -76,9 +68,8 @@ interface Props {
   mapelList: MapelItem[]
   guruList: GuruItem[]
   saving?: boolean
-  pengaturan?: PengaturanData | null
   existingJadwal?: ExistingJadwalItem[]
-  agendaKhusus?: AgendaData[]
+  timelineItems?: TimelineItemData[]
 }
 
 export default function JadwalFormDialog({
@@ -89,9 +80,8 @@ export default function JadwalFormDialog({
   mapelList,
   guruList,
   saving,
-  pengaturan,
   existingJadwal = [],
-  agendaKhusus = [],
+  timelineItems = [],
 }: Props) {
   const [hari, setHari] = useState("senin")
   const [jpCount, setJpCount] = useState(1)
@@ -99,7 +89,6 @@ export default function JadwalFormDialog({
   const [guruId, setGuruId] = useState("")
   const [jpMulaiState, setJpMulaiState] = useState<number>(1)
 
-  // Memos for selected dropdown labels to fix Radix/Base UI select trigger value display bugs
   const selectedMapelLabel = useMemo(() => {
     const m = mapelList.find((mpl) => mpl.id === mataPelajaranId)
     return m ? m.namaMapel : ""
@@ -114,38 +103,12 @@ export default function JadwalFormDialog({
     return jpMulaiState ? `JP ${jpMulaiState}` : ""
   }, [jpMulaiState])
 
-  const durasiJP = pengaturan?.durasiJP ?? 40
-  const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
-  const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
-  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
-
-  const academicJpMap = useMemo(() => {
-    const map: { absoluteJp: number; academicJp: number | null }[] = []
-    let academicCounter = 1
-
-    for (let jp = 1; jp <= totalJpSlots; jp++) {
-      const slotStart = startMinutes + (jp - 1) * durasiJP
-      const slotEnd = startMinutes + jp * durasiJP
-
-      const isAgenda = agendaKhusus.some((a) => {
-        if (a.hari !== hari) return false
-        const agendaStart = timeToMinutes(a.jamMulai)
-        const agendaEnd = timeToMinutes(a.jamSelesai)
-        return slotStart < agendaEnd && slotEnd > agendaStart
-      })
-
-      if (isAgenda) {
-        map.push({ absoluteJp: jp, academicJp: null })
-      } else {
-        map.push({ absoluteJp: jp, academicJp: academicCounter++ })
-      }
-    }
-    return map
-  }, [hari, agendaKhusus, totalJpSlots, startMinutes, durasiJP])
-
-  const academicSlots = useMemo(() => {
-    return academicJpMap.filter((s) => s.academicJp !== null)
-  }, [academicJpMap])
+  // Filter timeline items for selected hari, only JP type
+  const jpSlots = useMemo(() => {
+    return timelineItems
+      .filter((t) => t.tipe === "jp")
+      .sort((a, b) => a.urutan - b.urutan)
+  }, [timelineItems])
 
   const occupiedJpSlots = useMemo(() => {
     const occupied = new Set<number>()
@@ -165,7 +128,6 @@ export default function JadwalFormDialog({
     const fromInitial = initial?.jpMulai ?? null
     if (fromInitial && !occupiedJpSlots.has(fromInitial)) return fromInitial
     let slot = 1
-    // Find first empty academic JP slot
     while (occupiedJpSlots.has(slot)) {
       slot++
     }
@@ -192,20 +154,13 @@ export default function JadwalFormDialog({
   const autoJpMulai = jpMulaiState
 
   const computedTimes = useMemo(() => {
-    const startSlot = academicSlots.find((s) => s.academicJp === autoJpMulai)
-    const endSlot = academicSlots.find((s) => s.academicJp === autoJpMulai + jpCount - 1)
-
-    const startAbs = startSlot ? startSlot.absoluteJp : autoJpMulai
-    const endAbs = endSlot ? endSlot.absoluteJp : autoJpMulai + jpCount - 1
-
-    const slotStartMin = startMinutes + (startAbs - 1) * durasiJP
-    const slotEndMin = startMinutes + endAbs * durasiJP
-
+    const startItem = jpSlots[autoJpMulai - 1]
+    const endItem = jpSlots[autoJpMulai + jpCount - 2]
     return {
-      start: minutesToTime(slotStartMin),
-      end: minutesToTime(slotEndMin),
+      start: startItem?.jamMulai ?? "07:00",
+      end: endItem?.jamSelesai ?? "07:40",
     }
-  }, [academicSlots, autoJpMulai, jpCount, startMinutes, durasiJP])
+  }, [jpSlots, autoJpMulai, jpCount])
 
   const isEdit = !!initial?.id
 
@@ -279,11 +234,16 @@ export default function JadwalFormDialog({
                 <SelectValue placeholder="Pilih JP Mulai">{selectedJpMulaiLabel || "Pilih JP Mulai"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {academicSlots.map((s) => (
-                  <SelectItem key={s.academicJp} value={String(s.academicJp)}>
-                    JP ke-{s.academicJp} (Slot {s.absoluteJp})
-                  </SelectItem>
-                ))}
+                {jpSlots.map((slot, idx) => {
+                  const jpNum = idx + 1
+                  const isOccupied = occupiedJpSlots.has(jpNum)
+                  return (
+                    <SelectItem key={jpNum} value={String(jpNum)} disabled={isOccupied}>
+                      JP ke-{jpNum} ({slot.jamMulai} - {slot.jamSelesai})
+                      {isOccupied ? " (terisi)" : ""}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>

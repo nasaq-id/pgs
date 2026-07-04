@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, agendaKhusus, pengaturanJadwal } from "@/server/db/schema"
+import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -72,62 +72,26 @@ function timeStringToDate(time: string): Date {
 }
 
 async function computeTimesForJadwal(
-  sekolahId: string,
+  pengaturanJadwalId: string,
   hari: string,
   jpMulai: number,
   jpCount: number
 ): Promise<{ jamMulai: Date; jamSelesai: Date }> {
-  const pengaturan = await db.query.pengaturanJadwal.findFirst({
-    where: eq(pengaturanJadwal.sekolahId, sekolahId),
+  const jpItems = await db.query.timelineItem.findMany({
+    where: and(
+      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+      eq(timelineItem.hari, hari as any),
+      eq(timelineItem.tipe, "jp"),
+    ),
+    orderBy: [asc(timelineItem.urutan)],
   })
-  const agendaList = await db.query.agendaKhusus.findMany({
-    where: eq(agendaKhusus.sekolahId, sekolahId),
-    orderBy: asc(agendaKhusus.urutan),
-  })
 
-  const durasiJP = pengaturan?.durasiJP ?? 40
-  const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
-  const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
-  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
-
-  // Map absolute slots
-  const map: { absoluteJp: number; isAcademic: boolean; academicJp: number | null }[] = []
-  let academicCounter = 1
-
-  for (let jp = 1; jp <= totalJpSlots; jp++) {
-    const slotStart = startMinutes + (jp - 1) * durasiJP
-    const slotEnd = startMinutes + jp * durasiJP
-
-    const isAgenda = agendaList.some((a) => {
-      if (a.hari !== hari) return false
-      const agendaStart = timeToMinutes(a.jamMulai)
-      const agendaEnd = timeToMinutes(a.jamSelesai)
-      return slotStart < agendaEnd && slotEnd > agendaStart
-    })
-
-    if (isAgenda) {
-      map.push({ absoluteJp: jp, isAcademic: false, academicJp: null })
-    } else {
-      map.push({ absoluteJp: jp, isAcademic: true, academicJp: academicCounter++ })
-    }
-  }
-
-  const academicSlots = map.filter((s) => s.academicJp !== null)
-  const startSlot = academicSlots.find((s) => s.academicJp === jpMulai)
-  const endSlot = academicSlots.find((s) => s.academicJp === jpMulai + jpCount - 1)
-
-  const startAbsJp = startSlot ? startSlot.absoluteJp : jpMulai
-  const endAbsJp = endSlot ? endSlot.absoluteJp : jpMulai + jpCount - 1
-
-  const slotStartMin = startMinutes + (startAbsJp - 1) * durasiJP
-  const slotEndMin = startMinutes + endAbsJp * durasiJP
-
-  const jamMulaiTime = minutesToTime(slotStartMin)
-  const jamSelesaiTime = minutesToTime(slotEndMin)
+  const startItem = jpItems[jpMulai - 1]
+  const endItem = jpItems[jpMulai + jpCount - 2]
 
   return {
-    jamMulai: timeStringToDate(jamMulaiTime),
-    jamSelesai: timeStringToDate(jamSelesaiTime),
+    jamMulai: timeStringToDate(startItem?.jamMulai ?? "07:00"),
+    jamSelesai: timeStringToDate(endItem?.jamSelesai ?? "07:40"),
   }
 }
 
@@ -165,202 +129,121 @@ async function shiftSchedulesIfNeeded(
     },
   ]
 
-  // Sort: jpMulai ascending. If tie, anchor goes first.
-  allItems.sort((a, b) => {
-    if (a.jpMulai !== b.jpMulai) return a.jpMulai - b.jpMulai
-    if (a.isAnchor) return -1
-    if (b.isAnchor) return 1
-    return 0
-  })
-
-  let nextAvailableJp = 1
-  const shiftedItems: { id: string; jpMulai: number }[] = []
-
-  for (const item of allItems) {
-    if (item.jpMulai < nextAvailableJp) {
-      if (!item.isAnchor) {
-        shiftedItems.push({ id: item.id, jpMulai: nextAvailableJp })
-      }
-      nextAvailableJp = nextAvailableJp + item.jpCount
-    } else {
-      nextAvailableJp = item.jpMulai + item.jpCount
-    }
-  }
-
-  // Apply shifts to database
-  for (const shift of shiftedItems) {
-    const orig = existing.find((s) => s.id === shift.id)!
-    const { jamMulai, jamSelesai } = await computeTimesForJadwal(
-      sekolahId,
-      hari,
-      shift.jpMulai,
-      orig.jpCount!
+  // Detect conflicts and shift
+  const sorted = allItems.sort((a, b) => a.jpMulai - b.jpMulai)
+  for (let i = 0; i < sorted.length; i++) {
+    const curr = sorted[i]
+    if (!curr.isAnchor) continue
+    const conflicts = allItems.filter(
+      (s) => s.id !== curr.id && !(s.jpMulai + s.jpCount <= curr.jpMulai || s.jpMulai >= curr.jpMulai + curr.jpCount)
     )
-    await db
-      .update(jadwalPelajaran)
-      .set({
-        jpMulai: shift.jpMulai,
-        jamMulai,
-        jamSelesai,
-      })
-      .where(eq(jadwalPelajaran.id, shift.id))
+    if (conflicts.length === 0) return // No conflict, nothing to shift
+
+    // Calculate new position
+    const occupied = new Set<number>()
+    for (const s of allItems) {
+      if (s.id === curr.id) continue
+      for (let j = 0; j < s.jpCount; j++) {
+        occupied.add(s.jpMulai + j)
+      }
+    }
+
+    // Try to find a non-conflicting position
+    let newPos = curr.jpMulai
+    while (true) {
+      let conflict = false
+      for (let j = 0; j < curr.jpCount; j++) {
+        if (occupied.has(newPos + j)) {
+          conflict = true
+          break
+        }
+      }
+      if (!conflict) break
+      newPos++
+      if (newPos > 20) break // Safety limit
+    }
+
+    if (newPos !== curr.jpMulai) {
+      await db
+        .update(jadwalPelajaran)
+        .set({ jpMulai: newPos })
+        .where(eq(jadwalPelajaran.id, curr.id))
+    }
   }
 }
 
-function runBacktrackingSolver(
-  blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[],
-  blockIndex: number,
-  assigned: Map<string, { mataPelajaranId: string; guruId: string }>,
-  teacherBusy: Map<string, boolean>,
-  daysList: string[],
-  academicSlotsPerDay: Map<string, number[]>,
-  teacherExclusions: Set<string>,
-  kelasDaysMap: Map<string, Set<string>>
-): boolean {
-  if (blockIndex === blocks.length) {
-    return true
+async function getAcademicJpSlots(
+  pengaturanJadwalId: string,
+  hari: string
+): Promise<number> {
+  const jpItems = await db.query.timelineItem.findMany({
+    where: and(
+      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+      eq(timelineItem.hari, hari as any),
+      eq(timelineItem.tipe, "jp"),
+    ),
+    orderBy: [asc(timelineItem.urutan)],
+  })
+  return jpItems.length
+}
+
+async function findAvailableSlots(
+  pengaturanJadwalId: string,
+  hari: string,
+  jpCount: number
+): Promise<number | null> {
+  const pengaturan = await db.query.pengaturanJadwal.findFirst({
+    where: eq(pengaturanJadwal.id, pengaturanJadwalId),
+  })
+  if (!pengaturan) return null
+
+  const totalSlots = await getAcademicJpSlots(pengaturanJadwalId, hari)
+  if (totalSlots === 0) return null
+
+  // Find first available contiguous block
+  for (let start = 1; start <= totalSlots - jpCount + 1; start++) {
+    return start
   }
-
-  const block = blocks[blockIndex]
-
-  // Heuristic: try to distribute subjects across days
-  const mapelKey = `${block.kelasId}|${block.mataPelajaranId}`
-  const mapelDays = kelasDaysMap.get(mapelKey) || new Set<string>()
-
-  for (const day of daysList) {
-    // Avoid double mapping same mapel on same day unless necessary
-    if (mapelDays.has(day) && mapelDays.size < daysList.length) {
-      continue
-    }
-
-    const slots = academicSlotsPerDay.get(day) || []
-    for (let i = 0; i <= slots.length - block.jpCount; i++) {
-      const startJp = slots[i]
-      let canPlace = true
-
-      for (let offset = 0; offset < block.jpCount; offset++) {
-        const jp = startJp + offset
-        const slotKey = `${block.kelasId}|${day}|${jp}`
-        const teacherKey = `${block.guruId}|${day}|${jp}`
-
-        if (assigned.has(slotKey) || teacherBusy.has(teacherKey) || teacherExclusions.has(teacherKey)) {
-          canPlace = false
-          break
-        }
-      }
-
-      if (canPlace) {
-        // Place
-        for (let offset = 0; offset < block.jpCount; offset++) {
-          const jp = startJp + offset
-          assigned.set(`${block.kelasId}|${day}|${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
-          teacherBusy.set(`${block.guruId}|${day}|${jp}`, true)
-        }
-        mapelDays.add(day)
-        kelasDaysMap.set(mapelKey, mapelDays)
-
-        if (runBacktrackingSolver(blocks, blockIndex + 1, assigned, teacherBusy, daysList, academicSlotsPerDay, teacherExclusions, kelasDaysMap)) {
-          return true
-        }
-
-        // Backtrack
-        for (let offset = 0; offset < block.jpCount; offset++) {
-          const jp = startJp + offset
-          assigned.delete(`${block.kelasId}|${day}|${jp}`)
-          teacherBusy.delete(`${block.guruId}|${day}|${jp}`)
-        }
-        mapelDays.delete(day)
-      }
-    }
-  }
-
-  // Fallback: try all days without the daily subject distribution heuristic
-  for (const day of daysList) {
-    const slots = academicSlotsPerDay.get(day) || []
-    for (let i = 0; i <= slots.length - block.jpCount; i++) {
-      const startJp = slots[i]
-      let canPlace = true
-
-      for (let offset = 0; offset < block.jpCount; offset++) {
-        const jp = startJp + offset
-        const slotKey = `${block.kelasId}|${day}|${jp}`
-        const teacherKey = `${block.guruId}|${day}|${jp}`
-
-        if (assigned.has(slotKey) || teacherBusy.has(teacherKey) || teacherExclusions.has(teacherKey)) {
-          canPlace = false
-          break
-        }
-      }
-
-      if (canPlace) {
-        for (let offset = 0; offset < block.jpCount; offset++) {
-          const jp = startJp + offset
-          assigned.set(`${block.kelasId}|${day}|${jp}`, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
-          teacherBusy.set(`${block.guruId}|${day}|${jp}`, true)
-        }
-
-        if (runBacktrackingSolver(blocks, blockIndex + 1, assigned, teacherBusy, daysList, academicSlotsPerDay, teacherExclusions, kelasDaysMap)) {
-          return true
-        }
-
-        for (let offset = 0; offset < block.jpCount; offset++) {
-          const jp = startJp + offset
-          assigned.delete(`${block.kelasId}|${day}|${jp}`)
-          teacherBusy.delete(`${block.guruId}|${day}|${jp}`)
-        }
-      }
-    }
-  }
-
-  return false
+  return null
 }
 
 export const jadwalRouter = router({
   getAll: protectedProcedure
-    .input(
-      z.object({
-        kelasId: z.string().optional(),
-        hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]).optional(),
-        sortBy: z.enum(["hari", "jamMulai"]).optional().default("jamMulai"),
-        sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
-        limit: z.number().optional().default(100),
-        offset: z.number().optional().default(0),
-      }),
-    )
+    .input(z.object({
+      kelasId: z.string().optional(),
+      guruId: z.string().optional(),
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]).optional(),
+      limit: z.number().min(1).max(1000).optional().default(500),
+    }))
     .query(async ({ ctx, input }) => {
-      const conditions = []
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      if (sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
-        conditions.push(inArray(jadwalPelajaran.kelasId, kelasIds))
+      const conditions: any[] = [eq(jadwalPelajaran.kelasId, kelas.id)]
+
+      if (input.kelasId) {
+        conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
       }
-      if (input.kelasId) conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
-      if (input.hari) conditions.push(eq(jadwalPelajaran.hari, input.hari))
-      const orderBy = input.sortOrder === "asc" ? asc(jadwalPelajaran[input.sortBy]) : desc(jadwalPelajaran[input.sortBy])
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db
+      if (input.guruId) {
+        conditions.push(eq(jadwalPelajaran.guruId, input.guruId))
+      }
+      if (input.hari) {
+        conditions.push(eq(jadwalPelajaran.hari, input.hari as any))
+      }
+      if (sekolahIdFilter) {
+        conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
+      }
+
+      const result = await db
         .select()
         .from(jadwalPelajaran)
-        .where(whereClause)
-        .orderBy(orderBy)
+        .leftJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
+        .where(and(...conditions))
+        .orderBy(desc(jadwalPelajaran.jpMulai))
         .limit(input.limit)
-        .offset(input.offset)
-      return data
-    }),
 
-  getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      const result = await db.query.jadwalPelajaran.findFirst({
-        where: eq(jadwalPelajaran.id, input.id),
-        with: { kelas: true, mataPelajaran: true, guru: true },
-      })
-      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
-      if (sekolahIdFilter && result.kelas?.sekolahId !== sekolahIdFilter) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
-      }
-      return result
+      return result.map((r) => ({
+        ...r.jadwal_pelajaran,
+        kelas: r.kelas,
+      }))
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -373,25 +256,76 @@ export const jadwalRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
         }
       }
+
       const sekolahId = sekolahIdFilter ?? ctx.session.user.sekolahId ?? ""
-      
-      // Auto sequential shifting logic
-      if (input.jpMulai !== null && input.jpMulai !== undefined && input.jpCount !== null && input.jpCount !== undefined) {
-        await shiftSchedulesIfNeeded(sekolahId, input.kelasId, input.hari, input.jpMulai, input.jpCount)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      const pengaturanJadwalId = pengaturan?.id
+      if (!pengaturanJadwalId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
       }
 
-      // Auto time calculation
+      // Auto-assign jpMulai if not provided
+      let jpMulai = input.jpMulai ?? null
+      const jpCount = input.jpCount ?? null
+
+      if (jpMulai === null && jpCount !== null) {
+        const existingSchedules = await db.query.jadwalPelajaran.findMany({
+          where: and(
+            eq(jadwalPelajaran.kelasId, input.kelasId),
+            eq(jadwalPelajaran.hari, input.hari as any),
+          ),
+        })
+
+        const occupiedSlots = new Set<number>()
+        for (const s of existingSchedules) {
+          if (s.jpMulai !== null && s.jpCount !== null) {
+            for (let i = 0; i < s.jpCount; i++) {
+              occupiedSlots.add(s.jpMulai + i)
+            }
+          }
+        }
+
+        const totalJpSlots = await getAcademicJpSlots(pengaturanJadwalId, input.hari)
+        for (let slot = 1; slot <= totalJpSlots; slot++) {
+          let available = true
+          for (let offset = 0; offset < jpCount; offset++) {
+            if (occupiedSlots.has(slot + offset)) {
+              available = false
+              break
+            }
+          }
+          if (available) {
+            jpMulai = slot
+            break
+          }
+        }
+
+        if (jpMulai === null) {
+          throw new TRPCError({ code: "CONFLICT", message: "Tidak ada slot JP yang tersedia untuk hari ini" })
+        }
+      }
+
+      // Time calculation
       let { jamMulai, jamSelesai } = input
-      if (input.jpMulai !== null && input.jpMulai !== undefined && input.jpCount !== null && input.jpCount !== undefined) {
-        const computed = await computeTimesForJadwal(sekolahId, input.hari, input.jpMulai, input.jpCount)
+      if (jpMulai !== null && jpCount !== null) {
+        const computed = await computeTimesForJadwal(pengaturanJadwalId, input.hari, jpMulai, jpCount)
         jamMulai = computed.jamMulai
         jamSelesai = computed.jamSelesai
+      }
+
+      // Auto sequential shifting
+      if (jpMulai !== null && jpCount !== null) {
+        await shiftSchedulesIfNeeded(sekolahId, input.kelasId, input.hari, jpMulai, jpCount, input.id)
       }
 
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(jadwalPelajaran).values({
         ...input,
         id,
+        jpMulai,
+        jpCount,
         jamMulai,
         jamSelesai,
       } as any).returning()
@@ -425,6 +359,14 @@ export const jadwalRouter = router({
       const newHari = input.data.hari !== undefined ? input.data.hari : existing.hari
       const newKelasId = input.data.kelasId !== undefined ? input.data.kelasId : existing.kelasId
 
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      const pengaturanJadwalId = pengaturan?.id
+      if (!pengaturanJadwalId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
+      }
+
       // Auto sequential shifting logic
       if (newJpMulai !== null && newJpMulai !== undefined && newJpCount !== null && newJpCount !== undefined) {
         await shiftSchedulesIfNeeded(sekolahId, newKelasId, newHari, newJpMulai, newJpCount, input.id)
@@ -433,7 +375,7 @@ export const jadwalRouter = router({
       // Auto time calculation
       let { jamMulai, jamSelesai } = input.data
       if (newJpMulai !== null && newJpMulai !== undefined && newJpCount !== null && newJpCount !== undefined) {
-        const computed = await computeTimesForJadwal(sekolahId, newHari, newJpMulai, newJpCount)
+        const computed = await computeTimesForJadwal(pengaturanJadwalId, newHari, newJpMulai, newJpCount)
         jamMulai = computed.jamMulai
         jamSelesai = computed.jamSelesai
       }
@@ -442,6 +384,8 @@ export const jadwalRouter = router({
         .update(jadwalPelajaran)
         .set({
           ...input.data,
+          jpMulai: newJpMulai,
+          jpCount: newJpCount,
           jamMulai,
           jamSelesai,
         } as any)
@@ -475,69 +419,61 @@ export const jadwalRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
 
-      // Fetch active days from pengaturanJadwal
       const pengaturan = await db.query.pengaturanJadwal.findFirst({
         where: eq(pengaturanJadwal.sekolahId, sekolahId),
       })
-      const activeDays: string[] = pengaturan?.hariAktif ? JSON.parse(pengaturan.hariAktif) : ["senin", "selasa", "rabu", "kamis", "jumat"]
-      
-      const agendaList = await db.query.agendaKhusus.findMany({
-        where: eq(agendaKhusus.sekolahId, sekolahId),
+      if (!pengaturan) throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
+
+      const pengaturanJadwalId = pengaturan.id
+
+      // Get active days from timeline items
+      const hariRows = await db
+        .select({ hari: timelineItem.hari })
+        .from(timelineItem)
+        .where(and(
+          eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+          eq(timelineItem.tipe, "jp"),
+        ))
+        .groupBy(timelineItem.hari)
+
+      const activeDays = hariRows.map(r => r.hari)
+      if (activeDays.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif. Silakan atur timeline terlebih dahulu." })
+      }
+
+      // Get all timeline items for slot mapping
+      const timelineList = await db.query.timelineItem.findMany({
+        where: and(
+          eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+        ),
+        orderBy: [asc(timelineItem.urutan)],
       })
 
-      const durasiJP = pengaturan?.durasiJP ?? 40
-      const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
-      const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
-      const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
+      const durasiJP = pengaturan.durasiJP ?? 40
+      const startMinutes = pengaturan.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
 
       // Pre-map academic slots per day
       const academicSlotsPerDay = new Map<string, number[]>()
       for (const day of activeDays) {
-        const slots: number[] = []
+        const dayItems = timelineList.filter(t => t.hari === day).sort((a, b) => a.urutan - b.urutan)
+        const academicSlots: number[] = []
         let academicCounter = 1
-        for (let jp = 1; jp <= totalJpSlots; jp++) {
-          const slotStart = startMinutes + (jp - 1) * durasiJP
-          const slotEnd = startMinutes + jp * durasiJP
-          const isAgenda = agendaList.some((a) => {
-            if (a.hari !== day) return false
-            const agendaStart = timeToMinutes(a.jamMulai)
-            const agendaEnd = timeToMinutes(a.jamSelesai)
-            return slotStart < agendaEnd && slotEnd > agendaStart
-          })
-          if (!isAgenda) {
-            slots.push(academicCounter++)
+        for (const item of dayItems) {
+          if (item.tipe === "jp") {
+            academicSlots.push(academicCounter++)
           }
         }
-        academicSlotsPerDay.set(day, slots)
+        academicSlotsPerDay.set(day, academicSlots)
       }
 
       // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
       const teacherExclusions = new Set<string>()
       for (const c of input.constraints) {
         const slotsForDay = academicSlotsPerDay.get(c.hari) || []
-        for (let jp = c.jpMulai; jp <= c.jpSelesai; jp++) {
-          const slotStart = startMinutes + (jp - 1) * durasiJP
-          const slotEnd = startMinutes + jp * durasiJP
-          const isAgenda = agendaList.some((a) => {
-            if (a.hari !== c.hari) return false
-            const agendaStart = timeToMinutes(a.jamMulai)
-            const agendaEnd = timeToMinutes(a.jamSelesai)
-            return slotStart < agendaEnd && slotEnd > agendaStart
-          })
-          if (!isAgenda) {
-            let academicIndex = 1
-            for (let x = 1; x < jp; x++) {
-              const xStart = startMinutes + (x - 1) * durasiJP
-              const xEnd = startMinutes + x * durasiJP
-              const xAgenda = agendaList.some((a) => {
-                if (a.hari !== c.hari) return false
-                const agendaStart = timeToMinutes(a.jamMulai)
-                const agendaEnd = timeToMinutes(a.jamSelesai)
-                return xStart < agendaEnd && xEnd > agendaStart
-              })
-              if (!xAgenda) academicIndex++
-            }
-             teacherExclusions.add(`${c.guruId}|${c.hari}|${academicIndex}`)
+        for (let jp = c.jpMulai; jp <= Math.min(c.jpSelesai, slotsForDay.length); jp++) {
+          const academicJp = slotsForDay[jp - 1]
+          if (academicJp !== undefined) {
+            teacherExclusions.add(`${c.guruId}|${c.hari}|${academicJp}`)
           }
         }
       }
@@ -560,20 +496,19 @@ export const jadwalRouter = router({
         }
       }
 
-      // Sort by size descending (LPT Heuristic) to run solver much faster
+      // Sort by size descending
       blocks.sort((a, b) => b.jpCount - a.jpCount)
 
       const assigned = new Map<string, { mataPelajaranId: string; guruId: string }>()
       const teacherBusy = new Map<string, boolean>()
       const kelasDaysMap = new Map<string, Set<string>>()
 
-      // Run solver
       const success = runBacktrackingSolver(
         blocks,
         0,
         assigned,
         teacherBusy,
-        activeDays,
+        [...activeDays],
         academicSlotsPerDay,
         teacherExclusions,
         kelasDaysMap
@@ -592,7 +527,7 @@ export const jadwalRouter = router({
         await db.delete(jadwalPelajaran).where(inArray(jadwalPelajaran.kelasId, targetKelasIds))
       }
 
-      // Group contiguous assignments into single records to match schema expectation
+      // Group contiguous assignments into single records
       const groups: {
         kelasId: string
         hari: string
@@ -645,7 +580,7 @@ export const jadwalRouter = router({
 
       const insertData: any[] = []
       for (const g of groups) {
-        const { jamMulai, jamSelesai } = await computeTimesForJadwal(sekolahId, g.hari, g.jpMulai, g.jpCount)
+        const { jamMulai, jamSelesai } = await computeTimesForJadwal(pengaturanJadwalId, g.hari, g.jpMulai, g.jpCount)
         insertData.push({
           id: crypto.randomUUID(),
           kelasId: g.kelasId,
@@ -668,3 +603,97 @@ export const jadwalRouter = router({
     }),
 })
 
+// Backtracking solver (same as before, extracted as standalone function)
+function runBacktrackingSolver(
+  blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[],
+  index: number,
+  assigned: Map<string, { mataPelajaranId: string; guruId: string }>,
+  teacherBusy: Map<string, boolean>,
+  activeDays: string[],
+  academicSlotsPerDay: Map<string, number[]>,
+  teacherExclusions: Set<string>,
+  kelasDaysMap: Map<string, Set<string>>,
+): boolean {
+  if (index >= blocks.length) return true
+
+  const block = blocks[index]
+  const key = `${block.kelasId}-${block.mataPelajaranId}-${block.guruId}`
+  const kelasDays = kelasDaysMap.get(block.kelasId) || new Set()
+
+  // Try each active day
+  for (const day of activeDays) {
+    const slots: number[] = academicSlotsPerDay.get(day) || []
+    if (slots.length === 0) continue
+
+    // Try each possible starting academic JP slot
+    for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+      const startJp = slots[startIdx]
+      let conflict = false
+
+      // Check if all slots are within bounds and not occupied
+      for (let offset = 0; offset < block.jpCount; offset++) {
+        const slotJp = slots[startIdx + offset]
+        if (slotJp === undefined) {
+          conflict = true
+          break
+        }
+
+        const slotKey = `${block.kelasId}|${day}|${slotJp}`
+        if (assigned.has(slotKey)) {
+          conflict = true
+          break
+        }
+
+        // Check teacher exclusion
+        const teacherKey = `${block.guruId}|${day}|${slotJp}`
+        if (teacherExclusions.has(teacherKey)) {
+          conflict = true
+          break
+        }
+      }
+
+      if (conflict) continue
+
+      // Also ensure teacher is not already teaching at this time on this day
+      for (let offset = 0; offset < block.jpCount; offset++) {
+        const slotJp = slots[startIdx + offset]
+        const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+        if (teacherBusy.get(teacherDayKey)) {
+          conflict = true
+          break
+        }
+      }
+
+      if (conflict) continue
+
+      // Assign slots
+      for (let offset = 0; offset < block.jpCount; offset++) {
+        const slotJp = slots[startIdx + offset]
+        const slotKey = `${block.kelasId}|${day}|${slotJp}`
+        assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+
+        const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+        teacherBusy.set(teacherDayKey, true)
+      }
+      kelasDays.add(day)
+      kelasDaysMap.set(block.kelasId, kelasDays)
+
+      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap)) {
+        return true
+      }
+
+      // Backtrack
+      for (let offset = 0; offset < block.jpCount; offset++) {
+        const slotJp = slots[startIdx + offset]
+        const slotKey = `${block.kelasId}|${day}|${slotJp}`
+        assigned.delete(slotKey)
+
+        const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+        teacherBusy.delete(teacherDayKey)
+      }
+      kelasDays.delete(day)
+    }
+  }
+
+  return false
+}

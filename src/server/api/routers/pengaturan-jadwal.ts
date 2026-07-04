@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and } from "drizzle-orm"
+import { eq, and, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { pengaturanJadwal, agendaKhusus } from "@/server/db/schema"
+import { pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -22,9 +22,7 @@ export const pengaturanJadwalRouter = router({
     .input(z.object({
       id: z.string().optional(),
       durasiJP: z.number().min(15).max(120),
-      hariAktif: z.string(),
       jamMulai: z.string(),
-      jamPulang: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
@@ -33,72 +31,205 @@ export const pengaturanJadwalRouter = router({
         where: eq(pengaturanJadwal.sekolahId, sekolahId),
       })
       if (existing) {
+        const wasChanged = existing.durasiJP !== input.durasiJP || existing.jamMulai !== input.jamMulai
         const result = await db
           .update(pengaturanJadwal)
-          .set({ durasiJP: input.durasiJP, hariAktif: input.hariAktif, jamMulai: input.jamMulai, jamPulang: input.jamPulang })
+          .set({ durasiJP: input.durasiJP, jamMulai: input.jamMulai })
           .where(eq(pengaturanJadwal.id, existing.id))
           .returning()
+        if (wasChanged) {
+          await regenerateJpTimeline(existing.id)
+        }
         return result[0]
       }
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(pengaturanJadwal)
-        .values({ id, sekolahId, durasiJP: input.durasiJP, hariAktif: input.hariAktif, jamMulai: input.jamMulai, jamPulang: input.jamPulang })
+        .values({ id, sekolahId, durasiJP: input.durasiJP, jamMulai: input.jamMulai })
         .returning()
+      await regenerateJpTimeline(id)
       await logAudit(ctx, { action: "create", entity: "pengaturan_jadwal", entityId: result[0]?.id, metadata: {} })
       return result[0]
     }),
 
-  getAgenda: protectedProcedure
+  getTimeline: protectedProcedure
     .input(z.object({ hari: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) return []
-      const conditions = [eq(agendaKhusus.sekolahId, sekolahId)]
-      if (input.hari) conditions.push(eq(agendaKhusus.hari, input.hari as any))
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) return []
+      const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]
+      if (input.hari) conditions.push(eq(timelineItem.hari, input.hari as any))
       const result = await db
         .select()
-        .from(agendaKhusus)
+        .from(timelineItem)
         .where(and(...conditions))
-        .orderBy(agendaKhusus.urutan)
+        .orderBy(asc(timelineItem.urutan))
       return result
     }),
 
-  upsertAgenda: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+  upsertTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({
       id: z.string().optional(),
       hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
-      nama: z.string().min(1),
-      icon: z.string().optional(),
+      tipe: z.enum(["jp", "pembiasaan", "upacara", "istirahat", "sholat", "lainnya"]),
+      label: z.string().optional(),
       jamMulai: z.string(),
       jamSelesai: z.string(),
       urutan: z.number(),
+      warna: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
       if (input.id) {
         const result = await db
-          .update(agendaKhusus)
-          .set({ hari: input.hari, nama: input.nama, icon: input.icon || "clock", jamMulai: input.jamMulai, jamSelesai: input.jamSelesai, urutan: input.urutan })
-          .where(eq(agendaKhusus.id, input.id))
+          .update(timelineItem)
+          .set({
+            hari: input.hari,
+            tipe: input.tipe,
+            label: input.label,
+            jamMulai: input.jamMulai,
+            jamSelesai: input.jamSelesai,
+            urutan: input.urutan,
+            warna: input.warna,
+          })
+          .where(eq(timelineItem.id, input.id))
           .returning()
+        await logAudit(ctx, { action: "update", entity: "timeline_item", entityId: input.id, metadata: {} })
         return result[0]
       }
-      const id = input.id || crypto.randomUUID()
+      const id = crypto.randomUUID()
       const result = await db
-        .insert(agendaKhusus)
-        .values({ id, sekolahId, hari: input.hari, nama: input.nama, icon: input.icon || "clock", jamMulai: input.jamMulai, jamSelesai: input.jamSelesai, urutan: input.urutan })
+        .insert(timelineItem)
+        .values({
+          id,
+          pengaturanJadwalId: pengaturan.id,
+          hari: input.hari,
+          tipe: input.tipe,
+          label: input.label,
+          jamMulai: input.jamMulai,
+          jamSelesai: input.jamSelesai,
+          urutan: input.urutan,
+          warna: input.warna,
+        })
         .returning()
-      await logAudit(ctx, { action: "create", entity: "agenda_khusus", entityId: result[0]?.id, metadata: {} })
+      await logAudit(ctx, { action: "create", entity: "timeline_item", entityId: result[0]?.id, metadata: {} })
       return result[0]
     }),
 
-  deleteAgenda: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+  deleteTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await db.delete(agendaKhusus).where(eq(agendaKhusus.id, input.id))
-      await logAudit(ctx, { action: "delete", entity: "agenda_khusus", entityId: input.id })
+      await db.delete(timelineItem).where(eq(timelineItem.id, input.id))
+      await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
+      return { success: true }
+    }),
+
+  applyTemplateToDays: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({
+      sourceHari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+      targetHari: z.array(z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"])),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
+
+      const sourceItems = await db
+        .select()
+        .from(timelineItem)
+        .where(and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, input.sourceHari as any),
+        ))
+        .orderBy(asc(timelineItem.urutan))
+
+      for (const target of input.targetHari) {
+        if (target === input.sourceHari) continue
+        await db.delete(timelineItem).where(and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, target as any),
+        ))
+        for (const item of sourceItems) {
+          await db.insert(timelineItem).values({
+            id: crypto.randomUUID(),
+            pengaturanJadwalId: pengaturan.id,
+            hari: target,
+            tipe: item.tipe,
+            label: item.label,
+            jamMulai: item.jamMulai,
+            jamSelesai: item.jamSelesai,
+            urutan: item.urutan,
+            warna: item.warna,
+          })
+        }
+      }
+
+      await logAudit(ctx, { action: "apply_template", entity: "timeline_item", entityId: input.sourceHari, metadata: { targetHari: input.targetHari } })
       return { success: true }
     }),
 })
+
+async function regenerateJpTimeline(pengaturanJadwalId: string) {
+  const pengaturan = await db.query.pengaturanJadwal.findFirst({
+    where: eq(pengaturanJadwal.id, pengaturanJadwalId),
+  })
+  if (!pengaturan) return
+
+  const durasi = pengaturan.durasiJP ?? 40
+  const [startH, startM] = (pengaturan.jamMulai ?? "07:00").split(":").map(Number)
+  const startMinutes = startH * 60 + startM
+
+  // Get distinct hari from existing timeline items
+  const existingHari = await db
+    .select({ hari: timelineItem.hari })
+    .from(timelineItem)
+    .where(eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId))
+    .groupBy(timelineItem.hari)
+
+  const hariList = existingHari.length > 0
+    ? existingHari.map(r => r.hari)
+    : ["senin", "selasa", "rabu", "kamis", "jumat"]
+
+  // Delete existing JP items
+  await db.delete(timelineItem).where(and(
+    eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+    eq(timelineItem.tipe, "jp"),
+  ))
+
+  // Generate JP 1-10 for each hari
+  for (const hari of hariList) {
+    for (let idx = 1; idx <= 10; idx++) {
+      const jpStartMin = startMinutes + (idx - 1) * durasi
+      const jpEndMin = startMinutes + idx * durasi
+      const jpStartH = Math.floor(jpStartMin / 60)
+      const jpStartM = jpStartMin % 60
+      const jpEndH = Math.floor(jpEndMin / 60)
+      const jpEndM = jpEndMin % 60
+
+      const jamMulai = `${String(jpStartH).padStart(2, "0")}:${String(jpStartM).padStart(2, "0")}`
+      const jamSelesai = `${String(jpEndH).padStart(2, "0")}:${String(jpEndM).padStart(2, "0")}`
+
+      await db.insert(timelineItem).values({
+        id: crypto.randomUUID(),
+        pengaturanJadwalId,
+        hari: hari as any,
+        tipe: "jp",
+        jamMulai,
+        jamSelesai,
+        urutan: idx,
+      }).onConflictDoNothing()
+    }
+  }
+}

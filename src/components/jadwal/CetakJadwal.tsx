@@ -51,11 +51,11 @@ interface SekolahData {
   logo?: string | null
 }
 
-interface AgendaData {
+interface TimelineRecord {
   id: string
   hari: string
-  nama: string
-  icon: string | null
+  tipe: string
+  label: string | null
   jamMulai: string
   jamSelesai: string
   urutan: number
@@ -82,14 +82,14 @@ export default function CetakJadwal({ open, onClose }: Props) {
   const { data: guruList } = api.guru.getAll.useQuery({}, { enabled: open })
   const { data: allJadwal, isLoading } = api.jadwal.getAll.useQuery({}, { enabled: open })
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({}, { enabled: open })
-  const { data: agendaList } = api.pengaturanJadwal.getAgenda.useQuery({}, { enabled: open })
+  const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({}, { enabled: open })
 
   const sekolah = (sekolahData ?? null) as SekolahData | null
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => (allJadwal ?? []) as JadwalRecord[], [allJadwal])
-  const agendaRecords = useMemo(() => (agendaList ?? []) as AgendaData[], [agendaList])
+  const timelineRecords = useMemo(() => (timelineList ?? []) as TimelineRecord[], [timelineList])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
@@ -102,18 +102,35 @@ export default function CetakJadwal({ open, onClose }: Props) {
 
   const durasiJP = pengaturan?.durasiJP ?? 40
   const startMinutes = pengaturan?.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
-  const endMinutes = pengaturan?.jamPulang ? timeToMinutes(pengaturan.jamPulang) : 900
-  const totalJpSlots = Math.floor((endMinutes - startMinutes) / durasiJP)
 
+  // Get active days from timeline
   const aktifDays = useMemo(() => {
-    if (!pengaturan?.hariAktif) return ["senin", "selasa", "rabu", "kamis", "jumat"]
-    try {
-      const parsed = JSON.parse(pengaturan.hariAktif)
-      return Array.isArray(parsed) ? parsed : ["senin", "selasa", "rabu", "kamis", "jumat"]
-    } catch {
-      return ["senin", "selasa", "rabu", "kamis", "jumat"]
+    const days = new Set<string>()
+    for (const t of timelineRecords) {
+      if (t.tipe === "jp") days.add(t.hari)
     }
-  }, [pengaturan])
+    if (days.size === 0) return ["senin", "selasa", "rabu", "kamis", "jumat"]
+    return ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu"].filter((d) => days.has(d))
+  }, [timelineRecords])
+
+  // Build timeline by day
+  const timelineByDay = useMemo(() => {
+    const map = new Map<string, TimelineRecord[]>()
+    for (const day of aktifDays) {
+      map.set(day, timelineRecords.filter((t) => t.hari === day).sort((a, b) => a.urutan - b.urutan))
+    }
+    return map
+  }, [timelineRecords, aktifDays])
+
+  // Total JP slots = max JP items across all days
+  const totalJpSlots = useMemo(() => {
+    let max = 0
+    for (const day of aktifDays) {
+      const jpCount = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp").length
+      if (jpCount > max) max = jpCount
+    }
+    return Math.max(max, 1)
+  }, [timelineByDay, aktifDays])
 
   const sortedKelas = useMemo(
     () => [...kelasRecords].sort((a, b) => {
@@ -125,35 +142,29 @@ export default function CetakJadwal({ open, onClose }: Props) {
     [kelasRecords]
   )
 
+  // Build academic JP mapping for entry lookup
   const academicJpMap = useMemo(() => {
     const map = new Map<string, number | null>()
     for (const day of aktifDays) {
+      const dayItems = timelineByDay.get(day) ?? []
       let counter = 1
       for (let jp = 1; jp <= totalJpSlots; jp++) {
-        const slotStart = startMinutes + (jp - 1) * durasiJP
-        const slotEnd = startMinutes + jp * durasiJP
-
-        const isAgenda = agendaRecords.some((a) => {
-          if (a.hari !== day) return false
-          const agendaStart = timeToMinutes(a.jamMulai)
-          const agendaEnd = timeToMinutes(a.jamSelesai)
-          return slotStart < agendaEnd && slotEnd > agendaStart
-        })
-
-        if (isAgenda) {
+        const item = dayItems[jp - 1]
+        if (item && item.tipe !== "jp") {
           map.set(`${day}-${jp}`, null)
-        } else {
+        } else if (item && item.tipe === "jp") {
           map.set(`${day}-${jp}`, counter++)
+        } else {
+          map.set(`${day}-${jp}`, null)
         }
       }
     }
     return map
-  }, [aktifDays, totalJpSlots, startMinutes, durasiJP, agendaRecords])
+  }, [aktifDays, totalJpSlots, timelineByDay])
 
   const getEntry = (kelasId: string, hari: string, jpSlot: number): JadwalRecord | null => {
     const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
     if (academicJp === null || academicJp === undefined) return null
-
     const entries = jadwalRecords.filter(
       (e) => e.kelasId === kelasId && e.hari === hari && e.jpMulai !== null && e.jpCount !== null
     )
@@ -165,35 +176,28 @@ export default function CetakJadwal({ open, onClose }: Props) {
     return null
   }
 
-  const getAgenda = (hari: string, jpSlot: number): AgendaData | null => {
-    const hariAgenda = agendaRecords.filter((a) => a.hari === hari)
-    for (const agenda of hariAgenda) {
-      const startJp = Math.floor((timeToMinutes(agenda.jamMulai) - startMinutes) / durasiJP) + 1
-      const endJp = Math.floor((timeToMinutes(agenda.jamSelesai) - startMinutes - 1) / durasiJP) + 1
-      if (jpSlot >= startJp && jpSlot <= endJp) return agenda
-    }
+  const getAgenda = (hari: string, jpSlot: number): TimelineRecord | null => {
+    const dayItems = timelineByDay.get(hari) ?? []
+    const item = dayItems[jpSlot - 1]
+    if (item && item.tipe !== "jp") return item
     return null
   }
 
-  // Build the sequential codes map: key: `${guruId}-${mataPelajaranId}` -> code
+  // Build codes map
   const codesMap = useMemo(() => {
     const map = new Map<string, string>()
     const sortedTeachers = [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
     let teacherCounter = 1
-
     for (const teacher of sortedTeachers) {
-      // Find unique combinations of subjects for this teacher in the schedules
       const teacherSchedules = jadwalRecords.filter((j) => j.guruId === teacher.id)
       const uniqueSubjectIds = Array.from(new Set(teacherSchedules.map((j) => j.mataPelajaranId)))
-
       let subjectOffset = 0
       for (const mapelId of uniqueSubjectIds) {
-        const suffix = subjectOffset === 0 ? "" : String.fromCharCode(96 + subjectOffset) // a, b, c...
+        const suffix = subjectOffset === 0 ? "" : String.fromCharCode(96 + subjectOffset)
         const code = `${teacherCounter}${suffix}`
         map.set(`${teacher.id}-${mapelId}`, code)
         subjectOffset++
       }
-
       if (uniqueSubjectIds.length > 0) {
         teacherCounter++
       }
@@ -332,36 +336,42 @@ export default function CetakJadwal({ open, onClose }: Props) {
             </thead>
             <tbody>
               {aktifDays.map((day) =>
-                jpSlots.map((jpSlot, idx) => (
-                  <tr key={`${day}-${jpSlot}`}>
-                    {idx === 0 && (
-                      <td rowSpan={totalJpSlots} style={{ border: "1px solid #000", padding: "2px 3px", fontWeight: "bold", background: "#fafafa", fontSize: 9, verticalAlign: "middle" }}>
-                        {DAY_LABEL[day]}
-                      </td>
-                    )}
-                    <td style={{ border: "1px solid #000", padding: "1.5px 2px", fontSize: 7, whiteSpace: "nowrap" }}>
-                      JP {jpSlot}<br />
-                      <span style={{ fontSize: 6 }}>{minutesToTime(startMinutes + (jpSlot - 1) * durasiJP)}</span>
-                    </td>
-                    {sortedKelas.map((kelas) => {
-                      const agenda = getAgenda(day, jpSlot)
-                      const entry = agenda ? null : getEntry(kelas.id, day, jpSlot)
-                      return (
-                        <td key={kelas.id} style={{ border: "1px solid #000", padding: "1.5px 2px", verticalAlign: "middle" }}>
-                          {agenda ? (
-                            <span style={{ fontStyle: "italic", color: "#555", fontSize: 7 }}>
-                              {agenda.nama}
-                            </span>
-                          ) : entry ? (
-                            <strong>{getKode(entry)}</strong>
-                          ) : (
-                            "\u2014"
-                          )}
+                jpSlots.map((jpSlot, idx) => {
+                  const dayItems = timelineByDay.get(day) ?? []
+                  const item = dayItems[jpSlot - 1]
+                  const timeStart = item?.jamMulai ?? minutesToTime(startMinutes + (jpSlot - 1) * durasiJP)
+                  const timeEnd = item?.jamSelesai ?? minutesToTime(startMinutes + jpSlot * durasiJP)
+                  return (
+                    <tr key={`${day}-${jpSlot}`}>
+                      {idx === 0 && (
+                        <td rowSpan={totalJpSlots} style={{ border: "1px solid #000", padding: "2px 3px", fontWeight: "bold", background: "#fafafa", fontSize: 9, verticalAlign: "middle" }}>
+                          {DAY_LABEL[day]}
                         </td>
-                      )
-                    })}
-                  </tr>
-                ))
+                      )}
+                      <td style={{ border: "1px solid #000", padding: "1.5px 2px", fontSize: 7, whiteSpace: "nowrap" }}>
+                        JP {jpSlot}<br />
+                        <span style={{ fontSize: 6 }}>{timeStart}</span>
+                      </td>
+                      {sortedKelas.map((kelas) => {
+                        const agenda = getAgenda(day, jpSlot)
+                        const entry = agenda ? null : getEntry(kelas.id, day, jpSlot)
+                        return (
+                          <td key={kelas.id} style={{ border: "1px solid #000", padding: "1.5px 2px", verticalAlign: "middle" }}>
+                            {agenda ? (
+                              <span style={{ fontStyle: "italic", color: "#555", fontSize: 7 }}>
+                                {agenda.label || agenda.tipe}
+                              </span>
+                            ) : entry ? (
+                              <strong>{getKode(entry)}</strong>
+                            ) : (
+                              "\u2014"
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
