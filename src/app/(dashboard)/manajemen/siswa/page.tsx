@@ -725,10 +725,13 @@ export default function SiswaPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <Tooltip>
-                          <TooltipTrigger delay={0}>
-                            <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </DropdownMenuTrigger>
+                          <TooltipTrigger
+                            delay={0}
+                            render={
+                              <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded-md" />
+                            }
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
                           </TooltipTrigger>
                           <TooltipPortal>
                             <TooltipPositioner>

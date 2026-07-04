@@ -188,10 +188,13 @@ export default function MapelPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <Tooltip>
-                        <TooltipTrigger delay={0}>
-                          <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-950/20 text-muted-foreground hover:text-[hsl(142_72%_40%)] focus-visible:ring-2 focus-visible:ring-[hsl(142_72%_40%)] rounded-md focus:outline-none transition-colors cursor-pointer">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </DropdownMenuTrigger>
+                        <TooltipTrigger
+                          delay={0}
+                          render={
+                            <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-950/20 text-muted-foreground hover:text-[hsl(142_72%_40%)] focus-visible:ring-2 focus-visible:ring-[hsl(142_72%_40%)] rounded-md focus:outline-none transition-colors cursor-pointer" />
+                          }
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
                         </TooltipTrigger>
                         <TooltipPortal>
                           <TooltipPositioner>
