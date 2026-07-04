@@ -36,6 +36,10 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: currentGuru } = api.lms.getCurrentGuru.useQuery()
+  const { data: guruList } = api.guru.getAll.useQuery(
+    { limit: 500 },
+    { enabled: !currentGuru },
+  )
 
   const [guruId, setGuruId] = useState("")
   const [kelasId, setKelasId] = useState("")
@@ -50,6 +54,12 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
   const createMutation = api.asesmen.create.useMutation()
   const updateMutation = api.asesmen.update.useMutation()
+
+  const selectedGuruLabel = useMemo(() => {
+    if (!guruId) return ""
+    const g = guruList?.find((g) => g.id === guruId)
+    return g ? g.namaLengkap : ""
+  }, [guruId, guruList])
 
   const selectedKelasLabel = useMemo(() => {
     if (!kelasId) return ""
@@ -197,6 +207,20 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           </div>
 
           <div className="grid grid-cols-2 gap-3">
+            {!currentGuru && (
+              <FieldWrap label="Guru" required>
+                <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")}>
+                  <SelectTrigger className="h-9 rounded-xl">
+                    <SelectValue placeholder="Pilih guru">{selectedGuruLabel || "Pilih guru"}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {guruList?.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FieldWrap>
+            )}
             <FieldWrap label="Kelas" required>
               <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
                 <SelectTrigger className="h-9 rounded-xl">
