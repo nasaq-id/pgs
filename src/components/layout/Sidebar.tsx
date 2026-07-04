@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
   { icon: BookOpen, label: "Akademik", path: "/akademik" },
   { icon: Monitor, label: "LMS", children: [
     { label: "Jurnal Mengajar", path: "/lms/jurnal" },
-    { label: "Tugas", path: "/lms/tugas" },
+    { label: "Asesmen", path: "/lms/asesmen" },
   ]},
   { icon: ClipboardCheck, label: "Absensi", path: "/absensi" },
   { icon: ClipboardCheck, label: "Nilai", path: "/nilai" },

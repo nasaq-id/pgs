@@ -21,6 +21,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths } from "date-fns"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { id } from "date-fns/locale"
 
 const pageTitles: Record<string, string> = {
@@ -29,7 +36,7 @@ const pageTitles: Record<string, string> = {
   "/manajemen/kelas": "Rombongan Belajar",
   "/akademik": "Akademik",
   "/sarana": "Sarana & Prasarana",
-  "/lms/jurnal": "Jurnal Mengajar", "/lms/tugas": "Tugas",
+  "/lms/jurnal": "Jurnal Mengajar",
   "/evaluasi/buku-nilai": "Buku Nilai",
   "/pengaturan": "Pengaturan",
 }
@@ -46,12 +53,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const pageTitle = pageTitles[pathname] ?? "Dashboard"
   const userPhoto = user?.photo
 
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [showAllNotif, setShowAllNotif] = useState(false)
   const calendarRef = useRef<HTMLDivElement>(null)
   const utils = api.useUtils()
 
@@ -60,26 +66,24 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     tahun: currentMonth.getFullYear(),
   })
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await utils.client.notifikasi.getRecent.query({ limit: 5 })
-        setNotifications(data)
-      } catch (e) {
-        console.error("Failed to fetch notifications", e)
-      }
-    }
-    const fetchUnreadCount = async () => {
-      try {
-        const data = await utils.client.notifikasi.getAll.query({ unreadOnly: true, limit: 1 })
-        setUnreadCount(data.total)
-      } catch (e) {
-        console.error("Failed to fetch unread count", e)
-      }
-    }
-    fetchNotifications()
-    fetchUnreadCount()
-  }, [utils])
+  const { data: notifications = [] } = api.notifikasi.getRecent.useQuery(
+    { limit: 5 },
+    { refetchInterval: 15000 },
+  )
+
+  const { data: unreadData } = api.notifikasi.getAll.useQuery(
+    { unreadOnly: true, limit: 1 },
+    { refetchInterval: 15000 },
+  )
+
+  const unreadCount = unreadData?.total ?? 0
+
+  const { data: allNotifData } = api.notifikasi.getAll.useQuery(
+    { limit: 50, offset: 0 },
+    { enabled: showAllNotif },
+  )
+
+  const allNotifications = allNotifData?.data ?? []
 
   useEffect(() => {
     const fetchWhatsApp = async () => {
@@ -97,8 +101,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     if (!notif.dibaca) {
       try {
         await utils.client.notifikasi.markAsRead.mutate({ id: notif.id })
-        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, dibaca: true } : n))
-        setUnreadCount(prev => Math.max(0, prev - 1))
+        utils.notifikasi.getRecent.invalidate()
+        utils.notifikasi.getAll.invalidate()
       } catch (e) {
         console.error("Failed to mark as read", e)
       }
@@ -111,10 +115,20 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const handleMarkAllRead = async () => {
     try {
       await utils.client.notifikasi.markAllAsRead.mutate()
-      setNotifications(prev => prev.map(n => ({ ...n, dibaca: true })))
-      setUnreadCount(0)
+      utils.notifikasi.getRecent.invalidate()
+      utils.notifikasi.getAll.invalidate()
     } catch (e) {
       console.error("Failed to mark all as read", e)
+    }
+  }
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await utils.client.notifikasi.markAsRead.mutate({ id })
+      utils.notifikasi.getRecent.invalidate()
+      utils.notifikasi.getAll.invalidate()
+    } catch (e) {
+      console.error("Failed to mark as read", e)
     }
   }
 
@@ -205,11 +219,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <DropdownMenuContent align="end" className="w-80 p-0">
             <div className="p-3 border-b flex items-center justify-between">
               <h4 className="font-semibold">Notifikasi</h4>
-              {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-6 px-2">
-                  Tandai semua dibaca
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={handleMarkAllRead}
+                className="text-xs h-6 px-2"
+              >
+                Tandai semua dibaca
+              </Button>
             </div>
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
@@ -233,7 +250,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               )}
             </div>
             <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem className="text-center text-primary hover:bg-primary/10 px-3 py-2" inset={false}>
+            <DropdownMenuItem
+              className="text-center text-primary hover:bg-primary/10 px-3 py-2 cursor-pointer"
+              inset={false}
+              onClick={() => { setShowAllNotif(true) }}
+            >
               Lihat semua notifikasi
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -362,6 +383,40 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           )}
         </div>
       )}
+
+      <Dialog open={showAllNotif} onOpenChange={setShowAllNotif}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Semua Notifikasi</DialogTitle>
+            <DialogDescription>Daftar seluruh notifikasi</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] space-y-1">
+            {allNotifications.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">Tidak ada notifikasi</p>
+            ) : (
+              allNotifications.map((notif: any) => (
+                <div
+                  key={notif.id}
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${!notif.dibaca ? "bg-primary/5" : ""} hover:bg-muted/50`}
+                  onClick={() => handleMarkRead(notif.id)}
+                >
+                  <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${notif.dibaca ? "bg-muted-foreground/30" : "bg-primary"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${!notif.dibaca ? "font-semibold" : "font-normal"}`}>{notif.judul}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.pesan}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(notif.createdAt), "d MMM yyyy HH:mm", { locale: id })}</p>
+                  </div>
+                  {notif.link && (
+                    <a href={notif.link} onClick={(e) => e.stopPropagation()} className="text-xs text-primary hover:underline mt-2 flex-shrink-0">
+                      Lihat
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

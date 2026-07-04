@@ -50,6 +50,20 @@
       "when": 1783096030605,
       "tag": "0006_handy_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783185885850,
+      "tag": "0007_ambiguous_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783187638178,
+      "tag": "0008_skinny_nuke",
+      "breakpoints": true
     }
   ]
 }
