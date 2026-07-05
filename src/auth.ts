@@ -41,15 +41,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = (user as { role: string }).role
         token.sekolahId = (user as { sekolahId: string | null }).sekolahId
         token.photo = (user as { photo?: string | null }).photo
       }
-      if (trigger === "update" && session) {
-        token.photo = (session as any)?.user?.photo ?? token.photo
+      if (trigger === "update") {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, token.id as string),
+        })
+        if (dbUser) {
+          token.photo = dbUser.photo
+          token.name = `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim()
+        }
       }
       return token
     },

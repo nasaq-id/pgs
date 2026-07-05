@@ -62,7 +62,7 @@ export default function ProfilPage() {
   const updatePhoto = api.profil.updateProfilePhoto.useMutation({
     onSuccess: (res) => {
       utils.profil.getProfile.invalidate()
-      updateSession({ user: { photo: res.photo } })
+      updateSession()
     },
   })
 
