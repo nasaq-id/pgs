@@ -1,9 +1,9 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
-import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight } from "lucide-react"
+import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight, LogOut } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -52,7 +52,10 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   const displayName = (user?.name) || user?.email?.split("@")[0] || "Admin"
   const initials = (user?.name?.[0] || user?.email?.[0] || "A").toUpperCase()
-  const pageTitle = pageTitles[pathname] ?? "Dashboard"
+  const rawPageTitle = pageTitles[pathname] ?? "Dashboard"
+  const pageTitle = pathname === "/evaluasi/buku-nilai" && (user?.role === "siswa" || user?.role === "ortu")
+    ? "Laporan Hasil Belajar"
+    : rawPageTitle
   const userPhoto = user?.photo
 
   const [showCalendar, setShowCalendar] = useState(false)
@@ -284,20 +287,42 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Tooltip>
         )}
 
-        <Tooltip>
-          <TooltipTrigger className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer">
-            {userPhoto ? (
-              <img src={userPhoto} alt={displayName} className="w-full h-full rounded-xl object-cover" />
-            ) : (
-              <span className="text-sm font-bold text-white">{initials}</span>
-            )}
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipPositioner>
-              <TooltipPopup>{displayName}</TooltipPopup>
-            </TooltipPositioner>
-          </TooltipPortal>
-        </Tooltip>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <DropdownMenuTrigger className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer overflow-hidden outline-none border-0" />
+              }
+            >
+              {userPhoto ? (
+                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white">{initials}</span>
+              )}
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipPositioner>
+                <TooltipPopup>{displayName}</TooltipPopup>
+              </TooltipPositioner>
+            </TooltipPortal>
+          </Tooltip>
+          <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border bg-card shadow-lg">
+            <div className="px-2 py-1.5 border-b mb-1">
+              <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded bg-primary/10 text-primary mt-1">
+                {user?.role?.replace("_", " ")}
+              </span>
+            </div>
+            <DropdownMenuItem
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-semibold"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-4 w-4" />
+              Keluar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {showCalendar && (

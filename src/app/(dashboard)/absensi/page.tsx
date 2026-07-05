@@ -144,7 +144,7 @@ export default function AbsensiPage() {
 
   const currentSiswaInfo = useMemo(() => {
     if (role !== "siswa" || !siswaAll) return null
-    return (siswaAll || []).find((s) => s.usernameSiswa === session?.user?.email || s.nisn === session?.user?.email)
+    return (siswaAll || []).find((s) => s.usernameSiswa === session?.user?.email || s.nisn === session?.user?.email || s.nisLokal === session?.user?.email)
   }, [siswaAll, role, session])
 
   // Populate manual records for siswa
@@ -906,17 +906,17 @@ export default function AbsensiPage() {
             {role === "siswa" && currentSiswaInfo && (
               <div className="space-y-3 w-full flex flex-col items-center">
                 <div className="p-3 bg-white rounded-2xl border border-muted flex items-center justify-center">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${currentSiswaInfo.nisn}`} alt="Siswa QR Code" className="w-48 h-48" />
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id}`} alt="Siswa QR Code" className="w-48 h-48" />
                 </div>
                 <div className="w-full">
                   <h4 className="font-extrabold text-sm">{currentSiswaInfo.namaLengkap}</h4>
-                  <p className="text-xs text-muted-foreground font-mono mt-0.5">NISN: {currentSiswaInfo.nisn}</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">NIS/NISN: {currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || "-"}</p>
                   
                   <div className="flex gap-2 w-full mt-3">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(currentSiswaInfo.nisn, currentSiswaInfo.namaLengkap)}>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id, currentSiswaInfo.namaLengkap)}>
                       <Download className="h-3.5 w-3.5 mr-1" /> Unduh
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(currentSiswaInfo.nisn, currentSiswaInfo.namaLengkap, "SISWA", `NISN: ${currentSiswaInfo.nisn}`)}>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id, currentSiswaInfo.namaLengkap, "SISWA", `NIS/NISN: ${currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || ""}`)}>
                       <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
                     </Button>
                   </div>
@@ -927,17 +927,17 @@ export default function AbsensiPage() {
             {role === "guru" && ownGuru && (
               <div className="space-y-3 w-full flex flex-col items-center">
                 <div className="p-3 bg-white rounded-2xl border border-muted flex items-center justify-center">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ownGuru.nipnuptk || ownGuru.id}`} alt="Guru QR Code" className="w-48 h-48" />
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ownGuru.nipnuptk || ownGuru.nik || ownGuru.id}`} alt="Guru QR Code" className="w-48 h-48" />
                 </div>
                 <div className="w-full">
                   <h4 className="font-extrabold text-sm">{ownGuru.namaLengkap}</h4>
-                  <p className="text-xs text-muted-foreground font-mono mt-0.5">NIP/ID: {ownGuru.nipnuptk || ownGuru.id}</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">NIP/NIK: {ownGuru.nipnuptk || ownGuru.nik || "-"}</p>
                   
                   <div className="flex gap-2 w-full mt-3">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(ownGuru.nipnuptk || ownGuru.id, ownGuru.namaLengkap)}>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(ownGuru.nipnuptk || ownGuru.nik || ownGuru.id, ownGuru.namaLengkap)}>
                       <Download className="h-3.5 w-3.5 mr-1" /> Unduh
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(ownGuru.nipnuptk || ownGuru.id, ownGuru.namaLengkap, "GURU", `NIP/ID: ${ownGuru.nipnuptk || ownGuru.id}`)}>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(ownGuru.nipnuptk || ownGuru.nik || ownGuru.id, ownGuru.namaLengkap, "GURU", `NIP/NIK: ${ownGuru.nipnuptk || ownGuru.nik || ""}`)}>
                       <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
                     </Button>
                   </div>

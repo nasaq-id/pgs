@@ -202,9 +202,8 @@ export const absensiRouter = router({
       const endOfToday = new Date()
       endOfToday.setHours(23, 59, 59, 999)
 
-      // 1. Search for Student
       const student = await db.query.siswa.findFirst({
-        where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.nisn, code), eq(siswa.id, code))),
+        where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.nisn, code), eq(siswa.id, code), eq(siswa.nisLokal, code))),
       })
 
       if (student) {
@@ -279,7 +278,7 @@ export const absensiRouter = router({
 
       // 2. Search for Teacher
       const teacher = await db.query.guru.findFirst({
-        where: and(eq(guru.sekolahId, sekolahId), or(eq(guru.nipnuptk, code), eq(guru.id, code))),
+        where: and(eq(guru.sekolahId, sekolahId), or(eq(guru.nipnuptk, code), eq(guru.nik, code), eq(guru.id, code))),
       })
 
       if (teacher) {
