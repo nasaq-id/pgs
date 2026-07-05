@@ -97,6 +97,9 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Ekstrakurikuler", path: "/kesiswaan/ekstrakurikuler" },
       { label: "Prestasi", path: "/kesiswaan/prestasi" },
+      { label: "Poin Siswa", path: "/kesiswaan/poin-siswa" },
+      { label: "Monitoring Poin", path: "/kesiswaan/monitoring-poin" },
+      { label: "Laporan Poin", path: "/kesiswaan/laporan-poin" },
     ]
   },
   { 
@@ -127,6 +130,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Umum", path: "/pengaturan" },
       { label: "Kalender Akademik", path: "/pengaturan/kalender" },
+      { label: "Poin", path: "/pengaturan/poin" },
     ]
   },
 ]

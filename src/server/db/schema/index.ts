@@ -23,3 +23,7 @@ export { asesmen, asesmenRelations, asesmenSiswa, asesmenSiswaRelations, asesmen
 export { absensiGuru, absensiGuruRelations } from "./absensi-guru"
 export { pengaturanAbsensi, pengaturanAbsensiRelations } from "./pengaturan-absensi"
 export { pengajuanIzin, pengajuanIzinRelations } from "./pengajuan-izin"
+export { poinKategori, poinKategoriRelations } from "./poin-kategori"
+export { poinTindakLanjut, poinTindakLanjutRelations } from "./poin-tindak-lanjut"
+export { poinAturan, poinAturanRelations } from "./poin-aturan"
+export { poinSikap, poinSikapRelations } from "./poin-sikap"

@@ -1,0 +1,600 @@
+import { z } from "zod"
+import { TRPCError } from "@trpc/server"
+import { eq, and, like, or, desc, asc, gte, lte, sql, sum } from "drizzle-orm"
+import { db } from "@/server/db"
+import {
+  poinKategori,
+  poinTindakLanjut,
+  poinAturan,
+  poinSikap,
+  siswa,
+  guru,
+  users,
+} from "@/server/db/schema"
+import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { logAudit } from "@/server/audit"
+import { createNotifikasi } from "@/server/notifikasi"
+
+const kategoriCreateSchema = z.object({
+  id: z.string().optional(),
+  nama: z.string(),
+  jenis: z.enum(["positif", "negatif"]),
+  poin: z.number(),
+})
+
+const kategoriUpdateSchema = kategoriCreateSchema.partial()
+
+const tindakLanjutCreateSchema = z.object({
+  id: z.string().optional(),
+  jenis: z.enum(["positif", "negatif"]),
+  nama: z.string(),
+})
+
+const tindakLanjutUpdateSchema = tindakLanjutCreateSchema.partial()
+
+const aturanCreateSchema = z.object({
+  id: z.string().optional(),
+  poinMin: z.number(),
+  poinMax: z.number(),
+  tindakLanjut: z.string(),
+  status: z.string(),
+})
+
+const aturanUpdateSchema = aturanCreateSchema.partial()
+
+const sikapCreateSchema = z.object({
+  siswaId: z.string(),
+  kategoriId: z.string(),
+  tindakLanjutId: z.string().nullable().optional(),
+  deskripsi: z.string().nullable().optional(),
+})
+
+function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
+  const { role, sekolahId } = ctx.session.user
+  if (role === "super_admin") return null
+  return sekolahId ?? null
+}
+
+export const poinRouter = router({
+  // ── Kategori ──
+  getAllKategori: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      jenis: z.enum(["positif", "negatif"]).optional(),
+      aktifOnly: z.boolean().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = []
+      if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
+      if (input.search) conditions.push(like(poinKategori.nama, `%${input.search}%`))
+      if (input.jenis) conditions.push(eq(poinKategori.jenis, input.jenis))
+      if (input.aktifOnly) conditions.push(eq(poinKategori.aktif, true))
+      return db.query.poinKategori.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [asc(poinKategori.jenis), asc(poinKategori.nama)],
+      })
+    }),
+
+  createKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(kategoriCreateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+      const id = input.id || crypto.randomUUID()
+      const [result] = await db.insert(poinKategori).values({ ...input, id, sekolahId }).returning()
+      await logAudit(ctx, { action: "create", entity: "poin_kategori", entityId: id, metadata: { nama: input.nama } })
+      return result
+    }),
+
+  updateKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string(), data: kategoriUpdateSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinKategori.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
+      const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
+      const [result] = await db.update(poinKategori).set(input.data as any).where(and(...conditions)).returning()
+      await logAudit(ctx, { action: "update", entity: "poin_kategori", entityId: input.id })
+      return result
+    }),
+
+  removeKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinKategori.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
+      const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
+      await db.delete(poinKategori).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "poin_kategori", entityId: input.id })
+      return { success: true }
+    }),
+
+  // ── Tindak Lanjut ──
+  getAllTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({
+      search: z.string().optional(),
+      jenis: z.enum(["positif", "negatif"]).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = []
+      if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
+      if (input.search) conditions.push(like(poinTindakLanjut.nama, `%${input.search}%`))
+      if (input.jenis) conditions.push(eq(poinTindakLanjut.jenis, input.jenis))
+      return db.query.poinTindakLanjut.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [asc(poinTindakLanjut.jenis), asc(poinTindakLanjut.nama)],
+      })
+    }),
+
+  createTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(tindakLanjutCreateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+      const id = input.id || crypto.randomUUID()
+      const [result] = await db.insert(poinTindakLanjut).values({ ...input, id, sekolahId }).returning()
+      await logAudit(ctx, { action: "create", entity: "poin_tindak_lanjut", entityId: id, metadata: { nama: input.nama } })
+      return result
+    }),
+
+  updateTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string(), data: tindakLanjutUpdateSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinTindakLanjut.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
+      const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
+      const [result] = await db.update(poinTindakLanjut).set(input.data as any).where(and(...conditions)).returning()
+      await logAudit(ctx, { action: "update", entity: "poin_tindak_lanjut", entityId: input.id })
+      return result
+    }),
+
+  removeTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinTindakLanjut.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
+      const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
+      await db.delete(poinTindakLanjut).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "poin_tindak_lanjut", entityId: input.id })
+      return { success: true }
+    }),
+
+  // ── Aturan Akumulasi ──
+  getAllAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .query(async ({ ctx }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = []
+      if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
+      return db.query.poinAturan.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [asc(poinAturan.poinMin)],
+      })
+    }),
+
+  createAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(aturanCreateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+      const id = input.id || crypto.randomUUID()
+      const [result] = await db.insert(poinAturan).values({ ...input, id, sekolahId }).returning()
+      await logAudit(ctx, { action: "create", entity: "poin_aturan", entityId: id })
+      return result
+    }),
+
+  updateAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string(), data: aturanUpdateSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinAturan.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
+      const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
+      const [result] = await db.update(poinAturan).set(input.data as any).where(and(...conditions)).returning()
+      await logAudit(ctx, { action: "update", entity: "poin_aturan", entityId: input.id })
+      return result
+    }),
+
+  removeAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinAturan.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
+      const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
+      await db.delete(poinAturan).where(and(...conditions))
+      await logAudit(ctx, { action: "delete", entity: "poin_aturan", entityId: input.id })
+      return { success: true }
+    }),
+
+  // ── Poin Sikap (Transaksi) ──
+  getAllSikap: protectedProcedure
+    .input(z.object({
+      siswaId: z.string().optional(),
+      jenis: z.enum(["positif", "negatif"]).optional(),
+      tanggalMulai: z.coerce.date().optional(),
+      tanggalSelesai: z.coerce.date().optional(),
+      limit: z.number().optional().default(100),
+      offset: z.number().optional().default(0),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
+      if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
+      if (input.siswaId) conditions.push(eq(poinSikap.siswaId, input.siswaId))
+      if (input.tanggalMulai) conditions.push(gte(poinSikap.createdAt, input.tanggalMulai))
+      if (input.tanggalSelesai) conditions.push(lte(poinSikap.createdAt, input.tanggalSelesai))
+
+      const data = await db.query.poinSikap.findMany({
+        where: and(...conditions),
+        orderBy: [desc(poinSikap.createdAt)],
+        limit: input.limit,
+        offset: input.offset,
+        with: {
+          siswa: true,
+          kategori: true,
+          tindakLanjut: true,
+          guru: true,
+        },
+      })
+
+      if (input.jenis && data.length > 0) {
+        return data.filter((d: any) => d.kategori?.jenis === input.jenis)
+      }
+
+      return data
+    }),
+
+  createSikap: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .input(sikapCreateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+
+      const kategori = await db.query.poinKategori.findFirst({
+        where: eq(poinKategori.id, input.kategoriId),
+      })
+      if (!kategori) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
+
+      const userEmail = ctx.session.user.email
+      let guruId = ""
+      if (ctx.session.user.role === "guru" && userEmail) {
+        const guruRecord = await db.query.guru.findFirst({
+          where: or(
+            eq(guru.email, userEmail),
+            eq(guru.usernameGuru, userEmail),
+          ),
+        })
+        if (!guruRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Data guru tidak ditemukan" })
+        guruId = guruRecord.id
+      } else {
+        const userRecord = await db.query.users.findFirst({
+          where: eq(users.id, ctx.session.user.id),
+        })
+        if (userRecord?.firstName) {
+          const guruRecord = await db.query.guru.findFirst({
+            where: or(
+              eq(guru.namaLengkap, `${userRecord.firstName} ${userRecord.lastName || ""}`.trim()),
+            ),
+          })
+          if (guruRecord) {
+            guruId = guruRecord.id
+          }
+        }
+        if (!guruId) {
+          guruId = ctx.session.user.id
+        }
+      }
+
+      const id = crypto.randomUUID()
+      const [result] = await db.insert(poinSikap).values({
+        id,
+        sekolahId,
+        siswaId: input.siswaId,
+        kategoriId: input.kategoriId,
+        poin: kategori.poin,
+        tindakLanjutId: input.tindakLanjutId ?? null,
+        deskripsi: input.deskripsi ?? null,
+        guruId,
+        status: "belum_diproses",
+      }).returning()
+
+      await logAudit(ctx, {
+        action: "create",
+        entity: "poin_sikap",
+        entityId: id,
+        metadata: { siswaId: input.siswaId, poin: kategori.poin, jenis: kategori.jenis },
+      })
+
+      return result
+    }),
+
+  // ── Monitoring ──
+  getMonitoring: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .input(z.object({
+      status: z.enum(["belum_diproses", "sedang_diproses", "selesai"]).optional(),
+      search: z.string().optional(),
+      limit: z.number().optional().default(50),
+      offset: z.number().optional().default(0),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
+      if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
+      if (input.status) conditions.push(eq(poinSikap.status, input.status))
+
+      const data = await db.query.poinSikap.findMany({
+        where: and(...conditions),
+        orderBy: [desc(poinSikap.createdAt)],
+        limit: input.limit,
+        offset: input.offset,
+        with: {
+          siswa: true,
+          kategori: true,
+          tindakLanjut: true,
+          guru: true,
+        },
+      })
+
+      if (input.search) {
+        const q = input.search.toLowerCase()
+        return data.filter((d: any) =>
+          d.siswa?.namaLengkap?.toLowerCase().includes(q)
+        )
+      }
+
+      return data
+    }),
+
+  updateStatusMonitoring: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({
+      id: z.string(),
+      status: z.enum(["belum_diproses", "sedang_diproses", "selesai"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinSikap.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
+      const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
+      const [result] = await db.update(poinSikap).set({ status: input.status }).where(and(...conditions)).returning()
+      return result
+    }),
+
+  // ── Dashboard ──
+  getDashboardSiswa: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+
+      const userEmail = ctx.session.user.email
+      let currentSiswa = null
+      if (userEmail) {
+        currentSiswa = await db.query.siswa.findFirst({
+          where: or(
+            eq(siswa.usernameSiswa, userEmail),
+            eq(siswa.emailSiswa, userEmail),
+            eq(siswa.nisn, userEmail),
+          ),
+        })
+      }
+
+      let totalPoin = 0
+      if (currentSiswa) {
+        const poinData = await db
+          .select({ total: sum(poinSikap.poin) })
+          .from(poinSikap)
+          .where(and(
+            eq(poinSikap.sekolahId, sekolahId),
+            eq(poinSikap.siswaId, currentSiswa.id),
+          ))
+        totalPoin = Number(poinData[0]?.total) || 0
+      }
+
+      const leaderboard = await db
+        .select({
+          siswaId: poinSikap.siswaId,
+          totalPoin: sum(poinSikap.poin).mapWith(Number),
+        })
+        .from(poinSikap)
+        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
+        .where(and(
+          eq(poinSikap.sekolahId, sekolahId),
+          eq(poinKategori.jenis, "positif"),
+        ))
+        .groupBy(poinSikap.siswaId)
+        .orderBy(desc(sql`sum(${poinSikap.poin})`))
+        .limit(5)
+
+      const leaderboardWithSiswa = await Promise.all(
+        leaderboard.map(async (row) => {
+          const s = await db.query.siswa.findFirst({
+            where: eq(siswa.id, row.siswaId),
+          })
+          return { ...row, namaLengkap: s?.namaLengkap || "-" }
+        })
+      )
+
+      return { totalPoin, leaderboard: leaderboardWithSiswa, currentSiswa }
+    }),
+
+  getDashboardGuruAdmin: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+
+      const topPositif = await db
+        .select({
+          siswaId: poinSikap.siswaId,
+          totalPoin: sum(poinSikap.poin).mapWith(Number),
+        })
+        .from(poinSikap)
+        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
+        .where(and(
+          eq(poinSikap.sekolahId, sekolahId),
+          eq(poinKategori.jenis, "positif"),
+        ))
+        .groupBy(poinSikap.siswaId)
+        .orderBy(desc(sql`sum(${poinSikap.poin})`))
+        .limit(5)
+
+      const topNegatif = await db
+        .select({
+          siswaId: poinSikap.siswaId,
+          totalPoin: sum(poinSikap.poin).mapWith(Number),
+        })
+        .from(poinSikap)
+        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
+        .where(and(
+          eq(poinSikap.sekolahId, sekolahId),
+          eq(poinKategori.jenis, "negatif"),
+        ))
+        .groupBy(poinSikap.siswaId)
+        .orderBy(desc(sql`sum(${poinSikap.poin})`))
+        .limit(5)
+
+      const positifWithSiswa = await Promise.all(
+        topPositif.map(async (row) => {
+          const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
+          return { ...row, namaLengkap: s?.namaLengkap || "-" }
+        })
+      )
+
+      const negatifWithSiswa = await Promise.all(
+        topNegatif.map(async (row) => {
+          const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
+          return { ...row, namaLengkap: s?.namaLengkap || "-" }
+        })
+      )
+
+      return { topPositif: positifWithSiswa, topNegatif: negatifWithSiswa }
+    }),
+
+  // ── Kirim Pemberitahuan ──
+  kirimPemberitahuan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ siswaId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+
+      const dataSiswa = await db.query.siswa.findFirst({ where: eq(siswa.id, input.siswaId) })
+      if (!dataSiswa) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+
+      const [poinData] = await db
+        .select({ total: sum(poinSikap.poin).mapWith(Number) })
+        .from(poinSikap)
+        .where(and(
+          eq(poinSikap.sekolahId, sekolahId),
+          eq(poinSikap.siswaId, input.siswaId),
+        ))
+      const totalPoin = poinData?.total || 0
+
+      const aturan = await db.query.poinAturan.findFirst({
+        where: and(
+          eq(poinAturan.sekolahId, sekolahId),
+          lte(poinAturan.poinMin, totalPoin),
+          gte(poinAturan.poinMax, totalPoin),
+        ),
+      })
+
+      let judul = totalPoin >= 0
+        ? "Apresiasi Prestasi Poin Positif"
+        : "Peringatan Akumulasi Poin Negatif"
+      let pesan = `Siswa ${dataSiswa.namaLengkap} memiliki total poin ${totalPoin}.`
+      if (aturan) {
+        pesan += `\n\nBerdasarkan aturan: ${aturan.tindakLanjut}`
+      }
+
+      await createNotifikasi(ctx as any, {
+        judul,
+        pesan,
+        tipe: totalPoin < 0 ? "warning" : "success",
+        link: `/kesiswaan/monitoring-poin?siswaId=${input.siswaId}`,
+      })
+
+      return { success: true, totalPoin, aturan: aturan || null }
+    }),
+
+  // ── Rapor Karakter ──
+  getRaporSiswa: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .input(z.object({ siswaId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [
+        eq(poinSikap.sekolahId, sekolahId || ""),
+        eq(poinSikap.siswaId, input.siswaId),
+      ]
+      if (sekolahId) conditions[0] = eq(poinSikap.sekolahId, sekolahId)
+
+      const dataSiswa = await db.query.siswa.findFirst({ where: eq(siswa.id, input.siswaId) })
+      if (!dataSiswa) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+
+      const records = await db.query.poinSikap.findMany({
+        where: and(...conditions),
+        orderBy: [desc(poinSikap.createdAt)],
+        with: {
+          kategori: true,
+          tindakLanjut: true,
+          guru: true,
+        },
+      })
+
+      const totalPoin = records.reduce((acc, r) => acc + r.poin, 0)
+      const positifCount = records.filter((r: any) => r.kategori?.jenis === "positif").length
+      const negatifCount = records.filter((r: any) => r.kategori?.jenis === "negatif").length
+
+      return {
+        siswa: dataSiswa,
+        totalPoin,
+        positifCount,
+        negatifCount,
+        records,
+      }
+    }),
+
+  // ── Laporan Export ──
+  getLaporanData: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .input(z.object({
+      tanggalMulai: z.coerce.date().optional(),
+      tanggalSelesai: z.coerce.date().optional(),
+      jenis: z.enum(["positif", "negatif"]).optional(),
+      siswaId: z.string().optional(),
+      limit: z.number().optional().default(500),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
+      if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
+      if (input.tanggalMulai) conditions.push(gte(poinSikap.createdAt, input.tanggalMulai))
+      if (input.tanggalSelesai) conditions.push(lte(poinSikap.createdAt, input.tanggalSelesai))
+      if (input.siswaId) conditions.push(eq(poinSikap.siswaId, input.siswaId))
+
+      let data = await db.query.poinSikap.findMany({
+        where: and(...conditions),
+        orderBy: [desc(poinSikap.createdAt)],
+        limit: input.limit,
+        with: {
+          siswa: true,
+          kategori: true,
+          tindakLanjut: true,
+          guru: true,
+        },
+      })
+
+      if (input.jenis) {
+        data = data.filter((d: any) => d.kategori?.jenis === input.jenis)
+      }
+
+      return data
+    }),
+})
