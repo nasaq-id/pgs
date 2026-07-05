@@ -39,6 +39,8 @@ const pageTitles: Record<string, string> = {
   "/lms/jurnal": "Jurnal Mengajar",
   "/evaluasi/buku-nilai": "Buku Nilai",
   "/pengaturan": "Pengaturan",
+  "/absensi": "Absensi Harian",
+  "/absensi/izin": "Pengajuan Izin",
 }
 
 interface TopbarProps { onMenuClick: () => void }

@@ -37,7 +37,10 @@ const menuItems: MenuItem[] = [
     { label: "Jurnal Mengajar", path: "/lms/jurnal" },
     { label: "Asesmen", path: "/lms/asesmen" },
   ]},
-  { icon: ClipboardCheck, label: "Absensi", path: "/absensi" },
+  { icon: ClipboardCheck, label: "Absensi", children: [
+    { label: "Absensi Harian", path: "/absensi" },
+    { label: "Pengajuan Izin", path: "/absensi/izin" },
+  ]},
   { icon: ClipboardCheck, label: "Nilai", path: "/nilai" },
   { icon: ClipboardCheck, label: "Evaluasi", children: [
     { label: "Buku Nilai", path: "/evaluasi/buku-nilai" },
