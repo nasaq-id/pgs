@@ -136,37 +136,37 @@
 
 @layer utilities {
   .glass {
-    background: oklch(1 0 0 / 60%);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: oklch(1 0 0 / 72%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid oklch(1 0 0 / 30%);
   }
 
   .glass-strong {
-    background: oklch(1 0 0 / 75%);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    background: oklch(1 0 0 / 85%);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
     border: 1px solid oklch(1 0 0 / 40%);
   }
 
   .glass-subtle {
-    background: oklch(1 0 0 / 40%);
-    backdrop-filter: blur(12px) saturate(160%);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    background: oklch(1 0 0 / 50%);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
     border: 1px solid oklch(1 0 0 / 20%);
   }
 
   .glass-dark {
-    background: oklch(0.2 0 0 / 55%);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: oklch(0.2 0 0 / 65%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid oklch(1 0 0 / 10%);
   }
 
   .glass-card {
-    background: oklch(1 0 0 / 50%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: oklch(1 0 0 / 70%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid oklch(1 0 0 / 35%);
     box-shadow:
       0 4px 24px -4px oklch(0 0 0 / 6%),
@@ -231,13 +231,17 @@
 .dark .glass,
 .dark .glass-strong,
 .dark .glass-card {
-  background: oklch(0.2 0 0 / 55%);
-  border-color: oklch(1 0 0 / 8%);
+  background: oklch(0.2 0 0 / 75%);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-color: oklch(1 0 0 / 10%);
 }
 
 .dark .glass-subtle {
-  background: oklch(0.2 0 0 / 35%);
-  border-color: oklch(1 0 0 / 6%);
+  background: oklch(0.2 0 0 / 55%);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-color: oklch(1 0 0 / 8%);
 }
 
 .dark .glass-nav-item:hover {
@@ -258,7 +262,9 @@
 }
 
 .dark .glass-overlay {
-  background: oklch(0 0 0 / 55%);
+  background: oklch(0 0 0 / 65%);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
 }
 
 .dark .glass-dialog {
