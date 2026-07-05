@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
@@ -65,6 +65,16 @@ export default function IzinPage() {
   )
 
   const canApprove = role === "super_admin" || role === "admin_sekolah" || role === "tu" || isWaliKelas || isKepsekOrWaka
+
+  useEffect(() => {
+    if (role) {
+      if (role === "siswa" || role === "guru") {
+        setActiveTab("form")
+      } else if (canApprove) {
+        setActiveTab("approval")
+      }
+    }
+  }, [role, canApprove])
 
   const { data: daftarPengajuan, isLoading: isListLoading } = api.izin.getDaftarPengajuan.useQuery({
     limit: 100,

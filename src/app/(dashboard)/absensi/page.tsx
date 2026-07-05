@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer } from "lucide-react"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
 
@@ -398,6 +398,104 @@ export default function AbsensiPage() {
     }
   }
 
+  const handleDownloadQR = async (data: string, name: string) => {
+    try {
+      const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `QR_Absensi_${name.replace(/\s+/g, "_")}.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success("QR Code berhasil diunduh")
+    } catch (e) {
+      window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`, "_blank")
+    }
+  }
+
+  const handlePrintQR = (data: string, name: string, roleName: string, identifier: string) => {
+    const printWindow = window.open("", "_blank", "width=600,height=600")
+    if (!printWindow) return
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Cetak QR Code - ${name}</title>
+          <style>
+            body {
+              font-family: system-ui, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              text-align: center;
+            }
+            .card {
+              border: 2px solid #ddd;
+              border-radius: 16px;
+              padding: 30px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+              max-width: 320px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+            .logo {
+              font-weight: 800;
+              font-size: 1.1rem;
+              color: #10b981;
+              margin-bottom: 10px;
+            }
+            img {
+              width: 180px;
+              height: 180px;
+              margin: 15px 0;
+            }
+            h2 {
+              margin: 10px 0 5px 0;
+              font-size: 1.1rem;
+            }
+            p {
+              margin: 0;
+              color: #666;
+              font-size: 0.85rem;
+            }
+            .identifier {
+              font-family: monospace;
+              background: #f3f4f6;
+              padding: 4px 8px;
+              border-radius: 4px;
+              display: inline-block;
+              margin-top: 8px;
+              font-size: 0.75rem;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">E-PRESENSI SEKOLAH</div>
+            <p style="font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #10b981;">KARTU PRESENSI ${roleName}</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data}" alt="QR" />
+            <h2>${name}</h2>
+            <span class="identifier">${identifier}</span>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   // Camera initialization with Lazy Loading
   useEffect(() => {
     if (activeTab === "scan" && isScannerActive) {
@@ -489,16 +587,17 @@ export default function AbsensiPage() {
             Pengaturan Absen
           </button>
         )}
-        {!canTakeAttendance && (
-          <button
-            onClick={() => setActiveTab("pribadi")}
-            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
-              activeTab === "pribadi" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Presensi Saya
-          </button>
-        )}
+        <button
+          onClick={() => {
+            setActiveTab("pribadi")
+            setIsScannerActive(false)
+          }}
+          className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
+            activeTab === "pribadi" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Presensi Saya
+        </button>
         {canTakeAttendance && (
           <>
             <button onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")} className="pb-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-muted-foreground/50 cursor-pointer">
@@ -809,9 +908,18 @@ export default function AbsensiPage() {
                 <div className="p-3 bg-white rounded-2xl border border-muted flex items-center justify-center">
                   <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${currentSiswaInfo.nisn}`} alt="Siswa QR Code" className="w-48 h-48" />
                 </div>
-                <div>
+                <div className="w-full">
                   <h4 className="font-extrabold text-sm">{currentSiswaInfo.namaLengkap}</h4>
                   <p className="text-xs text-muted-foreground font-mono mt-0.5">NISN: {currentSiswaInfo.nisn}</p>
+                  
+                  <div className="flex gap-2 w-full mt-3">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(currentSiswaInfo.nisn, currentSiswaInfo.namaLengkap)}>
+                      <Download className="h-3.5 w-3.5 mr-1" /> Unduh
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(currentSiswaInfo.nisn, currentSiswaInfo.namaLengkap, "SISWA", `NISN: ${currentSiswaInfo.nisn}`)}>
+                      <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -821,9 +929,39 @@ export default function AbsensiPage() {
                 <div className="p-3 bg-white rounded-2xl border border-muted flex items-center justify-center">
                   <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ownGuru.nipnuptk || ownGuru.id}`} alt="Guru QR Code" className="w-48 h-48" />
                 </div>
-                <div>
+                <div className="w-full">
                   <h4 className="font-extrabold text-sm">{ownGuru.namaLengkap}</h4>
                   <p className="text-xs text-muted-foreground font-mono mt-0.5">NIP/ID: {ownGuru.nipnuptk || ownGuru.id}</p>
+                  
+                  <div className="flex gap-2 w-full mt-3">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(ownGuru.nipnuptk || ownGuru.id, ownGuru.namaLengkap)}>
+                      <Download className="h-3.5 w-3.5 mr-1" /> Unduh
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(ownGuru.nipnuptk || ownGuru.id, ownGuru.namaLengkap, "GURU", `NIP/ID: ${ownGuru.nipnuptk || ownGuru.id}`)}>
+                      <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(role === "super_admin" || role === "admin_sekolah" || role === "tu") && (
+              <div className="space-y-3 w-full flex flex-col items-center">
+                <div className="p-3 bg-white rounded-2xl border border-muted flex items-center justify-center">
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${session?.user?.email || session?.user?.id}`} alt="Admin QR Code" className="w-48 h-48" />
+                </div>
+                <div className="w-full">
+                  <h4 className="font-extrabold text-sm">{session?.user?.name || "Administrator"}</h4>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">ROLE: {role?.toUpperCase()}</p>
+                  
+                  <div className="flex gap-2 w-full mt-3">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handleDownloadQR(session?.user?.email || session?.user?.id || "", session?.user?.name || "Admin")}>
+                      <Download className="h-3.5 w-3.5 mr-1" /> Unduh
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" onClick={() => handlePrintQR(session?.user?.email || session?.user?.id || "", session?.user?.name || "Admin", role?.toUpperCase() || "STAFF", `Email: ${session?.user?.email}`)}>
+                      <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
