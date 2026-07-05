@@ -1,10 +1,11 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, desc } from "drizzle-orm"
+import { eq, and, like, or, desc, lte } from "drizzle-orm"
 import { db } from "@/server/db"
 import { pengumuman } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { createNotifikasi } from "@/server/notifikasi"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -18,6 +19,16 @@ const pengumumanCreateSchema = z.object({
 
 const pengumumanUpdateSchema = pengumumanCreateSchema.partial()
 
+const roleTargetMap: Record<string, string> = {
+  super_admin: "semua",
+  admin_sekolah: "semua",
+  guru: "guru",
+  siswa: "siswa",
+  tu: "semua",
+  ortu: "orang_tua",
+  yayasan: "semua",
+}
+
 function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
   const { role, sekolahId } = ctx.session.user
   if (role === "super_admin") return null
@@ -25,11 +36,12 @@ function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?:
 }
 
 export const pengumumanRouter = router({
-  getAll: protectedProcedure
+  getAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(
       z.object({
         search: z.string().optional(),
-        sekolahId: z.string().optional(),
+        filterStatus: z.enum(["published", "draft", "all"]).optional().default("all"),
+        filterTarget: z.enum(["semua", "guru", "siswa", "orang_tua"]).optional(),
         limit: z.number().optional().default(50),
         offset: z.number().optional().default(0),
       }),
@@ -37,15 +49,46 @@ export const pengumumanRouter = router({
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const conditions = []
-      const effectiveSekolahId = sekolahIdFilter || input.sekolahId
-      if (effectiveSekolahId) conditions.push(eq(pengumuman.sekolahId, effectiveSekolahId))
-      if (input.search) {
-        conditions.push(like(pengumuman.judul, `%${input.search}%`))
-      }
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      if (sekolahIdFilter) conditions.push(eq(pengumuman.sekolahId, sekolahIdFilter))
+      if (input.search) conditions.push(like(pengumuman.judul, `%${input.search}%`))
+      if (input.filterStatus === "published") conditions.push(eq(pengumuman.published, true))
+      if (input.filterStatus === "draft") conditions.push(eq(pengumuman.published, false))
+      if (input.filterTarget) conditions.push(eq(pengumuman.target, input.filterTarget))
+
       const data = await db.query.pengumuman.findMany({
-        where: whereClause,
+        where: conditions.length > 0 ? and(...conditions) : undefined,
         orderBy: desc(pengumuman.createdAt),
+        limit: input.limit,
+        offset: input.offset,
+      })
+      return data
+    }),
+
+  getPublished: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().optional().default(20),
+        offset: z.number().optional().default(0),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      const role = ctx.session.user.role || ""
+      const targetRole = roleTargetMap[role] || "semua"
+
+      const conditions = [
+        eq(pengumuman.published, true),
+        lte(pengumuman.tanggalPublish, new Date()),
+        or(
+          eq(pengumuman.target, "semua"),
+          eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
+        ),
+      ]
+      if (sekolahId) conditions.push(eq(pengumuman.sekolahId, sekolahId))
+
+      const data = await db.query.pengumuman.findMany({
+        where: and(...conditions),
+        orderBy: desc(pengumuman.tanggalPublish),
         limit: input.limit,
         offset: input.offset,
       })
@@ -70,15 +113,26 @@ export const pengumumanRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const tanggalPublish = input.tanggalPublish ? new Date(input.tanggalPublish) : null
-      const result = await db.insert(pengumuman).values({
+      const tanggalPublish = input.tanggalPublish ? new Date(input.tanggalPublish) : new Date()
+      const [result] = await db.insert(pengumuman).values({
         ...input,
         id,
         sekolahId,
         tanggalPublish,
       } as any).returning()
-      await logAudit(ctx, { action: "create", entity: "pengumuman", entityId: result[0]?.id, metadata: { judul: input.judul } })
-      return result[0]
+
+      await logAudit(ctx, { action: "create", entity: "pengumuman", entityId: id, metadata: { judul: input.judul } })
+
+      if (result?.published) {
+        await createNotifikasi(ctx as any, {
+          judul: "Pengumuman Baru",
+          pesan: input.judul,
+          tipe: "info",
+          link: `/konten/pengumuman?id=${id}`,
+        })
+      }
+
+      return result
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -92,15 +146,27 @@ export const pengumumanRouter = router({
       const { tanggalPublish, ...rest } = input.data
       const updateData: any = { ...rest }
       if (tanggalPublish !== undefined) {
-        updateData.tanggalPublish = tanggalPublish ? new Date(tanggalPublish) : null
+        updateData.tanggalPublish = tanggalPublish ? new Date(tanggalPublish) : new Date()
       }
-      const result = await db
+      const [result] = await db
         .update(pengumuman)
         .set(updateData)
         .where(and(...conditions))
         .returning()
-      await logAudit(ctx, { action: "update", entity: "pengumuman", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
-      return result[0]
+
+      await logAudit(ctx, { action: "update", entity: "pengumuman", entityId: result?.id, metadata: { fields: Object.keys(updateData) } })
+
+      const wasPublishedOffline = result?.published && !existing.published
+      if (wasPublishedOffline) {
+        await createNotifikasi(ctx as any, {
+          judul: "Pengumuman Baru",
+          pesan: result.judul,
+          tipe: "info",
+          link: `/konten/pengumuman?id=${input.id}`,
+        })
+      }
+
+      return result
     }),
 
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -114,5 +180,18 @@ export const pengumumanRouter = router({
       await db.delete(pengumuman).where(and(...conditions))
       await logAudit(ctx, { action: "delete", entity: "pengumuman", entityId: input.id })
       return { success: true }
+    }),
+
+  getCounts: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .query(async ({ ctx }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = []
+      if (sekolahIdFilter) conditions.push(eq(pengumuman.sekolahId, sekolahIdFilter))
+      const all = await db.query.pengumuman.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+      })
+      const published = all.filter((p) => p.published).length
+      const draft = all.length - published
+      return { total: all.length, published, draft }
     }),
 })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { Users, GraduationCap, BookOpen, Hand, Trophy, AlertTriangle, Star } from "lucide-react"
+import { Users, GraduationCap, BookOpen, Hand, Trophy, AlertTriangle, Star, Megaphone } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -196,11 +196,79 @@ export default function Dashboard() {
         </>
       )}
 
+      {/* Pengumuman Widget */}
+      <AnnouncementWidget />
+
       <div className="glass-card rounded-2xl p-6">
         <h3 className="font-semibold text-foreground">Modul Tersedia</h3>
         <p className="text-sm text-muted-foreground mt-1">
           Gunakan menu sidebar untuk mengakses modul Siswa, Guru, Akademik, LMS, dan lainnya.
         </p>
+      </div>
+    </div>
+  )
+}
+
+function AnnouncementWidget() {
+  const { data: announcements, isLoading } = api.pengumuman.getPublished.useQuery(
+    { limit: 5 },
+  )
+
+  if (isLoading) {
+    return (
+      <div className="glass-card rounded-2xl p-5">
+        <div className="h-5 w-40 rounded bg-muted animate-pulse mb-3" />
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!announcements?.length) return null
+
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Megaphone className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pengumuman</p>
+          <p className="text-sm text-foreground font-medium">Informasi terbaru</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {announcements.slice(0, 5).map((a: any) => (
+          <a
+            key={a.id}
+            href={"/konten/pengumuman"}
+            className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
+          >
+            <div className="min-w-0 flex-1 mr-3">
+              <p className="text-sm font-medium text-foreground truncate">{a.judul}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {a.tanggalPublish
+                  ? new Date(a.tanggalPublish).toLocaleDateString("id-ID", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })
+                  : "-"}
+              </p>
+            </div>
+            <div className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              a.target === "guru" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200" :
+              a.target === "siswa" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200" :
+              a.target === "orang_tua" ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200" :
+              "bg-muted text-muted-foreground"
+            }`}>
+              {a.target === "semua" ? "Semua" :
+               a.target === "guru" ? "Guru" :
+               a.target === "siswa" ? "Siswa" : "Ortu"}
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   )
