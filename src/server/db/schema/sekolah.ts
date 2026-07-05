@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, boolean, timestamp, integer } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { users } from "./users"
 
@@ -23,6 +23,8 @@ export const sekolah = pgTable("sekolah", {
   youtube: text("youtube"),
   twitter: text("twitter"),
   akreditasi: text("akreditasi"),
+  bobotSumatif: integer("bobot_sumatif").notNull().default(60),
+  bobotSas: integer("bobot_sas").notNull().default(40),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })

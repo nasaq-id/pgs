@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
@@ -23,53 +23,149 @@ interface MenuItem {
   icon: React.ElementType
   label: string
   path?: string
-  children?: { label: string; path: string }[]
+  allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu")[]
+  children?: {
+    label: string
+    path: string
+    allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu")[]
+  }[]
 }
 
 const menuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Building2, label: "Lembaga", path: "/lembaga" },
-  { icon: Users, label: "Siswa", path: "/manajemen/siswa" },
-  { icon: BookUser, label: "Guru & Tendik", path: "/manajemen/guru" },
-  { icon: School, label: "Sarpras", path: "/sarpras" },
-  { icon: BookOpen, label: "Akademik", path: "/akademik" },
-  { icon: Monitor, label: "LMS", children: [
-    { label: "Jurnal Mengajar", path: "/lms/jurnal" },
-    { label: "Asesmen", path: "/lms/asesmen" },
-  ]},
-  { icon: ClipboardCheck, label: "Absensi", children: [
-    { label: "Absensi Harian", path: "/absensi" },
-    { label: "Pengajuan Izin", path: "/absensi/izin" },
-  ]},
-  { icon: ClipboardCheck, label: "Nilai", path: "/nilai" },
-  { icon: ClipboardCheck, label: "Evaluasi", children: [
-    { label: "Buku Nilai", path: "/evaluasi/buku-nilai" },
-  ]},
-  { icon: Trophy, label: "Kesiswaan", children: [
-    { label: "Ekstrakurikuler", path: "/kesiswaan/ekstrakurikuler" },
-    { label: "Prestasi", path: "/kesiswaan/prestasi" },
-  ]},
-  { icon: DoorOpen, label: "Sarana", children: [
-    { label: "Ruang Kelas", path: "/sarana/ruang-kelas" },
-  ]},
-  { icon: Megaphone, label: "Konten", children: [
-    { label: "Pengumuman", path: "/konten/pengumuman" },
-  ]},
-  { icon: Building2, label: "Keuangan", path: "/keuangan/tagihan" },
-  { icon: Settings, label: "Pengaturan", children: [
-    { label: "Umum", path: "/pengaturan" },
-    { label: "Kalender Akademik", path: "/pengaturan/kalender" },
-  ]},
+  { 
+    icon: LayoutDashboard, 
+    label: "Dashboard", 
+    path: "/" 
+  },
+  { 
+    icon: Building2, 
+    label: "Lembaga", 
+    path: "/lembaga",
+    allowedRoles: ["super_admin", "admin_sekolah"]
+  },
+  { 
+    icon: Users, 
+    label: "Siswa", 
+    path: "/manajemen/siswa",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+  },
+  { 
+    icon: BookUser, 
+    label: "Guru & Tendik", 
+    path: "/manajemen/guru",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+  },
+  { 
+    icon: School, 
+    label: "Sarpras", 
+    path: "/sarpras",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+  },
+  { 
+    icon: BookOpen, 
+    label: "Akademik", 
+    path: "/akademik",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+  },
+  { 
+    icon: Monitor, 
+    label: "LMS", 
+    allowedRoles: ["guru"],
+    children: [
+      { label: "Jurnal Mengajar", path: "/lms/jurnal" },
+      { label: "Asesmen", path: "/lms/asesmen" },
+    ]
+  },
+  { 
+    icon: ClipboardCheck, 
+    label: "Absensi", 
+    children: [
+      { label: "Absensi Harian", path: "/absensi" },
+      { label: "Pengajuan Izin", path: "/absensi/izin" },
+    ]
+  },
+  { 
+    icon: ClipboardCheck, 
+    label: "Buku Nilai", 
+    path: "/evaluasi/buku-nilai",
+    allowedRoles: ["super_admin", "admin_sekolah", "guru", "siswa", "ortu"]
+  },
+  { 
+    icon: Trophy, 
+    label: "Kesiswaan", 
+    allowedRoles: ["super_admin", "admin_sekolah", "guru"],
+    children: [
+      { label: "Ekstrakurikuler", path: "/kesiswaan/ekstrakurikuler" },
+      { label: "Prestasi", path: "/kesiswaan/prestasi" },
+    ]
+  },
+  { 
+    icon: DoorOpen, 
+    label: "Sarana", 
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"],
+    children: [
+      { label: "Ruang Kelas", path: "/sarana/ruang-kelas" },
+    ]
+  },
+  { 
+    icon: Megaphone, 
+    label: "Konten", 
+    children: [
+      { label: "Pengumuman", path: "/konten/pengumuman" },
+    ]
+  },
+  { 
+    icon: Building2, 
+    label: "Keuangan", 
+    path: "/keuangan/tagihan",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu", "siswa", "ortu"]
+  },
+  { 
+    icon: Settings, 
+    label: "Pengaturan", 
+    allowedRoles: ["super_admin", "admin_sekolah"],
+    children: [
+      { label: "Umum", path: "/pengaturan" },
+      { label: "Kalender Akademik", path: "/pengaturan/kalender" },
+    ]
+  },
 ]
 
 interface SidebarProps { onClose?: () => void }
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = session?.user?.role || "siswa"
   const [logoutOpen, setLogoutOpen] = useState(false)
+
+  // Filter menu items based on role
+  const visibleMenuItems = menuItems.filter(item => {
+    if (item.allowedRoles && !item.allowedRoles.includes(role as any)) {
+      return false
+    }
+    return true
+  }).map(item => {
+    if (item.children) {
+      const visibleChildren = item.children.filter(child => {
+        if (child.allowedRoles && !child.allowedRoles.includes(role as any)) {
+          return false
+        }
+        return true
+      })
+      return { ...item, children: visibleChildren }
+    }
+    return item
+  }).filter(item => {
+    if (item.children && item.children.length === 0) {
+      return false
+    }
+    return true
+  })
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
-    menuItems.forEach(item => {
+    visibleMenuItems.forEach(item => {
       if (item.children?.some(c => pathname.startsWith(c.path))) {
         init[item.label] = true
       }
@@ -97,7 +193,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <div className="mx-3 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon
           const hasChildren = !!item.children
           const isOpen = expanded[item.label]

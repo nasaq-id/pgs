@@ -38,6 +38,8 @@ export const lembagaRouter = router({
       twitter: z.string().optional(),
       akreditasi: z.string().optional(),
       logo: z.string().optional(),
+      bobotSumatif: z.number().optional(),
+      bobotSas: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

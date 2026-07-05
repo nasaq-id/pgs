@@ -1,4 +1,4 @@
-import { pgTable, text, integer } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, boolean } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { siswa } from "./siswa"
 import { mataPelajaran } from "./mata-pelajaran"
@@ -12,8 +12,11 @@ export const nilai = pgTable("nilai", {
   nilaiTugas: integer("nilai_tugas"),
   nilaiUts: integer("nilai_uts"),
   nilaiUas: integer("nilai_uas"),
+  nilaiSas: integer("nilai_sas"),
+  nilaiSumatif: integer("nilai_sumatif"),
   nilaiAkhir: integer("nilai_akhir"),
   deskripsi: text("deskripsi"),
+  statusPublish: boolean("status_publish").notNull().default(false),
 })
 
 export const nilaiRelations = relations(nilai, ({ one }) => ({
