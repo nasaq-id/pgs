@@ -180,7 +180,7 @@ export const siswaRouter = router({
         const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
         const result = await db.insert(siswa).values(data as any).returning()
         if (passwordHash) {
-          const email = input.usernameSiswa || input.nisn || ""
+          const email = input.nisLokal || input.usernameSiswa || input.nisn || ""
           const nameParts = (input.namaLengkap || "").split(" ")
           await db.insert(users).values({
             id: crypto.randomUUID(),
@@ -219,7 +219,7 @@ export const siswaRouter = router({
         let passwordHash = d.passwordSiswa || null
         if (passwordHash) passwordHash = bcrypt.hashSync(passwordHash, 12)
         if (passwordHash) {
-          const email = d.usernameSiswa || d.nisn
+          const email = d.nisLokal || d.usernameSiswa || d.nisn
           const nameParts = (d.namaLengkap || "").split(" ")
           usersToCreate.push({
             id: crypto.randomUUID(),
@@ -283,12 +283,30 @@ export const siswaRouter = router({
         .where(and(...conditions))
         .returning()
       if (passwordHash) {
-        const email = input.data.usernameSiswa || existing.nisn || existing.usernameSiswa || ""
-        await db
-          .update(users)
-          .set({ password: passwordHash, firstName: rest.namaLengkap?.split(" ")[0] || "", lastName: rest.namaLengkap?.split(" ").slice(1).join(" ") || "" })
-          .where(eq(users.email, email))
-          .execute().catch(() => {})
+        const email = input.data.nisLokal || existing.nisLokal || input.data.usernameSiswa || existing.nisn || existing.usernameSiswa || ""
+        if (email) {
+          const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
+          const firstName = rest.namaLengkap?.split(" ")[0] || existing.namaLengkap?.split(" ")[0] || ""
+          const lastName = rest.namaLengkap?.split(" ").slice(1).join(" ") || existing.namaLengkap?.split(" ").slice(1).join(" ") || ""
+          if (userRecord) {
+            await db
+              .update(users)
+              .set({ password: passwordHash, firstName, lastName })
+              .where(eq(users.email, email))
+              .execute()
+          } else {
+            await db.insert(users).values({
+              id: crypto.randomUUID(),
+              email,
+              firstName,
+              lastName,
+              password: passwordHash,
+              role: "siswa",
+              sekolahId: existing.sekolahId,
+              active: true,
+            }).execute()
+          }
+        }
       }
       await logAudit(ctx, { action: "update", entity: "siswa", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
@@ -317,9 +335,24 @@ export const siswaRouter = router({
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)
       await db.update(siswa).set({ passwordSiswa: passwordHash, updatedAt: new Date() }).where(and(...conditions))
-      const email = existing.usernameSiswa || existing.nisn || ""
+      const email = existing.nisLokal || existing.usernameSiswa || existing.nisn || ""
       if (email) {
-        await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute().catch(() => {})
+        const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
+        if (userRecord) {
+          await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute()
+        } else {
+          const nameParts = (existing.namaLengkap || "").split(" ")
+          await db.insert(users).values({
+            id: crypto.randomUUID(),
+            email,
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(" ") || "",
+            password: passwordHash,
+            role: "siswa",
+            sekolahId: existing.sekolahId,
+            active: true,
+          }).execute()
+        }
       }
       await logAudit(ctx, { action: "reset_password", entity: "siswa", entityId: input.id })
       return { success: true }

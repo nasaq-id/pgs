@@ -84,7 +84,7 @@ export default function GuruFormDialog({ open, onOpenChange, initialData, onSucc
           email: initialData.email || "",
           pendidikanTerakhir: initialData.pendidikanTerakhir || "",
           usernameGuru: initialData.usernameGuru || "",
-          passwordGuru: initialData.passwordGuru || "",
+          passwordGuru: "",
           statusKepegawaian: initialData.statusKepegawaian || "",
           kategoriPegawai: initialData.kategoriPegawai || "Guru",
           tugasUtama: initialData.tugasUtama || "",

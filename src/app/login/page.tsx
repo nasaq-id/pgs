@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, GraduationCap } from "lucide-react"
+import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -19,18 +21,31 @@ export default function LoginPage() {
     setError("")
 
     const form = new FormData(e.currentTarget)
-    const res = await signIn("credentials", {
-      email: form.get("email"),
-      password: form.get("password"),
-      redirect: false,
-    })
+    const emailVal = form.get("email")
+    
+    try {
+      const res = await signIn("credentials", {
+        email: emailVal,
+        password: form.get("password"),
+        redirect: false,
+      })
 
-    if (res?.error) {
-      setError("Email atau password salah")
+      if (res?.error) {
+        console.error("Login Gagal. Response error:", res.error)
+        toast.error("Login Gagal: Email, NISN, atau password salah.")
+        setError("Email atau password salah")
+        setLoading(false)
+      } else {
+        console.log("Login Berhasil! Mengalihkan pengguna...")
+        toast.success("Login Berhasil! Selamat datang.")
+        router.push("/")
+        router.refresh()
+      }
+    } catch (err) {
+      console.error("Fatal login error:", err)
+      toast.error("Terjadi kesalahan sistem saat mencoba masuk.")
+      setError("Terjadi kesalahan sistem")
       setLoading(false)
-    } else {
-      router.push("/")
-      router.refresh()
     }
   }
 
@@ -53,26 +68,35 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email</Label>
+            <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email / Username / NISN</Label>
             <Input
               id="email"
               name="email"
-              type="email"
-              placeholder="admin@demo.com"
+              type="text"
+              placeholder="Email, NIP, atau NISN siswa"
               required
               className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              required
-              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           {error && (
