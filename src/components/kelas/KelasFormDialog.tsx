@@ -69,12 +69,12 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
 
     if (allSiswa) {
       setLoadingSiswa(true)
-      const initialSiswaIds = (initial as any)?.siswaIds || []
-      const inClass = allSiswa.filter((s: any) => initialSiswaIds.includes(s.id)).map((s: any) => ({
-        id: s.id, namaLengkap: s.namaLengkap, nisn: s.nisn || "",
-      }))
+      const kelasId = initial?.id
+      const inClass = allSiswa
+        .filter((s: any) => s.kelasId === kelasId)
+        .map((s: any) => ({ id: s.id, namaLengkap: s.namaLengkap, nisn: s.nisn || "" }))
       const available = allSiswa
-        .filter((s: any) => !initialSiswaIds.includes(s.id) && (!s.kelasId || s.kelasId === initial?.id))
+        .filter((s: any) => !s.kelasId)
         .map((s: any) => ({ id: s.id, namaLengkap: s.namaLengkap, nisn: s.nisn || "" }))
       setSelectedSiswa(inClass)
       setAvailableSiswa(available)
