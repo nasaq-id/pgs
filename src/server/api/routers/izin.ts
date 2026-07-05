@@ -32,7 +32,10 @@ export const izinRouter = router({
 
       if (role === "siswa") {
         const std = await db.query.siswa.findFirst({
-          where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.usernameSiswa, email), eq(siswa.nisn, email))),
+          where: and(
+            eq(siswa.sekolahId, sekolahId),
+            or(eq(siswa.usernameSiswa, email), eq(siswa.nisn, email), eq(siswa.nisLokal, email))
+          ),
         })
         if (!std) throw new TRPCError({ code: "NOT_FOUND", message: "Profil siswa tidak ditemukan" })
         studentId = std.id
@@ -125,7 +128,10 @@ export const izinRouter = router({
 
       if (role === "siswa") {
         const std = await db.query.siswa.findFirst({
-          where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.usernameSiswa, email), eq(siswa.nisn, email))),
+          where: and(
+            eq(siswa.sekolahId, sekolahId),
+            or(eq(siswa.usernameSiswa, email), eq(siswa.nisn, email), eq(siswa.nisLokal, email))
+          ),
         })
         if (!std) return { data: [], total: 0 }
         conditions.push(eq(pengajuanIzin.siswaId, std.id))

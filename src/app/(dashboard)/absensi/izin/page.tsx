@@ -163,7 +163,7 @@ export default function IzinPage() {
   }
 
   const isGuruOrSiswa = role === "siswa" || role === "guru"
-  const historyList = daftarPengajuan?.data?.filter((r) => r.siswaId === session?.user?.id || r.guruId === ownGuru?.id) || []
+  const historyList = daftarPengajuan?.data?.filter((r) => role === "siswa" || r.guruId === ownGuru?.id) || []
   const approvalList = daftarPengajuan?.data?.filter((r) => r.status === "pending" && (r.siswaId !== session?.user?.id && r.guruId !== ownGuru?.id)) || []
   const processedList = daftarPengajuan?.data?.filter((r) => r.status !== "pending" && (r.siswaId !== session?.user?.id && r.guruId !== ownGuru?.id)) || []
 
