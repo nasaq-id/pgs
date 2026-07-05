@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, between, or, asc } from "drizzle-orm"
+import { eq, and, desc, between, or, asc, lte, gte } from "drizzle-orm"
 import { db } from "@/server/db"
-import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran } from "@/server/db/schema"
+import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -242,6 +242,23 @@ export const absensiRouter = router({
         })
 
         if (!existingAbsen) {
+          // Cek apakah ada izin tidak_masuk yang sudah disetujui untuk hari ini
+          const approvedIzinSakit = await db.query.pengajuanIzin.findFirst({
+            where: and(
+              eq(pengajuanIzin.siswaId, student.id),
+              eq(pengajuanIzin.status, "disetujui"),
+              eq(pengajuanIzin.jenisIzin, "tidak_masuk"),
+              lte(pengajuanIzin.tanggalMulai, endOfToday),
+              gte(pengajuanIzin.tanggalSelesai, startOfToday),
+            ),
+          })
+          if (approvedIzinSakit) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Kamu sedang dalam izin sakit/izin tidak masuk hari ini. Absensi sudah dicatat otomatis.",
+            })
+          }
+
           // Check-in (Masuk)
           const isLate = now > limitMasuk
           const status = isLate ? "terlambat" : "hadir"
@@ -267,12 +284,24 @@ export const absensiRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Siswa sudah melakukan absensi pulang hari ini" })
           }
 
-          const limitPulang = parseTimeStringToTodayDate(jamPulangStr)
-          if (now < limitPulang) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Belum waktunya absen pulang. Jam pulang hari ini pukul ${jamPulangStr}`,
-            })
+          // Cek apakah ada izin pulang_cepat yang sudah disetujui untuk hari ini
+          const approvedIzinPulangCepat = await db.query.pengajuanIzin.findFirst({
+            where: and(
+              eq(pengajuanIzin.siswaId, student.id),
+              eq(pengajuanIzin.status, "disetujui"),
+              eq(pengajuanIzin.jenisIzin, "pulang_cepat"),
+              lte(pengajuanIzin.tanggalMulai, endOfToday),
+            ),
+          })
+
+          if (!approvedIzinPulangCepat) {
+            const limitPulang = parseTimeStringToTodayDate(jamPulangStr)
+            if (now < limitPulang) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Belum waktunya absen pulang. Jam pulang hari ini pukul ${jamPulangStr}`,
+              })
+            }
           }
 
           await db
