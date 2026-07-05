@@ -60,9 +60,9 @@ export default function ProfilPage() {
   const roleData = p?.roleData as Record<string, unknown> | undefined
 
   const updatePhoto = api.profil.updateProfilePhoto.useMutation({
-    onSuccess: () => {
+    onSuccess: (res) => {
       utils.profil.getProfile.invalidate()
-      updateSession()
+      updateSession({ user: { photo: res.photo } })
     },
   })
 
