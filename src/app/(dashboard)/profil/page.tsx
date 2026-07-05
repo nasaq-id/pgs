@@ -1,0 +1,228 @@
+"use client"
+
+import { useState, useRef } from "react"
+import { useSession } from "next-auth/react"
+import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, ChevronRight } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { api } from "@/lib/trpc/client"
+import { format } from "date-fns"
+import { id } from "date-fns/locale"
+
+const roleLabels: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin_sekolah: "Admin Sekolah",
+  guru: "Guru & Tendik",
+  siswa: "Siswa",
+  tu: "Tata Usaha",
+  yayasan: "Yayasan",
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-border/40 last:border-0">
+      <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="h-4 w-4 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-semibold text-foreground mt-0.5 break-words">{value || "-"}</p>
+      </div>
+    </div>
+  )
+}
+
+function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <Card className="p-5 rounded-3xl glass-card space-y-1">
+      {title && (
+        <div className="flex items-center gap-2 pb-3 mb-1 border-b border-border/40">
+          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">{title}</h3>
+        </div>
+      )}
+      {children}
+    </Card>
+  )
+}
+
+export default function ProfilPage() {
+  const { data: session, update: updateSession } = useSession()
+  const utils = api.useUtils()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const user = session?.user
+  const { data: profile, isLoading } = api.profil.getProfile.useQuery()
+  const p = profile as any
+  const role = user?.role || ""
+  const roleData = p?.roleData as Record<string, unknown> | undefined
+
+  const updatePhoto = api.profil.updateProfilePhoto.useMutation({
+    onSuccess: () => {
+      utils.profil.getProfile.invalidate()
+      updateSession()
+    },
+  })
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name }),
+      })
+      if (!res.ok) throw new Error("Gagal mendapatkan URL upload")
+      const { signedUrl, publicUrl } = await res.json()
+
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      })
+      if (!uploadRes.ok) throw new Error("Gagal mengupload foto")
+
+      await updatePhoto.mutateAsync({ photo: publicUrl })
+    } catch (err) {
+      console.error("Upload error:", err)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const photoUrl = user?.photo || p?.photo
+  const displayName = p?.namaLengkap || p?.firstName || user?.name || ""
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64 mt-1" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          <Skeleton className="h-80 rounded-3xl" />
+          <Skeleton className="h-96 rounded-3xl" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Profil Saya</h2>
+        <p className="text-muted-foreground">Informasi biodata Anda (hanya dapat diubah oleh admin)</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* Left - Photo */}
+        <Card className="p-6 rounded-3xl glass-card flex flex-col items-center text-center">
+          <div className="relative mb-4">
+            <div
+              onClick={handlePhotoClick}
+              className="h-36 w-36 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden ring-4 ring-border/50 cursor-pointer group relative"
+            >
+              {photoUrl ? (
+                <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-4xl font-bold text-primary">
+                  {displayName[0] || "?"}
+                </span>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="h-8 w-8 text-white" />
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+          <h3 className="text-lg font-bold text-foreground">{displayName || "-"}</h3>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary">
+            <Shield className="h-3 w-3" />
+            {roleLabels[role] || role}
+          </span>
+          <p className="text-xs text-muted-foreground mt-3">Klik foto untuk mengganti</p>
+        </Card>
+
+        {/* Right - Biodata */}
+        <div className="space-y-6">
+          {/* Data Akun */}
+          <SectionCard title="Data Akun">
+            <InfoRow icon={Mail} label="Email" value={p?.email || p?.emailSiswa as string} />
+            <InfoRow icon={Phone} label="No. Handphone" value={p?.phone as string || p?.noHp as string || p?.noHpWhatsapp as string} />
+            <InfoRow icon={Building2} label="Sekolah" value={p?.sekolah?.nama as string} />
+            <InfoRow icon={User} label="Username" value={role === "siswa" ? p?.usernameSiswa as string : p?.usernameGuru as string} />
+          </SectionCard>
+
+          {/* Data Pribadi - role specific */}
+          {role === "siswa" && (
+            <SectionCard title="Data Pribadi">
+              <InfoRow icon={FileText} label="NISN" value={p?.nisn as string} />
+              <InfoRow icon={FileText} label="NIS Lokal" value={p?.nisLokal as string} />
+              <InfoRow icon={User} label="Nama Lengkap" value={p?.namaLengkap as string} />
+              <InfoRow icon={Users} label="Jenis Kelamin" value={p?.jenisKelamin as string === "L" ? "Laki-laki" : p?.jenisKelamin as string === "P" ? "Perempuan" : "-"} />
+              <InfoRow icon={Cake} label="Tempat, Tanggal Lahir" value={p?.tempatLahir && p?.tanggalLahir ? `${p?.tempatLahir}, ${format(new Date(p?.tanggalLahir as string), "d MMMM yyyy", { locale: id })}` : p?.tempatLahir as string || (p?.tanggalLahir ? format(new Date(p?.tanggalLahir as string), "d MMMM yyyy", { locale: id }) : "-")} />
+              <InfoRow icon={BookOpen} label="Agama" value={p?.agama as string} />
+              <InfoRow icon={Award} label="Rombel" value={(roleData?.kelas as Record<string, unknown>)?.namaKelas as string} />
+              <InfoRow icon={MapPin} label="Alamat" value={p?.alamat as string} />
+              <InfoRow icon={Phone} label="No. HP Orang Tua" value={p?.noHpOrtu as string} />
+              <InfoRow icon={Clock} label="Status" value={p?.status as string} />
+            </SectionCard>
+          )}
+
+          {role === "guru" && (
+            <>
+              <SectionCard title="Data Pribadi">
+                <InfoRow icon={FileText} label="NIP/NUPTK" value={p?.nipnuptk as string} />
+                <InfoRow icon={FileText} label="NIK" value={p?.nik as string} />
+                <InfoRow icon={User} label="Nama Lengkap" value={p?.namaLengkap as string} />
+                <InfoRow icon={Users} label="Jenis Kelamin" value={p?.jenisKelamin as string === "L" ? "Laki-laki" : p?.jenisKelamin as string === "P" ? "Perempuan" : "-"} />
+                <InfoRow icon={Cake} label="Tempat, Tanggal Lahir" value={p?.tempatLahir && p?.tanggalLahir ? `${p?.tempatLahir}, ${format(new Date(p?.tanggalLahir as string), "d MMMM yyyy", { locale: id })}` : p?.tempatLahir as string || (p?.tanggalLahir ? format(new Date(p?.tanggalLahir as string), "d MMMM yyyy", { locale: id }) : "-")} />
+                <InfoRow icon={MapPin} label="Alamat" value={p?.alamat as string} />
+                <InfoRow icon={Phone} label="No. HP" value={p?.noHp as string} />
+              </SectionCard>
+              <SectionCard title="Data Kepegawaian">
+                <InfoRow icon={BookOpen} label="Pendidikan Terakhir" value={p?.pendidikanTerakhir as string} />
+                <InfoRow icon={Clock} label="Status Kepegawaian" value={p?.statusKepegawaian as string} />
+                <InfoRow icon={Award} label="Tugas Utama" value={p?.tugasUtama as string} />
+                <InfoRow icon={Award} label="Tugas Tambahan" value={p?.tugasTambahan as string} />
+                <InfoRow icon={CalendarDays} label="Mulai Bertugas" value={p?.mulaiBertugas ? format(new Date(p?.mulaiBertugas as string), "d MMMM yyyy", { locale: id }) : "-"} />
+              </SectionCard>
+            </>
+          )}
+
+          {!["siswa", "guru"].includes(role) && (
+            <SectionCard title="Data Admin">
+              <InfoRow icon={User} label="Nama Depan" value={p?.firstName as string} />
+              <InfoRow icon={User} label="Nama Belakang" value={p?.lastName as string} />
+              <InfoRow icon={Mail} label="Email" value={p?.email as string} />
+              <InfoRow icon={Shield} label="Role" value={roleLabels[role] || role} />
+              <InfoRow icon={Phone} label="No. Handphone" value={p?.phone as string} />
+              <InfoRow icon={Building2} label="Sekolah" value={p?.sekolah?.nama as string} />
+            </SectionCard>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

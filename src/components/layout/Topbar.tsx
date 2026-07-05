@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
-import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight, LogOut } from "lucide-react"
+import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight, LogOut, User } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -314,6 +314,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                 {user?.role?.replace("_", " ")}
               </span>
             </div>
+            <DropdownMenuItem
+              className="hover:bg-primary/10 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-semibold"
+              onClick={() => window.location.href = "/profil"}
+            >
+              <User className="h-4 w-4" />
+              Profil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
               className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-semibold"
               onClick={() => signOut({ callbackUrl: "/login" })}

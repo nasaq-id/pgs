@@ -18,6 +18,7 @@ import { kalenderRouter } from "./routers/kalender"
 import { pengaturanJadwalRouter } from "./routers/pengaturan-jadwal"
 import { asesmenRouter } from "./routers/asesmen"
 import { izinRouter } from "./routers/izin"
+import { profilRouter } from "./routers/profil"
 
 export const appRouter = router({
   siswa: siswaRouter,
@@ -39,6 +40,7 @@ export const appRouter = router({
   pengaturanJadwal: pengaturanJadwalRouter,
   asesmen: asesmenRouter,
   izin: izinRouter,
+  profil: profilRouter,
 })
 
 export type AppRouter = typeof appRouter
