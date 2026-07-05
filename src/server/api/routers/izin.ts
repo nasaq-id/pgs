@@ -120,29 +120,16 @@ export const izinRouter = router({
       const role = ctx.session.user.role
       const email = ctx.session.user.email ?? ""
 
-      // 1. Siswa sees only their own
+      const conditions: any[] = [eq(pengajuanIzin.sekolahId, sekolahId)]
+      if (input.status) conditions.push(eq(pengajuanIzin.status, input.status))
+
       if (role === "siswa") {
         const std = await db.query.siswa.findFirst({
           where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.usernameSiswa, email), eq(siswa.nisn, email))),
         })
         if (!std) return { data: [], total: 0 }
-
-        const conditions = [eq(pengajuanIzin.sekolahId, sekolahId), eq(pengajuanIzin.siswaId, std.id)]
-        if (input.status) conditions.push(eq(pengajuanIzin.status, input.status))
-
-        const rows = await db
-          .select()
-          .from(pengajuanIzin)
-          .where(and(...conditions))
-          .orderBy(desc(pengajuanIzin.createdAt))
-          .limit(input.limit)
-          .offset(input.offset)
-
-        return { data: rows, total: rows.length }
-      }
-
-      // 2. Guru checks if they are Wali Kelas or Waka/Kepsek
-      if (role === "guru") {
+        conditions.push(eq(pengajuanIzin.siswaId, std.id))
+      } else if (role === "guru") {
         const teacher = await db.query.guru.findFirst({
           where: and(eq(guru.sekolahId, sekolahId), or(eq(guru.usernameGuru, email), eq(guru.email, email), eq(guru.nipnuptk, email))),
         })
@@ -161,16 +148,9 @@ export const izinRouter = router({
           teacher.tugasTambahan?.toLowerCase().includes("waka") ||
           teacher.tugasTambahan?.toLowerCase().includes("kurikulum")
 
-        const conditions: any[] = [eq(pengajuanIzin.sekolahId, sekolahId)]
-        if (input.status) conditions.push(eq(pengajuanIzin.status, input.status))
-
-        // If Kepsek/Waka, they see all Guru submissions + they can see all
-        // If Wali Kelas (but not Kepsek/Waka), they see their own submissions AND student submissions in their classes
-        // If regular Guru, they see only their own submissions
         let filterOrClause: any
 
         if (isKepsekOrWaka) {
-          // Waka/Kepsek sees all Guru submissions + Wali Kelas student submissions
           filterOrClause = or(
             eq(pengajuanIzin.tipePengaju, "guru"),
             eq(pengajuanIzin.guruId, teacher.id),
@@ -179,93 +159,89 @@ export const izinRouter = router({
               : undefined,
           )
         } else if (managedKelasIds.length > 0) {
-          // Wali kelas sees their own + student submissions in their class
           filterOrClause = or(
             eq(pengajuanIzin.guruId, teacher.id),
             and(eq(pengajuanIzin.tipePengaju, "siswa"), inArray(pengajuanIzin.siswaId, db.select({ id: siswa.id }).from(siswa).where(inArray(siswa.kelasId, managedKelasIds)))),
           )
         } else {
-          // Regular teacher sees only their own
           filterOrClause = eq(pengajuanIzin.guruId, teacher.id)
         }
 
         if (filterOrClause) {
           conditions.push(filterOrClause)
         }
-
-        const rows = await db
-          .select()
-          .from(pengajuanIzin)
-          .where(and(...conditions))
-          .orderBy(desc(pengajuanIzin.createdAt))
-          .limit(input.limit)
-          .offset(input.offset)
-
-        // Hydrate rows with student or teacher info
-        const populated = await Promise.all(
-          rows.map(async (row) => {
-            let name = "Unknown"
-            let detail = ""
-            if (row.tipePengaju === "siswa" && row.siswaId) {
-              const std = await db.query.siswa.findFirst({
-                where: eq(siswa.id, row.siswaId),
-                with: { kelas: true },
-              })
-              name = std?.namaLengkap ?? "Siswa"
-              detail = std?.kelas?.namaKelas ?? ""
-            } else if (row.tipePengaju === "guru" && row.guruId) {
-              const t = await db.query.guru.findFirst({
-                where: eq(guru.id, row.guruId),
-              })
-              name = t?.namaLengkap ?? "Guru"
-              detail = t?.nipnuptk ?? ""
-            }
-            return { ...row, name, detail }
-          }),
-        )
-
-        return { data: populated, total: populated.length }
+      } else if (role !== "admin_sekolah" && role !== "super_admin" && role !== "tu") {
+        return { data: [], total: 0 }
       }
 
-      // 3. Admin sees all
-      if (role === "admin_sekolah" || role === "super_admin" || role === "tu") {
-        const conditions = [eq(pengajuanIzin.sekolahId, sekolahId)]
-        if (input.status) conditions.push(eq(pengajuanIzin.status, input.status))
+      // Query with LEFT JOINs to fetch details in a single query
+      const rows = await db
+        .select({
+          id: pengajuanIzin.id,
+          sekolahId: pengajuanIzin.sekolahId,
+          tipePengaju: pengajuanIzin.tipePengaju,
+          siswaId: pengajuanIzin.siswaId,
+          guruId: pengajuanIzin.guruId,
+          jenisIzin: pengajuanIzin.jenisIzin,
+          alasan: pengajuanIzin.alasan,
+          jamPulang: pengajuanIzin.jamPulang,
+          jumlahHari: pengajuanIzin.jumlahHari,
+          tanggalMulai: pengajuanIzin.tanggalMulai,
+          tanggalSelesai: pengajuanIzin.tanggalSelesai,
+          bukti: pengajuanIzin.bukti,
+          status: pengajuanIzin.status,
+          disetujuiOleh: pengajuanIzin.disetujuiOleh,
+          catatanApproval: pengajuanIzin.catatanApproval,
+          createdAt: pengajuanIzin.createdAt,
+          updatedAt: pengajuanIzin.updatedAt,
+          siswaNama: siswa.namaLengkap,
+          kelasNama: kelas.namaKelas,
+          guruNama: guru.namaLengkap,
+          guruNip: guru.nipnuptk,
+        })
+        .from(pengajuanIzin)
+        .leftJoin(siswa, eq(pengajuanIzin.siswaId, siswa.id))
+        .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
+        .leftJoin(guru, eq(pengajuanIzin.guruId, guru.id))
+        .where(and(...conditions))
+        .orderBy(desc(pengajuanIzin.createdAt))
+        .limit(input.limit)
+        .offset(input.offset)
 
-        const rows = await db
-          .select()
-          .from(pengajuanIzin)
-          .where(and(...conditions))
-          .orderBy(desc(pengajuanIzin.createdAt))
-          .limit(input.limit)
-          .offset(input.offset)
+      const populated = rows.map((r) => {
+        let name = "Unknown"
+        let detail = ""
+        if (r.tipePengaju === "siswa") {
+          name = r.siswaNama ?? "Siswa"
+          detail = r.kelasNama ?? ""
+        } else if (r.tipePengaju === "guru") {
+          name = r.guruNama ?? "Guru"
+          detail = r.guruNip ?? ""
+        }
+        return {
+          id: r.id,
+          sekolahId: r.sekolahId,
+          tipePengaju: r.tipePengaju,
+          siswaId: r.siswaId,
+          guruId: r.guruId,
+          jenisIzin: r.jenisIzin,
+          alasan: r.alasan,
+          jamPulang: r.jamPulang,
+          jumlahHari: r.jumlahHari,
+          tanggalMulai: r.tanggalMulai,
+          tanggalSelesai: r.tanggalSelesai,
+          bukti: r.bukti,
+          status: r.status,
+          disetujuiOleh: r.disetujuiOleh,
+          catatanApproval: r.catatanApproval,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          name,
+          detail,
+        }
+      })
 
-        const populated = await Promise.all(
-          rows.map(async (row) => {
-            let name = "Unknown"
-            let detail = ""
-            if (row.tipePengaju === "siswa" && row.siswaId) {
-              const std = await db.query.siswa.findFirst({
-                where: eq(siswa.id, row.siswaId),
-                with: { kelas: true },
-              })
-              name = std?.namaLengkap ?? "Siswa"
-              detail = std?.kelas?.namaKelas ?? ""
-            } else if (row.tipePengaju === "guru" && row.guruId) {
-              const t = await db.query.guru.findFirst({
-                where: eq(guru.id, row.guruId),
-              })
-              name = t?.namaLengkap ?? "Guru"
-              detail = t?.nipnuptk ?? ""
-            }
-            return { ...row, name, detail }
-          }),
-        )
-
-        return { data: populated, total: populated.length }
-      }
-
-      return { data: [], total: 0 }
+      return { data: populated, total: populated.length }
     }),
 
   approveIzin: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
