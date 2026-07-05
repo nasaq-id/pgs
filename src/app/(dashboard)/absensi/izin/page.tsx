@@ -32,7 +32,7 @@ export default function IzinPage() {
   const role = session?.user?.role
   const utils = api.useUtils()
 
-  const [activeTab, setActiveTab] = useState<"form" | "riwayat" | "approval">("form")
+  const [activeTab, setActiveTab] = useState<"form" | "riwayat" | "approval" | "riwayat_approval">("form")
   const [jenisIzin, setJenisIzin] = useState<"terlambat" | "pulang_cepat" | "tidak_masuk">("tidak_masuk")
   const [alasan, setAlasan] = useState("")
   const [tanggalMulai, setTanggalMulai] = useState(new Date().toISOString().split("T")[0])
@@ -165,6 +165,7 @@ export default function IzinPage() {
   const isGuruOrSiswa = role === "siswa" || role === "guru"
   const historyList = daftarPengajuan?.data?.filter((r) => r.siswaId === session?.user?.id || r.guruId === ownGuru?.id) || []
   const approvalList = daftarPengajuan?.data?.filter((r) => r.status === "pending" && (r.siswaId !== session?.user?.id && r.guruId !== ownGuru?.id)) || []
+  const processedList = daftarPengajuan?.data?.filter((r) => r.status !== "pending" && (r.siswaId !== session?.user?.id && r.guruId !== ownGuru?.id)) || []
 
   return (
     <div className="space-y-6">
@@ -202,6 +203,16 @@ export default function IzinPage() {
             }`}
           >
             Persetujuan Izin {approvalList.length > 0 && <span className="ml-1 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
+          </button>
+        )}
+        {canApprove && (
+          <button
+            onClick={() => setActiveTab("riwayat_approval")}
+            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
+              activeTab === "riwayat_approval" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Riwayat Persetujuan
           </button>
         )}
       </div>
@@ -404,6 +415,66 @@ export default function IzinPage() {
                           {processingId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-4 w-4" />}
                         </Button>
                       </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+      )}
+
+      {activeTab === "riwayat_approval" && canApprove && (
+        <Card className="glass-card p-5">
+          {isListLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : processedList.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">Belum ada riwayat persetujuan izin</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pengaju</TableHead>
+                  <TableHead>Tanggal Mulai</TableHead>
+                  <TableHead>Jenis Izin</TableHead>
+                  <TableHead>Alasan</TableHead>
+                  <TableHead>Durasi / Detail</TableHead>
+                  <TableHead>Bukti</TableHead>
+                  <TableHead>Catatan Approval</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {processedList.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-semibold text-sm">{(row as any).name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{(row as any).detail}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
+                    <TableCell className="font-semibold">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
+                    <TableCell className="max-w-[200px] truncate" title={row.alasan}>{row.alasan}</TableCell>
+                    <TableCell>
+                      {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
+                      {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
+                      {row.jenisIzin === "terlambat" && "Harian"}
+                    </TableCell>
+                    <TableCell>
+                      {row.bukti ? (
+                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1">
+                          <Eye className="h-3 w-3" /> Lihat
+                        </a>
+                      ) : "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{row.catatanApproval ?? "-"}</TableCell>
+                    <TableCell>
+                      <Badge className={STATUS_BADGE[row.status]} variant="secondary">
+                        {row.status}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
