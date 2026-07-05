@@ -231,6 +231,7 @@ export const absensiRouter = router({
           where: eq(pengaturanAbsensi.sekolahId, sekolahId),
         })
         const jamMasukStr = settings?.jamMasuk ?? "07:00"
+        const jamPulangStr = settings?.jamPulang ?? "14:00"
         const toleransi = settings?.toleransi ?? 15
 
         const limitMasuk = parseTimeStringToTodayDate(jamMasukStr)
@@ -264,6 +265,14 @@ export const absensiRouter = router({
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Siswa sudah melakukan absensi pulang hari ini" })
+          }
+
+          const limitPulang = parseTimeStringToTodayDate(jamPulangStr)
+          if (now < limitPulang) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Belum waktunya absen pulang. Jam pulang hari ini pukul ${jamPulangStr}`,
+            })
           }
 
           await db
