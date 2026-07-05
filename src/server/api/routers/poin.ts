@@ -114,7 +114,7 @@ export const poinRouter = router({
     }),
 
   // ── Tindak Lanjut ──
-  getAllTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+  getAllTindakLanjut: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
       jenis: z.enum(["positif", "negatif"]).optional(),
