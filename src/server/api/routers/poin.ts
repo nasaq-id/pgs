@@ -374,10 +374,8 @@ export const poinRouter = router({
   // ── Dashboard ──
   getDashboardSiswa: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
-
       const userEmail = ctx.session.user.email
+
       let currentSiswa = null
       if (userEmail) {
         currentSiswa = await db.query.siswa.findFirst({
@@ -391,16 +389,17 @@ export const poinRouter = router({
 
       let totalPoin = 0
       if (currentSiswa) {
+        const conditions = [eq(poinSikap.siswaId, currentSiswa.id)]
+        if (currentSiswa.sekolahId) conditions.push(eq(poinSikap.sekolahId, currentSiswa.sekolahId))
         const poinData = await db
           .select({ total: sum(poinSikap.poin) })
           .from(poinSikap)
-          .where(and(
-            eq(poinSikap.sekolahId, sekolahId),
-            eq(poinSikap.siswaId, currentSiswa.id),
-          ))
+          .where(and(...conditions))
         totalPoin = Number(poinData[0]?.total) || 0
       }
 
+      const leaderboardKondisi = [eq(poinKategori.jenis, "positif")]
+      if (currentSiswa?.sekolahId) leaderboardKondisi.push(eq(poinSikap.sekolahId, currentSiswa.sekolahId))
       const leaderboard = await db
         .select({
           siswaId: poinSikap.siswaId,
@@ -408,10 +407,7 @@ export const poinRouter = router({
         })
         .from(poinSikap)
         .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(
-          eq(poinSikap.sekolahId, sekolahId),
-          eq(poinKategori.jenis, "positif"),
-        ))
+        .where(and(...leaderboardKondisi))
         .groupBy(poinSikap.siswaId)
         .orderBy(desc(sql`sum(${poinSikap.poin})`))
         .limit(5)
@@ -430,8 +426,13 @@ export const poinRouter = router({
 
   getDashboardGuruAdmin: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+      const sekolahId = ctx.session.user.sekolahId
+      const kondisiPositif = [eq(poinKategori.jenis, "positif")]
+      const kondisiNegatif = [eq(poinKategori.jenis, "negatif")]
+      if (sekolahId) {
+        kondisiPositif.push(eq(poinSikap.sekolahId, sekolahId))
+        kondisiNegatif.push(eq(poinSikap.sekolahId, sekolahId))
+      }
 
       const topPositif = await db
         .select({
@@ -440,10 +441,7 @@ export const poinRouter = router({
         })
         .from(poinSikap)
         .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(
-          eq(poinSikap.sekolahId, sekolahId),
-          eq(poinKategori.jenis, "positif"),
-        ))
+        .where(and(...kondisiPositif))
         .groupBy(poinSikap.siswaId)
         .orderBy(desc(sql`sum(${poinSikap.poin})`))
         .limit(5)
@@ -455,10 +453,7 @@ export const poinRouter = router({
         })
         .from(poinSikap)
         .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(
-          eq(poinSikap.sekolahId, sekolahId),
-          eq(poinKategori.jenis, "negatif"),
-        ))
+        .where(and(...kondisiNegatif))
         .groupBy(poinSikap.siswaId)
         .orderBy(desc(sql`sum(${poinSikap.poin})`))
         .limit(5)
