@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
+import { toast } from "sonner"
 
 interface KelasRecord {
   id: string
@@ -81,22 +82,29 @@ export default function KelasTab() {
   )
 
   const handleSubmit = async (data: KelasFormData) => {
-    if (data.id) {
-      await updateMutation.mutateAsync({
-        id: data.id,
-        data: {
+    try {
+      if (data.id) {
+        await updateMutation.mutateAsync({
+          id: data.id,
+          data: {
+            namaKelas: data.namaKelas,
+            tingkat: data.tingkat || null,
+            waliKelasId: data.waliKelasId || null,
+            siswaIds: data.siswaIds,
+          },
+        })
+      } else {
+        await createMutation.mutateAsync({
           namaKelas: data.namaKelas,
           tingkat: data.tingkat || null,
           waliKelasId: data.waliKelasId || null,
-        },
-      })
-    } else {
-      await createMutation.mutateAsync({
-        namaKelas: data.namaKelas,
-        tingkat: data.tingkat || null,
-        waliKelasId: data.waliKelasId || null,
-        sekolahId,
-      })
+          sekolahId,
+          siswaIds: data.siswaIds,
+        })
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyimpan kelas")
+      throw err
     }
   }
 

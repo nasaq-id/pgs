@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, desc, asc } from "drizzle-orm"
+import { eq, and, like, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { kelas } from "@/server/db/schema"
+import { kelas, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -14,6 +14,7 @@ const kelasCreateSchema = z.object({
   tingkat: z.string().nullable().optional(),
   waliKelasId: z.string().nullable().optional(),
   kapasitas: z.number().nullable().optional(),
+  siswaIds: z.array(z.string()).optional(),
 })
 
 const kelasUpdateSchema = kelasCreateSchema.partial()
@@ -77,7 +78,14 @@ export const kelasRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
       const id = input.id || crypto.randomUUID()
-      const result = await db.insert(kelas).values({ ...input, id, sekolahId } as any).returning()
+      const { siswaIds, ...kelasData } = input
+      const result = await db.insert(kelas).values({ ...kelasData, id, sekolahId } as any).returning()
+      if (siswaIds && siswaIds.length > 0) {
+        await db
+          .update(siswa)
+          .set({ kelasId: id })
+          .where(and(eq(siswa.sekolahId, sekolahId), inArray(siswa.id, siswaIds)))
+      }
       await logAudit(ctx, { action: "create", entity: "kelas", entityId: result[0]?.id, metadata: { namaKelas: input.namaKelas } })
       return result[0]
     }),
@@ -90,11 +98,24 @@ export const kelasRouter = router({
       if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+      const { siswaIds, ...kelasData } = input.data
       const result = await db
         .update(kelas)
-        .set(input.data as any)
+        .set(kelasData as any)
         .where(and(...conditions))
         .returning()
+      if (siswaIds) {
+        await db
+          .update(siswa)
+          .set({ kelasId: null })
+          .where(and(eq(siswa.kelasId, input.id), eq(siswa.sekolahId, existing.sekolahId)))
+        if (siswaIds.length > 0) {
+          await db
+            .update(siswa)
+            .set({ kelasId: input.id })
+            .where(and(eq(siswa.sekolahId, existing.sekolahId), inArray(siswa.id, siswaIds)))
+        }
+      }
       await logAudit(ctx, { action: "update", entity: "kelas", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
@@ -107,6 +128,10 @@ export const kelasRouter = router({
       if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+      await db
+        .update(siswa)
+        .set({ kelasId: null })
+        .where(and(eq(siswa.kelasId, input.id), eq(siswa.sekolahId, existing.sekolahId)))
       await db.delete(kelas).where(and(...conditions))
       await logAudit(ctx, { action: "delete", entity: "kelas", entityId: input.id })
       return { success: true }

@@ -102,14 +102,18 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
 
   const handleSubmit = async () => {
     if (!tingkat || !namaKelas.trim()) return
-    await onSubmit({
-      id: initial?.id,
-      namaKelas: namaKelas.trim(),
-      tingkat,
-      waliKelasId: waliKelasId || undefined,
-      siswaIds: selectedSiswa.map((s) => s.id),
-    })
-    onClose()
+    try {
+      await onSubmit({
+        id: initial?.id,
+        namaKelas: namaKelas.trim(),
+        tingkat,
+        waliKelasId: waliKelasId || undefined,
+        siswaIds: selectedSiswa.map((s) => s.id),
+      })
+      onClose()
+    } catch {
+      // Error toast handled by parent
+    }
   }
 
   const isEdit = !!initial?.id
