@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
+import MobileBottomNav from "./MobileBottomNav"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -31,10 +32,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       <div className="lg:pl-56">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto">
+        <main className="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pb-20 lg:pb-6">
           {children}
         </main>
       </div>
+
+      <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />
     </div>
   )
 }
