@@ -20,6 +20,7 @@ import { useProvinsi, useKabupatenKota, useKecamatan, useKelurahan, useKodePos }
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { statusTempatTinggalOptions, jarakTempatTinggalOptions, waktuTempuhOptions } from "@/data/wilayah-indonesia"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 
 interface SiswaFormDialogProps {
   open: boolean
@@ -127,6 +128,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const [form, setForm] = useState({ ...defaultForm })
   const [activeTab, setActiveTab] = useState("siswa")
   const [fotoUrl, setFotoUrl] = useState("")
+  const [uploading, setUploading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const fotoInputRef = useRef<HTMLInputElement>(null)
 
@@ -435,17 +437,23 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
     })
   }
 
-  const handleFotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const url = reader.result as string
+
+    setUploading(true)
+    try {
+      const url = await uploadToCloudinary(file, "avatar-siswa")
       setFotoUrl(url)
       handleChange("foto", url)
+      toast.success("Foto berhasil diunggah!")
+    } catch (err) {
+      console.error(err)
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto")
+    } finally {
+      setUploading(false)
+      e.target.value = ""
     }
-    reader.readAsDataURL(file)
-    e.target.value = ""
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -604,7 +612,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
               {/* Photo Upload */}
               <div className="flex items-center gap-6 p-4 border rounded-lg bg-muted/30">
                 <div className="relative flex-shrink-0">
-                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/40 bg-muted flex items-center justify-center overflow-hidden">
+                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/40 bg-muted flex items-center justify-center overflow-hidden relative">
+                    {uploading ? (
+                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    ) : null}
                     {fotoUrl ? (
                       <img src={fotoUrl} alt="Foto siswa" className="w-full h-full object-cover" />
                     ) : (
@@ -616,22 +629,29 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       delay={0}
                       type="button"
                       onClick={() => fotoInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
+                      disabled={uploading}
+                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md hover:bg-primary/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Camera className="w-3 h-3" />
+                      {uploading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Camera className="w-3 h-3" />
+                      )}
                     </TooltipTrigger>
                     <TooltipPortal>
                       <TooltipPositioner>
-                        <TooltipPopup>Upload foto</TooltipPopup>
+                        <TooltipPopup>{uploading ? "Mengupload..." : "Upload foto"}</TooltipPopup>
                       </TooltipPositioner>
                     </TooltipPortal>
                   </Tooltip>
-                  <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+                  <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} disabled={uploading} />
                 </div>
                 <div>
                   <p className="font-medium text-sm">Foto Siswa</p>
-                  <p className="text-xs text-muted-foreground mt-1">Klik ikon kamera untuk upload foto (opsional)</p>
-                  {fotoUrl && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {uploading ? "Sedang mengunggah ke Cloudinary..." : "Klik ikon kamera untuk upload foto (opsional)"}
+                  </p>
+                  {fotoUrl && !uploading && (
                     <button type="button" onClick={() => { setFotoUrl(""); handleChange("foto", "") }} className="text-xs text-destructive mt-1 hover:underline cursor-pointer">
                       Hapus foto
                     </button>

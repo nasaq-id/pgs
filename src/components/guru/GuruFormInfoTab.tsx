@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Upload, X, User, Eye, EyeOff } from "lucide-react"
+import { uploadToCloudinary } from "@/lib/cloudinary"
+import { toast } from "sonner"
+import { Loader2, Upload, X, User, Eye, EyeOff } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -21,25 +23,39 @@ interface Props {
 
 export default function GuruFormInfoTab({ form, onChange }: Props) {
   const [showPassword, setShowPassword] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const fotoUrl = (form.foto as string) || ""
 
-  const handleFotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      onChange("foto", reader.result as string)
+    
+    setUploading(true)
+    try {
+      const url = await uploadToCloudinary(file, "avatar-guru")
+      onChange("foto", url)
+      toast.success("Foto berhasil diunggah!")
+    } catch (err) {
+      console.error(err)
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto")
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
     }
-    reader.readAsDataURL(file)
   }
 
   return (
     <div className="space-y-4">
       {/* Foto */}
       <div className="flex flex-col items-center gap-3 py-2">
-        <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted">
+        <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted relative">
+          {uploading ? (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : null}
           {fotoUrl ? (
             <img src={fotoUrl} alt="Foto" className="h-full w-full object-cover" />
           ) : (
@@ -47,11 +63,15 @@ export default function GuruFormInfoTab({ form, onChange }: Props) {
           )}
         </div>
         <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-            <Upload className="h-3 w-3 mr-1" />
-            Upload Foto
+          <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Upload className="h-3 w-3 mr-1" />
+            )}
+            {uploading ? "Uploading..." : "Upload Foto"}
           </Button>
-          {fotoUrl && (
+          {fotoUrl && !uploading && (
             <Button type="button" size="sm" variant="outline" onClick={() => onChange("foto", "")}>
               <X className="h-3 w-3" />
             </Button>

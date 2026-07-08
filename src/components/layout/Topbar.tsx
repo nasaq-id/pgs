@@ -50,13 +50,23 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname()
   const user = session?.user
 
-  const displayName = (user?.name) || user?.email?.split("@")[0] || "Admin"
-  const initials = (user?.name?.[0] || user?.email?.[0] || "A").toUpperCase()
+  // Fetch the latest profile data from server so that profile picture updates instantly
+  const { data: profile } = api.profil.getProfile.useQuery(undefined, {
+    enabled: !!session,
+  })
+
+  const displayName =
+    (profile?.namaLengkap as string) ||
+    (profile?.firstName ? `${profile.firstName} ${profile.lastName || ""}`.trim() : null) ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    "Admin"
+  const initials = (displayName[0] || "A").toUpperCase()
   const rawPageTitle = pageTitles[pathname] ?? "Dashboard"
   const pageTitle = pathname === "/evaluasi/buku-nilai" && (user?.role === "siswa" || user?.role === "ortu")
     ? "Laporan Hasil Belajar"
     : rawPageTitle
-  const userPhoto = user?.photo
+  const userPhoto = (profile?.photo as string) || user?.photo
 
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
