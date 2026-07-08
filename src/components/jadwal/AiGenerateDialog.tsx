@@ -21,7 +21,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
-import { Loader2, Sparkles, Plus, Trash2, AlertCircle, Calendar } from "lucide-react"
+import { Loader2, Sparkles, Plus, Trash2, AlertCircle } from "lucide-react"
 
 interface KelasRecord {
   id: string
@@ -128,6 +128,21 @@ export default function AiGenerateDialog({
     },
   })
 
+  const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({}, {
+    enabled: open,
+  })
+
+  const maxJpPerDay = useMemo(() => {
+    const map = new Map<string, number>()
+    if (!timelineList) return map
+    for (const item of timelineList) {
+      if (item.tipe === "jp") {
+        map.set(item.hari, (map.get(item.hari) || 0) + 1)
+      }
+    }
+    return map
+  }, [timelineList])
+
   // Initialize allocations from existing jadwal if any
   useEffect(() => {
     if (!open) return
@@ -205,21 +220,47 @@ export default function AiGenerateDialog({
     setAllocations(allocations.filter((_, i) => i !== index))
   }
 
-  const handleConstraintToggle = (guruId: string, day: string) => {
-    const isExcluded = constraints.some((c) => c.guruId === guruId && c.hari === day)
-    if (isExcluded) {
-      setConstraints(constraints.filter((c) => !(c.guruId === guruId && c.hari === day)))
-    } else {
-      setConstraints([
-        ...constraints,
-        {
-          guruId,
-          hari: day as any,
-          jpMulai: 1,
-          jpSelesai: 10,
-        },
-      ])
-    }
+  const handleAddConstraint = (guruId: string, day: string) => {
+    const alreadyExists = constraints.some((c) => c.guruId === guruId && c.hari === day)
+    if (alreadyExists) return
+    const max = maxJpPerDay.get(day) ?? 10
+    setConstraints([
+      ...constraints,
+      {
+        guruId,
+        hari: day as any,
+        jpMulai: 1,
+        jpSelesai: Math.max(1, max),
+      },
+    ])
+  }
+
+  const handleRemoveConstraint = (guruId: string, day: string) => {
+    setConstraints(constraints.filter((c) => !(c.guruId === guruId && c.hari === day)))
+  }
+
+  const handleJpMulaiChange = (guruId: string, day: string, value: number) => {
+    setConstraints(
+      constraints.map((c) => {
+        if (c.guruId === guruId && c.hari === day) {
+          const max = maxJpPerDay.get(day) ?? 10
+          return { ...c, jpMulai: Math.max(1, Math.min(value, c.jpSelesai)) }
+        }
+        return c
+      })
+    )
+  }
+
+  const handleJpSelesaiChange = (guruId: string, day: string, value: number) => {
+    setConstraints(
+      constraints.map((c) => {
+        if (c.guruId === guruId && c.hari === day) {
+          const max = maxJpPerDay.get(day) ?? 10
+          return { ...c, jpSelesai: Math.max(c.jpMulai, Math.min(value, max)) }
+        }
+        return c
+      })
+    )
   }
 
   const handleGenerate = async () => {
@@ -412,19 +453,20 @@ export default function AiGenerateDialog({
                 <div>
                   <p className="font-semibold">Pemberitahuan:</p>
                   <p>
-                    Centang hari di bawah ini untuk menandai hari libur/hari di mana guru yang bersangkutan tidak dapat mengajar.
-                    AI akan secara otomatis menghindari pengisian jadwal pada hari tersebut untuk guru terkait.
+                    Klik tombol <strong>+</strong> pada hari untuk menambah pengecualian jadwal guru.
+                    Atur rentang JP yang dikecualikan secara manual.
+                    AI akan menghindari pengisian jadwal pada hari dan rentang JP tersebut.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border overflow-hidden">
+              <div className="rounded-xl border border-border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted text-muted-foreground border-b border-border font-medium">
                       <th className="py-2.5 px-4 text-left">Nama Guru</th>
                       {HARI_OPTIONS.map((h) => (
-                        <th key={h.value} className="py-2.5 px-4 text-center w-24">
+                        <th key={h.value} className="py-2.5 px-4 text-center" style={{ minWidth: 148 }}>
                           {h.label}
                         </th>
                       ))}
@@ -433,19 +475,58 @@ export default function AiGenerateDialog({
                   <tbody>
                     {guruRecords.map((guru) => (
                       <tr key={guru.id} className="border-b border-border hover:bg-muted/30">
-                        <td className="py-2.5 px-4 font-medium">{guru.namaLengkap}</td>
+                        <td className="py-2.5 px-4 font-medium whitespace-nowrap">{guru.namaLengkap}</td>
                         {HARI_OPTIONS.map((h) => {
-                          const isExcluded = constraints.some(
+                          const constraint = constraints.find(
                             (c) => c.guruId === guru.id && c.hari === h.value
                           )
+                          const max = maxJpPerDay.get(h.value) ?? 0
+                          const isPending = generateMutation.isPending
                           return (
                             <td key={h.value} className="py-2.5 px-4 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isExcluded}
-                                onChange={() => handleConstraintToggle(guru.id, h.value)}
-                                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
-                              />
+                              {max === 0 ? (
+                                <span className="text-xs text-muted-foreground">&mdash;</span>
+                              ) : constraint ? (
+                                <div className="inline-flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-muted-foreground">JP</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={constraint.jpSelesai}
+                                    value={constraint.jpMulai}
+                                    onChange={(e) => handleJpMulaiChange(guru.id, h.value, Number(e.target.value))}
+                                    disabled={isPending}
+                                    className="w-11 h-7 rounded border border-border bg-background text-center text-xs font-mono tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50"
+                                  />
+                                  <span className="text-xs text-muted-foreground">&ndash;</span>
+                                  <input
+                                    type="number"
+                                    min={constraint.jpMulai}
+                                    max={max}
+                                    value={constraint.jpSelesai}
+                                    onChange={(e) => handleJpSelesaiChange(guru.id, h.value, Number(e.target.value))}
+                                    disabled={isPending}
+                                    className="w-11 h-7 rounded border border-border bg-background text-center text-xs font-mono tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveConstraint(guru.id, h.value)}
+                                    disabled={isPending}
+                                    className="ml-0.5 inline-flex items-center justify-center rounded-full size-5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 transition-colors cursor-pointer"
+                                    title="Hapus pengecualian"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddConstraint(guru.id, h.value)}
+                                  disabled={isPending}
+                                  className="inline-flex items-center justify-center rounded-full size-7 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors cursor-pointer"
+                                  title="Tambah pengecualian"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </td>
                           )
                         })}
