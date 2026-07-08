@@ -25,6 +25,16 @@ const TINGKAT_OPTIONS = [
   { value: "Kelas 12", label: "XII" },
 ]
 
+const JENJANG_TINGKAT_MAP: Record<string, { min: number; max: number }> = {
+  sd: { min: 1, max: 6 },
+  mi: { min: 1, max: 6 },
+  smp: { min: 7, max: 9 },
+  mts: { min: 7, max: 9 },
+  sma: { min: 10, max: 12 },
+  ma: { min: 10, max: 12 },
+  smk: { min: 10, max: 12 },
+}
+
 export interface KelasFormData {
   id?: string
   namaKelas: string
@@ -60,6 +70,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   const [loadingSiswa, setLoadingSiswa] = useState(false)
 
   const { data: allSiswa } = api.siswa.getAll.useQuery({})
+  const { data: sekolah } = api.lembaga.getSekolah.useQuery()
 
   useEffect(() => {
     if (!open) return
@@ -92,6 +103,13 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
       s.namaLengkap.toLowerCase().includes(q) || s.nisn.toLowerCase().includes(q)
     )
   }, [availableSiswa, siswaSearch])
+
+  const filteredTingkat = useMemo(() => {
+    if (!sekolah?.jenjang) return TINGKAT_OPTIONS
+    const range = JENJANG_TINGKAT_MAP[sekolah.jenjang]
+    if (!range) return TINGKAT_OPTIONS
+    return TINGKAT_OPTIONS.slice(range.min - 1, range.max)
+  }, [sekolah])
 
   const addSiswa = (s: SiswaItem) => {
     setSelectedSiswa((prev) => [...prev, s])
@@ -141,7 +159,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
               <Select value={tingkat} onValueChange={(v) => v && setTingkat(v)}>
                 <SelectTrigger><SelectValue placeholder="Pilih tingkat" /></SelectTrigger>
                 <SelectContent>
-                  {TINGKAT_OPTIONS.map((t) => (
+                  {filteredTingkat.map((t) => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
