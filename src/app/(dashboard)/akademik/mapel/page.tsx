@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -48,7 +48,6 @@ interface MapelRecord {
   namaMapel: string
   kodeMapel: string | null
   kelompok: string | null
-  kkm: number | null
   aktif: boolean
   urutan: number | null
 }
@@ -65,9 +64,15 @@ export default function MapelPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
 
   const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({ search })
   const utils = api.useUtils()
+
+  useEffect(() => {
+    setLocalRecords((mapelList ?? []) as MapelRecord[])
+  }, [mapelList])
 
   const createMutation = api.mapel.create.useMutation({
     onSuccess: () => {
@@ -82,6 +87,12 @@ export default function MapelPage() {
   })
 
   const removeMutation = api.mapel.remove.useMutation({
+    onSuccess: () => {
+      utils.mapel.getAll.invalidate()
+    },
+  })
+
+  const reorderMutation = api.mapel.reorder.useMutation({
     onSuccess: () => {
       utils.mapel.getAll.invalidate()
     },
@@ -113,10 +124,28 @@ export default function MapelPage() {
     setDeleteId(null)
   }
 
+  const handleDragStart = useCallback((index: number) => {
+    setDragIndex(index)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === index) return
+    const updated = [...localRecords]
+    const [moved] = updated.splice(dragIndex, 1)
+    updated.splice(index, 0, moved)
+    setDragIndex(index)
+    setLocalRecords(updated)
+  }, [dragIndex, localRecords])
+
+  const handleDragEnd = useCallback(() => {
+    setDragIndex(null)
+    const items = localRecords.map((r, i) => ({ id: r.id, urutan: i + 1 }))
+    reorderMutation.mutate({ items })
+  }, [localRecords, reorderMutation])
+
   const { data: session } = useSession()
   const sekolahId = session?.user?.sekolahId ?? ""
-
-  const records = (mapelList ?? []) as MapelRecord[]
 
   return (
     <div className="space-y-6">
@@ -149,7 +178,7 @@ export default function MapelPage() {
               <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
-        ) : records.length === 0 ? (
+        ) : localRecords.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-muted-foreground">
               {search ? "Tidak ditemukan" : "Belum ada mata pelajaran"}
@@ -159,18 +188,27 @@ export default function MapelPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10" />
                 <TableHead>Kode</TableHead>
                 <TableHead>Nama Mapel</TableHead>
                 <TableHead>Kelompok</TableHead>
-                <TableHead>KKM</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Urutan</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((r) => (
-                <TableRow key={r.id}>
+              {localRecords.map((r, index) => (
+                <TableRow
+                  key={r.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={dragIndex === index ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
+                >
+                  <TableCell className="w-10 text-muted-foreground">
+                    <GripVertical className="h-4 w-4" />
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{r.kodeMapel ?? "-"}</TableCell>
                   <TableCell className="font-medium">{r.namaMapel}</TableCell>
                   <TableCell>
@@ -178,13 +216,11 @@ export default function MapelPage() {
                       {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "-"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{r.kkm ?? "-"}</TableCell>
                   <TableCell>
                     <Badge variant={r.aktif ? "default" : "secondary"}>
                       {r.aktif ? "Aktif" : "Tidak Aktif"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{r.urutan ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <Tooltip>

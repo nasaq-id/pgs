@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react"
 import {
-  Plus,
   Pencil,
   Trash2,
   Loader2,
@@ -251,19 +250,6 @@ export default function JadwalPage() {
     setDeleteId(null)
   }
 
-  const openAdd = () => {
-    setEditEntry({
-      hari: aktifDays[0] || "senin",
-      jamMulai: "",
-      jamSelesai: "",
-      mataPelajaranId: "",
-      guruId: "",
-      jpMulai: null,
-      jpCount: 1,
-    })
-    setFormOpen(true)
-  }
-
   const openEdit = (entry: JadwalRecord) => {
     setEditEntry({
       id: entry.id,
@@ -409,14 +395,7 @@ export default function JadwalPage() {
             >
               <Settings className="h-4 w-4" /> Pengaturan Jadwal
             </Button>
-            <Button
-              className="gap-2"
-              style={{ backgroundColor: "hsl(142 72% 40%)" }}
-              disabled={!kelasId}
-              onClick={openAdd}
-            >
-              <Plus className="h-4 w-4" /> Tambah Jadwal
-            </Button>
+
           </div>
         </div>
 

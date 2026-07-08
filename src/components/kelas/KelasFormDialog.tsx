@@ -156,7 +156,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
             <div className="space-y-1.5">
               <Label>Wali Kelas</Label>
               <Select value={waliKelasId} onValueChange={(v) => v && setWaliKelasId(v)}>
-                <SelectTrigger><SelectValue placeholder="Pilih wali kelas" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Pilih wali kelas">{guruList.find((g) => g.id === waliKelasId)?.namaLengkap || "Pilih wali kelas"}</SelectValue></SelectTrigger>
                 <SelectContent>
                   {guruList.map((g) => (
                     <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>

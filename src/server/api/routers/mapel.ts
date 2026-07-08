@@ -110,4 +110,19 @@ export const mapelRouter = router({
       await logAudit(ctx, { action: "delete", entity: "mata_pelajaran", entityId: input.id })
       return { success: true }
     }),
+
+  reorder: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      items: z.array(z.object({ id: z.string(), urutan: z.number() })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      for (const item of input.items) {
+        const conditions = [eq(mataPelajaran.id, item.id)]
+        if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
+        await db.update(mataPelajaran).set({ urutan: item.urutan }).where(and(...conditions))
+      }
+      await logAudit(ctx, { action: "reorder", entity: "mata_pelajaran", metadata: { count: input.items.length } })
+      return { success: true }
+    }),
 })

@@ -113,11 +113,10 @@ export default function GuruFormKepegawaianTab({ form, onChange }: Props) {
           <Label>JP (Jam Pelajaran)</Label>
           <Input
             type="number"
-            min={0}
-            max={99}
-            placeholder="0"
-            value={(form.jp as number) ?? ""}
-            onChange={(e) => onChange("jp", e.target.value ? Number(e.target.value) : undefined)}
+            readOnly
+            className="bg-muted cursor-not-allowed"
+            placeholder="Ditentukan di jadwal"
+            value={(form.jp as number) ?? 0}
           />
         </div>
         <div className="space-y-1">

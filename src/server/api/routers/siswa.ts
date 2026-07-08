@@ -145,10 +145,16 @@ export const siswaRouter = router({
       const orderBy = input.sortOrder === "asc" ? asc(siswa[input.sortBy]) : desc(siswa[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
       const data = await db
-        .select()
+        .select({
+          ...getTableColumns(siswa),
+        })
         .from(siswa)
+        .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
         .where(whereClause)
-        .orderBy(orderBy)
+        .orderBy(
+          asc(kelas.namaKelas),
+          input.sortOrder === "asc" ? asc(siswa[input.sortBy]) : desc(siswa[input.sortBy])
+        )
         .limit(input.limit)
         .offset(input.offset)
       return data

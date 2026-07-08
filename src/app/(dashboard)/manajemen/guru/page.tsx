@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import GuruFormDialog from "@/components/guru/GuruFormDialog"
 import GuruDetailDialog from "@/components/guru/GuruDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
@@ -81,6 +82,10 @@ export default function GuruPage() {
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false)
+  const [importPreviewData, setImportPreviewData] = useState<any[] | null>(null)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const removeMutation = api.guru.remove.useMutation({
@@ -106,6 +111,8 @@ export default function GuruPage() {
     onSuccess: (result) => {
       toast.success(`${result.length} data guru berhasil diimport`)
       setImporting(false)
+      setImportPreviewOpen(false)
+      setImportPreviewData(null)
       utils.guru.getAll.invalidate()
     },
     onError: (err) => {
@@ -235,51 +242,67 @@ export default function GuruPage() {
     }
   }
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setImporting(true)
+    setImportModalOpen(false)
     try {
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows: any[] = XLSX.utils.sheet_to_json(ws)
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false })
+
       const mapped = rows.map((row: any) => ({
-        nipnuptk: String(row["NIP/NUPTK"] || "").trim() || undefined,
-        nik: String(row.NIK || "").trim() || undefined,
-        namaLengkap: String(row["Nama Lengkap"] || "").trim(),
+        namaLengkap: String(row["Nama"] || "").trim(),
+        usernameGuru: String(row["Username"] || "").trim() || undefined,
         jenisKelamin: (String(row["Jenis Kelamin"] || "").trim() === "Laki-laki" ? "L" : String(row["Jenis Kelamin"] || "").trim() === "Perempuan" ? "P" : undefined) as "L" | "P" | undefined,
-        tempatLahir: String(row["Tempat Lahir"] || "").trim() || undefined,
-        alamat: String(row.Alamat || "").trim() || undefined,
-        noHp: String(row["No HP"] || "").trim() || undefined,
-        email: String(row.Email || "").trim() || undefined,
-        pendidikanTerakhir: String(row["Pendidikan Terakhir"] || "").trim() || undefined,
-        statusKepegawaian: String(row["Status Kepegawaian"] || "").trim() || undefined,
-        kategoriPegawai: String(row["Kategori Pegawai"] || "Guru").trim() || undefined,
-        tugasUtama: String(row["Tugas Utama"] || "").trim() || undefined,
-        tugasTambahan: String(row["Tugas Tambahan"] || "").trim() || undefined,
-        usernameGuru: String(row.Username || "").trim() || undefined,
-        active: String(row.Status || "").trim().toLowerCase() !== "non aktif",
+        passwordGuru: String(row["Password"] || "").trim(),
       })).filter((r) => r.namaLengkap)
 
       if (mapped.length === 0) {
         toast.error("Tidak ada data valid ditemukan di file Excel")
-        setImporting(false)
         return
       }
 
-      const confirmed = confirm(`Import ${mapped.length} data guru?`)
-      if (!confirmed) {
-        setImporting(false)
-        return
-      }
-
-      await bulkCreateMutation.mutateAsync({ data: mapped })
+      setImportPreviewData(mapped)
+      setImportPreviewOpen(true)
     } catch {
-      toast.error("Gagal membaca file Excel")
+      toast.error("Gagal membaca file Excel. Pastikan format file sesuai template.")
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleImportConfirm = async () => {
+    if (!importPreviewData) return
+    setImporting(true)
+    setImportPreviewOpen(false)
+    try {
+      await bulkCreateMutation.mutateAsync({ data: importPreviewData })
+      setImportPreviewData(null)
+    } catch {
+      // error handled by mutation
+    } finally {
       setImporting(false)
     }
-    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const handleDownloadTemplate = () => {
+    const template = [
+      ["Nama", "Username", "Jenis Kelamin", "Password"],
+      ["John Doe", "johndoe", "Laki-laki", "password123"],
+    ]
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.aoa_to_sheet(template)
+    ws["!cols"] = [
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 20 },
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, "Template Guru")
+    XLSX.writeFile(wb, "template_import_guru.xlsx")
+    toast.success("Template berhasil didownload")
   }
 
   const hasMore = guruList ? guruList.length >= limit : false
@@ -298,15 +321,15 @@ export default function GuruPage() {
             type="file"
             accept=".xlsx,.xls"
             className="hidden"
-            onChange={handleFileImport}
+            onChange={handleImportFileSelected}
           />
-          <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+          <Button variant="outline" className="gap-2" onClick={() => setImportModalOpen(true)} disabled={importing}>
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Import Excel
+            Import
           </Button>
-          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={exporting}>
+          <Button variant="outline" className="gap-2" onClick={() => setExportModalOpen(true)} disabled={exporting}>
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Export Excel
+            Export
           </Button>
           <Button onClick={handleCreate} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -475,6 +498,115 @@ export default function GuruPage() {
           guruId={detailId}
         />
       )}
+
+      <Dialog open={importModalOpen} onOpenChange={(open) => { if (!open) setImportModalOpen(false) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Import Data Guru</DialogTitle>
+            <DialogDescription>Import data guru dari file Excel</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            <button
+              onClick={() => { setImportModalOpen(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
+              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 cursor-pointer"
+            >
+              <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <Upload className="size-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Import Excel</p>
+                <p className="text-xs text-muted-foreground mt-0.5">File .xlsx atau .xls — preview data sebelum import</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setImportModalOpen(false)}>Batal</Button>
+            </div>
+            <div className="border-t border-border pt-3">
+              <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleDownloadTemplate}>
+                <Download className="h-3.5 w-3.5" />
+                Download Template Excel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null) } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview Data Import</DialogTitle>
+            <DialogDescription>
+              {importPreviewData ? `${importPreviewData.length} data guru akan diimport. Pastikan data sudah sesuai.` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto -mx-5 px-5">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">No</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Jenis Kelamin</TableHead>
+                  <TableHead>Password</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importPreviewData?.slice(0, 50).map((d: any, i: number) => (
+                  <TableRow key={i}>
+                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell className="font-medium">{d.namaLengkap}</TableCell>
+                    <TableCell>{d.usernameGuru || "-"}</TableCell>
+                    <TableCell>{d.jenisKelamin === "L" ? "Laki-laki" : d.jenisKelamin === "P" ? "Perempuan" : "-"}</TableCell>
+                    <TableCell>••••••</TableCell>
+                  </TableRow>
+                ))}
+                {importPreviewData && importPreviewData.length > 50 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-4">
+                      ... dan {importPreviewData.length - 50} data lainnya
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4">
+            <Button variant="outline" onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null) }}>Batal</Button>
+            <Button onClick={handleImportConfirm} disabled={importing}>
+              {importing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengimport...</> : `Import ${importPreviewData?.length || 0} Data`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Export Data Guru</DialogTitle>
+            <DialogDescription>Pilih format file untuk mengexport data guru</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            <button
+              onClick={() => { setExportModalOpen(false); handleExport() }}
+              disabled={exporting}
+              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <FileSpreadsheet className="size-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Excel</p>
+                <p className="text-xs text-muted-foreground mt-0.5">.xlsx — Semua data guru lengkap</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex justify-end pt-1">
+            <Button variant="ghost" size="sm" onClick={() => setExportModalOpen(false)}>Batal</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!resetId} onOpenChange={(open) => { if (!open) { setResetId(null); setResetName(""); setNewPassword(""); setShowPassword(false) } }}>
         <AlertDialogContent>
