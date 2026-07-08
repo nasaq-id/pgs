@@ -95,7 +95,6 @@ export default function ExportExcelJadwal() {
 
       const durasiJP = pengaturanData?.durasiJP ?? 40
 
-      // Get active days from timeline
       const aktifDays = (() => {
         const days = new Set<string>()
         for (const t of timelineRecords) {
@@ -105,23 +104,19 @@ export default function ExportExcelJadwal() {
         return DAYS.filter((d) => days.has(d))
       })()
 
-      // Build timeline-based JP mapping per day
       const timelineByDay = new Map<string, TimelineRecord[]>()
       for (const day of aktifDays) {
         timelineByDay.set(day, timelineRecords.filter((t) => t.hari === day).sort((a, b) => a.urutan - b.urutan))
       }
 
-      // Get max JP slots across days
       let maxJpSlots = 0
       for (const day of aktifDays) {
         const jpCount = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp").length
         if (jpCount > maxJpSlots) maxJpSlots = jpCount
       }
 
-      // Determine totalJpSlots to use for the grid (uniform across days)
       const totalJpSlots = Math.max(maxJpSlots, 1)
 
-      // Build academic JP mapping
       const academicJpMap = new Map<string, number | null>()
       for (const day of aktifDays) {
         const dayItems = timelineByDay.get(day) ?? []
@@ -148,17 +143,12 @@ export default function ExportExcelJadwal() {
       const taLabel = tahunAjaranData?.namaTahunAjaran
         ? `Tahun Ajaran ${tahunAjaranData.namaTahunAjaran}${
             tahunAjaranData.semester
-              ? ` Semester ${
-                  tahunAjaranData.semester.charAt(0).toUpperCase() +
-                  tahunAjaranData.semester.slice(1)
-                }`
+              ? ` Semester ${tahunAjaranData.semester.charAt(0).toUpperCase() + tahunAjaranData.semester.slice(1)}`
               : ""
           }`
         : ""
 
-      const totalCols = 3 + sortedKelas.length
-
-      // Build sequential codes map
+      // ── Code system ──
       const codesMap = new Map<string, string>()
       const sortedTeachers = [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
       let teacherCounter = 1
@@ -183,11 +173,12 @@ export default function ExportExcelJadwal() {
         return codesMap.get(key) || ""
       }
 
-      const getEntryAtSlot = (hari: string, jpSlot: number): JadwalRecord | null => {
+      // ── Helpers ──
+      const getEntryAtSlot = (hari: string, kelasId: string, jpSlot: number): JadwalRecord | null => {
         const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
         if (academicJp === null || academicJp === undefined) return null
         const entries = jadwalRecords.filter(
-          (e) => e.hari === hari && e.jpMulai !== null && e.jpCount !== null
+          (e) => e.hari === hari && e.kelasId === kelasId && e.jpMulai !== null && e.jpCount !== null
         )
         for (const entry of entries) {
           const start = entry.jpMulai!
@@ -204,8 +195,13 @@ export default function ExportExcelJadwal() {
         return null
       }
 
+      const classCount = sortedKelas.length
+      const dayCount = aktifDays.length
+      const totalCols = 1 + dayCount * classCount
+
       const wb = XLSX.utils.book_new()
 
+      // ── Header rows (0-4) ──
       const headerData: (string | undefined)[][] = [
         [sekolahData?.namaSekolah || "SEKOLAH"],
         [
@@ -213,10 +209,9 @@ export default function ExportExcelJadwal() {
             .filter(Boolean)
             .join(" | "),
         ],
-        ["Jadwal Pelajaran"],
+        ["Jadwal Pelajaran Keseluruhan Kelas"],
         [taLabel],
         [],
-        ["Hari", "JP", "Jam", ...sortedKelas.map((k) => (k.tingkat ? `${k.tingkat}-${k.namaKelas}` : k.namaKelas))],
       ]
 
       const ws = XLSX.utils.aoa_to_sheet(headerData)
@@ -228,34 +223,37 @@ export default function ExportExcelJadwal() {
         { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
       ]
 
-      // Style header rows
+      // Style header info
       for (let c = 0; c < totalCols; c++) {
-        const addr = XLSX.utils.encode_cell({ r: 0, c })
-        if (!ws[addr]) continue
-        ws[addr].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: "center", vertical: "center" } }
-      }
-      for (let c = 0; c < totalCols; c++) {
-        const addr = XLSX.utils.encode_cell({ r: 1, c })
-        if (!ws[addr]) continue
-        ws[addr].s = { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } }
-      }
-      for (let c = 0; c < totalCols; c++) {
-        const addr = XLSX.utils.encode_cell({ r: 2, c })
-        if (!ws[addr]) continue
-        ws[addr].s = { font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" } }
-      }
-      for (let c = 0; c < totalCols; c++) {
-        const addr = XLSX.utils.encode_cell({ r: 3, c })
-        if (!ws[addr]) continue
-        ws[addr].s = { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } }
+        ws[XLSX.utils.encode_cell({ r: 0, c })] = {
+          ...ws[XLSX.utils.encode_cell({ r: 0, c })],
+          s: { font: { bold: true, sz: 14 }, alignment: { horizontal: "center", vertical: "center" } },
+        }
+        ws[XLSX.utils.encode_cell({ r: 1, c })] = {
+          ...ws[XLSX.utils.encode_cell({ r: 1, c })],
+          s: { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } },
+        }
+        ws[XLSX.utils.encode_cell({ r: 2, c })] = {
+          ...ws[XLSX.utils.encode_cell({ r: 2, c })],
+          s: { font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" } },
+        }
+        ws[XLSX.utils.encode_cell({ r: 3, c })] = {
+          ...ws[XLSX.utils.encode_cell({ r: 3, c })],
+          s: { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } },
+        }
       }
 
-      // Style header row
-      for (let c = 0; c < totalCols; c++) {
-        const addr = XLSX.utils.encode_cell({ r: 5, c })
-        if (!ws[addr]) continue
-        ws[addr].s = {
-          font: { bold: true, sz: 10 },
+      // ── Column A merge ──
+      const colAMerge = { s: { r: 5, c: 0 }, e: { r: 6, c: 0 } }
+      ws["!merges"]!.push(colAMerge)
+
+      // ── Row 5: Day names ──
+      const row5colA = XLSX.utils.encode_cell({ r: 5, c: 0 })
+      ws[row5colA] = {
+        t: "s",
+        v: "JP / Jam",
+        s: {
+          font: { bold: true, sz: 9 },
           alignment: { horizontal: "center", vertical: "center", wrapText: true },
           fill: { fgColor: { rgb: "E5E7EB" } },
           border: {
@@ -264,29 +262,65 @@ export default function ExportExcelJadwal() {
             left: { style: "thin" },
             right: { style: "thin" },
           },
+        },
+      }
+
+      for (let di = 0; di < dayCount; di++) {
+        const day = aktifDays[di]
+        const startCol = 1 + di * classCount
+        const endCol = startCol + classCount - 1
+
+        ws["!merges"]!.push({ s: { r: 5, c: startCol }, e: { r: 5, c: endCol } })
+
+        const cellAddr = XLSX.utils.encode_cell({ r: 5, c: startCol })
+        ws[cellAddr] = {
+          t: "s",
+          v: DAY_LABEL[day],
+          s: {
+            font: { bold: true, sz: 10 },
+            alignment: { horizontal: "center", vertical: "center" },
+            fill: { fgColor: { rgb: "E5E7EB" } },
+            border: {
+              top: { style: "thin" },
+              bottom: { style: "thin" },
+              left: { style: "thin" },
+              right: { style: "thin" },
+            },
+          },
+        }
+
+        // Fill remaining merged cells with style
+        for (let ci = startCol + 1; ci <= endCol; ci++) {
+          const fillAddr = XLSX.utils.encode_cell({ r: 5, c: ci })
+          ws[fillAddr] = {
+            t: "s",
+            v: "",
+            s: {
+              fill: { fgColor: { rgb: "E5E7EB" } },
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              },
+            },
+          }
         }
       }
 
-      let currentRow = 6
-      const dayStartRows: { day: string; startRow: number; endRow: number }[] = []
-
-      for (const day of aktifDays) {
-        dayStartRows.push({ day, startRow: currentRow, endRow: currentRow + totalJpSlots - 1 })
-
-        for (let jp = 1; jp <= totalJpSlots; jp++) {
-          const dayItems = timelineByDay.get(day) ?? []
-          const item = dayItems[jp - 1]
-          const timeStart = item?.jamMulai ?? minutesToTime(420 + (jp - 1) * durasiJP)
-          const timeEnd = item?.jamSelesai ?? minutesToTime(420 + jp * durasiJP)
-
-          // Day merge cell
-          const dayCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
-          ws[dayCellAddr] = {
+      // ── Row 6: Class names ──
+      for (let di = 0; di < dayCount; di++) {
+        for (let ci = 0; ci < classCount; ci++) {
+          const kelas = sortedKelas[ci]
+          const col = 1 + di * classCount + ci
+          const cellAddr = XLSX.utils.encode_cell({ r: 6, c: col })
+          ws[cellAddr] = {
             t: "s",
-            v: DAY_LABEL[day],
+            v: kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas,
             s: {
-              font: { bold: true, sz: 9 },
+              font: { bold: true, sz: 8 },
               alignment: { horizontal: "center", vertical: "center", wrapText: true },
+              fill: { fgColor: { rgb: "F3F4F6" } },
               border: {
                 top: { style: "thin" },
                 bottom: { style: "thin" },
@@ -295,71 +329,50 @@ export default function ExportExcelJadwal() {
               },
             },
           }
+        }
+      }
 
-          // JP number
-          const jpCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 1 })
-          ws[jpCellAddr] = {
-            t: "s",
-            v: `${jp}`,
-            s: {
-              font: { sz: 9 },
-              alignment: { horizontal: "center", vertical: "center" },
-              border: {
-                top: { style: "thin" },
-                bottom: { style: "thin" },
-                left: { style: "thin" },
-                right: { style: "thin" },
-              },
+      // ── Data rows (starting row 7) ──
+      let currentRow = 7
+
+      for (let jp = 1; jp <= totalJpSlots; jp++) {
+        const dayItems = timelineByDay.get(aktifDays[0]) ?? []
+        const item = dayItems[jp - 1]
+        const timeStart = item?.jamMulai ?? minutesToTime(420 + (jp - 1) * durasiJP)
+        const timeEnd = item?.jamSelesai ?? minutesToTime(420 + jp * durasiJP)
+
+        // Col A: JP number & time
+        const colAAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
+        ws[colAAddr] = {
+          t: "s",
+          v: `JP ${jp}\n${timeStart}-${timeEnd}`,
+          s: {
+            font: { bold: true, sz: 8 },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true },
+            border: {
+              top: { style: "thin" },
+              bottom: { style: "thin" },
+              left: { style: "thin" },
+              right: { style: "thin" },
             },
-          }
+          },
+        }
 
-          // Time
-          const timeCellAddr = XLSX.utils.encode_cell({ r: currentRow, c: 2 })
-          ws[timeCellAddr] = {
-            t: "s",
-            v: `${timeStart}-${timeEnd}`,
-            s: {
-              font: { sz: 8 },
-              alignment: { horizontal: "center", vertical: "center" },
-              border: {
-                top: { style: "thin" },
-                bottom: { style: "thin" },
-                left: { style: "thin" },
-                right: { style: "thin" },
-              },
-            },
-          }
+        for (let di = 0; di < dayCount; di++) {
+          const day = aktifDays[di]
+          const agendaItem = getAgendaAtSlot(day, jp)
 
-          // Kelas columns
-          for (let ki = 0; ki < sortedKelas.length; ki++) {
-            const kelas = sortedKelas[ki]
-            const col = 3 + ki
-            const agendaItem = getAgendaAtSlot(day, jp)
-            const entry = agendaItem ? null : getEntryAtSlot(day, jp)
-
+          for (let ci = 0; ci < classCount; ci++) {
+            const kelas = sortedKelas[ci]
+            const col = 1 + di * classCount + ci
             const cellAddr = XLSX.utils.encode_cell({ r: currentRow, c: col })
 
             if (agendaItem) {
               ws[cellAddr] = {
                 t: "s",
-                v: agendaItem.label || agendaItem.tipe,
+                v: agendaItem.label || agendaItem.tipe || "-",
                 s: {
                   font: { italic: true, sz: 8, color: { rgb: "888888" } },
-                  alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                  border: {
-                    top: { style: "thin" },
-                    bottom: { style: "thin" },
-                    left: { style: "thin" },
-                    right: { style: "thin" },
-                  },
-                },
-              }
-            } else if (entry) {
-              ws[cellAddr] = {
-                t: "s",
-                v: getKode(entry),
-                s: {
-                  font: { bold: true, sz: 9 },
                   alignment: { horizontal: "center", vertical: "center" },
                   border: {
                     top: { style: "thin" },
@@ -370,137 +383,235 @@ export default function ExportExcelJadwal() {
                 },
               }
             } else {
-              ws[cellAddr] = {
-                t: "s",
-                v: "\u2014",
-                s: {
-                  font: { sz: 8, color: { rgb: "999999" } },
-                  alignment: { horizontal: "center", vertical: "center" },
-                  border: {
-                    top: { style: "thin" },
-                    bottom: { style: "thin" },
-                    left: { style: "thin" },
-                    right: { style: "thin" },
+              const entry = getEntryAtSlot(day, kelas.id, jp)
+              if (entry) {
+                ws[cellAddr] = {
+                  t: "s",
+                  v: getKode(entry),
+                  s: {
+                    font: { bold: true, sz: 9 },
+                    alignment: { horizontal: "center", vertical: "center" },
+                    border: {
+                      top: { style: "thin" },
+                      bottom: { style: "thin" },
+                      left: { style: "thin" },
+                      right: { style: "thin" },
+                    },
                   },
-                },
+                }
+              } else {
+                ws[cellAddr] = {
+                  t: "s",
+                  v: "\u2014",
+                  s: {
+                    font: { sz: 8, color: { rgb: "999999" } },
+                    alignment: { horizontal: "center", vertical: "center" },
+                    border: {
+                      top: { style: "thin" },
+                      bottom: { style: "thin" },
+                      left: { style: "thin" },
+                      right: { style: "thin" },
+                    },
+                  },
+                }
               }
             }
           }
-
-          currentRow++
         }
-      }
-
-      // Merge day cells
-      for (const d of dayStartRows) {
-        if (d.startRow !== d.endRow) {
-          ws["!merges"]!.push({
-            s: { r: d.startRow, c: 0 },
-            e: { r: d.endRow, c: 0 },
-          })
-        }
-      }
-
-      // Legend
-      if (codesMap.size > 0) {
-        currentRow += 2
-        const legendTitleAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
-        ws[legendTitleAddr] = {
-          t: "s",
-          v: "Keterangan Kode Guru & Mata Pelajaran:",
-          s: { font: { bold: true, sz: 10 } }
-        }
-        ws["!merges"]!.push({
-          s: { r: currentRow, c: 0 },
-          e: { r: currentRow, c: 3 }
-        })
 
         currentRow++
-        let colIndex = 0
-        for (const [key, code] of codesMap.entries()) {
-          const [guruId, mapelId] = key.split("-")
-          const guru = guruMap.get(guruId)
-          const mapel = mapelMap.get(mapelId)
-          const mapelName = mapel?.namaMapel || "Mapel"
-          const guruName = guru?.namaLengkap || "Guru"
+      }
 
-          const cellAddr = XLSX.utils.encode_cell({ r: currentRow, c: colIndex })
-          ws[cellAddr] = {
+      // ── Legend: 3 kolom ──
+      if (codesMap.size > 0) {
+        currentRow += 2
+
+        const titleAddr = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
+        ws[titleAddr] = {
+          t: "s",
+          v: "Keterangan Kode:",
+          s: { font: { bold: true, sz: 10 } },
+        }
+        ws["!merges"]!.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 2 } })
+        currentRow++
+
+        const legHeaders = ["Kode", "Nama Guru", "Mata Pelajaran"]
+        for (let c = 0; c < 3; c++) {
+          const addr = XLSX.utils.encode_cell({ r: currentRow, c })
+          ws[addr] = {
             t: "s",
-            r: [
-              { t: `${code}: `, s: { font: { bold: true, sz: 8 } } },
-              { t: mapelName, s: { font: { bold: true, sz: 8 } } },
-              { t: `\n${guruName}`, s: { font: { sz: 7 } } }
-            ],
+            v: legHeaders[c],
             s: {
-              alignment: { horizontal: "left", vertical: "center", wrapText: true },
+              font: { bold: true, sz: 9 },
+              fill: { fgColor: { rgb: "E5E7EB" } },
+              alignment: { horizontal: "center", vertical: "center" },
               border: {
                 top: { style: "thin" },
                 bottom: { style: "thin" },
                 left: { style: "thin" },
                 right: { style: "thin" },
-              }
-            }
-          }
-
-          colIndex++
-          if (colIndex >= 4) {
-            colIndex = 0
-            currentRow++
+              },
+            },
           }
         }
-        if (colIndex > 0) {
+        currentRow++
+
+        const sortedCodes = [...codesMap.entries()].sort((a, b) =>
+          a[1].localeCompare(b[1], undefined, { numeric: true })
+        )
+        for (const [key, code] of sortedCodes) {
+          const [guruId, mapelId] = key.split("-")
+          const guru = guruMap.get(guruId)
+          const mapel = mapelMap.get(mapelId)
+
+          const addr0 = XLSX.utils.encode_cell({ r: currentRow, c: 0 })
+          ws[addr0] = {
+            t: "s",
+            v: code,
+            s: {
+              font: { bold: true, sz: 9 },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              },
+            },
+          }
+
+          const addr1 = XLSX.utils.encode_cell({ r: currentRow, c: 1 })
+          ws[addr1] = {
+            t: "s",
+            v: guru?.namaLengkap || "-",
+            s: {
+              font: { sz: 9 },
+              alignment: { horizontal: "left", vertical: "center" },
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              },
+            },
+          }
+
+          const addr2 = XLSX.utils.encode_cell({ r: currentRow, c: 2 })
+          ws[addr2] = {
+            t: "s",
+            v: mapel?.namaMapel || "-",
+            s: {
+              font: { sz: 9 },
+              alignment: { horizontal: "left", vertical: "center" },
+              border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" },
+              },
+            },
+          }
+
           currentRow++
         }
       }
 
-      // Auto-fit column widths
+      // ── Tanda Tangan ──
+      currentRow += 2
+
+      const mengetahuiAddr = XLSX.utils.encode_cell({ r: currentRow, c: Math.floor(totalCols / 2) - 1 })
+      ws[mengetahuiAddr] = {
+        t: "s",
+        v: "Mengetahui,",
+        s: { font: { sz: 10, italic: true } },
+      }
+      ws["!merges"]!.push({
+        s: { r: currentRow, c: Math.floor(totalCols / 2) - 1 },
+        e: { r: currentRow, c: Math.floor(totalCols / 2) },
+      })
+      currentRow++
+
+      const kepalaAddr = XLSX.utils.encode_cell({ r: currentRow, c: 1 })
+      ws[kepalaAddr] = {
+        t: "s",
+        v: "Kepala Sekolah/Madrasah",
+        s: { font: { bold: true, sz: 10 } },
+      }
+      ws["!merges"]!.push({ s: { r: currentRow, c: 1 }, e: { r: currentRow, c: 3 } })
+
+      const wakaAddr = XLSX.utils.encode_cell({ r: currentRow, c: Math.floor(totalCols / 2) + 1 })
+      ws[wakaAddr] = {
+        t: "s",
+        v: "Waka Kurikulum",
+        s: { font: { bold: true, sz: 10 } },
+      }
+      ws["!merges"]!.push({
+        s: { r: currentRow, c: Math.floor(totalCols / 2) + 1 },
+        e: { r: currentRow, c: Math.floor(totalCols / 2) + 3 },
+      })
+      currentRow += 4
+
+      const namaKepsek = sekolahData?.kepalaSekolah || "(_________________________)"
+      const kepsekNamaAddr = XLSX.utils.encode_cell({ r: currentRow, c: 1 })
+      ws[kepsekNamaAddr] = {
+        t: "s",
+        v: namaKepsek,
+        s: { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } },
+      }
+      ws["!merges"]!.push({ s: { r: currentRow, c: 1 }, e: { r: currentRow, c: 3 } })
+
+      const wakaNamaAddr = XLSX.utils.encode_cell({ r: currentRow, c: Math.floor(totalCols / 2) + 1 })
+      ws[wakaNamaAddr] = {
+        t: "s",
+        v: "(_________________________)",
+        s: { font: { sz: 10 }, alignment: { horizontal: "center", vertical: "center" } },
+      }
+      ws["!merges"]!.push({
+        s: { r: currentRow, c: Math.floor(totalCols / 2) + 1 },
+        e: { r: currentRow, c: Math.floor(totalCols / 2) + 3 },
+      })
+
+      // ── Auto-fit column widths ──
       const colWidths: number[] = []
       for (let c = 0; c < totalCols; c++) {
-        let maxWidth = 0
-        for (let r = 0; r < currentRow; r++) {
-          const addr = XLSX.utils.encode_cell({ r, c })
-          const cell = ws[addr]
-          if (!cell) continue
-          let text = ""
-          if (cell.r) {
-            text = (cell.r as { t: string }[]).map((run) => run.t).join("")
-          } else if (cell.v) {
-            text = String(cell.v)
-          }
-          const lines = text.split("\n")
-          for (const line of lines) {
-            const len = line.length
-            if (c < 3) {
-              maxWidth = Math.max(maxWidth, len)
-            } else {
-              maxWidth = Math.max(maxWidth, Math.min(len, 30))
-            }
-          }
+        if (c === 0) {
+          colWidths.push(12)
+          continue
         }
-        colWidths.push(Math.max(maxWidth + 2, 8))
+        const kelasIdx = (c - 1) % classCount
+        const kelas = sortedKelas[kelasIdx]
+        const label = kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas
+        colWidths.push(Math.max(label.length + 2, 8))
       }
-
-      colWidths[0] = Math.max(colWidths[0], 10)
-      colWidths[1] = Math.max(colWidths[1], 6)
-      colWidths[2] = Math.max(colWidths[2], 14)
 
       ws["!cols"] = colWidths.map((w) => ({ wch: w }))
 
       const rowHeights: { hpt: number }[] = []
-      for (let r = 0; r < currentRow; r++) {
-        if (r <= 4) {
-          rowHeights.push({ hpt: [30, 18, 24, 20, 8][r] || 20 })
-        } else {
-          rowHeights.push({ hpt: 36 })
-        }
+      for (let r = 0; r <= currentRow; r++) {
+        if (r === 0) rowHeights.push({ hpt: 30 })
+        else if (r === 1) rowHeights.push({ hpt: 18 })
+        else if (r === 2) rowHeights.push({ hpt: 22 })
+        else if (r === 3) rowHeights.push({ hpt: 18 })
+        else if (r === 4) rowHeights.push({ hpt: 8 })
+        else if (r === 5) rowHeights.push({ hpt: 22 })
+        else if (r === 6) rowHeights.push({ hpt: 20 })
+        else rowHeights.push({ hpt: 32 })
       }
       ws["!rows"] = rowHeights
+
+      // ── Page setup: Landscape ──
+      ws["!pageSetup"] = {
+        orientation: "landscape",
+        paperSize: 9,
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+      }
 
       XLSX.utils.book_append_sheet(wb, ws, "Jadwal Pelajaran")
       XLSX.writeFile(wb, `jadwal_pelajaran_${new Date().toISOString().split("T")[0]}.xlsx`)
       toast.success("Data berhasil diexport")
-    } catch (err) {
+    } catch {
       toast.error("Gagal mengexport data")
     } finally {
       setExporting(false)
