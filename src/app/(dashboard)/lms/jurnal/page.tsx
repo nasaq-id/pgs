@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react"
+import { Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react"
 import { toast } from "sonner"
 import JurnalFormDialog from "@/components/jurnal/JurnalFormDialog"
 
@@ -90,7 +90,19 @@ export default function JurnalMengajarPage() {
     },
   })
 
-  // Auto-generate Jurnal harian jika log-in sebagai guru
+  const generateAllJurnal = api.lms.generateAllJurnalForDay.useMutation({
+    onSuccess: (data) => {
+      if (data.created > 0) {
+        toast.success(`Berhasil generate ${data.created} jurnal untuk semua guru`)
+        utils.lms.getJurnal.invalidate()
+      }
+    },
+    onError: () => {
+      toast.error("Gagal generate jurnal untuk semua guru")
+    },
+  })
+
+  // Auto-generate Jurnal harian untuk guru
   useEffect(() => {
     if (isGuru && currentGuruId && !hasGenerated) {
       setHasGenerated(true)
@@ -100,6 +112,14 @@ export default function JurnalMengajarPage() {
       })
     }
   }, [currentGuruId, isGuru, hasGenerated])
+
+  // Auto-generate Jurnal harian untuk semua guru (admin view)
+  useEffect(() => {
+    if (isAdmin && !hasGenerated && tanggal) {
+      setHasGenerated(true)
+      generateAllJurnal.mutate({ tanggal: selectedDate })
+    }
+  }, [isAdmin, hasGenerated, tanggal])
 
   const guruStats = useMemo(() => {
     if (!isAdmin || !guruListAll || !monitoringJurnal || !allJadwal) return []
@@ -178,9 +198,6 @@ export default function JurnalMengajarPage() {
           <h2 className="text-3xl font-bold tracking-tight">Jurnal Mengajar</h2>
           <p className="text-muted-foreground">Kelola jurnal mengajar harian</p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditItem(null); setFormOpen(true) }}>
-          <Plus className="h-4 w-4" /> Buat Jurnal
-        </Button>
       </div>
 
       {isAdmin && (
@@ -311,9 +328,6 @@ export default function JurnalMengajarPage() {
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setAdminGuruFilter(null)}>
                     Tampilkan Semua
-                  </Button>
-                  <Button size="sm" variant="default" onClick={() => { setEditItem(null); setFormOpen(true) }}>
-                    <Plus className="h-4 w-4 mr-1" /> Tambah Jurnal
                   </Button>
                 </div>
               </div>

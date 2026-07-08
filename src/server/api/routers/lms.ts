@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, or, between, desc, asc, gte, lte } from "drizzle-orm"
+import { eq, and, or, between, desc, asc, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jurnalMengajar, kelas, jadwalPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
@@ -323,5 +323,72 @@ export const lmsRouter = router({
 
       await logAudit(ctx, { action: "generate_jurnal", entity: "jurnal_mengajar", entityId: input.guruId, metadata: { tanggal: input.tanggal.toISOString(), jumlah: created.length } })
       return { created: created.length, data: created }
+    }),
+
+  generateAllJurnalForDay: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ tanggal: z.coerce.date() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+
+      const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+      const hari = hariList[input.tanggal.getDay()] as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu"
+
+      const startOfDay = new Date(input.tanggal)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(input.tanggal)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const guruRecords = await db
+        .select({ id: guru.id })
+        .from(guru)
+        .where(eq(guru.sekolahId, sekolahId))
+
+      if (guruRecords.length === 0) return { created: 0 }
+
+      const guruIds = guruRecords.map((g) => g.id)
+
+      const jadwalList = await db
+        .select()
+        .from(jadwalPelajaran)
+        .where(and(
+          eq(jadwalPelajaran.hari, hari),
+          inArray(jadwalPelajaran.guruId, guruIds),
+        ))
+
+      if (jadwalList.length === 0) return { created: 0 }
+
+      let createdCount = 0
+      for (const jadwal of jadwalList) {
+        const existing = await db
+          .select()
+          .from(jurnalMengajar)
+          .where(and(
+            eq(jurnalMengajar.guruId, jadwal.guruId),
+            eq(jurnalMengajar.kelasId, jadwal.kelasId),
+            eq(jurnalMengajar.mataPelajaranId, jadwal.mataPelajaranId),
+            gte(jurnalMengajar.tanggal, startOfDay),
+            lte(jurnalMengajar.tanggal, endOfDay),
+          ))
+          .limit(1)
+
+        if (existing.length === 0) {
+          await db.insert(jurnalMengajar).values({
+            id: crypto.randomUUID(),
+            guruId: jadwal.guruId,
+            kelasId: jadwal.kelasId,
+            mataPelajaranId: jadwal.mataPelajaranId,
+            jadwalPelajaranId: jadwal.id,
+            tanggal: startOfDay,
+            jamMulai: jadwal.jamMulai,
+            jamSelesai: jadwal.jamSelesai,
+            status: "draft",
+          })
+          createdCount++
+        }
+      }
+
+      await logAudit(ctx, { action: "generate_all_jurnal", entity: "jurnal_mengajar", entityId: sekolahId, metadata: { tanggal: input.tanggal.toISOString(), created: createdCount } })
+      return { created: createdCount }
     }),
 })
