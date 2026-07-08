@@ -7,12 +7,8 @@ import {
   Loader2,
   Settings,
   Printer,
-  Clock,
-  Flag,
-  Sun,
-  Moon,
-  BookOpen,
   Sparkles,
+  Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +18,6 @@ import {
   TooltipPositioner,
   TooltipPopup,
 } from "@/components/ui/tooltip"
-import { Card } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -46,7 +41,7 @@ import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
 import CetakJadwal from "@/components/jadwal/CetakJadwal"
 import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
 import AiGenerateDialog from "@/components/jadwal/AiGenerateDialog"
-import { DAYS, DAY_LABEL, toTimeInputValue, timeStringToDate, timeToMinutes, minutesToTime } from "@/components/jadwal/constants"
+import { DAYS, DAY_LABEL, toTimeInputValue, timeToMinutes } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
   id: string
@@ -96,27 +91,11 @@ interface TimelineRecord {
   warna: string | null
 }
 
-const TIMELINE_ICONS: Record<string, React.ElementType> = {
-  clock: Clock,
-  flag: Flag,
-  sun: Sun,
-  moon: Moon,
-  "book-open": BookOpen,
-  pembiasaan: BookOpen,
-  upacara: Flag,
-  istirahat: Coffee,
-  sholat: Sparkles,
-  lainnya: Clock,
-}
-
-function Coffee({ className }: { className?: string }) {
-  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-}
-
 export default function JadwalPage() {
   const [kelasId, setKelasId] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<JadwalFormData | null>(null)
+  const [addForHari, setAddForHari] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [pengaturanOpen, setPengaturanOpen] = useState(false)
   const [cetakOpen, setCetakOpen] = useState(false)
@@ -181,9 +160,6 @@ export default function JadwalPage() {
     [guruRecords]
   )
 
-  const durasiJP = pengaturanData?.durasiJP ?? 40
-  const startMinutes = pengaturanData?.jamMulai ? timeToMinutes(pengaturanData.jamMulai) : 420
-
   // Get active days from timeline items
   const aktifDays = useMemo(() => {
     const days = new Set<string>()
@@ -206,28 +182,15 @@ export default function JadwalPage() {
     return map
   }, [timelineRecords, aktifDays])
 
-  // Count total JP slots per day
-  const totalJpSlotsByDay = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const [day, items] of timelineByDay) {
-      map.set(day, items.filter((t) => t.tipe === "jp").length)
-    }
-    return map
-  }, [timelineByDay])
-
   const handleSubmit = async (data: JadwalFormData) => {
     if (data.id) {
       await updateMutation.mutateAsync({
         id: data.id,
         data: {
-          kelasId: kelasId,
           mataPelajaranId: data.mataPelajaranId,
           guruId: data.guruId,
           hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
-          jamMulai: data.jamMulai ? timeStringToDate(data.jamMulai) : null,
-          jamSelesai: data.jamSelesai ? timeStringToDate(data.jamSelesai) : null,
-          jpMulai: data.jpMulai ?? null,
-          jpCount: data.jpCount ?? null,
+          jpCount: data.jpCount,
         },
       })
     } else {
@@ -236,10 +199,7 @@ export default function JadwalPage() {
         mataPelajaranId: data.mataPelajaranId,
         guruId: data.guruId,
         hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
-        jamMulai: data.jamMulai ? timeStringToDate(data.jamMulai) : null,
-        jamSelesai: data.jamSelesai ? timeStringToDate(data.jamSelesai) : null,
-        jpMulai: data.jpMulai ?? null,
-        jpCount: data.jpCount ?? null,
+        jpCount: data.jpCount,
       })
     }
   }
@@ -261,6 +221,13 @@ export default function JadwalPage() {
       jpMulai: entry.jpMulai,
       jpCount: entry.jpCount,
     })
+    setAddForHari(null)
+    setFormOpen(true)
+  }
+
+  const openAdd = (hari: string) => {
+    setEditEntry(null)
+    setAddForHari(hari)
     setFormOpen(true)
   }
 
@@ -424,7 +391,16 @@ export default function JadwalPage() {
                       key={day}
                       className="border border-border bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground min-w-[120px]"
                     >
-                      {DAY_LABEL[day]}
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{DAY_LABEL[day]}</span>
+                        <button
+                          onClick={() => openAdd(day)}
+                          className="rounded p-0.5 hover:bg-[hsl(142_72%_40%)] hover:text-white transition-colors"
+                          title={`Tambah jadwal ${DAY_LABEL[day]}`}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -543,6 +519,7 @@ export default function JadwalPage() {
         onClose={() => {
           setFormOpen(false)
           setEditEntry(null)
+          setAddForHari(null)
         }}
         onSubmit={handleSubmit}
         initial={editEntry}
@@ -551,6 +528,7 @@ export default function JadwalPage() {
         saving={createMutation.isPending || updateMutation.isPending}
         existingJadwal={jadwalRecords as any}
         timelineItems={timelineRecords as any}
+        contextHari={addForHari ?? undefined}
       />
 
       <PengaturanJadwalDialog

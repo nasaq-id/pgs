@@ -54,6 +54,7 @@ export default function KelasPage() {
 
   const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
   const { data: guruList } = api.guru.getAll.useQuery({})
+  const { data: siswaList } = api.siswa.getAll.useQuery({})
   const utils = api.useUtils()
 
   const createMutation = api.kelas.create.useMutation({
@@ -90,6 +91,7 @@ export default function KelasPage() {
             namaKelas: data.namaKelas,
             tingkat: data.tingkat || null,
             waliKelasId: data.waliKelasId || null,
+            kapasitas: data.kapasitas ?? null,
             siswaIds: data.siswaIds,
           },
         })
@@ -98,6 +100,7 @@ export default function KelasPage() {
           namaKelas: data.namaKelas,
           tingkat: data.tingkat || null,
           waliKelasId: data.waliKelasId || null,
+          kapasitas: data.kapasitas ?? null,
           sekolahId,
           siswaIds: data.siswaIds,
         })
@@ -112,6 +115,15 @@ export default function KelasPage() {
     if (!deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
+  }
+
+  const siswaCountByKelas = new Map<string, number>()
+  if (siswaList) {
+    for (const s of siswaList as any[]) {
+      if (s.kelasId) {
+        siswaCountByKelas.set(s.kelasId, (siswaCountByKelas.get(s.kelasId) ?? 0) + 1)
+      }
+    }
   }
 
   const records = (kelasList ?? []) as KelasRecord[]
@@ -181,7 +193,9 @@ export default function KelasPage() {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>{r.kapasitas ?? "-"}</TableCell>
+                  <TableCell>
+                    {r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip>
@@ -196,6 +210,7 @@ export default function KelasPage() {
                                   namaKelas: r.namaKelas,
                                   tingkat: r.tingkat ?? "",
                                   waliKelasId: r.waliKelasId ?? "",
+                                  kapasitas: r.kapasitas ?? undefined,
                                   siswaIds: [],
                                 })
                                 setFormOpen(true)

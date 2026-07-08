@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Search, Loader2, Download, FileSpreadsheet, FileText, Printer } from "lucide-react"
+import { useState } from "react"
+import { Search, FileSpreadsheet, FileText, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -131,6 +131,17 @@ export default function LaporanPoinPage() {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-area { display: block !important; }
+          body { background: white; }
+          .glass-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #000; padding: 4px 6px; font-size: 9px; }
+          th { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}</style>
       <div>
         <h2 className="text-xl font-bold">Laporan Poin</h2>
         <p className="text-sm text-muted-foreground">Filter, cetak, dan export laporan poin siswa</p>
@@ -144,7 +155,7 @@ export default function LaporanPoinPage() {
 
         <TabsContent value="semua" className="space-y-4">
           <Card className="p-5 rounded-3xl">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 no-print">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
                 <Input type="date" value={tanggalMulai} onChange={(e) => setTanggalMulai(e.target.value)} />
@@ -165,10 +176,10 @@ export default function LaporanPoinPage() {
                 </Select>
               </div>
               <div className="flex items-end gap-2">
-                <Button variant="outline" onClick={generateCSV} className="gap-2 flex-1">
+                <Button variant="outline" onClick={generateCSV} className="gap-2 flex-1 no-print">
                   <FileSpreadsheet className="h-4 w-4" /> CSV
                 </Button>
-                <Button variant="outline" onClick={printTable} className="gap-2 flex-1">
+                <Button variant="outline" onClick={printTable} className="gap-2 flex-1 no-print">
                   <Printer className="h-4 w-4" /> Cetak
                 </Button>
               </div>
@@ -227,23 +238,23 @@ export default function LaporanPoinPage() {
 
         <TabsContent value="per-siswa" className="space-y-4">
           <Card className="p-5 rounded-3xl">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama siswa..."
-                  className="pl-9"
-                  value={siswaSearch}
-                  onChange={(e) => setSiswaSearch(e.target.value)}
-                />
+              <div className="flex items-center gap-3 mb-5 no-print">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari nama siswa..."
+                    className="pl-9"
+                    value={siswaSearch}
+                    onChange={(e) => setSiswaSearch(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" onClick={generateRaporCSV} disabled={!raporData} className="gap-2 no-print">
+                  <FileText className="h-4 w-4" /> Export Rapor CSV
+                </Button>
+                <Button variant="outline" onClick={printTable} className="gap-2 no-print">
+                  <Printer className="h-4 w-4" /> Cetak
+                </Button>
               </div>
-              <Button variant="outline" onClick={generateRaporCSV} disabled={!raporData} className="gap-2">
-                <FileText className="h-4 w-4" /> Export Rapor CSV
-              </Button>
-              <Button variant="outline" onClick={printTable} className="gap-2">
-                <Printer className="h-4 w-4" /> Cetak
-              </Button>
-            </div>
 
             {siswaSearch && (
               <div className="mb-5 max-h-[200px] overflow-y-auto space-y-1">

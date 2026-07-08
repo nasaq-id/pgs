@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,15 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Pencil, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Loader2, Plus, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles, ChevronDown } from "lucide-react"
 import { api } from "@/lib/trpc/client"
+import { timeToMinutes, minutesToTime } from "./constants"
 
 const ALL_DAYS = [
   { value: "senin", label: "Senin" },
@@ -26,13 +33,14 @@ const ALL_DAYS = [
 
 interface TimelineFormData {
   id?: string
+  pengaturanJadwalId?: string
   hari: string
   tipe: string
-  label: string
+  label: string | null
   jamMulai: string
   jamSelesai: string
   urutan: number
-  warna?: string
+  warna?: string | null
 }
 
 interface Props {
@@ -56,6 +64,15 @@ const TIPE_LABELS: Record<string, string> = {
   istirahat: "Istirahat",
   sholat: "Sholat",
   lainnya: "Lainnya",
+}
+
+const TIPE_COLORS: Record<string, string> = {
+  jp: "border-l-[hsl(142_72%_40%)]",
+  upacara: "border-l-amber-500",
+  istirahat: "border-l-blue-400",
+  sholat: "border-l-purple-400",
+  pembiasaan: "border-l-emerald-400",
+  lainnya: "border-l-gray-400",
 }
 
 export default function PengaturanJadwalDialog({ open, onClose }: Props) {
@@ -101,15 +118,17 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [timelineHari, setTimelineHari] = useState("senin")
 
-  // Timeline form state
-  const [formOpen, setFormOpen] = useState(false)
-  const [editItem, setEditItem] = useState<TimelineFormData | null>(null)
-  const [tfTipe, setTfTipe] = useState("lainnya")
-  const [tfLabel, setTfLabel] = useState("")
-  const [tfJamMulai, setTfJamMulai] = useState("07:00")
-  const [tfJamSelesai, setTfJamSelesai] = useState("07:40")
-  const [tfUrutan, setTfUrutan] = useState(1)
-  const [tfWarna, setTfWarna] = useState("")
+  const [dayChecklist, setDayChecklist] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(ALL_DAYS.map((d) => [d.value, true]))
+  )
+
+  // Activity insertion form
+  const [showInsertForm, setShowInsertForm] = useState(false)
+  const [insertHari, setInsertHari] = useState("senin")
+  const [insertType, setInsertType] = useState("istirahat")
+  const [insertLabel, setInsertLabel] = useState("")
+  const [insertJamMulai, setInsertJamMulai] = useState("")
+  const [insertJamSelesai, setInsertJamSelesai] = useState("")
 
   useEffect(() => {
     if (!open) return
@@ -129,66 +148,95 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
     return map
   }, [timelineItems])
 
-  const currentDayItems = useMemo(() => itemsByDay.get(timelineHari) ?? [], [itemsByDay, timelineHari])
+  const daysWithItems = useMemo(() => {
+    const days = new Set<string>()
+    for (const item of timelineItems) {
+      days.add(item.hari)
+    }
+    return days
+  }, [timelineItems])
+
+  const specialDays = useMemo(() => {
+    return ALL_DAYS.filter((d) => d.value !== timelineHari && daysWithItems.has(d.value))
+  }, [timelineHari, daysWithItems])
+
+  const startMinutes = pengaturan ? timeToMinutes(pengaturan.jamMulai) : 420
+  const durasi = pengaturan?.durasiJP ?? 40
+
+  const getNextJpTime = useCallback(
+    (hari: string) => {
+      const items = itemsByDay.get(hari) ?? []
+      const jpCount = items.filter((i) => i.tipe === "jp").length
+      const nextStart = startMinutes + jpCount * durasi
+      const nextEnd = nextStart + durasi
+      return {
+        jamMulai: minutesToTime(nextStart),
+        jamSelesai: minutesToTime(nextEnd),
+      }
+    },
+    [itemsByDay, startMinutes, durasi]
+  )
 
   const handleSavePengaturan = async () => {
     setSaving(true)
     try {
-      await upsertPengaturan.mutateAsync({
-        durasiJP,
-        jamMulai,
-      })
+      await upsertPengaturan.mutateAsync({ durasiJP, jamMulai })
     } finally {
       setSaving(false)
     }
   }
 
-  const openAddItem = () => {
-    setEditItem(null)
-    setTfTipe("lainnya")
-    setTfLabel("")
-    setTfJamMulai("07:00")
-    setTfJamSelesai("07:40")
-    setTfUrutan(currentDayItems.length + 1)
-    setTfWarna("")
-    setFormOpen(true)
-  }
-
-  const openEditItem = (item: TimelineFormData) => {
-    setEditItem(item)
-    setTfTipe(item.tipe)
-    setTfLabel(item.label)
-    setTfJamMulai(item.jamMulai)
-    setTfJamSelesai(item.jamSelesai)
-    setTfUrutan(item.urutan)
-    setTfWarna(item.warna || "")
-    setFormOpen(true)
-  }
-
-  const handleSaveTimeline = async () => {
-    if (!tfJamMulai || !tfJamSelesai) return
+  const handleAddJp = async (hari: string) => {
+    const items = itemsByDay.get(hari) ?? []
+    const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
+    const { jamMulai: jm, jamSelesai: js } = getNextJpTime(hari)
     await upsertTimeline.mutateAsync({
-      id: editItem?.id,
-      hari: timelineHari as any,
-      tipe: tfTipe as any,
-      label: tfTipe === "jp" ? undefined : tfLabel,
-      jamMulai: tfJamMulai,
-      jamSelesai: tfJamSelesai,
-      urutan: tfUrutan,
-      warna: tfWarna || undefined,
+      hari: hari as any,
+      tipe: "jp",
+      jamMulai: jm,
+      jamSelesai: js,
+      urutan: maxUrutan + 1,
     })
-    setFormOpen(false)
   }
 
-  const handleDeleteTimeline = async (id: string) => {
+  const handleInsertActivity = async () => {
+    if (!insertJamMulai || !insertJamSelesai) return
+    if (insertType === "pembiasaan" && !insertLabel.trim()) return
+
+    const items = itemsByDay.get(insertHari) ?? []
+    const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
+
+    const label = insertType === "pembiasaan" ? insertLabel.trim() : undefined
+
+    await upsertTimeline.mutateAsync({
+      hari: insertHari as any,
+      tipe: insertType as any,
+      label,
+      jamMulai: insertJamMulai,
+      jamSelesai: insertJamSelesai,
+      urutan: maxUrutan + 1,
+    })
+
+    setShowInsertForm(false)
+    setInsertLabel("")
+    setInsertType("istirahat")
+  }
+
+  const handleDeleteItem = async (id: string) => {
     await deleteTimeline.mutateAsync({ id })
   }
 
-  const handleCopyToDays = async (targetDays: string[]) => {
-    if (targetDays.length === 0) return
+  const handleApplyTemplate = async () => {
+    const checkedDays = Object.entries(dayChecklist)
+      .filter(([, checked]) => checked)
+      .map(([day]) => day)
+      .filter((d) => d !== timelineHari)
+
+    if (checkedDays.length === 0) return
+
     await applyTemplate.mutateAsync({
       sourceHari: timelineHari as any,
-      targetHari: targetDays as any,
+      targetHari: checkedDays as any,
     })
   }
 
@@ -199,276 +247,370 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
 
   const loading = loadPengaturan || loadTimeline
 
-  const activeDays = useMemo(() => {
-    const days = new Set<string>()
-    for (const item of timelineItems) {
-      if (item.tipe === "jp") days.add(item.hari)
+  const showInsert = (hari: string, type: string) => {
+    setInsertHari(hari)
+    setInsertType(type)
+    setInsertLabel("")
+    const items = itemsByDay.get(hari) ?? []
+    const lastItem = items[items.length - 1]
+    if (lastItem) {
+      setInsertJamMulai(lastItem.jamSelesai)
+      const endMin = timeToMinutes(lastItem.jamSelesai) + 30
+      setInsertJamSelesai(minutesToTime(endMin))
+    } else {
+      setInsertJamMulai(pengaturan?.jamMulai ?? "07:00")
+      const endMin = timeToMinutes(pengaturan?.jamMulai ?? "07:00") + 30
+      setInsertJamSelesai(minutesToTime(endMin))
     }
-    return days
-  }, [timelineItems])
+    setShowInsertForm(true)
+  }
 
-  return (
-    <>
-      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Pengaturan Jadwal Global</DialogTitle>
-          </DialogHeader>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-[hsl(142_72%_40%)]" />
-            </div>
-          ) : (
-            <Tabs defaultValue="dasar">
-              <TabsList className="mb-4">
-                <TabsTrigger value="dasar">Dasar</TabsTrigger>
-                <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="dasar" className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Durasi per JP dan jam mulai akan digunakan untuk menggenerate JP 1-10 secara otomatis.
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>Durasi per JP (menit)</Label>
-                    <Input
-                      type="number"
-                      min={15}
-                      max={120}
-                      value={durasiJP}
-                      onChange={(e) => setDurasiJP(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Jam Mulai</Label>
-                    <Input
-                      type="time"
-                      value={jamMulai}
-                      onChange={(e) => setJamMulai(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <Button
-                    onClick={handleSavePengaturan}
-                    disabled={saving || loading}
-                    style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                  >
-                    {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Simpan Pengaturan
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="timeline">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <Label className="whitespace-nowrap">Hari:</Label>
-                      <Select value={timelineHari} onValueChange={(v) => v && setTimelineHari(v)}>
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ALL_DAYS.map((d) => (
-                            <SelectItem key={d.value} value={d.value}>
-                              {d.label} {activeDays.has(d.value) ? "(aktif)" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={() => {
-                          const others = ALL_DAYS.map(d => d.value).filter(d => d !== timelineHari)
-                          handleCopyToDays(others)
-                        }}
-                        disabled={applyTemplate.isPending}
-                      >
-                        <Copy className="h-3.5 w-3.5" /> Copy ke semua hari
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={openAddItem}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Tambah Item
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {currentDayItems.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-8 text-center">
-                        Belum ada item timeline untuk {ALL_DAYS.find(d => d.value === timelineHari)?.label}.
-                        Simpan pengaturan dasar terlebih dahulu untuk menggenerate JP default.
-                      </p>
-                    ) : (
-                      currentDayItems.map((item) => {
-                        const Icon = TIPE_ICONS[item.tipe] || Clock
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2"
-                            style={item.warna ? { borderLeftColor: item.warna, borderLeftWidth: 3 } : undefined}
-                          >
-                            <div className="flex items-center gap-3 text-sm">
-                              <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <span className="text-muted-foreground text-xs font-mono w-24 shrink-0">
-                                {item.jamMulai} - {item.jamSelesai}
-                              </span>
-                              <span className="font-medium">
-                                {item.tipe === "jp" ? `JP ke-${item.urutan}` : (item.label || TIPE_LABELS[item.tipe])}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                {TIPE_LABELS[item.tipe]}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button
-                                size="icon-xs"
-                                variant="ghost"
-                                onClick={() => openEditItem(item)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="icon-xs"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={() => item.id && handleDeleteTimeline(item.id)}
-                                disabled={deleteTimeline.isPending}
-                              >
-                                {deleteTimeline.isPending ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={handleClose} disabled={saving}>
-              Tutup
+  const renderTimelinePanel = (hari: string, isKhusus: boolean) => {
+    const items = itemsByDay.get(hari) ?? []
+    return (
+      <div className="space-y-4">
+        {isKhusus ? (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-3 py-2">
+            <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-xs text-amber-700 dark:text-amber-300">
+              Pengaturan khusus untuk hari ini. Perubahan tidak memengaruhi template utama.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto text-xs h-7"
+              onClick={async () => {
+                await applyTemplate.mutateAsync({
+                  sourceHari: timelineHari as any,
+                  targetHari: [hari as any],
+                })
+              }}
+              disabled={applyTemplate.isPending}
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              Reset dari Template
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={formOpen} onOpenChange={(v) => !v && setFormOpen(false)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editItem ? "Edit Item Timeline" : "Tambah Item Timeline"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Tipe</Label>
-              <Select value={tfTipe} onValueChange={(v) => v && setTfTipe(v)}>
-                <SelectTrigger>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap text-xs">Hari:</Label>
+              <Select value={timelineHari} onValueChange={(v) => v && setTimelineHari(v)}>
+                <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="jp">JP (Jam Pelajaran)</SelectItem>
-                  <SelectItem value="pembiasaan">Pembiasaan</SelectItem>
-                  <SelectItem value="upacara">Upacara</SelectItem>
-                  <SelectItem value="istirahat">Istirahat</SelectItem>
-                  <SelectItem value="sholat">Sholat</SelectItem>
-                  <SelectItem value="lainnya">Lainnya</SelectItem>
+                  {ALL_DAYS.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            {tfTipe !== "jp" && (
-              <div className="space-y-1.5">
-                <Label>Label / Nama Kegiatan</Label>
-                <Input
-                  value={tfLabel}
-                  onChange={(e) => setTfLabel(e.target.value)}
-                  placeholder={tfTipe === "pembiasaan" ? "Contoh: Literasi Pagi" : "Nama kegiatan"}
-                />
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Jam Mulai</Label>
-                <Input
-                  type="time"
-                  value={tfJamMulai}
-                  onChange={(e) => setTfJamMulai(e.target.value)}
-                  disabled={tfTipe === "jp"}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Jam Selesai</Label>
-                <Input
-                  type="time"
-                  value={tfJamSelesai}
-                  onChange={(e) => setTfJamSelesai(e.target.value)}
-                  disabled={tfTipe === "jp"}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Urutan</Label>
-              <Input
-                type="number"
-                min={0}
-                value={tfUrutan}
-                onChange={(e) => setTfUrutan(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Warna (opsional)</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="color"
-                  className="w-10 h-8 p-0.5"
-                  value={tfWarna || "#000000"}
-                  onChange={(e) => setTfWarna(e.target.value)}
-                />
-                {tfWarna && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground"
-                    onClick={() => setTfWarna("")}
-                  >
-                    Hapus warna
-                  </Button>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Terapkan untuk:</span>
+              {ALL_DAYS.map((d) => (
+                <label
+                  key={d.value}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer transition-colors ${
+                    dayChecklist[d.value]
+                      ? "bg-[hsl(142_20%_90%)] text-[hsl(142_72%_30%)] dark:bg-[hsl(142_30%_20%)] dark:text-[hsl(142_60%_70%)]"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={dayChecklist[d.value]}
+                    onChange={(e) =>
+                      setDayChecklist((prev) => ({ ...prev, [d.value]: e.target.checked }))
+                    }
+                    className="sr-only"
+                  />
+                  {d.label.slice(0, 3)}
+                </label>
+              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1 text-xs h-7"
+                onClick={handleApplyTemplate}
+                disabled={applyTemplate.isPending}
+              >
+                {applyTemplate.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Copy className="h-3 w-3" />
                 )}
+                Simpan Template
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Timeline items list */}
+        <div className="space-y-1">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Belum ada item untuk {ALL_DAYS.find((d) => d.value === hari)?.label}.
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Tambah Jam Pelajaran atau Sisipkan Kegiatan untuk memulai.
+              </p>
+            </div>
+          ) : (
+            items.map((item) => {
+              const Icon = TIPE_ICONS[item.tipe] || Clock
+              const displayLabel =
+                item.tipe === "pembiasaan" && item.label
+                  ? `Pembiasaan : ${item.label}`
+                  : item.tipe === "jp"
+                    ? `JP ${item.urutan}`
+                    : item.label || TIPE_LABELS[item.tipe]
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 border-l-4 ${TIPE_COLORS[item.tipe] || "border-l-border"}`}
+                >
+                  <div className="flex items-center gap-3 text-sm min-w-0">
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-xs font-mono shrink-0 w-28">
+                      {item.jamMulai} - {item.jamSelesai}
+                    </span>
+                    <span className="font-medium truncate">{displayLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => item.id && handleDeleteItem(item.id)}
+                      disabled={deleteTimeline.isPending}
+                    >
+                      {deleteTimeline.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => handleAddJp(hari)}
+            disabled={upsertTimeline.isPending || !pengaturan}
+          >
+            {upsertTimeline.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+            Tambah Jam Pelajaran (JP)
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger render={
+              <Button size="sm" variant="outline" className="gap-1.5" disabled={!pengaturan}>
+                <Plus className="h-3.5 w-3.5" />
+                Sisip Kegiatan
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            } />
+            <DropdownMenuContent align="start" className="w-48">
+              {hari === "senin" && (
+                <DropdownMenuItem onClick={() => showInsert(hari, "upacara")}>
+                  <Flag className="h-4 w-4 mr-2" />
+                  Upacara (Senin)
+                </DropdownMenuItem>
+              )}
+              {hari !== "senin" && (
+                <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                  <Flag className="h-4 w-4 mr-2" />
+                  Upacara (khusus Senin)
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => showInsert(hari, "istirahat")}>
+                <Coffee className="h-4 w-4 mr-2" />
+                Istirahat
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => showInsert(hari, "sholat")}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Sholat
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => showInsert(hari, "pembiasaan")}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Pembiasaan...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Pengaturan Jadwal Global</DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-[hsl(142_72%_40%)]" />
+          </div>
+        ) : (
+          <Tabs defaultValue="dasar">
+            <TabsList className="mb-4 flex-wrap">
+              <TabsTrigger value="dasar">Dasar</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              {specialDays.map((d) => (
+                <TabsTrigger key={`khusus-${d.value}`} value={`khusus-${d.value}`}>
+                  Peng. Khusus - {d.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="dasar" className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Atur durasi per JP dan jam mulai KBM. Perubahan akan menyesuaikan waktu JP yang sudah ada.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Durasi per JP (menit)</Label>
+                  <Input
+                    type="number"
+                    min={15}
+                    max={120}
+                    value={durasiJP}
+                    onChange={(e) => setDurasiJP(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Jam Mulai KBM</Label>
+                  <Input
+                    type="time"
+                    value={jamMulai}
+                    onChange={(e) => setJamMulai(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={handleSavePengaturan}
+                  disabled={saving || loading}
+                  style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Simpan Pengaturan
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="timeline" className="space-y-0">
+              {renderTimelinePanel(timelineHari, false)}
+            </TabsContent>
+
+            {specialDays.map((d) => (
+              <TabsContent key={`khusus-${d.value}`} value={`khusus-${d.value}`} className="space-y-0">
+                {renderTimelinePanel(d.value, true)}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
+
+        {/* Insert Activity Dialog */}
+        {showInsertForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowInsertForm(false)}>
+            <div className="bg-background rounded-xl shadow-lg p-5 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-sm font-semibold mb-3">
+                {insertType === "upacara"
+                  ? "Sisip Upacara"
+                  : insertType === "pembiasaan"
+                    ? "Sisip Pembiasaan"
+                    : `Sisip ${TIPE_LABELS[insertType] || insertType}`}
+              </h3>
+
+              {insertType === "pembiasaan" && (
+                <div className="space-y-1.5 mb-3">
+                  <Label className="text-xs">Nama Pembiasaan</Label>
+                  <Input
+                    value={insertLabel}
+                    onChange={(e) => setInsertLabel(e.target.value)}
+                    placeholder="Contoh: Literasi Pagi"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Jam Mulai</Label>
+                  <Input
+                    type="time"
+                    value={insertJamMulai}
+                    onChange={(e) => setInsertJamMulai(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Jam Selesai</Label>
+                  <Input
+                    type="time"
+                    value={insertJamSelesai}
+                    onChange={(e) => setInsertJamSelesai(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowInsertForm(false)
+                    setInsertLabel("")
+                  }}
+                  disabled={upsertTimeline.isPending}
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleInsertActivity}
+                  disabled={
+                    upsertTimeline.isPending ||
+                    (insertType === "pembiasaan" && !insertLabel.trim())
+                  }
+                  style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                >
+                  {upsertTimeline.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                  Tambah
+                </Button>
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={upsertTimeline.isPending}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSaveTimeline}
-              disabled={upsertTimeline.isPending || (tfTipe !== "jp" && !tfLabel)}
-              style={{ backgroundColor: "hsl(142 72% 40%)" }}
-            >
-              {upsertTimeline.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {editItem ? "Simpan" : "Tambah"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <Button variant="outline" onClick={handleClose} disabled={saving}>
+            Tutup
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

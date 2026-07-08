@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -54,6 +53,7 @@ export default function KelasTab() {
 
   const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
   const { data: guruList } = api.guru.getAll.useQuery({})
+  const { data: siswaList } = api.siswa.getAll.useQuery({})
   const utils = api.useUtils()
 
   const createMutation = api.kelas.create.useMutation({
@@ -90,6 +90,7 @@ export default function KelasTab() {
             namaKelas: data.namaKelas,
             tingkat: data.tingkat || null,
             waliKelasId: data.waliKelasId || null,
+            kapasitas: data.kapasitas ?? null,
             siswaIds: data.siswaIds,
           },
         })
@@ -98,6 +99,7 @@ export default function KelasTab() {
           namaKelas: data.namaKelas,
           tingkat: data.tingkat || null,
           waliKelasId: data.waliKelasId || null,
+          kapasitas: data.kapasitas ?? null,
           sekolahId,
           siswaIds: data.siswaIds,
         })
@@ -112,6 +114,15 @@ export default function KelasTab() {
     if (!deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
+  }
+
+  const siswaCountByKelas = new Map<string, number>()
+  if (siswaList) {
+    for (const s of siswaList as any[]) {
+      if (s.kelasId) {
+        siswaCountByKelas.set(s.kelasId, (siswaCountByKelas.get(s.kelasId) ?? 0) + 1)
+      }
+    }
   }
 
   const records = (kelasList ?? []) as KelasRecord[]
@@ -176,7 +187,9 @@ export default function KelasTab() {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>{r.kapasitas ?? "-"}</TableCell>
+                  <TableCell>
+                    {r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip>
@@ -191,6 +204,7 @@ export default function KelasTab() {
                                   namaKelas: r.namaKelas,
                                   tingkat: r.tingkat ?? "",
                                   waliKelasId: r.waliKelasId ?? "",
+                                  kapasitas: r.kapasitas ?? undefined,
                                   siswaIds: [],
                                 })
                                 setFormOpen(true)

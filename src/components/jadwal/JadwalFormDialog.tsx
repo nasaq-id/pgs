@@ -18,15 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Clock } from "lucide-react"
-import { DAY_OPTIONS, timeToMinutes, minutesToTime } from "./constants"
-import { Badge } from "@/components/ui/badge"
+import { Loader2 } from "lucide-react"
 
 export interface JadwalFormData {
   id?: string
   hari: string
-  jamMulai: string
-  jamSelesai: string
+  jamMulai?: string
+  jamSelesai?: string
   mataPelajaranId: string
   guruId: string
   jpMulai?: number | null
@@ -70,6 +68,8 @@ interface Props {
   saving?: boolean
   existingJadwal?: ExistingJadwalItem[]
   timelineItems?: TimelineItemData[]
+  /** Hari konteks (dari klik kolom hari di grid). Jika tidak disediakan, fallback ke initial.hari atau "senin". */
+  contextHari?: string
 }
 
 export default function JadwalFormDialog({
@@ -82,12 +82,12 @@ export default function JadwalFormDialog({
   saving,
   existingJadwal = [],
   timelineItems = [],
+  contextHari,
 }: Props) {
-  const [hari, setHari] = useState("senin")
+  const [hari, setHari] = useState(contextHari || initial?.hari || "senin")
   const [jpCount, setJpCount] = useState(1)
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
-  const [jpMulaiState, setJpMulaiState] = useState<number>(1)
 
   const selectedMapelLabel = useMemo(() => {
     const m = mapelList.find((mpl) => mpl.id === mataPelajaranId)
@@ -99,11 +99,6 @@ export default function JadwalFormDialog({
     return g ? g.namaLengkap : ""
   }, [guruId, guruList])
 
-  const selectedJpMulaiLabel = useMemo(() => {
-    return jpMulaiState ? `JP ${jpMulaiState}` : ""
-  }, [jpMulaiState])
-
-  // Filter timeline items for selected hari, only JP type
   const jpSlots = useMemo(() => {
     return timelineItems
       .filter((t) => t.tipe === "jp")
@@ -124,43 +119,39 @@ export default function JadwalFormDialog({
     return occupied
   }, [existingJadwal, hari, initial?.id])
 
-  const suggestedJpMulai = useMemo(() => {
-    const fromInitial = initial?.jpMulai ?? null
-    if (fromInitial && !occupiedJpSlots.has(fromInitial)) return fromInitial
-    let slot = 1
-    while (occupiedJpSlots.has(slot)) {
-      slot++
+  const availableSlots = useMemo(() => {
+    const allJp = jpSlots.map((_, i) => i + 1)
+    return allJp.filter((s) => !occupiedJpSlots.has(s))
+  }, [jpSlots, occupiedJpSlots])
+
+  const canAutoMap = useMemo(() => {
+    for (let start = 1; start <= jpSlots.length - jpCount + 1; start++) {
+      let ok = true
+      for (let offset = 0; offset < jpCount; offset++) {
+        if (occupiedJpSlots.has(start + offset)) {
+          ok = false
+          break
+        }
+      }
+      if (ok) return true
     }
-    return slot
-  }, [occupiedJpSlots, initial])
+    return false
+  }, [jpSlots, jpCount, occupiedJpSlots])
 
   useEffect(() => {
     if (!open) return
     if (initial) {
-      setHari(initial.hari || "senin")
+      setHari(initial.hari || contextHari || "senin")
       setJpCount(initial.jpCount || 1)
       setMataPelajaranId(initial.mataPelajaranId || "")
       setGuruId(initial.guruId || "")
-      setJpMulaiState(initial.jpMulai || 1)
     } else {
-      setHari("senin")
+      setHari(contextHari || "senin")
       setJpCount(1)
       setMataPelajaranId("")
       setGuruId("")
-      setJpMulaiState(suggestedJpMulai)
     }
-  }, [open, initial, suggestedJpMulai])
-
-  const autoJpMulai = jpMulaiState
-
-  const computedTimes = useMemo(() => {
-    const startItem = jpSlots[autoJpMulai - 1]
-    const endItem = jpSlots[autoJpMulai + jpCount - 2]
-    return {
-      start: startItem?.jamMulai ?? "07:00",
-      end: endItem?.jamSelesai ?? "07:40",
-    }
-  }, [jpSlots, autoJpMulai, jpCount])
+  }, [open, initial, contextHari])
 
   const isEdit = !!initial?.id
 
@@ -170,12 +161,12 @@ export default function JadwalFormDialog({
     await onSubmit({
       id: initial?.id,
       hari,
-      jamMulai: computedTimes.start,
-      jamSelesai: computedTimes.end,
+      jpMulai: null,
+      jpCount,
       mataPelajaranId,
       guruId,
-      jpMulai: autoJpMulai,
-      jpCount,
+      jamMulai: undefined,
+      jamSelesai: undefined,
     })
   }
 
@@ -189,24 +180,6 @@ export default function JadwalFormDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>
-              Hari <span className="text-destructive">*</span>
-            </Label>
-            <Select value={hari} onValueChange={(v) => v && setHari(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DAY_OPTIONS.map((d) => (
-                  <SelectItem key={d.value} value={d.value}>
-                    {d.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="space-y-1.5">
             <Label>
               Jumlah JP <span className="text-destructive">*</span>
@@ -223,46 +196,11 @@ export default function JadwalFormDialog({
                 else if (e.target.value === "") setJpCount(1)
               }}
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>
-              JP Mulai (Jam Ke-) <span className="text-destructive">*</span>
-            </Label>
-            <Select value={String(jpMulaiState)} onValueChange={(v) => setJpMulaiState(Number(v))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih JP Mulai">{selectedJpMulaiLabel || "Pilih JP Mulai"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {jpSlots.map((slot, idx) => {
-                  const jpNum = idx + 1
-                  const isOccupied = occupiedJpSlots.has(jpNum)
-                  return (
-                    <SelectItem key={jpNum} value={String(jpNum)} disabled={isOccupied}>
-                      JP ke-{jpNum} ({slot.jamMulai} - {slot.jamSelesai})
-                      {isOccupied ? " (terisi)" : ""}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Posisi JP:</span>
-              <Badge variant="secondary" className="font-mono">
-                JP ke-{autoJpMulai} sampai {autoJpMulai + jpCount - 1}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Estimasi Waktu:</span>
-              <span className="font-mono text-xs font-semibold text-green-600 dark:text-green-400">
-                {computedTimes.start} - {computedTimes.end}
-              </span>
-            </div>
+            {!canAutoMap && !isEdit && (
+              <p className="text-xs text-destructive mt-1">
+                Slot JP tidak mencukupi untuk {jpCount} JP. Tersedia: {availableSlots.length} slot.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

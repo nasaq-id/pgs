@@ -30,6 +30,7 @@ export interface KelasFormData {
   namaKelas: string
   tingkat: string
   waliKelasId?: string
+  kapasitas?: number
   siswaIds: string[]
 }
 
@@ -54,6 +55,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   const [waliKelasId, setWaliKelasId] = useState("")
   const [selectedSiswa, setSelectedSiswa] = useState<SiswaItem[]>([])
   const [availableSiswa, setAvailableSiswa] = useState<SiswaItem[]>([])
+  const [kapasitas, setKapasitas] = useState<number | undefined>(undefined)
   const [siswaSearch, setSiswaSearch] = useState("")
   const [loadingSiswa, setLoadingSiswa] = useState(false)
 
@@ -64,6 +66,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
     setTingkat(initial?.tingkat || "")
     setNamaKelas(initial?.namaKelas || "")
     setWaliKelasId(initial?.waliKelasId || "")
+    setKapasitas(initial?.kapasitas ?? undefined)
     setSelectedSiswa([])
     setSiswaSearch("")
 
@@ -108,6 +111,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
         namaKelas: namaKelas.trim(),
         tingkat,
         waliKelasId: waliKelasId || undefined,
+        kapasitas: kapasitas,
         siswaIds: selectedSiswa.map((s) => s.id),
       })
       onClose()
@@ -150,6 +154,17 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
                 placeholder="Contoh: A, B, Unggulan..."
                 value={namaKelas}
                 onChange={(e) => setNamaKelas(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Kapasitas</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="Contoh: 30"
+                value={kapasitas ?? ""}
+                onChange={(e) => setKapasitas(e.target.value ? Number(e.target.value) : undefined)}
               />
             </div>
 

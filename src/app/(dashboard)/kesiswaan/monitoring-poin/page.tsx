@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Loader2, Send, CheckCircle, Clock, AlertTriangle } from "lucide-react"
+import { Search, Loader2, Send, CheckCircle, Clock, AlertTriangle, Users, AlertOctagon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -20,6 +20,12 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
@@ -43,15 +49,240 @@ function formatPoin(val: number) {
   return val > 0 ? `+${val}` : `${val}`
 }
 
-export default function MonitoringPoinPage() {
-  const [search, setSearch] = useState("")
-  const [filterStatus, setFilterStatus] = useState<string>("")
-  const utils = api.useUtils()
-
+function AllEntriesTab({
+  search,
+  setSearch,
+  filterStatus,
+  setFilterStatus,
+  updateStatus,
+  kirimNotif,
+}: {
+  search: string
+  setSearch: (v: string) => void
+  filterStatus: string
+  setFilterStatus: (v: string) => void
+  updateStatus: any
+  kirimNotif: any
+}) {
   const { data: list, isLoading } = api.poin.getMonitoring.useQuery({
     search: search || undefined,
     status: (filterStatus as any) || undefined,
   })
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari siswa..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || "")}>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Semua Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value=" ">Semua Status</SelectItem>
+              <SelectItem value="belum_diproses">Baru</SelectItem>
+              <SelectItem value="sedang_diproses">Diproses</SelectItem>
+              <SelectItem value="selesai">Selesai</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}</div>
+      ) : !list?.length ? (
+        <div className="text-center py-16 text-muted-foreground">Belum ada data monitoring</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tanggal</TableHead>
+                <TableHead>Siswa</TableHead>
+                <TableHead>Sikap</TableHead>
+                <TableHead>Poin</TableHead>
+                <TableHead>Tindak Lanjut</TableHead>
+                <TableHead>Penginput</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((r: any) => (
+                <TableRow key={r.id} className={r.status === "belum_diproses" ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}>
+                  <TableCell className="text-xs whitespace-nowrap">
+                    {format(new Date(r.createdAt), "d MMM HH:mm", { locale: id })}
+                  </TableCell>
+                  <TableCell className="font-medium">{r.siswa?.namaLengkap || "-"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{r.kategori?.nama || "-"}</TableCell>
+                  <TableCell className={`font-bold ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>
+                    {formatPoin(r.poin)}
+                  </TableCell>
+                  <TableCell className="text-xs max-w-[150px] truncate">{r.tindakLanjut?.nama || "-"}</TableCell>
+                  <TableCell className="text-xs">{r.guru?.namaLengkap || "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariants[r.status] || "outline"} className="text-[10px] whitespace-nowrap">
+                      {statusLabels[r.status] || r.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 flex-wrap">
+                      {r.status === "belum_diproses" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => updateStatus.mutate({ id: r.id, status: "sedang_diproses" })}
+                          disabled={updateStatus.isPending}
+                        >
+                          <Clock className="h-3 w-3 mr-1" /> Proses
+                        </Button>
+                      )}
+                      {r.status !== "selesai" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => updateStatus.mutate({ id: r.id, status: "selesai" })}
+                          disabled={updateStatus.isPending}
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" /> Selesai
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                        onClick={() => kirimNotif.mutate({ siswaId: r.siswaId })}
+                        disabled={kirimNotif.isPending}
+                      >
+                        {kirimNotif.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Send className="h-3 w-3 mr-1" />
+                        )}
+                        Kirim
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ThresholdTab({ kirimNotif }: { kirimNotif: any }) {
+  const { data: thresholdData, isLoading } = api.poin.getMonitoringThreshold.useQuery()
+
+  if (isLoading) {
+    return <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
+  }
+
+  if (!thresholdData?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <AlertOctagon className="h-10 w-10 text-muted-foreground/40 mb-3" />
+        <p className="text-sm text-muted-foreground">Belum ada siswa yang mencapai ambang batas aturan</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Atur rentang poin di menu Pengaturan → Poin → Aturan Akumulasi</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {thresholdData.map((group: any, gi: number) => (
+        <div key={gi} className="rounded-xl border border-border overflow-hidden">
+          <div className={`px-4 py-3 flex items-center gap-3 ${
+            group.aturan.poinMin < 0
+              ? "bg-red-50/80 dark:bg-red-950/20 border-b border-red-200 dark:border-red-800/30"
+              : "bg-green-50/80 dark:bg-green-950/20 border-b border-green-200 dark:border-green-800/30"
+          }`}>
+            <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+              group.aturan.poinMin < 0
+                ? "bg-red-100 dark:bg-red-900/30"
+                : "bg-green-100 dark:bg-green-900/30"
+            }`}>
+              {group.aturan.poinMin < 0
+                ? <AlertTriangle className={`h-5 w-5 ${group.aturan.poinMin < 0 ? "text-red-600" : "text-green-600"}`} />
+                : <Users className="h-5 w-5 text-green-600" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold">
+                  Rentang: {group.aturan.poinMin} s/d {group.aturan.poinMax}
+                </span>
+                <Badge variant="secondary" className="text-[10px]">{group.aturan.status}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{group.aturan.tindakLanjut}</p>
+            </div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              {group.students.length} siswa
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">#</TableHead>
+                  <TableHead>Siswa</TableHead>
+                  <TableHead>NISN</TableHead>
+                  <TableHead>Total Poin</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {group.students.map((st: any, si: number) => (
+                  <TableRow key={st.siswaId}>
+                    <TableCell className="text-xs text-muted-foreground">{si + 1}</TableCell>
+                    <TableCell className="font-medium">{st.namaLengkap}</TableCell>
+                    <TableCell className="text-xs">{st.nisn || "-"}</TableCell>
+                    <TableCell className={`font-bold ${st.totalPoin > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatPoin(st.totalPoin)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                        onClick={() => kirimNotif.mutate({ siswaId: st.siswaId })}
+                        disabled={kirimNotif.isPending}
+                      >
+                        {kirimNotif.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Send className="h-3 w-3 mr-1" />
+                        )}
+                        Kirim
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function MonitoringPoinPage() {
+  const [search, setSearch] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")
+  const [activeTab, setActiveTab] = useState("semua")
+  const utils = api.useUtils()
 
   const updateStatus = api.poin.updateStatusMonitoring.useMutation({
     onSuccess: () => {
@@ -70,6 +301,7 @@ export default function MonitoringPoinPage() {
         toast.success("Pemberitahuan terkirim (tanpa aturan akumulasi)")
       }
       utils.poin.getMonitoring.invalidate()
+      utils.poin.getMonitoringThreshold.invalidate()
     },
     onError: (e) => toast.error(e.message),
   })
@@ -82,112 +314,27 @@ export default function MonitoringPoinPage() {
       </div>
 
       <Card className="p-5 rounded-3xl">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-          <div className="flex gap-2 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari siswa..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || "")}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Semua Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value=" ">Semua Status</SelectItem>
-                <SelectItem value="belum_diproses">Baru</SelectItem>
-                <SelectItem value="sedang_diproses">Diproses</SelectItem>
-                <SelectItem value="selesai">Selesai</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "semua") utils.poin.getMonitoring.invalidate() }}>
+          <TabsList className="mb-5 rounded-xl">
+            <TabsTrigger value="semua" className="rounded-lg text-xs">Semua Entri</TabsTrigger>
+            <TabsTrigger value="ambang" className="rounded-lg text-xs">Ambang Batas</TabsTrigger>
+          </TabsList>
 
-        {isLoading ? (
-          <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}</div>
-        ) : !list?.length ? (
-          <div className="text-center py-16 text-muted-foreground">Belum ada data monitoring</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Siswa</TableHead>
-                  <TableHead>Sikap</TableHead>
-                  <TableHead>Poin</TableHead>
-                  <TableHead>Tindak Lanjut</TableHead>
-                  <TableHead>Penginput</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.map((r: any) => (
-                  <TableRow key={r.id} className={r.status === "belum_diproses" ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {format(new Date(r.createdAt), "d MMM HH:mm", { locale: id })}
-                    </TableCell>
-                    <TableCell className="font-medium">{r.siswa?.namaLengkap || "-"}</TableCell>
-                    <TableCell className="max-w-[150px] truncate">{r.kategori?.nama || "-"}</TableCell>
-                    <TableCell className={`font-bold ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatPoin(r.poin)}
-                    </TableCell>
-                    <TableCell className="text-xs max-w-[150px] truncate">{r.tindakLanjut?.nama || "-"}</TableCell>
-                    <TableCell className="text-xs">{r.guru?.namaLengkap || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariants[r.status] || "outline"} className="text-[10px] whitespace-nowrap">
-                        {statusLabels[r.status] || r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {r.status === "belum_diproses" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[11px]"
-                            onClick={() => updateStatus.mutate({ id: r.id, status: "sedang_diproses" })}
-                            disabled={updateStatus.isPending}
-                          >
-                            <Clock className="h-3 w-3 mr-1" /> Proses
-                          </Button>
-                        )}
-                        {r.status !== "selesai" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[11px]"
-                            onClick={() => updateStatus.mutate({ id: r.id, status: "selesai" })}
-                            disabled={updateStatus.isPending}
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" /> Selesai
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                          onClick={() => kirimNotif.mutate({ siswaId: r.siswaId })}
-                          disabled={kirimNotif.isPending}
-                        >
-                          {kirimNotif.isPending ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Send className="h-3 w-3 mr-1" />
-                          )}
-                          Kirim
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+          <TabsContent value="semua">
+            <AllEntriesTab
+              search={search}
+              setSearch={setSearch}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              updateStatus={updateStatus}
+              kirimNotif={kirimNotif}
+            />
+          </TabsContent>
+
+          <TabsContent value="ambang">
+            <ThresholdTab kirimNotif={kirimNotif} />
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   )

@@ -72,7 +72,7 @@ export default function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="glass-card rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="h-10 w-10 rounded-xl bg-green-100 dark:bg-green-950/30 flex items-center justify-center">
                     <Star className="h-5 w-5 text-green-600" />
                   </div>
@@ -81,6 +81,18 @@ export default function Dashboard() {
                     <p className="text-3xl font-black text-foreground">{dashboardSiswa?.totalPoin ?? 0}</p>
                   </div>
                 </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(Math.abs(dashboardSiswa?.totalPoin ?? 0) / 2, 100)}%`,
+                      backgroundColor: (dashboardSiswa?.totalPoin ?? 0) >= 0 ? "hsl(142 72% 40%)" : "hsl(0 84% 60%)",
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {(dashboardSiswa?.totalPoin ?? 0) >= 0 ? "Poin positif" : "Poin negatif"}
+                </p>
               </div>
 
               <div className="glass-card rounded-2xl p-5">
@@ -95,17 +107,21 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {dashboardSiswa?.leaderboard?.length ? (
                     dashboardSiswa.leaderboard.map((item: any, i: number) => (
-                      <div key={item.siswaId} className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2">
-                          <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            i === 0 ? "bg-amber-100 text-amber-700" :
-                            i === 1 ? "bg-gray-100 text-gray-600" :
-                            i === 2 ? "bg-orange-100 text-orange-700" :
+                      <div key={item.siswaId} className={`flex items-center justify-between text-sm p-1.5 rounded-lg ${
+                        i === 0 ? "bg-amber-50 dark:bg-amber-950/20" :
+                        i === 1 ? "bg-gray-50 dark:bg-gray-800/20" :
+                        i === 2 ? "bg-orange-50 dark:bg-orange-950/20" : ""
+                      }`}>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                            i === 0 ? "bg-amber-400 text-white shadow-sm" :
+                            i === 1 ? "bg-gray-300 text-white shadow-sm" :
+                            i === 2 ? "bg-orange-400 text-white shadow-sm" :
                             "bg-muted text-muted-foreground"
                           }`}>{i + 1}</span>
-                          <span className="truncate max-w-[120px]">{item.namaLengkap}</span>
+                          <span className="truncate">{item.namaLengkap}</span>
                         </span>
-                        <span className="font-bold text-green-600">+{item.totalPoin}</span>
+                        <span className="font-bold text-green-600 shrink-0">+{item.totalPoin}</span>
                       </div>
                     ))
                   ) : (
@@ -141,17 +157,21 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {dashboardGuruAdmin?.topPositif?.length ? (
                     dashboardGuruAdmin.topPositif.map((item: any, i: number) => (
-                      <div key={item.siswaId} className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2">
-                          <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            i === 0 ? "bg-amber-100 text-amber-700" :
-                            i === 1 ? "bg-gray-100 text-gray-600" :
-                            i === 2 ? "bg-orange-100 text-orange-700" :
+                      <div key={item.siswaId} className={`flex items-center justify-between text-sm p-1.5 rounded-lg ${
+                        i === 0 ? "bg-amber-50 dark:bg-amber-950/20" :
+                        i === 1 ? "bg-gray-50 dark:bg-gray-800/20" :
+                        i === 2 ? "bg-orange-50 dark:bg-orange-950/20" : ""
+                      }`}>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                            i === 0 ? "bg-amber-400 text-white shadow-sm" :
+                            i === 1 ? "bg-gray-300 text-white shadow-sm" :
+                            i === 2 ? "bg-orange-400 text-white shadow-sm" :
                             "bg-muted text-muted-foreground"
                           }`}>{i + 1}</span>
-                          <span className="truncate max-w-[150px]">{item.namaLengkap}</span>
+                          <span className="truncate">{item.namaLengkap}</span>
                         </span>
-                        <span className="font-bold text-green-600">+{item.totalPoin}</span>
+                        <span className="font-bold text-green-600 shrink-0">+{item.totalPoin}</span>
                       </div>
                     ))
                   ) : (
@@ -173,17 +193,21 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {dashboardGuruAdmin?.topNegatif?.length ? (
                     dashboardGuruAdmin.topNegatif.map((item: any, i: number) => (
-                      <div key={item.siswaId} className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2">
-                          <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            i === 0 ? "bg-red-100 text-red-700" :
-                            i === 1 ? "bg-red-50 text-red-600" :
-                            i === 2 ? "bg-orange-100 text-orange-700" :
+                      <div key={item.siswaId} className={`flex items-center justify-between text-sm p-1.5 rounded-lg ${
+                        i === 0 ? "bg-red-50 dark:bg-red-950/20" :
+                        i === 1 ? "bg-red-50/50 dark:bg-red-900/10" :
+                        i === 2 ? "bg-orange-50 dark:bg-orange-950/20" : ""
+                      }`}>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                            i === 0 ? "bg-red-500 text-white shadow-sm" :
+                            i === 1 ? "bg-red-300 text-white shadow-sm" :
+                            i === 2 ? "bg-orange-400 text-white shadow-sm" :
                             "bg-muted text-muted-foreground"
                           }`}>{i + 1}</span>
-                          <span className="truncate max-w-[150px]">{item.namaLengkap}</span>
+                          <span className="truncate">{item.namaLengkap}</span>
                         </span>
-                        <span className="font-bold text-red-600">{item.totalPoin}</span>
+                        <span className="font-bold text-red-600 shrink-0">{item.totalPoin}</span>
                       </div>
                     ))
                   ) : (

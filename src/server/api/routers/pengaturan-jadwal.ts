@@ -38,7 +38,7 @@ export const pengaturanJadwalRouter = router({
           .where(eq(pengaturanJadwal.id, existing.id))
           .returning()
         if (wasChanged) {
-          await regenerateJpTimeline(existing.id)
+          await recalculateJpTimes(existing.id)
         }
         return result[0]
       }
@@ -47,7 +47,6 @@ export const pengaturanJadwalRouter = router({
         .insert(pengaturanJadwal)
         .values({ id, sekolahId, durasiJP: input.durasiJP, jamMulai: input.jamMulai })
         .returning()
-      await regenerateJpTimeline(id)
       await logAudit(ctx, { action: "create", entity: "pengaturan_jadwal", entityId: result[0]?.id, metadata: {} })
       return result[0]
     }),
@@ -181,7 +180,7 @@ export const pengaturanJadwalRouter = router({
     }),
 })
 
-async function regenerateJpTimeline(pengaturanJadwalId: string) {
+async function recalculateJpTimes(pengaturanJadwalId: string) {
   const pengaturan = await db.query.pengaturanJadwal.findFirst({
     where: eq(pengaturanJadwal.id, pengaturanJadwalId),
   })
@@ -191,45 +190,35 @@ async function regenerateJpTimeline(pengaturanJadwalId: string) {
   const [startH, startM] = (pengaturan.jamMulai ?? "07:00").split(":").map(Number)
   const startMinutes = startH * 60 + startM
 
-  // Get distinct hari from existing timeline items
-  const existingHari = await db
-    .select({ hari: timelineItem.hari })
+  const existingItems = await db
+    .select()
     .from(timelineItem)
-    .where(eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId))
-    .groupBy(timelineItem.hari)
+    .where(and(
+      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+      eq(timelineItem.tipe, "jp"),
+    ))
+    .orderBy(asc(timelineItem.hari), asc(timelineItem.urutan))
 
-  const hariList = existingHari.length > 0
-    ? existingHari.map(r => r.hari)
-    : ["senin", "selasa", "rabu", "kamis", "jumat"]
+  const byHari = new Map<string, typeof existingItems>()
+  for (const item of existingItems) {
+    const arr = byHari.get(item.hari) || []
+    arr.push(item)
+    byHari.set(item.hari, arr)
+  }
 
-  // Delete existing JP items
-  await db.delete(timelineItem).where(and(
-    eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
-    eq(timelineItem.tipe, "jp"),
-  ))
+  for (const [, items] of byHari) {
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx]
+      const jpStartMin = startMinutes + idx * durasi
+      const jpEndMin = jpStartMin + durasi
 
-  // Generate JP 1-10 for each hari
-  for (const hari of hariList) {
-    for (let idx = 1; idx <= 10; idx++) {
-      const jpStartMin = startMinutes + (idx - 1) * durasi
-      const jpEndMin = startMinutes + idx * durasi
-      const jpStartH = Math.floor(jpStartMin / 60)
-      const jpStartM = jpStartMin % 60
-      const jpEndH = Math.floor(jpEndMin / 60)
-      const jpEndM = jpEndMin % 60
+      const jamMulai = `${String(Math.floor(jpStartMin / 60)).padStart(2, "0")}:${String(jpStartMin % 60).padStart(2, "0")}`
+      const jamSelesai = `${String(Math.floor(jpEndMin / 60)).padStart(2, "0")}:${String(jpEndMin % 60).padStart(2, "0")}`
 
-      const jamMulai = `${String(jpStartH).padStart(2, "0")}:${String(jpStartM).padStart(2, "0")}`
-      const jamSelesai = `${String(jpEndH).padStart(2, "0")}:${String(jpEndM).padStart(2, "0")}`
-
-      await db.insert(timelineItem).values({
-        id: crypto.randomUUID(),
-        pengaturanJadwalId,
-        hari: hari as any,
-        tipe: "jp",
-        jamMulai,
-        jamSelesai,
-        urutan: idx,
-      }).onConflictDoNothing()
+      await db
+        .update(timelineItem)
+        .set({ jamMulai, jamSelesai })
+        .where(eq(timelineItem.id, item.id))
     }
   }
 }

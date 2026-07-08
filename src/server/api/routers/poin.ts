@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, gte, lte, sql, sum } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, gte, lte, sql, sum, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import {
   poinKategori,
@@ -502,7 +502,7 @@ export const poinRouter = router({
         ),
       })
 
-      let judul = totalPoin >= 0
+      const judul = totalPoin >= 0
         ? "Apresiasi Prestasi Poin Positif"
         : "Peringatan Akumulasi Poin Negatif"
       let pesan = `Siswa ${dataSiswa.namaLengkap} memiliki total poin ${totalPoin}.`
@@ -518,6 +518,62 @@ export const poinRouter = router({
       })
 
       return { success: true, totalPoin, aturan: aturan || null }
+    }),
+
+  // ── Monitoring Ambang Batas ──
+  getMonitoringThreshold: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
+    .query(async ({ ctx }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      if (!sekolahId) return []
+
+      const aturanList = await db.query.poinAturan.findMany({
+        where: eq(poinAturan.sekolahId, sekolahId),
+        orderBy: [asc(poinAturan.poinMin)],
+      })
+
+      const studentTotals = await db
+        .select({
+          siswaId: poinSikap.siswaId,
+          totalPoin: sum(poinSikap.poin).mapWith(Number),
+        })
+        .from(poinSikap)
+        .where(eq(poinSikap.sekolahId, sekolahId))
+        .groupBy(poinSikap.siswaId)
+
+      const allSiswaIds = studentTotals.map(st => st.siswaId)
+      const siswaData = allSiswaIds.length > 0
+        ? await db.query.siswa.findMany({
+            where: inArray(siswa.id, allSiswaIds),
+          })
+        : []
+      const siswaMap = new Map(siswaData.map(s => [s.id, s]))
+
+      const result: {
+        aturan: typeof aturanList[0]
+        students: { siswaId: string; namaLengkap: string; nisn: string | null; totalPoin: number }[]
+      }[] = []
+
+      for (const aturan of aturanList) {
+        const matched = studentTotals.filter(
+          st => st.totalPoin >= aturan.poinMin && st.totalPoin <= aturan.poinMax
+        )
+        if (matched.length === 0) continue
+
+        result.push({
+          aturan,
+          students: matched.map(st => {
+            const s = siswaMap.get(st.siswaId)
+            return {
+              siswaId: st.siswaId,
+              namaLengkap: s?.namaLengkap || "-",
+              nisn: s?.nisn || null,
+              totalPoin: st.totalPoin,
+            }
+          }),
+        })
+      }
+
+      return result
     }),
 
   // ── Rapor Karakter ──
