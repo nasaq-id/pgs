@@ -268,7 +268,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <DropdownMenuItem
               className="text-center text-primary hover:bg-primary/10 px-3 py-2 cursor-pointer"
               inset={false}
-              onClick={() => { setShowAllNotif(true) }}
+              onClick={() => { window.location.href = "/notifikasi" }}
             >
               Lihat semua notifikasi
             </DropdownMenuItem>
@@ -429,39 +429,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </div>
       )}
 
-      <Dialog open={showAllNotif} onOpenChange={setShowAllNotif}>
-        <DialogContent className="max-w-lg max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Semua Notifikasi</DialogTitle>
-            <DialogDescription>Daftar seluruh notifikasi</DialogDescription>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] space-y-1">
-            {allNotifications.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8 text-sm">Tidak ada notifikasi</p>
-            ) : (
-              allNotifications.map((notif: any) => (
-                <div
-                  key={notif.id}
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors ${!notif.dibaca ? "bg-primary/5" : ""} hover:bg-muted/50`}
-                  onClick={() => handleMarkRead(notif.id)}
-                >
-                  <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${notif.dibaca ? "bg-muted-foreground/30" : "bg-primary"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${!notif.dibaca ? "font-semibold" : "font-normal"}`}>{notif.judul}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.pesan}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(notif.createdAt), "d MMM yyyy HH:mm", { locale: id })}</p>
-                  </div>
-                  {notif.link && (
-                    <a href={notif.link} onClick={(e) => e.stopPropagation()} className="text-xs text-primary hover:underline mt-2 flex-shrink-0">
-                      Lihat
-                    </a>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown,
-  Trophy, Megaphone, DoorOpen, QrCode,
+  Trophy, Megaphone, DoorOpen, QrCode, Bell,
 } from "lucide-react"
 import {
   Dialog,
@@ -36,6 +36,11 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard, 
     label: "Dashboard", 
     path: "/" 
+  },
+  { 
+    icon: Bell, 
+    label: "Notifikasi", 
+    path: "/notifikasi" 
   },
   { 
     icon: Building2, 
