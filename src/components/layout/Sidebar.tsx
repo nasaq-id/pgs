@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown,
-  Trophy, Megaphone, DoorOpen,
+  Trophy, Megaphone, DoorOpen, QrCode,
 } from "lucide-react"
 import {
   Dialog,
@@ -56,6 +56,12 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["super_admin", "admin_sekolah", "tu"]
   },
   { 
+    icon: QrCode, 
+    label: "Cetak Kartu ID", 
+    path: "/manajemen/id-card",
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+  },
+  { 
     icon: School, 
     label: "Sarpras", 
     path: "/sarpras",
@@ -70,7 +76,7 @@ const menuItems: MenuItem[] = [
   { 
     icon: Monitor, 
     label: "LMS", 
-    allowedRoles: ["guru"],
+    allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"],
     children: [
       { label: "Jurnal Mengajar", path: "/lms/jurnal" },
       { label: "Asesmen", path: "/lms/asesmen" },
