@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const WINDOW_MS = 15 * 60 * 1000
-const MAX_ATTEMPTS = 8
+const MAX_ATTEMPTS = 60
 
 type Bucket = {
   count: number

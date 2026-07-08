@@ -4,8 +4,10 @@ import bcrypt from "bcryptjs"
 import { db } from "./server/db"
 import { users } from "./server/db/schema"
 import { eq } from "drizzle-orm"
+import { headers } from "next/headers"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       name: "credentials",
@@ -46,14 +48,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id
         token.role = (user as { role: string }).role
         token.sekolahId = (user as { sekolahId: string | null }).sekolahId
-        token.photo = (user as { photo?: string | null }).photo
+        const userPhoto = (user as { photo?: string | null }).photo
+        token.photo = userPhoto && !userPhoto.startsWith("data:") ? userPhoto : null
       }
       if (trigger === "update") {
         const dbUser = await db.query.users.findFirst({
           where: eq(users.id, token.id as string),
         })
         if (dbUser) {
-          token.photo = dbUser.photo
+          const dbPhoto = dbUser.photo
+          token.photo = dbPhoto && !dbPhoto.startsWith("data:") ? dbPhoto : null
           token.name = `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim()
         }
       }
@@ -70,6 +74,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           photo: token.photo as string | undefined,
         },
       }
+    },
+    async redirect({ url, baseUrl }) {
+      let host = null
+      let proto = "http"
+      try {
+        const headersList = await headers()
+        host = headersList.get("host") || headersList.get("x-forwarded-host")
+        proto = headersList.get("x-forwarded-proto") || "http"
+      } catch (e) {
+        // Headers are not available in this context
+      }
+      const dynamicBaseUrl = host ? `${proto}://${host}` : baseUrl
+      
+      if (url.startsWith("/")) return `${dynamicBaseUrl}${url}`
+      try {
+        const parsedUrl = new URL(url)
+        const parsedBase = new URL(baseUrl)
+        const parsedDynamic = new URL(dynamicBaseUrl)
+        
+        if (parsedUrl.origin === parsedBase.origin) {
+          return `${parsedDynamic.origin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`
+        }
+        if (parsedUrl.origin === parsedDynamic.origin) {
+          return url
+        }
+      } catch (e) {
+        // ignore
+      }
+      return dynamicBaseUrl
     },
   },
   pages: {
