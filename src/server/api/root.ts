@@ -20,8 +20,10 @@ import { asesmenRouter } from "./routers/asesmen"
 import { izinRouter } from "./routers/izin"
 import { profilRouter } from "./routers/profil"
 import { poinRouter } from "./routers/poin"
+import { pengampuRouter } from "./routers/pengampu"
 
 export const appRouter = router({
+  pengampu: pengampuRouter,
   siswa: siswaRouter,
   guru: guruRouter,
   kelas: kelasRouter,

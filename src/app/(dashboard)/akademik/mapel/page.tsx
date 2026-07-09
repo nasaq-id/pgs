@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,6 +41,7 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
+import PengampuDialog from "@/components/mapel/PengampuDialog"
 
 interface MapelRecord {
   id: string
@@ -64,6 +64,8 @@ export default function MapelPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [pengampuOpen, setPengampuOpen] = useState(false)
+  const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
 
@@ -254,6 +256,15 @@ export default function MapelPage() {
                         >
                           <Pencil className="h-4 w-4" /> Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
+                            setPengampuOpen(true)
+                          }}
+                          className="gap-2 clickable"
+                        >
+                          <span className="text-xs font-mono">👥</span> Plotting Pengajar
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => setDeleteId(r.id)}
@@ -270,6 +281,16 @@ export default function MapelPage() {
           </Table>
         )}
       </div>
+
+      <PengampuDialog
+        open={pengampuOpen}
+        onClose={() => {
+          setPengampuOpen(false)
+          setPengampuMapel(null)
+        }}
+        mataPelajaranId={pengampuMapel?.id ?? ""}
+        mataPelajaranNama={pengampuMapel?.namaMapel ?? ""}
+      />
 
       <MapelFormDialog
         open={formOpen}
