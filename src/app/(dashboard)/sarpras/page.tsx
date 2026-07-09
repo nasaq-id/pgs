@@ -1,13 +1,6 @@
 "use client"
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipPopup,
-} from "@/components/ui/tooltip"
 import KelasTab from "@/components/sarpras/KelasTab"
 
 export default function SarprasPage() {
@@ -21,26 +14,20 @@ export default function SarprasPage() {
       <Tabs defaultValue="kelas">
         <TabsList>
           <TabsTrigger value="kelas">Kelas</TabsTrigger>
-          <Tooltip>
-            <TooltipTrigger
-              delay={0}
-              render={<TabsTrigger value="perpus" disabled />}
-            >
-              Perpustakaan
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipPositioner>
-                <TooltipPopup>Fitur yang akan datang</TooltipPopup>
-              </TooltipPositioner>
-            </TooltipPortal>
-          </Tooltip>
+          <TabsTrigger value="sarana">Data Sarana</TabsTrigger>
+          <TabsTrigger value="prasarana">Data Prasarana</TabsTrigger>
         </TabsList>
         <TabsContent value="kelas">
           <KelasTab />
         </TabsContent>
-        <TabsContent value="perpus">
+        <TabsContent value="sarana">
           <div className="flex items-center justify-center py-20 text-muted-foreground">
-            <p>Fitur Perpustakaan akan tersedia segera</p>
+            <p>Fitur Data Sarana akan tersedia segera</p>
+          </div>
+        </TabsContent>
+        <TabsContent value="prasarana">
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <p>Fitur Data Prasarana akan tersedia segera</p>
           </div>
         </TabsContent>
       </Tabs>
