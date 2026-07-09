@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Plus, X } from "lucide-react"
 import { api } from "@/lib/trpc/client"
@@ -12,6 +13,7 @@ import { toast } from "sonner"
 interface AssignmentRow {
   guruId: string
   kelasIds: string[]
+  jumlahJam: number
 }
 
 interface Props {
@@ -36,10 +38,11 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
     }
     const initial: AssignmentRow[] = []
     for (const [guruId, kelasIds] of grouped) {
-      initial.push({ guruId, kelasIds })
+      const existingAssignment = data.assignments.find((a) => a.guruId === guruId)
+      initial.push({ guruId, kelasIds, jumlahJam: existingAssignment?.jumlahJam ?? 4 })
     }
     if (initial.length === 0) {
-      initial.push({ guruId: "", kelasIds: [] })
+      initial.push({ guruId: "", kelasIds: [], jumlahJam: 4 })
     }
     setRows(initial)
   }, [data])
@@ -66,14 +69,14 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
 
   const removeRow = (index: number) => {
     if (rows.length <= 1) {
-      setRows([{ guruId: "", kelasIds: [] }])
+      setRows([{ guruId: "", kelasIds: [], jumlahJam: 4 }])
       return
     }
     setRows((prev) => prev.filter((_, i) => i !== index))
   }
 
   const addRow = () => {
-    setRows((prev) => [...prev, { guruId: "", kelasIds: [] }])
+    setRows((prev) => [...prev, { guruId: "", kelasIds: [], jumlahJam: 4 }])
   }
 
   const toggleKelas = (rowIndex: number, kelasId: string) => {
@@ -91,7 +94,10 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
       return
     }
     try {
-      await saveMutation.mutateAsync({ mataPelajaranId, assignments: valid })
+      await saveMutation.mutateAsync({
+        mataPelajaranId,
+        assignments: valid.map((r) => ({ guruId: r.guruId, kelasIds: r.kelasIds, jumlahJam: r.jumlahJam })),
+      })
       toast.success("Plotting pengajar berhasil disimpan")
       onClose()
     } catch {
@@ -147,44 +153,59 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
                   </div>
 
                   {row.guruId && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Pilih Kelas</Label>
-                      {availableKelas.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic">Semua kelas sudah diampu guru lain</p>
-                      ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                          {availableKelas.map((k) => {
-                            const checked = row.kelasIds.includes(k.id)
-                            return (
-                              <label
-                                key={k.id}
-                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
-                                  checked
-                                    ? "bg-primary/10 text-primary font-medium"
-                                    : "hover:bg-muted text-foreground"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleKelas(i, k.id)}
-                                  className="accent-primary h-3.5 w-3.5"
-                                />
-                                {k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}
-                              </label>
-                            )
-                          })}
-                        </div>
-                      )}
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Jumlah JP per Kelas</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={row.jumlahJam}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value)
+                            if (v >= 1 && v <= 20) updateRow(i, { jumlahJam: v })
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Pilih Kelas</Label>
+                        {availableKelas.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">Semua kelas sudah diampu guru lain</p>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                            {availableKelas.map((k) => {
+                              const checked = row.kelasIds.includes(k.id)
+                              return (
+                                <label
+                                  key={k.id}
+                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                                    checked
+                                      ? "bg-primary/10 text-primary font-medium"
+                                      : "hover:bg-muted text-foreground"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleKelas(i, k.id)}
+                                    className="accent-primary h-3.5 w-3.5"
+                                  />
+                                  {k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}
+                                </label>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
+
+                  <Button variant="outline" className="w-full gap-2" onClick={addRow}>
+                    <Plus className="h-4 w-4" /> Tambah Guru
+                  </Button>
                 </div>
               )
             })}
-
-            <Button variant="outline" className="w-full gap-2" onClick={addRow}>
-              <Plus className="h-4 w-4" /> Tambah Guru
-            </Button>
           </div>
         )}
 

@@ -43,8 +43,34 @@ export const pengampuRouter = router({
           guruNama: d.guru.namaLengkap,
           kelasId: d.kelasId,
           kelasNama: d.kelas.namaKelas,
+          jumlahJam: d.jumlahJam,
         })),
       }
+    }),
+
+  getByKelas: protectedProcedure
+    .input(z.object({ kelasId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+
+      const data = await db.query.pengampu.findMany({
+        where: eq(pengampu.kelasId, input.kelasId),
+        with: {
+          guru: true,
+          mataPelajaran: true,
+        },
+      })
+
+      return data.map((d) => ({
+        id: d.id,
+        guruId: d.guruId,
+        guruNama: d.guru.namaLengkap,
+        mataPelajaranId: d.mataPelajaranId,
+        mapelNama: d.mataPelajaran.namaMapel,
+        mapelKode: d.mataPelajaran.kodeMapel,
+        jumlahJam: d.jumlahJam,
+      }))
     }),
 
   save: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -53,6 +79,7 @@ export const pengampuRouter = router({
       assignments: z.array(z.object({
         guruId: z.string(),
         kelasIds: z.array(z.string()),
+        jumlahJam: z.number().min(1).max(20).default(4),
       })),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -61,7 +88,7 @@ export const pengampuRouter = router({
       await db.delete(pengampu)
         .where(eq(pengampu.mataPelajaranId, mataPelajaranId))
 
-      const values: { id: string; guruId: string; mataPelajaranId: string; kelasId: string }[] = []
+      const values: { id: string; guruId: string; mataPelajaranId: string; kelasId: string; jumlahJam: number }[] = []
       for (const a of assignments) {
         for (const kelasId of a.kelasIds) {
           values.push({
@@ -69,6 +96,7 @@ export const pengampuRouter = router({
             guruId: a.guruId,
             mataPelajaranId,
             kelasId,
+            jumlahJam: a.jumlahJam,
           })
         }
       }

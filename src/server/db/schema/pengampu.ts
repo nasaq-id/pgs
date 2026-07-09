@@ -1,4 +1,4 @@
-import { pgTable, text } from "drizzle-orm/pg-core"
+import { pgTable, text, integer } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { guru } from "./guru"
 import { mataPelajaran } from "./mata-pelajaran"
@@ -11,6 +11,7 @@ export const pengampu = pgTable("pengampu", {
   mataPelajaranId: text("mata_pelajaran_id").notNull().references(() => mataPelajaran.id, { onDelete: "cascade" }),
   kelasId: text("kelas_id").notNull().references(() => kelas.id, { onDelete: "cascade" }),
   tahunAjaranId: text("tahun_ajaran_id").references(() => tahunAjaran.id, { onDelete: "set null" }),
+  jumlahJam: integer("jumlah_jam").notNull().default(4),
 })
 
 export const pengampuRelations = relations(pengampu, ({ one }) => ({

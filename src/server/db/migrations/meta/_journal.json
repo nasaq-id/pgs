@@ -92,6 +92,13 @@
       "when": 1785000000000,
       "tag": "0012_add_pengampu",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785100000000,
+      "tag": "0013_add_jumlah_jam_pengampu",
+      "breakpoints": true
     }
   ]
 }

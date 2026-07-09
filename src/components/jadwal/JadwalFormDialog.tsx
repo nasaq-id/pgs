@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -19,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
+import { api } from "@/lib/trpc/client"
 
 export interface JadwalFormData {
   id?: string
@@ -58,6 +58,14 @@ interface ExistingJadwalItem {
   jpCount: number | null
 }
 
+interface PengampuMapel {
+  mataPelajaranId: string
+  guruId: string
+  guruNama: string
+  mapelNama: string
+  jumlahJam: number
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -68,8 +76,8 @@ interface Props {
   saving?: boolean
   existingJadwal?: ExistingJadwalItem[]
   timelineItems?: TimelineItemData[]
-  /** Hari konteks (dari klik kolom hari di grid). Jika tidak disediakan, fallback ke initial.hari atau "senin". */
   contextHari?: string
+  kelasId?: string
 }
 
 export default function JadwalFormDialog({
@@ -78,16 +86,46 @@ export default function JadwalFormDialog({
   onSubmit,
   initial,
   mapelList,
-  guruList,
   saving,
   existingJadwal = [],
   timelineItems = [],
   contextHari,
+  kelasId,
 }: Props) {
   const [hari, setHari] = useState(contextHari || initial?.hari || "senin")
   const [jpCount, setJpCount] = useState(1)
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
+
+  const { data: pengampuData } = api.pengampu.getByKelas.useQuery(
+    { kelasId: kelasId ?? "" },
+    { enabled: open && !!kelasId }
+  )
+
+  const { data: sisaJpData } = api.jadwal.getSisaJp.useQuery(
+    { kelasId: kelasId ?? "" },
+    { enabled: open && !!kelasId }
+  )
+
+  const pengampuMap = useMemo(() => {
+    const map = new Map<string, PengampuMapel>()
+    if (pengampuData) {
+      for (const p of pengampuData) {
+        map.set(p.mataPelajaranId, p)
+      }
+    }
+    return map
+  }, [pengampuData])
+
+  const sisaJpMap = useMemo(() => {
+    const map = new Map<string, number>()
+    if (sisaJpData) {
+      for (const s of sisaJpData) {
+        map.set(s.mataPelajaranId, s.sisa)
+      }
+    }
+    return map
+  }, [sisaJpData])
 
   const selectedMapelLabel = useMemo(() => {
     const m = mapelList.find((mpl) => mpl.id === mataPelajaranId)
@@ -95,9 +133,10 @@ export default function JadwalFormDialog({
   }, [mataPelajaranId, mapelList])
 
   const selectedGuruLabel = useMemo(() => {
-    const g = guruList.find((gr) => gr.id === guruId)
-    return g ? g.namaLengkap : ""
-  }, [guruId, guruList])
+    if (!mataPelajaranId) return ""
+    const p = pengampuMap.get(mataPelajaranId)
+    return p?.guruNama ?? ""
+  }, [mataPelajaranId, pengampuMap])
 
   const jpSlots = useMemo(() => {
     return timelineItems
@@ -107,13 +146,13 @@ export default function JadwalFormDialog({
 
   const occupiedJpSlots = useMemo(() => {
     const occupied = new Set<number>()
-    const hariEntries = existingJadwal.filter(
-      (e) => e.hari === hari && e.jpMulai !== null && e.jpCount !== null
-    )
-    for (const entry of hariEntries) {
+    for (const entry of existingJadwal) {
+      if (entry.hari !== hari) continue
       if (entry.id === initial?.id) continue
-      for (let i = 0; i < entry.jpCount!; i++) {
-        occupied.add(entry.jpMulai! + i)
+      if (entry.jpMulai !== null && entry.jpCount !== null) {
+        for (let i = 0; i < entry.jpCount; i++) {
+          occupied.add(entry.jpMulai + i)
+        }
       }
     }
     return occupied
@@ -124,19 +163,27 @@ export default function JadwalFormDialog({
     return allJp.filter((s) => !occupiedJpSlots.has(s))
   }, [jpSlots, occupiedJpSlots])
 
-  const canAutoMap = useMemo(() => {
-    for (let start = 1; start <= jpSlots.length - jpCount + 1; start++) {
-      let ok = true
-      for (let offset = 0; offset < jpCount; offset++) {
-        if (occupiedJpSlots.has(start + offset)) {
-          ok = false
-          break
-        }
-      }
-      if (ok) return true
-    }
-    return false
-  }, [jpSlots, jpCount, occupiedJpSlots])
+  const filteredMapel = useMemo(() => {
+    if (initial) return mapelList
+    return mapelList.filter((m) => {
+      if (!kelasId) return true
+      const sisa = sisaJpMap.get(m.id)
+      if (sisa === undefined) return false
+      return sisa > 0
+    })
+  }, [mapelList, sisaJpMap, kelasId, initial])
+
+  const sisaForSelected = useMemo(() => {
+    if (!mataPelajaranId) return 0
+    return sisaJpMap.get(mataPelajaranId) ?? 0
+  }, [mataPelajaranId, sisaJpMap])
+
+  const maxJpCount = useMemo(() => {
+    if (initial) return initial.jpCount ?? 5
+    const sisa = sisaForSelected
+    const availableCount = availableSlots.length
+    return Math.min(sisa, availableCount, 5)
+  }, [sisaForSelected, availableSlots, initial])
 
   useEffect(() => {
     if (!open) return
@@ -153,11 +200,17 @@ export default function JadwalFormDialog({
     }
   }, [open, initial, contextHari])
 
+  useEffect(() => {
+    if (mataPelajaranId) {
+      const p = pengampuMap.get(mataPelajaranId)
+      setGuruId(p?.guruId ?? "")
+    }
+  }, [mataPelajaranId, pengampuMap])
+
   const isEdit = !!initial?.id
 
   const handleSubmit = async () => {
     if (!hari || !mataPelajaranId || !guruId || !jpCount) return
-    if (jpCount < 1 || jpCount > 5) return
     await onSubmit({
       id: initial?.id,
       hari,
@@ -172,6 +225,21 @@ export default function JadwalFormDialog({
 
   const isValid = hari && mataPelajaranId && guruId && jpCount >= 1 && jpCount <= 5
 
+  const jpOptions = useMemo(() => {
+    const options: number[] = []
+    const max = Math.min(maxJpCount, 5)
+    for (let i = 1; i <= max; i++) {
+      options.push(i)
+    }
+    return options
+  }, [maxJpCount])
+
+  useEffect(() => {
+    if (jpCount > maxJpCount && maxJpCount >= 1) {
+      setJpCount(maxJpCount)
+    }
+  }, [maxJpCount, jpCount])
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
@@ -182,29 +250,6 @@ export default function JadwalFormDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>
-              Jumlah JP <span className="text-destructive">*</span>
-              <span className="text-xs text-muted-foreground ml-2">(maks. 5 JP)</span>
-            </Label>
-            <Input
-              type="number"
-              min={1}
-              max={5}
-              value={jpCount}
-              onChange={(e) => {
-                const v = parseInt(e.target.value)
-                if (v >= 1 && v <= 5) setJpCount(v)
-                else if (e.target.value === "") setJpCount(1)
-              }}
-            />
-            {!canAutoMap && !isEdit && (
-              <p className="text-xs text-destructive mt-1">
-                Slot JP tidak mencukupi untuk {jpCount} JP. Tersedia: {availableSlots.length} slot.
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>
               Mata Pelajaran <span className="text-destructive">*</span>
             </Label>
             <Select value={mataPelajaranId} onValueChange={(v) => v && setMataPelajaranId(v)}>
@@ -212,33 +257,65 @@ export default function JadwalFormDialog({
                 <SelectValue placeholder="Pilih mata pelajaran">{selectedMapelLabel || "Pilih mata pelajaran"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {mapelList.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.namaMapel}
-                    {m.kodeMapel ? ` (${m.kodeMapel})` : ""}
-                  </SelectItem>
-                ))}
+                {filteredMapel.map((m) => {
+                  const sisa = sisaJpMap.get(m.id)
+                  const label = sisa !== undefined
+                    ? `${m.namaMapel} ${m.kodeMapel ? `(${m.kodeMapel})` : ""} • Sisa ${sisa} JP`
+                    : `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`
+                  return (
+                    <SelectItem key={m.id} value={m.id}>
+                      {label}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>
-              Guru Pengampu <span className="text-destructive">*</span>
-            </Label>
-            <Select value={guruId} onValueChange={(v) => v && setGuruId(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih guru">{selectedGuruLabel || "Pilih guru"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {guruList.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.namaLengkap}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {mataPelajaranId && pengampuMap.has(mataPelajaranId) && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+              <p className="text-sm font-medium">
+                Guru: {selectedGuruLabel}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Sisa alokasi: {sisaForSelected} JP
+              </p>
+            </div>
+          )}
+
+          {mataPelajaranId && (
+            <div className="space-y-1.5">
+              <Label>
+                Durasi Alokasi (JP) <span className="text-destructive">*</span>
+                <span className="text-xs text-muted-foreground ml-2">
+                  (maks. {maxJpCount} JP)
+                </span>
+              </Label>
+              <Select
+                value={String(jpCount)}
+                onValueChange={(v) => v && setJpCount(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih durasi">{jpCount} JP</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {jpOptions.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n} JP
+                      {!isEdit && sisaForSelected > 0 && n < sisaForSelected
+                        ? ` (sisa ${sisaForSelected - n} JP)`
+                        : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!initial && jpCount > availableSlots.length && (
+                <p className="text-xs text-destructive mt-1">
+                  Slot JP tersedia hanya {availableSlots.length}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>

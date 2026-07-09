@@ -529,6 +529,7 @@ export default function JadwalPage() {
         existingJadwal={jadwalRecords as any}
         timelineItems={timelineRecords as any}
         contextHari={addForHari ?? undefined}
+        kelasId={kelasId}
       />
 
       <PengaturanJadwalDialog

@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem } from "@/server/db/schema"
+import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -208,6 +208,37 @@ async function findAvailableSlots(
 }
 
 export const jadwalRouter = router({
+  getSisaJp: protectedProcedure
+    .input(z.object({ kelasId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const pengampuList = await db.query.pengampu.findMany({
+        where: eq(pengampu.kelasId, input.kelasId),
+      })
+
+      const jadwalList = await db
+        .select({ mataPelajaranId: jadwalPelajaran.mataPelajaranId, jpTerpakai: jadwalPelajaran.jpCount })
+        .from(jadwalPelajaran)
+        .where(eq(jadwalPelajaran.kelasId, input.kelasId))
+
+      const jpTerpakaiMap = new Map<string, number>()
+      for (const j of jadwalList) {
+        jpTerpakaiMap.set(j.mataPelajaranId, (jpTerpakaiMap.get(j.mataPelajaranId) ?? 0) + (j.jpTerpakai ?? 0))
+      }
+
+      const result: { mataPelajaranId: string; jumlahJam: number; terpakai: number; sisa: number }[] = []
+      for (const p of pengampuList) {
+        const terpakai = jpTerpakaiMap.get(p.mataPelajaranId) ?? 0
+        result.push({
+          mataPelajaranId: p.mataPelajaranId,
+          jumlahJam: p.jumlahJam,
+          terpakai,
+          sisa: Math.max(0, p.jumlahJam - terpakai),
+        })
+      }
+
+      return result
+    }),
+
   getAll: protectedProcedure
     .input(z.object({
       kelasId: z.string().optional(),

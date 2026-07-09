@@ -1,0 +1,1 @@
+ALTER TABLE "pengampu" ADD COLUMN "jumlah_jam" integer DEFAULT 4 NOT NULL;
