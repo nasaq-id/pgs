@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Hash, Camera, Loader2 } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Camera, Loader2, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -25,12 +25,13 @@ const YoutubeIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98" fill="var(--background)"/></svg>
 )
 
-const TwitterIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.89 2.89 2.89 0 0 1-2.88-2.89 2.89 2.89 0 0 1 2.88-2.89c.31 0 .6.05.88.14v-3.5a6.37 6.37 0 0 0-.88-.05 6.33 6.33 0 0 0-6.33 6.33A6.33 6.33 0 0 0 6.63 19.6a6.33 6.33 0 0 0 6.33-6.33V9.9a7.76 7.76 0 0 0 4.2 1.9v-3.45a4.34 4.34 0 0 1-1.57-.66Z"/></svg>
 )
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/trpc/client"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 import {
   Dialog,
   DialogContent,
@@ -90,6 +91,8 @@ export default function LembagaPage() {
   const [form, setForm] = useState<Record<string, string>>({})
   const [logoPreview, setLogoPreview] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [sosmedUploading, setSosmedUploading] = useState<string | null>(null)
+  const [sosmedPreviews, setSosmedPreviews] = useState<Record<string, string>>({})
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   const compressImage = (file: File, maxSize: number): Promise<Blob> => {
@@ -158,6 +161,19 @@ export default function LembagaPage() {
     setIsUploading(false)
   }
 
+  const handleSosmedUpload = async (field: string, file: File) => {
+    setSosmedUploading(field)
+    setSosmedPreviews((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }))
+    try {
+      const url = await uploadToCloudinary(file, "sosmed-lembaga")
+      setForm((prev) => ({ ...prev, [field]: url }))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Upload gagal")
+      setSosmedPreviews((prev) => ({ ...prev, [field]: "" }))
+    }
+    setSosmedUploading(null)
+  }
+
   const openEdit = () => {
     if (sekolah) {
       setForm({
@@ -174,20 +190,30 @@ export default function LembagaPage() {
         situsWeb: sekolah.situsWeb || "",
         whatsapp: sekolah.whatsapp || "",
         facebook: sekolah.facebook || "",
+        fotoFacebook: sekolah.fotoFacebook || "",
         instagram: sekolah.instagram || "",
+        fotoInstagram: sekolah.fotoInstagram || "",
         youtube: sekolah.youtube || "",
-        twitter: sekolah.twitter || "",
+        fotoYoutube: sekolah.fotoYoutube || "",
+        tiktok: sekolah.tiktok || "",
+        fotoTiktok: sekolah.fotoTiktok || "",
         akreditasi: sekolah.akreditasi || "",
         logo: sekolah.logo || "",
       })
       setLogoPreview(sekolah.logo || "")
+      setSosmedPreviews({
+        fotoFacebook: sekolah.fotoFacebook || "",
+        fotoInstagram: sekolah.fotoInstagram || "",
+        fotoYoutube: sekolah.fotoYoutube || "",
+        fotoTiktok: sekolah.fotoTiktok || "",
+      })
     }
     setEditOpen(true)
   }
 
   const handleSave = async () => {
     const cleanForm = Object.fromEntries(
-      Object.entries(form).filter(([_, v]) => v !== "")
+      Object.entries(form).filter(([, v]) => v !== "")
     )
     await updateSekolah.mutateAsync(cleanForm)
     utils.lembaga.getSekolah.invalidate()
@@ -248,7 +274,7 @@ export default function LembagaPage() {
           <InfoItem icon={Mail} label="Email Resmi" value={sekolah?.emailSekolah} />
           <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} isLink={true} href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined} />
           <InfoItem icon={MessageCircle} label="WhatsApp" value={sekolah?.whatsapp} isLink={true} href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined} />
-          {(sekolah?.facebook || sekolah?.instagram || sekolah?.youtube || sekolah?.twitter) && (
+          {(sekolah?.facebook || sekolah?.instagram || sekolah?.youtube || sekolah?.tiktok) && (
             <div>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sosial Media</p>
               <div className="flex items-center gap-2">
@@ -256,10 +282,14 @@ export default function LembagaPage() {
                   <Tooltip>
                     <TooltipTrigger
                       render={
-                        <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#1877F2]/10 flex items-center justify-center hover:bg-[#1877F2]/20 transition-all duration-200" />
+                        <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-all duration-200" />
                       }
                     >
-                      <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
+                      {sekolah.fotoFacebook ? (
+                        <img src={sekolah.fotoFacebook} alt="Facebook" className="w-full h-full object-cover" />
+                      ) : (
+                        <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
+                      )}
                     </TooltipTrigger>
                     <TooltipPortal>
                       <TooltipPositioner>
@@ -272,10 +302,14 @@ export default function LembagaPage() {
                   <Tooltip>
                     <TooltipTrigger
                       render={
-                        <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#E4405F]/10 flex items-center justify-center hover:bg-[#E4405F]/20 transition-all duration-200" />
+                        <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#E4405F]/10 hover:bg-[#E4405F]/20 transition-all duration-200" />
                       }
                     >
-                      <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
+                      {sekolah.fotoInstagram ? (
+                        <img src={sekolah.fotoInstagram} alt="Instagram" className="w-full h-full object-cover" />
+                      ) : (
+                        <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
+                      )}
                     </TooltipTrigger>
                     <TooltipPortal>
                       <TooltipPositioner>
@@ -288,10 +322,14 @@ export default function LembagaPage() {
                   <Tooltip>
                     <TooltipTrigger
                       render={
-                        <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-[#FF0000]/10 flex items-center justify-center hover:bg-[#FF0000]/20 transition-all duration-200" />
+                        <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#FF0000]/10 hover:bg-[#FF0000]/20 transition-all duration-200" />
                       }
                     >
-                      <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
+                      {sekolah.fotoYoutube ? (
+                        <img src={sekolah.fotoYoutube} alt="YouTube" className="w-full h-full object-cover" />
+                      ) : (
+                        <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
+                      )}
                     </TooltipTrigger>
                     <TooltipPortal>
                       <TooltipPositioner>
@@ -300,18 +338,22 @@ export default function LembagaPage() {
                     </TooltipPortal>
                   </Tooltip>
                 )}
-                {sekolah?.twitter && (
+                {sekolah?.tiktok && (
                   <Tooltip>
                     <TooltipTrigger
                       render={
-                        <a href={sekolah.twitter.startsWith("http") ? sekolah.twitter : `https://${sekolah.twitter}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl bg-neutral-900/10 dark:bg-neutral-100/10 flex items-center justify-center hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" />
+                        <a href={sekolah.tiktok.startsWith("http") ? sekolah.tiktok : `https://${sekolah.tiktok}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-neutral-900/10 dark:bg-neutral-100/10 hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" />
                       }
                     >
-                      <TwitterIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
+                      {sekolah.fotoTiktok ? (
+                        <img src={sekolah.fotoTiktok} alt="TikTok" className="w-full h-full object-cover" />
+                      ) : (
+                        <TikTokIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
+                      )}
                     </TooltipTrigger>
                     <TooltipPortal>
                       <TooltipPositioner>
-                        <TooltipPopup>X</TooltipPopup>
+                        <TooltipPopup>TikTok</TooltipPopup>
                       </TooltipPositioner>
                     </TooltipPortal>
                   </Tooltip>
@@ -463,25 +505,56 @@ export default function LembagaPage() {
               <Input value={form.whatsapp || ""} onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, "") })} placeholder="81234567890" maxLength={13} />
               <p className="text-xs text-muted-foreground">Format: 8xxxxxxxxxx (akan digunakan untuk link WhatsApp di header)</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Facebook</Label>
-                <Input value={form.facebook || ""} onChange={(e) => setForm({ ...form, facebook: e.target.value })} placeholder="https://facebook.com/sekolah" />
-              </div>
-              <div className="space-y-2">
-                <Label>Instagram</Label>
-                <Input value={form.instagram || ""} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="https://instagram.com/sekolah" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>YouTube</Label>
-                <Input value={form.youtube || ""} onChange={(e) => setForm({ ...form, youtube: e.target.value })} placeholder="https://youtube.com/@sekolah" />
-              </div>
-              <div className="space-y-2">
-                <Label>X (Twitter)</Label>
-                <Input value={form.twitter || ""} onChange={(e) => setForm({ ...form, twitter: e.target.value })} placeholder="https://twitter.com/sekolah" />
-              </div>
+            <div className="space-y-4 border-t border-border pt-4">
+              <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Sosial Media</Label>
+              {[
+                { key: "facebook", label: "Facebook", fotoKey: "fotoFacebook", color: "#1877F2" },
+                { key: "instagram", label: "Instagram", fotoKey: "fotoInstagram", color: "#E4405F" },
+                { key: "youtube", label: "YouTube", fotoKey: "fotoYoutube", color: "#FF0000" },
+                { key: "tiktok", label: "TikTok", fotoKey: "fotoTiktok", color: "#000000" },
+              ].map((sosmed) => (
+                <div key={sosmed.key} className="flex items-end gap-3">
+                  <div className="flex-1 space-y-2">
+                    <Label>{sosmed.label}</Label>
+                    <Input value={form[sosmed.key] || ""} onChange={(e) => setForm({ ...form, [sosmed.key]: e.target.value })} placeholder={`https://${sosmed.key}.com/...`} />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className="h-10 w-10 rounded-xl border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => {
+                        const input = document.createElement("input")
+                        input.type = "file"
+                        input.accept = "image/*"
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0]
+                          if (file) handleSosmedUpload(sosmed.fotoKey, file)
+                        }
+                        input.click()
+                      }}
+                    >
+                      {sosmedUploading === sosmed.fotoKey ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : sosmedPreviews[sosmed.fotoKey] ? (
+                        <img src={sosmedPreviews[sosmed.fotoKey]} alt={sosmed.label} className="w-full h-full object-cover" />
+                      ) : (
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    {sosmedPreviews[sosmed.fotoKey] && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSosmedPreviews((prev) => ({ ...prev, [sosmed.fotoKey]: "" }))
+                          setForm((prev) => ({ ...prev, [sosmed.fotoKey]: "" }))
+                        }}
+                        className="text-[10px] text-destructive hover:underline cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
             <Button onClick={handleSave} className="w-full" disabled={updateSekolah.isPending}>
               {updateSekolah.isPending ? "Menyimpan..." : "Simpan"}
