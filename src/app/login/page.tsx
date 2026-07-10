@@ -3,17 +3,51 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react"
+import {
+  Compass, Eye, EyeOff, ShieldAlert, Sparkles, Users, GraduationCap,
+  School, ArrowRight, BookMarked, Award, CheckCircle2, BookOpen, Shield,
+} from "lucide-react"
 import { toast } from "sonner"
+import {
+  Tooltip, TooltipTrigger, TooltipPortal, TooltipPositioner,
+  TooltipPopup, TooltipProvider,
+} from "@/components/ui/tooltip"
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [activeRole, setActiveRole] = useState<"siswa" | "guru" | "admin">("siswa")
+
+  type RoleKey = "siswa" | "guru" | "admin"
+
+  const ROLE_CONFIG: Record<RoleKey, { emailLabel: string; emailPlaceholder: string }> = {
+    siswa: {
+      emailLabel: "NISN / NIS Lokal / Username Siswa",
+      emailPlaceholder: "Masukkan NISN, NIS lokal, atau username",
+    },
+    guru: {
+      emailLabel: "NIP / NUPTK / Username Guru",
+      emailPlaceholder: "Masukkan NIP, NUPTK, atau username",
+    },
+    admin: {
+      emailLabel: "Email / Username Admin",
+      emailPlaceholder: "Masukkan email atau username admin",
+    },
+  }
+
+  const ROLE_TABS: { key: RoleKey; label: string; icon: React.ElementType }[] = [
+    { key: "siswa", label: "Siswa", icon: GraduationCap },
+    { key: "guru", label: "Guru", icon: BookOpen },
+    { key: "admin", label: "Admin", icon: Shield },
+  ]
+
+  function handleRoleChange(role: RoleKey) {
+    setActiveRole(role)
+    setError("")
+    setShowPassword(false)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -22,7 +56,7 @@ export default function LoginPage() {
 
     const form = new FormData(e.currentTarget)
     const emailVal = form.get("email")
-    
+
     try {
       const res = await signIn("credentials", {
         email: emailVal,
@@ -31,18 +65,15 @@ export default function LoginPage() {
       })
 
       if (res?.error) {
-        console.error("Login Gagal. Response error:", res.error)
         toast.error("Login Gagal: Email, NISN, atau password salah.")
         setError("Email atau password salah")
         setLoading(false)
       } else {
-        console.log("Login Berhasil! Mengalihkan pengguna...")
         toast.success("Login Berhasil! Selamat datang.")
         router.push("/")
         router.refresh()
       }
     } catch (err) {
-      console.error("Fatal login error:", err)
       toast.error("Terjadi kesalahan sistem saat mencoba masuk.")
       setError("Terjadi kesalahan sistem")
       setLoading(false)
@@ -50,79 +81,241 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-background to-primary/5" />
-      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-
-      <div className="w-full max-w-md glass-card rounded-3xl p-8 space-y-8">
-        <div className="text-center space-y-3">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm shadow-primary/20">
-            <GraduationCap className="h-7 w-7 text-primary-foreground" />
+    <div className="min-h-screen bg-[#f4f5f6] flex flex-col">
+      {/* ── Brand Nav ── */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-500/20 text-white">
+            <Compass className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">EduManage</h1>
-            <p className="text-sm text-muted-foreground mt-1">Sistem Informasi Manajemen Sekolah</p>
+            <h1 className="text-sm md:text-base font-black text-slate-800 uppercase tracking-tight leading-none">
+              Edu<span className="text-teal-600">Manage</span>
+            </h1>
+            <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5 block">
+              Sistem Manajemen Sekolah
+            </span>
+          </div>
+        </div>
+        <span className="text-xs text-slate-400 font-bold">v1.0.0</span>
+      </nav>
+
+      {/* ── Main Body ── */}
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-12 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
+        {/* ── Left Column: Hero + Stats + Features ── */}
+        <div className="lg:col-span-7 space-y-8">
+          {/* Hero */}
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-1.5 text-teal-600 bg-teal-50 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+              <Sparkles size={14} />
+              <span>Portal Sekolah</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
+              Satu Sistem Untuk{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">
+                Pendidikan Unggul & Berakhlak
+              </span>
+            </h1>
+            <p className="text-sm md:text-base text-slate-500 max-w-xl font-medium leading-relaxed">
+              Sistem manajemen sekolah modern yang mengintegrasikan administrasi, akademik, LMS, 
+              keuangan, presensi digital, dan kesiswaan dalam satu platform terpadu.
+            </p>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3">
+                <Users size={20} />
+              </div>
+              <p className="text-2xl font-black text-slate-800">—</p>
+              <p className="text-xs text-slate-400 font-bold mt-1">Siswa Terdaftar</p>
+            </div>
+            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
+                <GraduationCap size={20} />
+              </div>
+              <p className="text-2xl font-black text-slate-800">—</p>
+              <p className="text-xs text-slate-400 font-bold mt-1">Guru & Tendik</p>
+            </div>
+            <div className="col-span-2 sm:col-span-1 bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                  <School size={20} />
+                </div>
+                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded">TERAKREDITASI</span>
+              </div>
+              <div className="mt-3">
+                <p className="text-2xl font-black text-slate-800">A</p>
+                <p className="text-xs text-slate-400 font-bold mt-1">Akreditasi</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mt-0.5 shrink-0">
+                <CheckCircle2 size={12} />
+              </div>
+              <p className="text-xs font-semibold text-slate-500">
+                <strong className="text-slate-800">LMS & Jurnal Pembelajaran:</strong> Pencatatan materi, jurnal mengajar guru, dan pengumpulan tugas siswa.
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mt-0.5 shrink-0">
+                <CheckCircle2 size={12} />
+              </div>
+              <p className="text-xs font-semibold text-slate-500">
+                <strong className="text-slate-800">Manajemen Keuangan:</strong> Tagihan SPP otomatis, pencatatan pembayaran, dan laporan keuangan real-time.
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mt-0.5 shrink-0">
+                <CheckCircle2 size={12} />
+              </div>
+              <p className="text-xs font-semibold text-slate-500">
+                <strong className="text-slate-800">Sistem Poin & Prestasi:</strong> Pencatatan sikap positif dan pelanggaran dengan notifikasi otomatis.
+              </p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email / Username / NISN</Label>
-            <Input
-              id="email"
-              name="email"
-              type="text"
-              placeholder="Email, NIP, atau NISN siswa"
-              required
-              className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                required
-                className="h-11 rounded-xl bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 pr-10"
-              />
+        {/* ── Right Column: Login Card ── */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white border border-slate-100 shadow-2xl rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden">
+            {/* Decorative blobs */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+            {/* Header */}
+            <div className="text-left mb-6 relative z-10">
+              <div className="inline-flex items-center gap-1.5 text-teal-600 bg-teal-50 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-4">
+                <Sparkles size={12} />
+                <span>Portal Masuk</span>
+              </div>
+              <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                Masuk Ke Sistem
+              </h2>
+              <p className="text-xs text-slate-400 font-bold mt-1">
+                Masukkan akun Anda untuk melanjutkan
+              </p>
+            </div>
+
+            {/* Role Switcher */}
+            <div className="flex p-1 bg-slate-100 rounded-xl mb-6 relative z-10">
+              {ROLE_TABS.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleRoleChange(key)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    activeRole === key
+                      ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-2xl mb-6 flex items-start gap-2 text-xs font-bold relative z-10 text-left">
+                <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-500" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form key={activeRole} onSubmit={handleSubmit} className="space-y-5 relative z-10 text-left">
+              <div>
+                <label htmlFor="email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  {ROLE_CONFIG[activeRole].emailLabel}
+                </label>
+                <div className="relative">
+                  <input
+                    id="email"
+                    name="email"
+                    type="text"
+                    required
+                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-slate-700"
+                    placeholder={ROLE_CONFIG[activeRole].emailPlaceholder}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Kata Sandi
+                  </label>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-slate-700 pr-11"
+                    placeholder="Masukkan sandi akun Anda"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="text-xs text-slate-300 cursor-not-allowed select-none">
+                        Lupa sandi?
+                      </TooltipTrigger>
+                      <TooltipPortal>
+                        <TooltipPositioner side="top" sideOffset={4}>
+                          <TooltipPopup>Hubungi admin sekolah untuk mereset sandi.</TooltipPopup>
+                        </TooltipPositioner>
+                      </TooltipPortal>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 px-6 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-teal-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed mt-2"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Masuk Ke Sistem</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
               </button>
-            </div>
+            </form>
           </div>
 
-          {error && (
-            <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3">
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={loading}
-            variant="default"
-            size="lg"
-            className="w-full h-11 rounded-xl font-semibold shadow-sm shadow-primary/20 transition-all duration-200"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            Masuk
-          </Button>
-        </form>
-
-        <p className="text-center text-[11px] text-muted-foreground/60">
-          Portal Garda Sekolah
-        </p>
+          {/* Quick Info */}
+          <div className="bg-slate-100/80 rounded-3xl border border-slate-200/50 p-5 text-center">
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+              Butuh bantuan? Hubungi administrator sekolah
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-slate-200/50 bg-white py-6 text-center text-slate-400 text-xs font-semibold">
+        <p>&copy; {new Date().getFullYear()} EduManage. Sistem Informasi Manajemen Sekolah.</p>
+      </footer>
     </div>
   )
 }
