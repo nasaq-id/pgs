@@ -743,7 +743,7 @@ export default function SiswaPage() {
             className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
-            <span>Tambah Siswa</span>
+            <span>{activeTab === "mutasi_keluar" ? "Catat Mutasi" : activeTab === "tidak_aktif" ? "Catat Alumni" : "Tambah Siswa"}</span>
           </button>
         </div>
 

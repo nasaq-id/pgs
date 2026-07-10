@@ -22,9 +22,9 @@ const JENIS_IZIN_LABEL: Record<string, string> = {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-  disetujui: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
-  ditolak: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+  pending: "bg-amber-500/10 text-amber-700 border border-amber-500/20 rounded-full font-bold text-[10px] uppercase tracking-wider px-2 py-0.5",
+  disetujui: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 rounded-full font-bold text-[10px] uppercase tracking-wider px-2 py-0.5",
+  ditolak: "bg-destructive/10 text-destructive border border-destructive/20 rounded-full font-bold text-[10px] uppercase tracking-wider px-2 py-0.5",
 }
 
 export default function IzinPage() {
@@ -168,18 +168,24 @@ export default function IzinPage() {
   const processedList = daftarPengajuan?.data?.filter((r) => r.status !== "pending" && (r.siswaId !== session?.user?.id && r.guruId !== ownGuru?.id)) || []
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Pengajuan Izin</h2>
-        <p className="text-sm text-muted-foreground">Kelola pengajuan izin terlambat, pulang cepat, dan sakit/izin tidak masuk</p>
+    <div className="space-y-6 text-left">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <FileText className="w-5 h-5 text-teal-600" />
+            <span className="text-[10px] font-black uppercase tracking-wider">Layanan Kehadiran Mandiri</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Pengajuan Izin</h2>
+          <p className="text-muted-foreground text-xs mt-1">Kelola pengajuan izin terlambat, pulang cepat, dan sakit/izin tidak masuk</p>
+        </div>
       </div>
 
-      <div className="flex gap-2 border-b pb-px">
+      <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-0.5">
         {isGuruOrSiswa && (
           <button
             onClick={() => setActiveTab("form")}
-            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
-              activeTab === "form" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "form" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
             Formulir Pengajuan
@@ -188,8 +194,8 @@ export default function IzinPage() {
         {isGuruOrSiswa && (
           <button
             onClick={() => setActiveTab("riwayat")}
-            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
-              activeTab === "riwayat" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "riwayat" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
             Riwayat Saya
@@ -198,18 +204,18 @@ export default function IzinPage() {
         {canApprove && (
           <button
             onClick={() => setActiveTab("approval")}
-            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
-              activeTab === "approval" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "approval" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            Persetujuan Izin {approvalList.length > 0 && <span className="ml-1 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
+            Persetujuan Izin {approvalList.length > 0 && <span className="ml-1.5 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
           </button>
         )}
         {canApprove && (
           <button
             onClick={() => setActiveTab("riwayat_approval")}
-            className={`pb-2.5 px-4 text-sm font-semibold transition-all border-b-2 cursor-pointer ${
-              activeTab === "riwayat_approval" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "riwayat_approval" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
             Riwayat Persetujuan
@@ -218,12 +224,12 @@ export default function IzinPage() {
       </div>
 
       {activeTab === "form" && isGuruOrSiswa && (
-        <Card className="glass-card p-6 max-w-xl">
+        <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 max-w-xl bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Jenis Izin</Label>
+              <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jenis Izin</Label>
               <Select value={jenisIzin} onValueChange={(v: any) => setJenisIzin(v)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Pilih jenis izin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -235,42 +241,68 @@ export default function IzinPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Tanggal Mulai</Label>
+              <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tanggal Mulai</Label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="date" className="pl-9" value={tanggalMulai} onChange={(e) => setTanggalMulai(e.target.value)} />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-450 dark:text-slate-500" />
+                <input
+                  type="date"
+                  className="pl-9 h-10 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full cursor-pointer"
+                  value={tanggalMulai}
+                  onChange={(e) => setTanggalMulai(e.target.value)}
+                />
               </div>
             </div>
 
             {jenisIzin === "tidak_masuk" && (
               <div className="space-y-2">
-                <Label>Jumlah Hari</Label>
-                <Input type="number" min={1} value={jumlahHari} onChange={(e) => setJumlahHari(parseInt(e.target.value) || 1)} />
+                <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jumlah Hari</Label>
+                <input
+                  type="number"
+                  min={1}
+                  value={jumlahHari}
+                  onChange={(e) => setJumlahHari(parseInt(e.target.value) || 1)}
+                  className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                />
               </div>
             )}
 
             {jenisIzin === "pulang_cepat" && (
               <div className="space-y-2">
-                <Label>Jam Rencana Pulang</Label>
-                <Input type="time" value={jamPulang} onChange={(e) => setJamPulang(e.target.value)} />
+                <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Rencana Pulang</Label>
+                <input
+                  type="time"
+                  value={jamPulang}
+                  onChange={(e) => setJamPulang(e.target.value)}
+                  className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label>Alasan Pengajuan</Label>
-              <Textarea placeholder="Tulis alasan lengkap pengajuan izin..." value={alasan} onChange={(e) => setAlasan(e.target.value)} rows={3} />
+              <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Alasan Pengajuan</Label>
+              <textarea
+                placeholder="Tulis alasan lengkap pengajuan izin..."
+                value={alasan}
+                onChange={(e) => setAlasan(e.target.value)}
+                rows={3}
+                className="p-3 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label>Surat Bukti / Surat Dokter (Opsional)</Label>
+              <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Surat Bukti / Surat Dokter (Opsional)</Label>
               <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Unggah Surat/Foto
-                </Button>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 transition-all shadow-sm px-4 text-slate-700 dark:text-slate-300 flex items-center justify-center"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2 text-teal-600" />}
+                  <span>Unggah Surat/Foto</span>
+                </button>
                 <input ref={fileRef} type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
                 {buktiUrl && (
-                  <a href={buktiUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium">
+                  <a href={buktiUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 hover:text-teal-700 hover:underline flex items-center gap-1 font-extrabold uppercase tracking-wider">
                     <FileText className="h-3.5 w-3.5" /> Lihat Bukti
                   </a>
                 )}
@@ -278,51 +310,57 @@ export default function IzinPage() {
             </div>
 
             <div className="pt-2">
-              <Button style={{ backgroundColor: "hsl(142 72% 40%)" }} className="w-full text-white" onClick={handleSubmit} disabled={submitMutation.isPending}>
+              <button
+                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-teal-600 hover:bg-teal-700 text-white border-none w-full flex items-center justify-center transition-all disabled:opacity-50"
+                onClick={handleSubmit}
+                disabled={submitMutation.isPending}
+              >
                 {submitMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Kirim Pengajuan
-              </Button>
+                <span>Kirim Pengajuan</span>
+              </button>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
       {activeTab === "riwayat" && isGuruOrSiswa && (
-        <Card className="glass-card p-5">
+        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
           {isListLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            <div className="space-y-3 p-6">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : historyList.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">Belum ada riwayat pengajuan izin</div>
+            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] m-4">
+              Belum ada riwayat pengajuan izin
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal Mulai</TableHead>
-                  <TableHead>Jenis Izin</TableHead>
-                  <TableHead>Alasan</TableHead>
-                  <TableHead>Durasi / Detail</TableHead>
-                  <TableHead>Bukti</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Catatan Approval</TableHead>
+                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Approval</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {historyList.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-semibold">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell>
+                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
+                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
+                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
                       {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
                       {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
                       {row.jenisIzin === "terlambat" && "Harian"}
                     </TableCell>
                     <TableCell>
                       {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1">
-                          <Eye className="h-3 w-3" /> Lihat
+                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
+                          <Eye className="h-3.5 w-3.5" /> Lihat
                         </a>
                       ) : "-"}
                     </TableCell>
@@ -331,89 +369,90 @@ export default function IzinPage() {
                         {row.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{row.catatanApproval ?? "-"}</TableCell>
+                    <TableCell className="text-slate-500 dark:text-slate-400 text-xs font-semibold">{row.catatanApproval ?? "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </Card>
+        </div>
       )}
 
       {activeTab === "approval" && canApprove && (
-        <Card className="glass-card p-5">
+        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
           {isListLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            <div className="space-y-3 p-6">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : approvalList.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">Tidak ada pengajuan izin pending yang perlu persetujuan</div>
+            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] m-4">
+              Tidak ada pengajuan izin pending yang perlu persetujuan
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Pengaju</TableHead>
-                  <TableHead>Tanggal Mulai</TableHead>
-                  <TableHead>Jenis Izin</TableHead>
-                  <TableHead>Alasan</TableHead>
-                  <TableHead>Durasi / Detail</TableHead>
-                  <TableHead>Bukti</TableHead>
-                  <TableHead>Catatan Verifikasi</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Pengaju</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Verifikasi</TableHead>
+                  <TableHead className="text-right text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {approvalList.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                     <TableCell>
                       <div>
-                        <p className="font-semibold text-sm">{(row as any).name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{(row as any).detail}</p>
+                        <p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{(row as any).name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(row as any).detail}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-semibold">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
+                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
+                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
                       {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
                       {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
                       {row.jenisIzin === "terlambat" && "Harian"}
                     </TableCell>
                     <TableCell>
                       {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1">
-                          <Eye className="h-3 w-3" /> Lihat
+                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
+                          <Eye className="h-3.5 w-3.5" /> Lihat
                         </a>
                       ) : "-"}
                     </TableCell>
                     <TableCell>
-                      <Input
+                      <input
                         placeholder="Catatan persetujuan (opsional)"
-                        className="h-8 max-w-[200px]"
+                        className="h-8 px-2 rounded-lg text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500/20 max-w-[200px]"
                         value={catatanApproval[row.id] || ""}
                         onChange={(e) => setCatatanApproval({ ...catatanApproval, [row.id]: e.target.value })}
                       />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1.5">
-                        <Button
-                          size="sm"
+                        <button
                           style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                          className="text-white h-8"
+                          className="text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
                           onClick={() => handleApprove(row.id, "disetujui")}
                           disabled={processingId === row.id}
+                          title="Setujui"
                         >
-                          {processingId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="h-8"
+                          {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </button>
+                        <button
+                          className="bg-rose-600 text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-rose-700 transition-colors"
                           onClick={() => handleApprove(row.id, "ditolak")}
                           disabled={processingId === row.id}
+                          title="Tolak"
                         >
-                          {processingId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-4 w-4" />}
-                        </Button>
+                          {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-4 w-4" />}
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -421,56 +460,58 @@ export default function IzinPage() {
               </TableBody>
             </Table>
           )}
-        </Card>
+        </div>
       )}
 
       {activeTab === "riwayat_approval" && canApprove && (
-        <Card className="glass-card p-5">
+        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
           {isListLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+            <div className="space-y-3 p-6">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : processedList.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">Belum ada riwayat persetujuan izin</div>
+            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 m-4 rounded-[22px]">
+              Belum ada riwayat persetujuan izin
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Pengaju</TableHead>
-                  <TableHead>Tanggal Mulai</TableHead>
-                  <TableHead>Jenis Izin</TableHead>
-                  <TableHead>Alasan</TableHead>
-                  <TableHead>Durasi / Detail</TableHead>
-                  <TableHead>Bukti</TableHead>
-                  <TableHead>Catatan Approval</TableHead>
-                  <TableHead>Status</TableHead>
+                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Pengaju</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Approval</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {processedList.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                     <TableCell>
                       <div>
-                        <p className="font-semibold text-sm">{(row as any).name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{(row as any).detail}</p>
+                        <p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{(row as any).name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(row as any).detail}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-semibold">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
+                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
+                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
                       {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
                       {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
                       {row.jenisIzin === "terlambat" && "Harian"}
                     </TableCell>
                     <TableCell>
                       {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1">
-                          <Eye className="h-3 w-3" /> Lihat
+                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
+                          <Eye className="h-3.5 w-3.5" /> Lihat
                         </a>
                       ) : "-"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{row.catatanApproval ?? "-"}</TableCell>
+                    <TableCell className="text-slate-500 dark:text-slate-400 text-xs font-semibold">{row.catatanApproval ?? "-"}</TableCell>
                     <TableCell>
                       <Badge className={STATUS_BADGE[row.status]} variant="secondary">
                         {row.status}
@@ -481,7 +522,7 @@ export default function IzinPage() {
               </TableBody>
             </Table>
           )}
-        </Card>
+        </div>
       )}
     </div>
   )
