@@ -8,7 +8,6 @@ import {
   tahunAjaran,
   absensiSiswa,
   invoice,
-  payment,
   poinSikap,
   poinKategori,
   ruangKelas,
@@ -100,36 +99,22 @@ export const dashboardRouter = router({
     }
   }),
 
-  // ─── TAGIHAN PENDING ──────────────────────────────────────
+  // ─── TAGIHAN PENDING (issued / belum dibayar) ──────────────
   getPendingPaymentCount: protectedProcedure.query(async ({ ctx }) => {
     const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-
+    const conditions: any[] = [eq(invoice.status, "issued")]
     if (sekolahIdFilter) {
       const siswaRecords = await db.query.siswa.findMany({
         where: (s: any, { eq }: any) => eq(s.sekolahId, sekolahIdFilter),
         columns: { id: true },
       })
       if (siswaRecords.length === 0) return { count: 0 }
-      const siswaIds = siswaRecords.map((s: any) => s.id)
-
-      const invoiceRecords = await db
-        .select({ id: invoice.id })
-        .from(invoice)
-        .where(inArray(invoice.studentId, siswaIds))
-      if (invoiceRecords.length === 0) return { count: 0 }
-      const invoiceIds = invoiceRecords.map((i) => i.id)
-
-      const [result] = await db
-        .select({ count: count() })
-        .from(payment)
-        .where(and(eq(payment.status, "pending_verification"), inArray(payment.invoiceId, invoiceIds)))
-      return { count: Number(result?.count ?? 0) }
+      conditions.push(inArray(invoice.studentId, siswaRecords.map((s: any) => s.id)))
     }
-
     const [result] = await db
       .select({ count: count() })
-      .from(payment)
-      .where(eq(payment.status, "pending_verification"))
+      .from(invoice)
+      .where(and(...conditions))
     return { count: Number(result?.count ?? 0) }
   }),
 
@@ -180,7 +165,7 @@ export const dashboardRouter = router({
   // ─── TOTAL TUNGGAKAN SPP ──────────────────────────────────
   getOutstandingReceivables: protectedProcedure.query(async ({ ctx }) => {
     const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-    const invoiceConditions: any[] = [inArray(invoice.status, ["overdue", "partially_paid"])]
+    const invoiceConditions: any[] = [inArray(invoice.status, ["issued", "overdue", "partially_paid"])]
 
     if (sekolahIdFilter) {
       const siswaRecords = await db.query.siswa.findMany({

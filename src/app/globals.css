@@ -10,6 +10,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
+  --animate-spin-slow: spin 8s linear infinite;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -297,4 +298,58 @@
 }
 .dark .clickable:hover {
   box-shadow: 0 10px 28px -10px oklch(0 0 0 / 40%);
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@utility animate-fade-in {
+  animation: animate-fade-in 0.3s ease-out forwards;
+}
+@keyframes animate-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Minimize Sidebar Transition Utilities */
+.sidebar-text-container {
+  transition: opacity 0.25s ease, transform 0.25s ease, width 0.25s ease;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar-minimized .sidebar-text-container {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+  width: 0;
+  overflow: hidden;
+}
+
+.logo-text {
+  transition: all 0.25s ease;
+  opacity: 1;
+}
+
+.sidebar-minimized .logo-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar-minimized .sidebar-text-container {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
 }
