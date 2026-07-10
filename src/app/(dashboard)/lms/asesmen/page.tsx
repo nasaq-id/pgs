@@ -109,36 +109,46 @@ export default function AsesmenPage() {
   }, [kelasFilter, kelasMap])
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 text-left">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <ClipboardCheck className="w-5 h-5 text-teal-600" />
             <span className="text-[10px] font-black uppercase tracking-wider">Modul Asesmen Pembelajaran</span>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight">Asesmen Kurikulum Merdeka</h2>
-          <p className="text-muted-foreground">Kelola asesmen formatif & sumatif</p>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Asesmen Kurikulum Merdeka</h2>
+          <p className="text-muted-foreground text-xs mt-1">Kelola asesmen formatif & sumatif</p>
         </div>
-        <Button className="gap-2 shrink-0" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => { setEditItem(null); setFormOpen(true) }}>
-          <Plus className="h-4 w-4" /> Buat Asesmen
-        </Button>
+        <button
+          className="gap-2 shrink-0 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-sm cursor-pointer transition-all flex items-center justify-center"
+          onClick={() => { setEditItem(null); setFormOpen(true) }}
+        >
+          <Plus className="h-4 w-4" />
+          <span>Buat Asesmen</span>
+        </button>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v ?? "asesmen")} className="space-y-5">
-        <TabsList className="rounded-xl">
-          <TabsTrigger value="asesmen" className="rounded-lg gap-2">
-            <ClipboardCheck className="h-4 w-4" /> Asesmen
+        <TabsList className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-xs hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
+          <TabsTrigger
+            value="asesmen"
+            className="flex-1 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          >
+            <ClipboardCheck className="h-4 w-4 mr-1.5" /> Asesmen
           </TabsTrigger>
-          <TabsTrigger value="laporan" className="rounded-lg gap-2">
-            <BarChart3 className="h-4 w-4" /> Laporan
+          <TabsTrigger
+            value="laporan"
+            className="flex-1 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          >
+            <BarChart3 className="h-4 w-4 mr-1.5" /> Laporan
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="asesmen" className="space-y-5 mt-0">
-          <div className="glass-card rounded-2xl p-3">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
               <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
-                <SelectTrigger className="w-[180px] h-9 rounded-xl">
+                <SelectTrigger className="w-full sm:w-[180px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Semua Kelas">{selectedKelasLabel || "Semua Kelas"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -150,7 +160,7 @@ export default function AsesmenPage() {
               </Select>
 
               <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "all")}>
-                <SelectTrigger className="w-[180px] h-9 rounded-xl">
+                <SelectTrigger className="w-full sm:w-[180px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Semua Mapel" />
                 </SelectTrigger>
                 <SelectContent>
@@ -162,7 +172,7 @@ export default function AsesmenPage() {
               </Select>
 
               <Select value={kategoriFilter} onValueChange={(v) => setKategoriFilter(v ?? "all")}>
-                <SelectTrigger className="w-[160px] h-9 rounded-xl">
+                <SelectTrigger className="w-full sm:w-[160px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Semua Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,7 +184,7 @@ export default function AsesmenPage() {
               </Select>
 
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-                <SelectTrigger className="w-[140px] h-9 rounded-xl">
+                <SelectTrigger className="w-full sm:w-[140px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -185,8 +195,14 @@ export default function AsesmenPage() {
               </Select>
 
               <div className="relative sm:ml-auto w-full sm:w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/80" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari asesmen..." className="pl-9.5 h-9 rounded-xl w-full" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari asesmen..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
+                />
               </div>
             </div>
           </div>
@@ -196,15 +212,13 @@ export default function AsesmenPage() {
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <Card className="p-16 border-dashed border-2 border-border/60 rounded-2xl shadow-none bg-muted/5">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
-                  <ClipboardCheck className="h-7 w-7 text-muted-foreground/75" />
-                </div>
-                <h3 className="text-lg font-bold mb-1.5 text-foreground">Belum Ada Asesmen</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">Buat asesmen baru untuk mulai menilai kompetensi siswa.</p>
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
+                <ClipboardCheck className="h-7 w-7 text-muted-foreground/75" />
               </div>
-            </Card>
+              <h3 className="text-lg font-bold mb-1.5 text-slate-700 dark:text-slate-300">Belum Ada Asesmen</h3>
+              <p className="text-sm text-slate-400 max-w-sm">Buat asesmen baru untuk mulai menilai kompetensi siswa.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.map((a) => {
@@ -217,18 +231,18 @@ export default function AsesmenPage() {
                 const mapelLabel = mapel ? mapel.namaMapel : "-"
 
                 return (
-                  <div key={a.id} className="glass-card rounded-2xl p-5 hover:shadow-lg hover:border-teal-100/50 transition-all duration-300 cursor-pointer flex flex-col justify-between" onClick={() => setDetailId(a.id)}>
-                    <div className="space-y-3">
+                  <div key={a.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-xl hover:border-teal-300 dark:hover:border-teal-850 hover:bg-white dark:hover:bg-slate-900/50 transition-all duration-300 cursor-pointer flex flex-col justify-between bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]" onClick={() => setDetailId(a.id)}>
+                    <div className="space-y-3.5">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${KATEGORI_COLORS[a.kategori] || "bg-slate-50 text-slate-600"}`}>
                           {KATEGORI_LABEL[a.kategori] || a.kategori}
                         </span>
                         {isOverdue ? (
-                          <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                          <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
                             Terlambat
                           </span>
                         ) : (
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
                             a.status === "aktif"
                               ? "text-emerald-600 bg-emerald-50 border-emerald-100"
                               : "text-slate-500 bg-slate-50 border-slate-100"
@@ -239,34 +253,34 @@ export default function AsesmenPage() {
                       </div>
 
                       <div>
-                        <h4 className="font-extrabold text-foreground text-sm leading-tight">{a.judul}</h4>
-                        <p className="text-[11px] text-muted-foreground font-medium mt-1.5">
+                        <h4 className="font-extrabold text-slate-850 dark:text-slate-200 text-sm leading-tight">{a.judul}</h4>
+                        <p className="text-[11px] text-slate-450 dark:text-slate-500 font-semibold mt-1.5">
                           {classLabel} &middot; {mapelLabel}
                         </p>
                       </div>
 
-                      <div className="bg-muted/30 p-3 rounded-xl space-y-1 text-[10px] text-muted-foreground font-semibold">
-                        <p>Target KKTP: <span className="text-teal-600 font-bold">{a.kktp}</span></p>
+                      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40 p-3 rounded-xl space-y-1 text-[10px] text-slate-550 dark:text-slate-400 font-bold">
+                        <p>Target KKTP: <span className="text-teal-600 dark:text-teal-400 font-bold">{a.kktp}</span></p>
                         {a.deadline && (
-                          <p className={`font-semibold ${isOverdue ? "text-rose-600" : ""}`}>
+                          <p className={`font-bold ${isOverdue ? "text-rose-600" : ""}`}>
                             Deadline: {fmtDate(a.deadline)}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 mt-3 border-t border-border/50 gap-2">
+                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/60 gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-1 h-9 rounded-xl text-xs font-bold"
+                        className="flex-1 h-9 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); setDetailId(a.id) }}
                       >
                         Detail & Nilai
                       </Button>
                       <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-muted rounded-xl" onClick={(e) => e.stopPropagation()} />}>
-                          <MoreVertical className="h-4 w-4" />
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer shadow-sm" onClick={(e) => e.stopPropagation()} />}>
+                          <MoreVertical className="h-4 w-4 text-slate-400" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditItem(a); setFormOpen(true) }} className="gap-2">
@@ -296,10 +310,10 @@ export default function AsesmenPage() {
         </TabsContent>
 
         <TabsContent value="laporan" className="space-y-5 mt-0">
-          <div className="glass-card rounded-2xl p-3">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
               <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "all")}>
-                <SelectTrigger className="w-[220px] h-9 rounded-xl">
+                <SelectTrigger className="w-full sm:w-[220px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
                 <SelectContent>
@@ -313,21 +327,17 @@ export default function AsesmenPage() {
           </div>
 
           {rekapKelasId === "all" ? (
-            <Card className="p-16 border-dashed border-2 border-border/60 rounded-2xl shadow-none bg-muted/5">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
-                  <BarChart3 className="h-7 w-7 text-muted-foreground/75" />
-                </div>
-                <h3 className="text-lg font-bold mb-1.5">Pilih Kelas</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">Pilih kelas untuk melihat rekap asesmen dan nilai siswa.</p>
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
+                <BarChart3 className="h-7 w-7 text-muted-foreground/75" />
               </div>
-            </Card>
+              <h3 className="text-lg font-bold mb-1.5 text-slate-700 dark:text-slate-350">Pilih Kelas</h3>
+              <p className="text-sm text-slate-400 max-w-sm">Pilih kelas untuk melihat rekap asesmen dan nilai siswa.</p>
+            </div>
           ) : !rekapData || rekapData.asesmen.length === 0 ? (
-            <Card className="p-16 border-dashed border-2 border-border/60 rounded-2xl shadow-none bg-muted/5">
-              <div className="flex flex-col items-center justify-center text-center">
-                <p className="text-sm text-muted-foreground">Belum ada asesmen untuk kelas ini.</p>
-              </div>
-            </Card>
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-450 font-semibold shadow-sm">
+              Belum ada asesmen untuk kelas ini.
+            </div>
           ) : (
             <div className="space-y-5">
               {rekapData.asesmen.map((a) => {
@@ -341,52 +351,52 @@ export default function AsesmenPage() {
                   : 0
 
                 return (
-                  <Card key={a.id} className="rounded-2xl overflow-hidden">
-                    <div className="p-4 border-b border-border/50 bg-muted/10">
+                  <div key={a.id} className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div>
-                          <h4 className="font-bold">{a.judul}</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm leading-tight">{a.judul}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {KATEGORI_LABEL[a.kategori]} · KKTP {a.kktp}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 text-xs">
-                          <span className="inline-flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-500">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
                             Tuntas: {tuntasCount}
                           </span>
-                          <span className="inline-flex items-center gap-1">
-                            <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                          <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-500">
+                            <XCircle className="h-3.5 w-3.5" />
                             Belum: {belumCount}
                           </span>
-                          <Badge variant="outline" className="text-xs">
+                          <span className="inline-flex items-center px-2 py-0.5 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-black uppercase text-slate-650 bg-slate-50 dark:bg-slate-900 dark:text-slate-350">
                             Rata-rata: {rataNilai}
-                          </Badge>
+                          </span>
                         </div>
                       </div>
                       {belumKerjaCount > 0 && (
-                        <p className="text-[10px] text-amber-600 mt-1">{belumKerjaCount} siswa belum mengerjakan</p>
+                        <p className="text-[10px] text-amber-600 font-bold mt-1.5">{belumKerjaCount} siswa belum mengerjakan</p>
                       )}
                     </div>
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-muted/20">
-                            <TableHead className="text-xs">Siswa</TableHead>
-                            <TableHead className="text-xs">Status</TableHead>
-                            <TableHead className="text-xs">Nilai</TableHead>
-                            <TableHead className="text-xs">Ketuntasan</TableHead>
-                            <TableHead className="text-xs">Feedback</TableHead>
+                          <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Siswa</TableHead>
+                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
+                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nilai</TableHead>
+                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Ketuntasan</TableHead>
+                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Feedback</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {kelasEntries.map((entry) => (
-                            <TableRow key={entry.id}>
-                              <TableCell className="text-xs font-medium">
+                            <TableRow key={entry.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                              <TableCell className="text-xs font-bold text-slate-800 dark:text-slate-200">
                                 {(entry as any).siswa?.namaLengkap || "Unknown"}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${
+                                <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-bold ${
                                   entry.status === "sudah_dinilai" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20" :
                                   entry.status === "sudah_mengumpulkan" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20" :
                                   "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-900"
@@ -395,21 +405,21 @@ export default function AsesmenPage() {
                                    entry.status === "sudah_mengumpulkan" ? "Dikumpulkan" : "Belum"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-xs font-bold">
+                              <TableCell className="text-xs font-black text-slate-800 dark:text-slate-200">
                                 {entry.nilai !== null ? entry.nilai : "-"}
                               </TableCell>
                               <TableCell>
                                 {entry.statusKetuntasan ? (
-                                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${
                                     entry.statusKetuntasan === "tuntas" ? "text-emerald-600" : "text-rose-600"
                                   }`}>
                                     {entry.statusKetuntasan === "tuntas" ? "Tuntas" : "Belum Tuntas"}
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] text-muted-foreground">-</span>
+                                  <span className="text-[10px] text-slate-400 font-bold">-</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-xs max-w-[200px] truncate">
+                              <TableCell className="text-xs max-w-[200px] truncate font-semibold text-slate-600 dark:text-slate-405">
                                 {entry.feedback || "-"}
                               </TableCell>
                             </TableRow>
@@ -417,7 +427,7 @@ export default function AsesmenPage() {
                         </TableBody>
                       </Table>
                     </div>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
@@ -445,8 +455,8 @@ export default function AsesmenPage() {
             <AlertDialogDescription>Asesmen yang dihapus tidak dapat dikembalikan.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
+            <AlertDialogCancel className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-rose-600 hover:bg-rose-700 text-white border-none">Hapus</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
