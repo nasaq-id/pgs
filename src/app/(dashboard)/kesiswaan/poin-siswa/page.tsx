@@ -107,11 +107,11 @@ export default function PoinSiswaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Poin Siswa</h2>
-        <p className="text-sm text-muted-foreground">Input poin sikap dan lihat riwayat siswa</p>
+        <h2 className="text-3xl font-bold tracking-tight">Poin Siswa</h2>
+        <p className="text-muted-foreground">Input poin sikap dan lihat riwayat siswa</p>
       </div>
 
-      <Card className="p-5 rounded-3xl">
+      <Card className="p-5 rounded-3xl glass-card">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="flex gap-2 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -140,19 +140,22 @@ export default function PoinSiswaPage() {
         {riwayatLoading ? (
           <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
         ) : !riwayat?.length ? (
-          <div className="text-center py-16 text-muted-foreground">Belum ada catatan poin</div>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">Belum ada catatan poin</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Siswa</TableHead>
-                  <TableHead>Sikap</TableHead>
-                  <TableHead>Poin</TableHead>
-                  <TableHead>Tindak Lanjut</TableHead>
-                  <TableHead>Penginput</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

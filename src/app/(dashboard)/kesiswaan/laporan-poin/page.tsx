@@ -143,8 +143,8 @@ export default function LaporanPoinPage() {
         }
       `}</style>
       <div>
-        <h2 className="text-xl font-bold">Laporan Poin</h2>
-        <p className="text-sm text-muted-foreground">Filter, cetak, dan export laporan poin siswa</p>
+        <h2 className="text-3xl font-bold tracking-tight">Laporan Poin</h2>
+        <p className="text-muted-foreground">Filter, cetak, dan export laporan poin siswa</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
@@ -154,7 +154,7 @@ export default function LaporanPoinPage() {
         </TabsList>
 
         <TabsContent value="semua" className="space-y-4">
-          <Card className="p-5 rounded-3xl">
+          <Card className="p-5 rounded-3xl glass-card">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 no-print">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
@@ -188,20 +188,23 @@ export default function LaporanPoinPage() {
             {isLoading ? (
               <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
             ) : !laporanData?.length ? (
-              <div className="text-center py-16 text-muted-foreground">Tidak ada data sesuai filter</div>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">Tidak ada data sesuai filter</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Siswa</TableHead>
-                      <TableHead>Sikap</TableHead>
-                      <TableHead>Jenis</TableHead>
-                      <TableHead>Poin</TableHead>
-                      <TableHead>Tindak Lanjut</TableHead>
-                      <TableHead>Penginput</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jenis</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -237,7 +240,7 @@ export default function LaporanPoinPage() {
         </TabsContent>
 
         <TabsContent value="per-siswa" className="space-y-4">
-          <Card className="p-5 rounded-3xl">
+          <Card className="p-5 rounded-3xl glass-card">
               <div className="flex items-center gap-3 mb-5 no-print">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -304,13 +307,13 @@ export default function LaporanPoinPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tanggal</TableHead>
-                        <TableHead>Sikap</TableHead>
-                        <TableHead>Jenis</TableHead>
-                        <TableHead>Poin</TableHead>
-                        <TableHead>Tindak Lanjut</TableHead>
-                        <TableHead>Penginput</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jenis</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

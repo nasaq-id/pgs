@@ -97,20 +97,23 @@ function AllEntriesTab({
       {isLoading ? (
         <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}</div>
       ) : !list?.length ? (
-        <div className="text-center py-16 text-muted-foreground">Belum ada data monitoring</div>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm text-muted-foreground">Belum ada data monitoring</p>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Siswa</TableHead>
-                <TableHead>Sikap</TableHead>
-                <TableHead>Poin</TableHead>
-                <TableHead>Tindak Lanjut</TableHead>
-                <TableHead>Penginput</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -235,11 +238,11 @@ function ThresholdTab({ kirimNotif }: { kirimNotif: any }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-8">#</TableHead>
-                  <TableHead>Siswa</TableHead>
-                  <TableHead>NISN</TableHead>
-                  <TableHead>Total Poin</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead className="w-8 text-[10px] font-black text-slate-400 uppercase tracking-wider">#</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">NISN</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Poin</TableHead>
+                  <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -309,11 +312,11 @@ export default function MonitoringPoinPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Monitoring Poin</h2>
-        <p className="text-sm text-muted-foreground">Pantau dan tindak lanjuti catatan poin siswa</p>
+        <h2 className="text-3xl font-bold tracking-tight">Monitoring Poin</h2>
+        <p className="text-muted-foreground">Pantau dan tindak lanjuti catatan poin siswa</p>
       </div>
 
-      <Card className="p-5 rounded-3xl">
+      <Card className="p-5 rounded-3xl glass-card">
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "semua") utils.poin.getMonitoring.invalidate() }}>
           <TabsList className="mb-5 rounded-xl">
             <TabsTrigger value="semua" className="rounded-lg text-xs">Semua Entri</TabsTrigger>

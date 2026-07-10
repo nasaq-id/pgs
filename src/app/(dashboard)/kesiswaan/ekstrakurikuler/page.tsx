@@ -126,11 +126,11 @@ export default function EkstrakurikulerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Ekstrakurikuler</h2>
-        <p className="text-sm text-muted-foreground">Kelola data ekstrakurikuler</p>
+        <h2 className="text-3xl font-bold tracking-tight">Ekstrakurikuler</h2>
+        <p className="text-muted-foreground">Kelola data ekstrakurikuler</p>
       </div>
 
-      <Card className="p-5">
+      <Card className="p-5 rounded-3xl glass-card">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -161,6 +161,7 @@ export default function EkstrakurikulerPage() {
           </div>
         ) : records.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
             <p className="text-muted-foreground">
               {search ? "Tidak ditemukan" : "Belum ada ekstrakurikuler"}
             </p>
@@ -169,11 +170,11 @@ export default function EkstrakurikulerPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama Ekskul</TableHead>
-                <TableHead>Pembina</TableHead>
-                <TableHead>Hari</TableHead>
-                <TableHead>Jam</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Ekskul</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pembina</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Hari</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jam</TableHead>
+                <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

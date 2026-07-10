@@ -43,6 +43,11 @@ const pageTitles: Record<string, string> = {
   "/pengaturan": "Pengaturan",
   "/absensi": "Absensi Harian",
   "/absensi/izin": "Pengajuan Izin",
+  "/kesiswaan/ekstrakurikuler": "Ekstrakurikuler",
+  "/kesiswaan/prestasi": "Prestasi Siswa",
+  "/kesiswaan/poin-siswa": "Poin Siswa",
+  "/kesiswaan/monitoring-poin": "Monitoring Poin",
+  "/kesiswaan/laporan-poin": "Laporan Poin",
 }
 
 interface TopbarProps { onMenuClick: () => void }
