@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Camera, Loader2, Upload } from "lucide-react"
+import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Camera, Loader2, Upload, School, Award, BookOpen, MapPin, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import {
   Tooltip,
   TooltipTrigger,
@@ -53,31 +54,39 @@ const jenjangMap: Record<string, string> = {
   mts: "MTS (Madrasah Tsanawiyah)", ma: "MA (Madrasah Aliyah)",
 }
 
-function InfoItem({ icon: Icon, label, value, isLink = false, href }: { icon: React.ElementType; label: string; value?: string | null; isLink?: boolean; href?: string }) {
+function InfoItem({ icon: Icon, label, value, isLink = false, href, iconBgClass, iconClass }: { icon: React.ElementType; label: string; value?: string | null; isLink?: boolean; href?: string; iconBgClass?: string; iconClass?: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon className="h-4 w-4 text-primary" />
+    <div className="flex items-center space-x-3">
+      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border", iconBgClass || "bg-primary/10 border-primary/20 text-primary")}>
+        <Icon className={cn("w-4.5 h-4.5 stroke-[2]", iconClass)} />
       </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
+      <div className="min-w-0 text-left">
+        <p className="text-[9px] font-black text-muted-foreground uppercase leading-none tracking-wider">{label}</p>
         {isLink && href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline break-all">
-            {value || "—"}
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs xl:text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline mt-1 block truncate max-w-[180px] lg:max-w-[150px] xl:max-w-[200px]"
+            title={value || ""}
+          >
+            {value ? value.replace(/^https?:\/\//, '') : "—"}
           </a>
         ) : (
-          <p className="text-sm font-medium text-foreground break-all">{value || "—"}</p>
+          <p className="text-xs xl:text-sm font-bold text-foreground mt-1 truncate max-w-[180px] lg:max-w-[150px] xl:max-w-[200px]" title={value || ""}>
+            {value || "—"}
+          </p>
         )}
-        </div>
+      </div>
     </div>
   )
 }
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">{label}</p>
-      <p className="text-sm font-semibold text-foreground">{value || "—"}</p>
+    <div className="text-left">
+      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">{label}</p>
+      <p className="text-xs xl:text-sm font-bold text-foreground leading-relaxed">{value || "—"}</p>
     </div>
   )
 }
@@ -220,15 +229,26 @@ export default function LembagaPage() {
     setEditOpen(false)
   }
 
+  const getSosmedUser = (url?: string | null) => {
+    if (!url) return "Tidak Ada"
+    try {
+      const clean = url.replace(/\/$/, "")
+      const parts = clean.split("/")
+      return parts[parts.length - 1] || "Kunjungi"
+    } catch {
+      return "Kunjungi"
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2 glass-card rounded-3xl p-6 space-y-4">
           <Skeleton className="h-28 w-28 rounded-full mx-auto" />
           <Skeleton className="h-6 w-40 mx-auto" />
           <Skeleton className="h-4 w-28 mx-auto" />
         </div>
-        <div className="lg:col-span-3 glass-card rounded-2xl p-6 space-y-4">
+        <div className="lg:col-span-3 glass-card rounded-3xl p-6 space-y-4">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
         </div>
       </div>
@@ -236,174 +256,224 @@ export default function LembagaPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <Card className="lg:col-span-2 glass-card rounded-2xl">
-        <CardContent className="flex flex-col items-center gap-5 pt-6">
-          <div className="h-28 w-28 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden">
-            {sekolah?.logo ? (
-              <img src={sekolah.logo} alt="Logo sekolah" className="w-full h-full object-cover" />
-            ) : (
-              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-            )}
-          </div>
-        <div className="text-center">
-          <h2 className="text-xl font-black text-foreground uppercase tracking-wide">
-            {sekolah?.namaSekolah || "—"}
-          </h2>
-          {sekolah?.npsn && (
-            <p className="text-sm font-semibold text-primary mt-1">NPSN: {sekolah.npsn}</p>
-          )}
-        </div>
-        {(sekolah?.akreditasi || sekolah?.kurikulum) && (
-          <div className="flex flex-wrap gap-2 justify-center">
-            {sekolah?.akreditasi && (
-              <span className="text-xs font-bold px-3 py-1 rounded-full border border-yellow-400 text-yellow-600 bg-yellow-50">
-                AKREDITASI {sekolah.akreditasi}
-              </span>
-            )}
-            {sekolah?.kurikulum && (
-              <span className="text-xs font-bold px-3 py-1 rounded-full border border-primary/40 text-primary bg-primary/5">
-                {sekolah.kurikulum}
-              </span>
-            )}
-          </div>
-        )}
-        <div className="w-full border-t border-border" />
-        <div className="w-full space-y-4">
-          <InfoItem icon={User} label="Kepala Sekolah" value={sekolah?.kepalaSekolah} />
-          <InfoItem icon={Mail} label="Email Resmi" value={sekolah?.emailSekolah} />
-          <InfoItem icon={Globe} label="Situs Web" value={sekolah?.situsWeb} isLink={true} href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined} />
-          <InfoItem icon={MessageCircle} label="WhatsApp" value={sekolah?.whatsapp} isLink={true} href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined} />
-          {(sekolah?.facebook || sekolah?.instagram || sekolah?.youtube || sekolah?.tiktok) && (
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sosial Media</p>
-              <div className="flex items-center gap-2">
-                {sekolah?.facebook && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <a href={sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-all duration-200" />
-                      }
-                    >
-                      {sekolah.fotoFacebook ? (
-                        <img src={sekolah.fotoFacebook} alt="Facebook" className="w-full h-full object-cover" />
-                      ) : (
-                        <FacebookIcon className="h-4 w-4 text-[#1877F2]" />
-                      )}
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipPositioner>
-                        <TooltipPopup>Facebook</TooltipPopup>
-                      </TooltipPositioner>
-                    </TooltipPortal>
-                  </Tooltip>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+        <div className="lg:col-span-2 flex w-full">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 text-center flex flex-col items-center relative w-full justify-start">
+            <button
+              onClick={openEdit}
+              className="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full transition-colors cursor-pointer border border-slate-200 dark:border-slate-800"
+              title="Edit Lembaga"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            
+            <div className="flex flex-col items-center w-full mt-4">
+              <div className="w-28 h-28 bg-slate-50 dark:bg-slate-90 rounded-full flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-800 relative overflow-hidden group shadow-inner">
+                {sekolah?.logo ? (
+                  <img 
+                    src={sekolah.logo} 
+                    alt={sekolah.namaSekolah} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-400">
+                    <School className="w-8 h-8 stroke-[2]" />
+                  </div>
                 )}
-                {sekolah?.instagram && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <a href={sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#E4405F]/10 hover:bg-[#E4405F]/20 transition-all duration-200" />
-                      }
-                    >
-                      {sekolah.fotoInstagram ? (
-                        <img src={sekolah.fotoInstagram} alt="Instagram" className="w-full h-full object-cover" />
-                      ) : (
-                        <InstagramIcon className="h-4 w-4 text-[#E4405F]" />
-                      )}
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipPositioner>
-                        <TooltipPopup>Instagram</TooltipPopup>
-                      </TooltipPositioner>
-                    </TooltipPortal>
-                  </Tooltip>
+              </div>
+              
+              <h3 className="text-base md:text-lg font-extrabold text-foreground tracking-tight uppercase line-clamp-2 px-2">
+                {sekolah?.namaSekolah}
+              </h3>
+              <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest mt-1">
+                NPSN: {sekolah?.npsn || "—"}
+              </p>
+
+              <div className="flex flex-wrap justify-center gap-1.5 mt-3">
+                {sekolah?.akreditasi && (
+                  <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase rounded-full border border-amber-100 dark:border-amber-900/30 flex items-center">
+                    <Star className="w-2.5 h-2.5 mr-1 fill-amber-500 text-amber-500" />
+                    Akreditasi {sekolah.akreditasi}
+                  </span>
                 )}
-                {sekolah?.youtube && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <a href={sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#FF0000]/10 hover:bg-[#FF0000]/20 transition-all duration-200" />
-                      }
-                    >
-                      {sekolah.fotoYoutube ? (
-                        <img src={sekolah.fotoYoutube} alt="YouTube" className="w-full h-full object-cover" />
-                      ) : (
-                        <YoutubeIcon className="h-4 w-4 text-[#FF0000]" />
-                      )}
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipPositioner>
-                        <TooltipPopup>YouTube</TooltipPopup>
-                      </TooltipPositioner>
-                    </TooltipPortal>
-                  </Tooltip>
-                )}
-                {sekolah?.tiktok && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <a href={sekolah.tiktok.startsWith("http") ? sekolah.tiktok : `https://${sekolah.tiktok}`} target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-neutral-900/10 dark:bg-neutral-100/10 hover:bg-neutral-900/20 dark:hover:bg-neutral-100/20 transition-all duration-200" />
-                      }
-                    >
-                      {sekolah.fotoTiktok ? (
-                        <img src={sekolah.fotoTiktok} alt="TikTok" className="w-full h-full object-cover" />
-                      ) : (
-                        <TikTokIcon className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
-                      )}
-                    </TooltipTrigger>
-                    <TooltipPortal>
-                      <TooltipPositioner>
-                        <TooltipPopup>TikTok</TooltipPopup>
-                      </TooltipPositioner>
-                    </TooltipPortal>
-                  </Tooltip>
+                {sekolah?.kurikulum && (
+                  <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase rounded-full border border-blue-100 dark:border-blue-900/30 flex items-center">
+                    <BookOpen className="w-2.5 h-2.5 mr-1 stroke-[2.5]" />
+                    {sekolah.kurikulum.split(' ')[1] || 'Merdeka'}
+                  </span>
                 )}
               </div>
             </div>
-          )}
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card className="lg:col-span-3 glass-card rounded-2xl relative overflow-visible">
-        <Tooltip>
-          <TooltipTrigger render={<Button variant="outline" size="icon" onClick={openEdit} className="absolute top-3 right-5 h-8 w-8 rounded-xl" />}>
-            <Pencil className="h-3.5 w-3.5" />
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipPositioner>
-              <TooltipPopup>Edit Profil Lembaga</TooltipPopup>
-            </TooltipPositioner>
-          </TooltipPortal>
-        </Tooltip>
-        <CardHeader className="flex-row items-center gap-3 border-b border-border">
-          <div className="w-1 h-5 rounded-full bg-primary flex-shrink-0" />
-          <CardTitle className="text-xs font-black uppercase tracking-widest">
-            Detail Identitas Lembaga
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+            <div className="w-full h-px bg-border/60 my-5"></div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 flex-1">
-          <DetailRow label="Jenjang" value={sekolah?.jenjang ? (jenjangMap[sekolah.jenjang] || sekolah.jenjang) : "—"} />
-          <DetailRow label="Status Sekolah" value={sekolah?.statusSekolah} />
-          <DetailRow label="Penyelenggara" value={sekolah?.penyelenggara} />
-          <DetailRow label="Kurikulum" value={sekolah?.kurikulum} />
-          <DetailRow label="Kontak / No. Telp" value={sekolah?.telepon} />
-          <DetailRow label="Akreditasi" value={sekolah?.akreditasi} />
-          <div className="sm:col-span-2">
-            <DetailRow label="Alamat Lengkap" value={sekolah?.alamat} />
+            <div className="w-full space-y-4 text-left">
+              <InfoItem 
+                icon={User} 
+                label="Kepala Sekolah" 
+                value={sekolah?.kepalaSekolah}
+                iconBgClass="bg-blue-50 dark:bg-blue-950/30 border-blue-100/50 dark:border-blue-900/30 text-blue-500 dark:text-blue-400"
+              />
+              <InfoItem 
+                icon={Mail} 
+                label="Email Resmi" 
+                value={sekolah?.emailSekolah}
+                iconBgClass="bg-rose-50 dark:bg-rose-950/30 border-rose-100/50 dark:border-rose-900/30 text-rose-500 dark:text-rose-400"
+              />
+              <InfoItem 
+                icon={Globe} 
+                label="Situs Web" 
+                value={sekolah?.situsWeb} 
+                isLink={true} 
+                href={sekolah?.situsWeb ? (sekolah.situsWeb.startsWith("http") ? sekolah.situsWeb : `https://${sekolah.situsWeb}`) : undefined}
+                iconBgClass="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100/50 dark:border-emerald-900/30 text-emerald-500 dark:text-emerald-400"
+              />
+              <InfoItem 
+                icon={MessageCircle} 
+                label="WhatsApp Admin" 
+                value={sekolah?.whatsapp} 
+                isLink={true} 
+                href={sekolah?.whatsapp ? `https://wa.me/${sekolah.whatsapp.replace(/\D/g, "")}` : undefined}
+                iconBgClass="bg-teal-50 dark:bg-teal-950/30 border-teal-100/50 dark:border-teal-900/30 text-teal-500 dark:text-teal-400"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-border flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Status: Data Tersimpan
-          </span>
+      <div className="lg:col-span-3 flex flex-col gap-5 justify-between w-full">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 flex-grow flex flex-col justify-between">
+            <div>
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-1.5 h-5 bg-emerald-500 rounded-full"></div>
+                <h3 className="text-xs font-black text-foreground uppercase tracking-[0.15em]">
+                  Detail Identitas Lembaga
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <DetailRow label="Jenjang Pendidikan" value={sekolah?.jenjang ? (jenjangMap[sekolah.jenjang] || sekolah.jenjang) : "—"} />
+                <DetailRow label="Status Sekolah" value={sekolah?.statusSekolah} />
+                <DetailRow label="Penyelenggara" value={sekolah?.penyelenggara} />
+                <DetailRow label="Kurikulum" value={sekolah?.kurikulum} />
+                <DetailRow label="Kontak / No. Telp" value={sekolah?.telepon} />
+                <DetailRow label="Akreditasi" value={sekolah?.akreditasi ? `Akreditasi ${sekolah.akreditasi}` : "—"} />
+                <div className="sm:col-span-2">
+                  <DetailRow label="Alamat Lengkap" value={sekolah?.alamat} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-start">
+              <div className="flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                  Status: Data Tersimpan
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-1.5 h-5 bg-rose-500 rounded-full"></div>
+              <h3 className="text-xs font-black text-foreground uppercase tracking-[0.15em]">
+                Media Sosial Resmi
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <a
+                href={sekolah?.instagram ? (sekolah.instagram.startsWith("http") ? sekolah.instagram : `https://${sekolah.instagram}`) : "#"}
+                target={sekolah?.instagram ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={cn(
+                  "bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800 hover:bg-card hover:shadow-md transition-all group min-h-[75px] w-full text-center select-none",
+                  !sekolah?.instagram && "opacity-50 grayscale cursor-not-allowed pointer-events-none"
+                )}
+              >
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center text-white mb-1.5 shadow-sm bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex-shrink-0">
+                  {sekolah?.fotoInstagram ? (
+                    <img src={sekolah.fotoInstagram} alt="Instagram" className="w-full h-full object-cover" />
+                  ) : (
+                    <InstagramIcon className="w-4 h-4 stroke-[2.5]" />
+                  )}
+                </div>
+                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">Instagram</span>
+                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
+                  {getSosmedUser(sekolah?.instagram)}
+                </span>
+              </a>
+
+              <a
+                href={sekolah?.facebook ? (sekolah.facebook.startsWith("http") ? sekolah.facebook : `https://${sekolah.facebook}`) : "#"}
+                target={sekolah?.facebook ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={cn(
+                  "bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800 hover:bg-card hover:shadow-md transition-all group min-h-[75px] w-full text-center select-none",
+                  !sekolah?.facebook && "opacity-50 grayscale cursor-not-allowed pointer-events-none"
+                )}
+              >
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center text-white mb-1.5 shadow-sm bg-blue-600 flex-shrink-0">
+                  {sekolah?.fotoFacebook ? (
+                    <img src={sekolah.fotoFacebook} alt="Facebook" className="w-full h-full object-cover" />
+                  ) : (
+                    <FacebookIcon className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">Facebook</span>
+                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
+                  {getSosmedUser(sekolah?.facebook)}
+                </span>
+              </a>
+
+              <a
+                href={sekolah?.tiktok ? (sekolah.tiktok.startsWith("http") ? sekolah.tiktok : `https://${sekolah.tiktok}`) : "#"}
+                target={sekolah?.tiktok ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={cn(
+                  "bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800 hover:bg-card hover:shadow-md transition-all group min-h-[75px] w-full text-center select-none",
+                  !sekolah?.tiktok && "opacity-50 grayscale cursor-not-allowed pointer-events-none"
+                )}
+              >
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center text-white mb-1.5 shadow-sm bg-black dark:bg-slate-800 flex-shrink-0">
+                  {sekolah?.fotoTiktok ? (
+                    <img src={sekolah.fotoTiktok} alt="TikTok" className="w-full h-full object-cover" />
+                  ) : (
+                    <TikTokIcon className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">TikTok</span>
+                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
+                  {getSosmedUser(sekolah?.tiktok)}
+                </span>
+              </a>
+
+              <a
+                href={sekolah?.youtube ? (sekolah.youtube.startsWith("http") ? sekolah.youtube : `https://${sekolah.youtube}`) : "#"}
+                target={sekolah?.youtube ? "_blank" : "_self"}
+                rel="noreferrer"
+                className={cn(
+                  "bg-slate-50 dark:bg-slate-900/40 p-3 rounded-2xl flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800 hover:bg-card hover:shadow-md transition-all group min-h-[75px] w-full text-center select-none",
+                  !sekolah?.youtube && "opacity-50 grayscale cursor-not-allowed pointer-events-none"
+                )}
+              >
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center text-white mb-1.5 shadow-sm bg-rose-600 flex-shrink-0">
+                  {sekolah?.fotoYoutube ? (
+                    <img src={sekolah.fotoYoutube} alt="YouTube" className="w-full h-full object-cover" />
+                  ) : (
+                    <YoutubeIcon className="w-4 h-4" />
+                  )}
+                </div>
+                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">YouTube</span>
+                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
+                  {getSosmedUser(sekolah?.youtube)}
+                </span>
+              </a>
+            </div>
+          </div>
         </div>
-        </CardContent>
-      </Card>
+      </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
@@ -562,6 +632,6 @@ export default function LembagaPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

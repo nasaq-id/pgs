@@ -12,6 +12,7 @@ import {
   TooltipPopup,
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -197,14 +198,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
       <p className="lg:hidden text-base font-bold text-foreground flex-1">{pageTitle}</p>
 
-      <div className="flex-1" />
+      <div className="flex-grow" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <Tooltip>
-          <TooltipTrigger className="clickable hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-blue-600 px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur-sm border hover:bg-card transition-colors" onClick={() => setShowCalendar(!showCalendar)}>
-          <CalendarDays className="h-3.5 w-3.5" />
-          {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
-        </TooltipTrigger>
+          <TooltipTrigger 
+            className="clickable hidden lg:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 px-3 py-1.5 rounded-xl bg-teal-50/50 dark:bg-teal-950/30 backdrop-blur-sm border border-teal-200/50 dark:border-teal-900/40 hover:bg-teal-100/50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
+            onClick={() => setShowCalendar(!showCalendar)}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            {new Date().toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+          </TooltipTrigger>
           <TooltipPortal>
             <TooltipPositioner>
               <TooltipPopup>Kalender</TooltipPopup>
@@ -217,12 +221,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <TooltipTrigger
               delay={0}
               render={
-                <DropdownMenuTrigger className="relative rounded-xl h-9 w-9 flex items-center justify-center text-orange-500 hover:text-orange-600 hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer" />
+                <DropdownMenuTrigger className="relative w-10 h-10 flex items-center justify-center bg-card dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-amber-500 hover:text-amber-600 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all shadow-sm cursor-pointer outline-none" />
               }
             >
-              <span className="flex items-center justify-center"><Bell className="h-4 w-4" /></span>
+              <span className="flex items-center justify-center"><Bell className="h-4.5 w-4.5 stroke-[2.2] text-amber-500" /></span>
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
+                <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 ring-2 ring-background" />
               )}
             </TooltipTrigger>
             <TooltipPortal>
@@ -231,19 +235,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </TooltipPositioner>
             </TooltipPortal>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-80 p-0">
+          <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl border bg-card shadow-lg">
             <div className="p-3 border-b flex items-center justify-between">
-              <h4 className="font-semibold">Notifikasi</h4>
+              <h4 className="font-semibold text-sm">Notifikasi</h4>
               <Button
                 variant="ghost"
                 size="xs"
                 onClick={handleMarkAllRead}
-                className="text-xs h-6 px-2"
+                className="text-xs h-6 px-2 text-teal-600 hover:text-teal-700 font-bold uppercase tracking-wider"
               >
                 Tandai semua dibaca
               </Button>
             </div>
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto py-1">
               {notifications.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground text-sm">Tidak ada notifikasi</div>
               ) : (
@@ -251,14 +255,24 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                   <DropdownMenuItem
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`flex items-start gap-3 p-3 cursor-pointer ${!notif.dibaca ? "bg-primary/5" : ""} hover:bg-muted/50`}
+                    className={cn(
+                      "flex items-start gap-3 p-3 mx-2 my-1.5 rounded-xl cursor-pointer transition-all border text-left outline-none",
+                      notif.dibaca
+                        ? "bg-slate-50/50 dark:bg-slate-900/10 border-slate-100 dark:border-slate-800/40 text-muted-foreground"
+                        : "bg-teal-50/30 dark:bg-teal-950/20 border-teal-100/50 dark:border-teal-900/40 text-foreground font-medium"
+                    )}
                     inset={false}
                   >
-                    <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${notif.dibaca ? "bg-muted-foreground/30" : "bg-primary"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notif.dibaca ? "font-semibold" : "font-normal"}`}>{notif.judul}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{notif.pesan}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(notif.createdAt), "d MMM HH:mm", { locale: id })}</p>
+                    <div className={cn(
+                      "h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0",
+                      notif.dibaca ? "bg-muted-foreground/30" : "bg-teal-500 animate-pulse"
+                    )} />
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-xs font-bold leading-tight truncate">{notif.judul}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">{notif.pesan}</p>
+                      <span className="text-[9px] text-muted-foreground mt-1.5 block">
+                        {format(new Date(notif.createdAt), "d MMM HH:mm", { locale: id })}
+                      </span>
                     </div>
                   </DropdownMenuItem>
                 ))
@@ -266,7 +280,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </div>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-center text-primary hover:bg-primary/10 px-3 py-2 cursor-pointer"
+              className="text-center text-teal-600 hover:text-teal-700 font-bold hover:bg-teal-50/30 dark:hover:bg-teal-950/20 py-2.5 cursor-pointer uppercase tracking-wider text-[10px]"
               inset={false}
               onClick={() => { window.location.href = "/notifikasi" }}
             >
@@ -283,11 +297,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                   href={`https://wa.me/62${whatsappNumber.replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl h-9 w-9 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-foreground/[0.06] transition-all duration-200"
+                  className="w-10 h-10 flex items-center justify-center bg-card dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-emerald-500 hover:text-emerald-600 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all shadow-sm cursor-pointer"
                 />
               }
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle className="h-4.5 w-4.5 stroke-[2.2]" />
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipPositioner>
@@ -297,18 +311,28 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Tooltip>
         )}
 
+        <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger
               render={
-                <DropdownMenuTrigger className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm shadow-blue-600/20 ml-1 cursor-pointer overflow-hidden outline-none border-0" />
+                <DropdownMenuTrigger className="flex items-center space-x-2 md:space-x-3 bg-card dark:bg-slate-900/60 p-1.5 md:pr-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-teal-200 dark:hover:border-teal-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left outline-none" />
               }
             >
               {userPhoto ? (
-                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                <div className="w-7.5 h-7.5 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
+                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                </div>
               ) : (
-                <span className="text-sm font-bold text-white">{initials}</span>
+                <div className="w-7.5 h-7.5 bg-teal-100 dark:bg-teal-950/60 rounded-lg flex items-center justify-center text-teal-700 dark:text-teal-400 font-bold text-xs shadow-sm border border-slate-100 dark:border-slate-800 uppercase flex-shrink-0">
+                  <span>{initials}</span>
+                </div>
               )}
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-[12px] font-bold text-foreground leading-tight truncate max-w-[100px]">{displayName}</span>
+                <span className="text-[9px] text-muted-foreground font-medium leading-tight capitalize">{user?.role?.replace("_", " ")}</span>
+              </div>
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipPositioner>
