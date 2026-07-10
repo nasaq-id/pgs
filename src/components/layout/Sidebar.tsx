@@ -46,8 +46,12 @@ const menuItems: MenuItem[] = [
   { 
     icon: Building2, 
     label: "Lembaga", 
-    path: "/lembaga",
-    allowedRoles: ["super_admin", "admin_sekolah"]
+    allowedRoles: ["super_admin", "admin_sekolah"],
+    children: [
+      { label: "Profil Lembaga", path: "/lembaga" },
+      { label: "Tahun Ajaran", path: "/lembaga/tahun-ajaran" },
+      { label: "Kurikulum", path: "/lembaga/kurikulum" },
+    ]
   },
   { 
     icon: Users, 
