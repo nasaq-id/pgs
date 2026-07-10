@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
@@ -19,6 +19,9 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [activeRole, setActiveRole] = useState<"siswa" | "guru" | "admin">("siswa")
+  const formRef = useRef<HTMLFormElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
 
   type RoleKey = "siswa" | "guru" | "admin"
 
@@ -43,10 +46,28 @@ export default function LoginPage() {
     { key: "admin", label: "Admin", icon: Shield },
   ]
 
+  const DEMO_CREDENTIALS: Record<RoleKey, { label: string; email: string; password: string }> = {
+    siswa: { label: "Demo Siswa", email: "123455", password: "daus123" },
+    guru:  { label: "Demo Guru",  email: "mohtb",  password: "mohtb123" },
+    admin: { label: "Demo Admin", email: "admin@demo.com", password: "admin123" },
+  }
+
   function handleRoleChange(role: RoleKey) {
     setActiveRole(role)
     setError("")
     setShowPassword(false)
+    if (emailRef.current) emailRef.current.value = ""
+    if (passwordRef.current) passwordRef.current.value = ""
+  }
+
+  function handleDemoLogin(role: RoleKey) {
+    const creds = DEMO_CREDENTIALS[role]
+    setActiveRole(role)
+    setError("")
+    setShowPassword(false)
+    if (emailRef.current) emailRef.current.value = creds.email
+    if (passwordRef.current) passwordRef.current.value = creds.password
+    formRef.current?.requestSubmit()
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -230,13 +251,14 @@ export default function LoginPage() {
             )}
 
             {/* Form */}
-            <form key={activeRole} onSubmit={handleSubmit} className="space-y-5 relative z-10 text-left">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 relative z-10 text-left">
               <div>
                 <label htmlFor="email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                   {ROLE_CONFIG[activeRole].emailLabel}
                 </label>
                 <div className="relative">
                   <input
+                    ref={emailRef}
                     id="email"
                     name="email"
                     type="text"
@@ -255,6 +277,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <input
+                    ref={passwordRef}
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
@@ -285,6 +308,27 @@ export default function LoginPage() {
                   </TooltipProvider>
                 </div>
               </div>
+
+              {process.env.NODE_ENV !== "production" && (
+                <div className="space-y-2 relative z-10">
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">
+                    Akses Cepat Demo
+                  </p>
+                  <div className="flex gap-2">
+                    {(Object.entries(DEMO_CREDENTIALS) as [RoleKey, typeof DEMO_CREDENTIALS[RoleKey]][]).map(([role, creds]) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => handleDemoLogin(role)}
+                        className="flex-1 text-[11px] px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-200 text-slate-600 hover:text-teal-700 font-bold transition-all cursor-pointer text-center leading-tight"
+                      >
+                        <span className="block">{creds.label}</span>
+                        <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{creds.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
