@@ -177,7 +177,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const formatDate = (date: Date) => format(date, "d MMMM yyyy", { locale: id })
 
   return (
-    <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-[26px] mx-2 mt-2">
+    <div className="sticky top-0 z-40 glass h-16 flex items-center gap-4 px-5 rounded-b-[16px] mx-2 mt-2">
       <Tooltip>
         <TooltipTrigger
           onClick={onMenuClick}
@@ -235,9 +235,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </TooltipPositioner>
             </TooltipPortal>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl border bg-card shadow-lg">
+          <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl border bg-card shadow-lg">
             <div className="p-3 border-b flex items-center justify-between">
-              <h4 className="font-semibold text-sm">Notifikasi</h4>
+              <h4 className="font-bold text-sm">Notifikasi</h4>
               <Button
                 variant="ghost"
                 size="xs"
@@ -331,7 +331,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               )}
               <div className="hidden sm:flex flex-col text-left">
                 <span className="text-[12px] font-bold text-foreground leading-tight truncate max-w-[100px]">{displayName}</span>
-                <span className="text-[9px] text-muted-foreground font-medium leading-tight capitalize">{user?.role?.replace("_", " ")}</span>
+                <span className="text-[9px] text-muted-foreground font-bold leading-tight capitalize">{user?.role?.replace("_", " ")}</span>
               </div>
             </TooltipTrigger>
             <TooltipPortal>
@@ -340,7 +340,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </TooltipPositioner>
             </TooltipPortal>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border bg-card shadow-lg">
+          <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl border bg-card shadow-lg">
             <div className="px-2 py-1.5 border-b mb-1">
               <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
@@ -349,7 +349,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </span>
             </div>
             <DropdownMenuItem
-              className="hover:bg-primary/10 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-semibold"
+              className="hover:bg-primary/10 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-bold"
               onClick={() => window.location.href = "/profil"}
             >
               <User className="h-4 w-4" />
@@ -357,7 +357,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-semibold"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-bold"
               onClick={() => signOut({ callbackUrl: "/login" })}
             >
               <LogOut className="h-4 w-4" />

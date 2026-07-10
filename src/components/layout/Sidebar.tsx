@@ -246,7 +246,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
     pathname === path || (path !== "/" && pathname.startsWith(path))
 
   return (
-    <div className="flex h-full w-full flex-col glass-strong rounded-r-2xl overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+    <div className="flex h-full w-full flex-col glass-strong rounded-r-[16px] overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       {/* Branding Section */}
       <div className={cn(
         "h-16 md:h-20 flex items-center px-5 justify-between border-b border-border/50 transition-all duration-300",
@@ -334,7 +334,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
 
       {/* Academic Year Info */}
       {!isMinimized ? (
-        <div className="mx-4 mt-4 p-3 bg-gradient-to-br from-slate-50/80 to-slate-100/50 dark:from-slate-900/40 dark:to-slate-800/20 rounded-2xl border border-border/60 sidebar-text-container transition-all duration-300">
+        <div className="mx-4 mt-4 p-3 bg-gradient-to-br from-slate-50/80 to-slate-100/50 dark:from-slate-900/40 dark:to-slate-800/20 rounded-xl border border-border/60 sidebar-text-container transition-all duration-300">
           <div className="flex items-center space-x-2 text-muted-foreground mb-1.5">
             <CalendarDays className="w-3.5 h-3.5 text-teal-500" />
             <span className="text-[9px] font-black uppercase tracking-wider">Tahun Akademik</span>
@@ -458,7 +458,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               href={item.path!}
               onClick={onClose}
               className={cn(
-                "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border",
+                "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-sm",
                 isMinimized ? "lg:justify-center lg:px-0 lg:mx-2.5" : "justify-start",
                 isItemActive
                   ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
@@ -487,7 +487,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       <div className="border-t border-border/50 p-4 bg-slate-50/50 dark:bg-slate-900/20">
         {!isMinimized ? (
           <div className="sidebar-text-container">
-            <div className="flex items-center space-x-3 bg-card border border-border p-2.5 rounded-2xl shadow-sm">
+            <div className="flex items-center space-x-3 bg-card border border-border p-2.5 rounded-xl shadow-sm">
               {userPhoto ? (
                 <div className="w-8.5 h-8.5 rounded-xl overflow-hidden border border-border flex-shrink-0">
                   <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
