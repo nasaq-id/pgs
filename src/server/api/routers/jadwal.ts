@@ -208,6 +208,49 @@ async function findAvailableSlots(
 }
 
 export const jadwalRouter = router({
+  getTimelineWithJadwal: protectedProcedure
+    .input(z.object({
+      kelasId: z.string(),
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+    }))
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahId = sekolahIdFilter ?? ctx.session.user.sekolahId
+      const pengaturan = sekolahId
+        ? await db.query.pengaturanJadwal.findFirst({
+            where: eq(pengaturanJadwal.sekolahId, sekolahId),
+          })
+        : await db.query.pengaturanJadwal.findFirst()
+      if (!pengaturan) {
+        return { timelineItems: [], jadwalList: [], durasiJP: 40 }
+      }
+
+      const timelineItems = await db.query.timelineItem.findMany({
+        where: and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, input.hari as any),
+        ),
+        orderBy: [asc(timelineItem.urutan)],
+      })
+
+      const jadwalList = await db.query.jadwalPelajaran.findMany({
+        where: and(
+          eq(jadwalPelajaran.kelasId, input.kelasId),
+          eq(jadwalPelajaran.hari, input.hari as any),
+        ),
+      })
+
+      return {
+        timelineItems,
+        jadwalList: jadwalList.map((j) => ({
+          id: j.id,
+          jpMulai: j.jpMulai,
+          jpCount: j.jpCount,
+        })),
+        durasiJP: pengaturan.durasiJP ?? 40,
+      }
+    }),
+
   getSisaJp: protectedProcedure
     .input(z.object({ kelasId: z.string() }))
     .query(async ({ ctx, input }) => {

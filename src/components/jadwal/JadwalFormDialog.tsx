@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import { api } from "@/lib/trpc/client"
+import TimelineView from "./TimelineView"
 
 export interface JadwalFormData {
   id?: string
@@ -88,14 +90,14 @@ export default function JadwalFormDialog({
   mapelList,
   saving,
   existingJadwal = [],
-  timelineItems = [],
   contextHari,
   kelasId,
 }: Props) {
   const [hari, setHari] = useState(contextHari || initial?.hari || "senin")
-  const [jpCount, setJpCount] = useState(1)
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
+  const [selectedJpMulai, setSelectedJpMulai] = useState<number | null>(null)
+  const [durasiMenit, setDurasiMenit] = useState(40)
 
   const { data: pengampuData } = api.pengampu.getByKelas.useQuery(
     { kelasId: kelasId ?? "" },
@@ -106,6 +108,18 @@ export default function JadwalFormDialog({
     { kelasId: kelasId ?? "" },
     { enabled: open && !!kelasId }
   )
+
+  const { data: timelineData, isLoading: timelineLoading } = api.jadwal.getTimelineWithJadwal.useQuery(
+    { kelasId: kelasId ?? "", hari: hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu" },
+    { enabled: open && !!kelasId && !!hari }
+  )
+
+  const durasiJP = timelineData?.durasiJP ?? 40
+
+  const computedJpCount = useMemo(() => {
+    if (!durasiMenit || durasiMenit < 1) return 0
+    return Math.ceil(durasiMenit / durasiJP)
+  }, [durasiMenit, durasiJP])
 
   const pengampuMap = useMemo(() => {
     const map = new Map<string, PengampuMapel>()
@@ -138,31 +152,6 @@ export default function JadwalFormDialog({
     return p?.guruNama ?? ""
   }, [mataPelajaranId, pengampuMap])
 
-  const jpSlots = useMemo(() => {
-    return timelineItems
-      .filter((t) => t.tipe === "jp")
-      .sort((a, b) => a.urutan - b.urutan)
-  }, [timelineItems])
-
-  const occupiedJpSlots = useMemo(() => {
-    const occupied = new Set<number>()
-    for (const entry of existingJadwal) {
-      if (entry.hari !== hari) continue
-      if (entry.id === initial?.id) continue
-      if (entry.jpMulai !== null && entry.jpCount !== null) {
-        for (let i = 0; i < entry.jpCount; i++) {
-          occupied.add(entry.jpMulai + i)
-        }
-      }
-    }
-    return occupied
-  }, [existingJadwal, hari, initial?.id])
-
-  const availableSlots = useMemo(() => {
-    const allJp = jpSlots.map((_, i) => i + 1)
-    return allJp.filter((s) => !occupiedJpSlots.has(s))
-  }, [jpSlots, occupiedJpSlots])
-
   const filteredMapel = useMemo(() => {
     if (initial) return mapelList
     return mapelList.filter((m) => {
@@ -181,24 +170,43 @@ export default function JadwalFormDialog({
   const maxJpCount = useMemo(() => {
     if (initial) return initial.jpCount ?? 5
     const sisa = sisaForSelected
-    const availableCount = availableSlots.length
-    return Math.min(sisa, availableCount, 5)
-  }, [sisaForSelected, availableSlots, initial])
+    return Math.min(sisa, 5)
+  }, [sisaForSelected, initial])
+
+  const occupiedJpSlots = useMemo(() => {
+    const occupied = new Set<number>()
+    for (const entry of existingJadwal) {
+      if (entry.hari !== hari) continue
+      if (entry.id === initial?.id) continue
+      if (entry.jpMulai !== null && entry.jpCount !== null) {
+        for (let i = 0; i < entry.jpCount; i++) {
+          occupied.add(entry.jpMulai + i)
+        }
+      }
+    }
+    return occupied
+  }, [existingJadwal, hari, initial?.id])
 
   useEffect(() => {
     if (!open) return
     if (initial) {
       setHari(initial.hari || contextHari || "senin")
-      setJpCount(initial.jpCount || 1)
       setMataPelajaranId(initial.mataPelajaranId || "")
       setGuruId(initial.guruId || "")
+      setSelectedJpMulai(initial.jpMulai ?? null)
+      if (initial.jpCount) {
+        setDurasiMenit(initial.jpCount * durasiJP)
+      } else {
+        setDurasiMenit(40)
+      }
     } else {
       setHari(contextHari || "senin")
-      setJpCount(1)
       setMataPelajaranId("")
       setGuruId("")
+      setSelectedJpMulai(null)
+      setDurasiMenit(40)
     }
-  }, [open, initial, contextHari])
+  }, [open, initial, contextHari, durasiJP])
 
   useEffect(() => {
     if (mataPelajaranId) {
@@ -207,15 +215,25 @@ export default function JadwalFormDialog({
     }
   }, [mataPelajaranId, pengampuMap])
 
+  useEffect(() => {
+    if (computedJpCount > maxJpCount && maxJpCount >= 1) {
+      setDurasiMenit(maxJpCount * durasiJP)
+    }
+  }, [computedJpCount, maxJpCount, durasiJP])
+
   const isEdit = !!initial?.id
 
+  const handleTimelineSelect = (jpMulai: number | null) => {
+    setSelectedJpMulai(jpMulai)
+  }
+
   const handleSubmit = async () => {
-    if (!hari || !mataPelajaranId || !guruId || !jpCount) return
+    if (!hari || !mataPelajaranId || !guruId || computedJpCount < 1) return
     await onSubmit({
       id: initial?.id,
       hari,
-      jpMulai: null,
-      jpCount,
+      jpMulai: selectedJpMulai,
+      jpCount: computedJpCount,
       mataPelajaranId,
       guruId,
       jamMulai: undefined,
@@ -223,31 +241,29 @@ export default function JadwalFormDialog({
     })
   }
 
-  const isValid = hari && mataPelajaranId && guruId && jpCount >= 1 && jpCount <= 5
+  const isValid = hari && mataPelajaranId && guruId && computedJpCount >= 1 && selectedJpMulai !== null
 
-  const jpOptions = useMemo(() => {
-    const options: number[] = []
-    const max = Math.min(maxJpCount, 5)
-    for (let i = 1; i <= max; i++) {
-      options.push(i)
+  const validationError = useMemo(() => {
+    if (!selectedJpMulai || !computedJpCount) return null
+    for (let i = 0; i < computedJpCount; i++) {
+      if (occupiedJpSlots.has(selectedJpMulai + i)) {
+        return "Slot yang dipilih bertabrakan dengan jadwal lain"
+      }
     }
-    return options
-  }, [maxJpCount])
-
-  useEffect(() => {
-    if (jpCount > maxJpCount && maxJpCount >= 1) {
-      setJpCount(maxJpCount)
+    if (computedJpCount > maxJpCount) {
+      return `Melebihi sisa alokasi (maks ${maxJpCount} JP)`
     }
-  }, [maxJpCount, jpCount])
+    return null
+  }, [selectedJpMulai, computedJpCount, occupiedJpSlots, maxJpCount])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Jadwal" : "Tambah Jadwal"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
           <div className="space-y-1.5">
             <Label>
               Mata Pelajaran <span className="text-destructive">*</span>
@@ -278,7 +294,7 @@ export default function JadwalFormDialog({
                 Guru: {selectedGuruLabel}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Sisa alokasi: {sisaForSelected} JP
+                Sisa alokasi: {sisaForSelected} JP ({sisaForSelected * durasiJP} menit)
               </p>
             </div>
           )}
@@ -286,32 +302,54 @@ export default function JadwalFormDialog({
           {mataPelajaranId && (
             <div className="space-y-1.5">
               <Label>
-                Durasi Alokasi (JP) <span className="text-destructive">*</span>
-                <span className="text-xs text-muted-foreground ml-2">
-                  (maks. {maxJpCount} JP)
-                </span>
+                Durasi (menit) <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={String(jpCount)}
-                onValueChange={(v) => v && setJpCount(parseInt(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih durasi">{jpCount} JP</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {jpOptions.map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n} JP
-                      {!isEdit && sisaForSelected > 0 && n < sisaForSelected
-                        ? ` (sisa ${sisaForSelected - n} JP)`
-                        : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!initial && jpCount > availableSlots.length && (
-                <p className="text-xs text-destructive mt-1">
-                  Slot JP tersedia hanya {availableSlots.length}
+              <Input
+                type="number"
+                min={durasiJP}
+                max={maxJpCount * durasiJP}
+                step={5}
+                value={durasiMenit}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v >= 1) setDurasiMenit(v)
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                {computedJpCount >= 1
+                  ? `= ${computedJpCount} JP (${computedJpCount * durasiJP} menit)`
+                  : "Masukkan durasi dalam menit"}
+                {computedJpCount > maxJpCount && (
+                  <span className="text-destructive ml-2">
+                    · melebihi sisa alokasi (maks {maxJpCount} JP / {maxJpCount * durasiJP} menit)
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {mataPelajaranId && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">
+                  Pilih Slot JP <span className="text-destructive">*</span>
+                </Label>
+                {timelineLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
+              <TimelineView
+                timelineItems={timelineData?.timelineItems ?? []}
+                existingJadwal={timelineData?.jadwalList ?? existingJadwal}
+                selectedJpMulai={selectedJpMulai}
+                selectedJpCount={computedJpCount}
+                onSelect={handleTimelineSelect}
+                excludeId={initial?.id}
+              />
+              {validationError && (
+                <p className="text-xs text-destructive">{validationError}</p>
+              )}
+              {selectedJpMulai && computedJpCount >= 1 && !validationError && (
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  Akan ditempatkan di JP {selectedJpMulai}–{selectedJpMulai + computedJpCount - 1}
                 </p>
               )}
             </div>
@@ -324,7 +362,7 @@ export default function JadwalFormDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={saving || !isValid}
+            disabled={saving || !isValid || !!validationError}
             style={{ backgroundColor: "hsl(142 72% 40%)" }}
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
