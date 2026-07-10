@@ -196,7 +196,10 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const initials = (displayName[0] || "A").toUpperCase()
   const userPhoto = (profile?.photo as string) || session?.user?.photo
 
-  const schoolName = sekolahData?.namaSekolah || "SIM Sekolah"
+  const schoolName = (sekolahData?.namaSekolah || "SIM Sekolah")
+    .replace(/SMP Negeri/gi, "SMPN")
+    .replace(/SMA Negeri/gi, "SMAN")
+    .replace(/SMK Negeri/gi, "SMKN")
   const nameParts = schoolName.split(" ")
   const prefix = nameParts[0] || "SIM"
   const mainName = nameParts.slice(1).join(" ") || "Sekolah"
