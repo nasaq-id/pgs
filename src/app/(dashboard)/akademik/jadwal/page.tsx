@@ -378,23 +378,23 @@ export default function JadwalPage() {
             <p className="text-muted-foreground">Belum ada jadwal untuk kelas ini</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/10">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th className="border border-border bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground w-24">
+                <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <th className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/30 px-3 py-3.5 text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider w-24">
                     JP
                   </th>
                   {aktifDays.map((day) => (
                     <th
                       key={day}
-                      className="border border-border bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground min-w-[120px]"
+                      className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/30 px-4 py-3.5 text-left text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider min-w-[150px] last:border-r-0"
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span>{DAY_LABEL[day]}</span>
                         <button
                           onClick={() => openAdd(day)}
-                          className="rounded p-0.5 hover:bg-[hsl(142_72%_40%)] hover:text-white transition-colors"
+                          className="rounded-lg p-1 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500 transition-all cursor-pointer shadow-sm border border-teal-100 dark:border-teal-900/20"
                           title={`Tambah jadwal ${DAY_LABEL[day]}`}
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -404,14 +404,14 @@ export default function JadwalPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {Array.from({ length: maxJpSlots }, (_, slotIdx) => (
-                  <tr key={slotIdx}>
-                    <td className="border border-border px-3 py-2 text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  <tr key={slotIdx} className="hover:bg-slate-50/20 dark:hover:bg-slate-900/5">
+                    <td className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 px-3 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span>JP {slotIdx + 1}</span>
                         {jpGridByDay[0]?.jpSlots[slotIdx] && (
-                          <span className="text-[10px] text-muted-foreground/60">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold tracking-tight mt-0.5">
                             {jpGridByDay[0].jpSlots[slotIdx].timeStart} - {jpGridByDay[0].jpSlots[slotIdx].timeEnd}
                           </span>
                         )}
@@ -424,34 +424,34 @@ export default function JadwalPage() {
                       const hasSlot = daySlots && slotIdx < daySlots.length
                       if (!hasSlot) {
                         return (
-                          <td key={day} className="border border-border px-2 py-1.5 align-top">
-                            <span className="text-[10px] text-muted-foreground">&mdash;</span>
+                          <td key={day} className="border-r border-slate-150 dark:border-slate-800 px-3 py-3 align-middle text-center last:border-r-0">
+                            <span className="text-slate-350 dark:text-slate-650">—</span>
                           </td>
                         )
                       }
                       return (
-                        <td key={day} className="border border-border px-2 py-1.5 align-top">
+                        <td key={day} className="border-r border-slate-150 dark:border-slate-800 px-3 py-3 align-top last:border-r-0">
                           {agenda ? (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-1.5">
-                              <div className="flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                            <div className="rounded-xl border border-amber-250 dark:border-amber-800/80 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 shadow-xs">
+                              <div className="flex items-center gap-1 text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
                                 {agenda.label || agenda.tipe}
                               </div>
                             </div>
                           ) : entry ? (
-                            <div className="group relative rounded-lg border border-[hsl(142_30%_80%)] bg-[hsl(142_50%_95%)] p-2 dark:border-[hsl(142_30%_30%)] dark:bg-[hsl(142_30%_15%)]">
-                              <div className="text-xs font-medium leading-tight">
+                            <div className="group relative rounded-xl border border-teal-150 dark:border-teal-900/30 bg-teal-50/40 dark:bg-teal-950/10 p-2.5 shadow-sm hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all text-left">
+                              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
                                 {mapelMap.get(entry.mataPelajaranId)?.namaMapel ?? "-"}
                               </div>
-                              <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                              <div className="text-[10px] text-slate-500 dark:text-slate-450 font-semibold leading-tight mt-1 truncate">
                                 {guruMap.get(entry.guruId)?.namaLengkap ?? "-"}
                               </div>
-                              <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-0.5">
+                              <div className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 rounded-lg p-0.5 border border-slate-100 dark:border-slate-800 shadow-sm">
                                 <Tooltip>
                                   <TooltipTrigger
                                     onClick={() => openEdit(entry)}
-                                    className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+                                    className="rounded-md p-1 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-500 dark:text-slate-400"
                                   >
-                                    <Pencil className="h-3 w-3" />
+                                    <Pencil className="h-3.5 w-3.5" />
                                   </TooltipTrigger>
                                   <TooltipPortal>
                                     <TooltipPositioner>
@@ -462,9 +462,9 @@ export default function JadwalPage() {
                                 <Tooltip>
                                   <TooltipTrigger
                                     onClick={() => setDeleteId(entry.id)}
-                                    className="rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 text-destructive cursor-pointer"
+                                    className="rounded-md p-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-550 cursor-pointer"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </TooltipTrigger>
                                   <TooltipPortal>
                                     <TooltipPositioner>
@@ -475,7 +475,7 @@ export default function JadwalPage() {
                               </div>
                             </div>
                           ) : (
-                            <span className="text-[10px] text-muted-foreground">&mdash;</span>
+                            <span className="text-slate-300 dark:text-slate-650 block text-center py-2">—</span>
                           )}
                         </td>
                       )
