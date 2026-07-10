@@ -319,14 +319,14 @@ export default function JadwalPage() {
 
   return (
     <div className="space-y-6">
-      <div className="glass-card rounded-2xl p-5">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            <span className="text-xs font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
               Kelas:
             </span>
             <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
-              <SelectTrigger className="w-52">
+              <SelectTrigger className="w-52 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                 <SelectValue placeholder="Pilih kelas">{selectedKelasMain || "Pilih kelas"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -338,31 +338,30 @@ export default function JadwalPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              className="gap-2"
+              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
               onClick={() => setCetakOpen(true)}
               disabled={!kelasId || !hasData}
             >
-              <Printer className="h-4 w-4" /> Cetak
+              <Printer className="h-4 w-4 text-slate-500" /> Cetak
             </Button>
             <ExportExcelJadwal />
             <Button
-              className="gap-2"
+              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
               variant="outline"
               onClick={() => setAiGenerateOpen(true)}
             >
-              <Sparkles className="h-4 w-4 text-[hsl(142_72%_40%)]" /> AI Generate
+              <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400" /> AI Generate
             </Button>
             <Button
-              className="gap-2"
+              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
               variant="outline"
               onClick={() => setPengaturanOpen(true)}
             >
-              <Settings className="h-4 w-4" /> Pengaturan Jadwal
+              <Settings className="h-4 w-4 text-slate-500" /> Pengaturan Jadwal
             </Button>
-
           </div>
         </div>
 

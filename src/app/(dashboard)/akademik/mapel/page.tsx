@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
@@ -68,6 +69,21 @@ export default function MapelPage() {
   const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close active actions dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
 
   const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({ search })
   const utils = api.useUtils()
@@ -151,135 +167,289 @@ export default function MapelPage() {
 
   return (
     <div className="space-y-6">
-      <div className="glass-card rounded-2xl p-5">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
+            <input
+              type="text"
               placeholder="Cari mata pelajaran..."
-              className="pl-9"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button
-            className="gap-2"
-            style={{ backgroundColor: "hsl(142 72% 40%)" }}
+          <button
+            className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
             onClick={() => {
               setEditData(null)
               setFormOpen(true)
             }}
           >
-            <Plus className="h-4 w-4" /> Tambah Mapel
-          </Button>
+            <Plus className="h-4 w-4 mr-2" />
+            <span>Tambah Mapel</span>
+          </button>
         </div>
 
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : localRecords.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">
+        {/* Mobile View: Card List (Visible on mobile, hidden on desktop) */}
+        <div className="md:hidden space-y-4">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ))
+          ) : localRecords.length === 0 ? (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
               {search ? "Tidak ditemukan" : "Belum ada mata pelajaran"}
-            </p>
-          </div>
-        ) : (
+            </div>
+          ) : (
+            localRecords.map((r, index) => {
+              const isMenuOpen = activeMenuId === r.id
+              return (
+                <div key={r.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">KODE: {r.kodeMapel ?? "—"}</span>
+                      <h4 className="font-bold text-slate-800 dark:text-slate-250 text-xs sm:text-sm leading-tight mt-0.5 truncate">{r.namaMapel}</h4>
+                    </div>
+                    <span
+                      className={cn(
+                        "px-2.5 py-0.5 text-[8px] font-black uppercase rounded-full border shrink-0",
+                        r.aktif
+                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30"
+                          : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 dark:text-slate-450 border-slate-200/50 dark:border-slate-800/30"
+                      )}
+                    >
+                      {r.aktif ? "Aktif" : "Tidak Aktif"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kelompok</span>
+                      <span className="inline-block px-2 py-0.5 border border-slate-100 dark:border-slate-800 rounded-md text-[9px] font-black text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 mt-1 uppercase tracking-wide">
+                        {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "—"}
+                      </span>
+                    </div>
+
+                    <div className="flex space-x-1.5 items-center">
+                      <button
+                        onClick={() => {
+                          setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
+                          setPengampuOpen(true)
+                        }}
+                        className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        title="Plotting Pengajar"
+                      >
+                        <span>Plot Pengajar</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditData({
+                            id: r.id,
+                            namaMapel: r.namaMapel,
+                            kodeMapel: r.kodeMapel ?? "",
+                            kelompok: r.kelompok ?? "",
+                            aktif: r.aktif,
+                          })
+                          setFormOpen(true)
+                        }}
+                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        title="Edit"
+                      >
+                        Edit
+                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveMenuId(activeMenuId === r.id ? null : r.id)
+                          }}
+                          className={cn(
+                            "w-7 h-7 flex items-center justify-center border rounded-lg transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/20",
+                            isMenuOpen
+                              ? "border-slate-800 text-slate-800 dark:border-slate-650 dark:text-slate-200"
+                              : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+                          )}
+                        >
+                          <MoreHorizontal size={14} strokeWidth={2.5} />
+                        </button>
+                        {isMenuOpen && (
+                          <div
+                            ref={menuRef}
+                            className="absolute right-0 bottom-full mb-2 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xl z-50 min-w-[150px] p-1.5 space-y-1 block animate-fade-in text-left"
+                          >
+                            <button
+                              onClick={() => {
+                                setActiveMenuId(null)
+                                setDeleteId(r.id)
+                              }}
+                              className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold text-xs transition-colors cursor-pointer text-left"
+                            >
+                              <Trash2 size={13} className="text-rose-500 shrink-0" />
+                              <span>Hapus Mapel</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Table (Visible on desktop, hidden on mobile) */}
+        <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Kode</TableHead>
-                <TableHead>Nama Mapel</TableHead>
-                <TableHead>Kelompok</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-10 py-3" />
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Kode Mapel</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Nama Mata Pelajaran</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Kelompok</TableHead>
+                <TableHead className="text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
+                <TableHead className="text-center w-24 text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {localRecords.map((r, index) => (
-                <TableRow
-                  key={r.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={dragIndex === index ? "opacity-50" : "cursor-grab active:cursor-grabbing"}
-                >
-                  <TableCell className="w-10 text-muted-foreground">
-                    <GripVertical className="h-4 w-4" />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{r.kodeMapel ?? "-"}</TableCell>
-                  <TableCell className="font-medium">{r.namaMapel}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={r.aktif ? "default" : "secondary"}>
-                      {r.aktif ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <Tooltip>
-                        <TooltipTrigger
-                          delay={0}
-                          render={
-                            <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-950/20 text-muted-foreground hover:text-[hsl(142_72%_40%)] focus-visible:ring-2 focus-visible:ring-[hsl(142_72%_40%)] rounded-md focus:outline-none transition-colors cursor-pointer" />
-                          }
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Aksi</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                      <DropdownMenuContent align="end" className="w-36">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditData({
-                              id: r.id,
-                              namaMapel: r.namaMapel,
-                              kodeMapel: r.kodeMapel ?? "",
-                              kelompok: r.kelompok ?? "",
-                              aktif: r.aktif,
-                            })
-                            setFormOpen(true)
-                          }}
-                          className="gap-2 clickable"
-                        >
-                          <Pencil className="h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
-                            setPengampuOpen(true)
-                          }}
-                          className="gap-2 clickable"
-                        >
-                          <span className="text-xs font-mono">👥</span> Plotting Pengajar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteId(r.id)}
-                          className="gap-2 clickable text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" /> Hapus
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : localRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
+                    Tidak ada data mata pelajaran ditemukan
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                localRecords.map((r, index) => {
+                  const isMenuOpen = activeMenuId === r.id
+                  return (
+                    <TableRow
+                      key={r.id}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60",
+                        dragIndex === index ? "opacity-50" : "cursor-grab active:cursor-grabbing"
+                      )}
+                    >
+                      <TableCell className="w-10 text-slate-400 dark:text-slate-500 text-center">
+                        <GripVertical className="h-4 w-4 shrink-0 mx-auto" />
+                      </TableCell>
+                      <TableCell className="font-bold text-xs tracking-wider text-slate-700 dark:text-slate-350 font-mono">
+                        {r.kodeMapel ?? "—"}
+                      </TableCell>
+                      <TableCell className="font-bold text-slate-800 dark:text-slate-200">
+                        {r.namaMapel}
+                      </TableCell>
+                      <TableCell>
+                        <span className="px-2 py-0.5 border border-slate-150 dark:border-slate-800 rounded-lg text-[9px] font-black text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 uppercase tracking-wide">
+                          {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={cn(
+                            "px-3 py-1 text-[9px] font-black uppercase rounded-full border whitespace-nowrap",
+                            r.aktif
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
+                              : "bg-slate-50 dark:bg-slate-900/20 text-slate-500 dark:text-slate-450 border-slate-200 dark:border-slate-800/30"
+                          )}
+                        >
+                          {r.aktif ? "Aktif" : "Tidak Aktif"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="relative text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveMenuId(activeMenuId === r.id ? null : r.id)
+                          }}
+                          className={cn(
+                            "w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border rounded-lg hover:border-slate-350 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm mx-auto cursor-pointer focus:outline-none",
+                            activeMenuId === r.id
+                              ? "border-slate-800 text-slate-800 dark:border-slate-650 dark:text-slate-200"
+                              : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+                          )}
+                        >
+                          <MoreHorizontal className="w-5 h-5 stroke-[2.5]" />
+                        </button>
+
+                        {activeMenuId === r.id && (
+                          <div
+                            ref={menuRef}
+                            className="absolute right-12 top-0 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xl z-50 min-w-[190px] p-2 space-y-1 block animate-fade-in text-left"
+                          >
+                            <button
+                              onClick={() => {
+                                setActiveMenuId(null)
+                                setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
+                                setPengampuOpen(true)
+                              }}
+                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-655 dark:text-slate-300 font-semibold text-xs transition-colors group cursor-pointer text-left"
+                            >
+                              <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-500 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors shrink-0">
+                                <span className="text-xs font-bold leading-none shrink-0">👥</span>
+                              </div>
+                              <span>Plotting Pengajar</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setActiveMenuId(null)
+                                setEditData({
+                                  id: r.id,
+                                  namaMapel: r.namaMapel,
+                                  kodeMapel: r.kodeMapel ?? "",
+                                  kelompok: r.kelompok ?? "",
+                                  aktif: r.aktif,
+                                })
+                                setFormOpen(true)
+                              }}
+                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-655 dark:text-slate-300 font-semibold text-xs transition-colors group cursor-pointer text-left"
+                            >
+                              <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-455 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors shrink-0">
+                                <Pencil size={14} strokeWidth={2.5} />
+                              </div>
+                              <span>Edit Pelajaran</span>
+                            </button>
+
+                            <div className="h-px bg-slate-100 dark:bg-slate-850 my-1 mx-2"></div>
+
+                            <button
+                              onClick={() => {
+                                setActiveMenuId(null)
+                                setDeleteId(r.id)
+                              }}
+                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-455 font-semibold text-xs transition-colors group cursor-pointer text-left"
+                            >
+                              <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-450 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors shrink-0">
+                                <Trash2 size={14} strokeWidth={2.5} />
+                              </div>
+                              <span>Hapus Pelajaran</span>
+                            </button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
-        )}
+        </div>
       </div>
 
       <PengampuDialog

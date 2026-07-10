@@ -29,7 +29,7 @@ export default function AkademikPage() {
         <p className="text-muted-foreground">Kelola mata pelajaran dan jadwal pelajaran</p>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl flex flex-wrap gap-1 sm:gap-1.5 w-full sm:w-max">
         {TABS.map((t) => {
           const Icon = t.icon
           const isActive = tab === t.value
@@ -37,14 +37,14 @@ export default function AkademikPage() {
             <button
               key={t.value}
               onClick={() => handleTabChange(t.value)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              className={`flex-1 shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
                 isActive
-                  ? "border-[hsl(142_72%_40%)] text-[hsl(142_72%_40%)]"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
               }`}
             >
-              <Icon className="h-4 w-4" />
-              {t.label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{t.label}</span>
             </button>
           )
         })}

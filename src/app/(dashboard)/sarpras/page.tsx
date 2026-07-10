@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react"
 import {
   Plus, Pencil, Trash2, Search, X, Building2, Box, CheckCircle, AlertTriangle,
-  School, Monitor, BookOpen, Sofa, Trophy, Hash, Eye,
+  School, Monitor, BookOpen, Sofa, Trophy, Hash,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
