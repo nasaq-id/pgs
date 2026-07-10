@@ -229,16 +229,6 @@ export default function LembagaPage() {
     setEditOpen(false)
   }
 
-  const getSosmedUser = (url?: string | null) => {
-    if (!url) return "Tidak Ada"
-    try {
-      const clean = url.replace(/\/$/, "")
-      const parts = clean.split("/")
-      return parts[parts.length - 1] || "Kunjungi"
-    } catch {
-      return "Kunjungi"
-    }
-  }
 
   if (isLoading) {
     return (
@@ -399,10 +389,7 @@ export default function LembagaPage() {
                     <InstagramIcon className="w-4 h-4 stroke-[2.5]" />
                   )}
                 </div>
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">Instagram</span>
-                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
-                  {getSosmedUser(sekolah?.instagram)}
-                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Instagram</span>
               </a>
 
               <a
@@ -421,10 +408,7 @@ export default function LembagaPage() {
                     <FacebookIcon className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">Facebook</span>
-                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
-                  {getSosmedUser(sekolah?.facebook)}
-                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Facebook</span>
               </a>
 
               <a
@@ -443,10 +427,7 @@ export default function LembagaPage() {
                     <TikTokIcon className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">TikTok</span>
-                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
-                  {getSosmedUser(sekolah?.tiktok)}
-                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">TikTok</span>
               </a>
 
               <a
@@ -465,10 +446,7 @@ export default function LembagaPage() {
                     <YoutubeIcon className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider mb-0.5 leading-none">YouTube</span>
-                <span className="text-[10px] font-bold text-foreground truncate w-full px-1 leading-tight">
-                  {getSosmedUser(sekolah?.youtube)}
-                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">YouTube</span>
               </a>
             </div>
           </div>
