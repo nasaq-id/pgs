@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, CalendarDays, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, CalendarDays, Loader2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +23,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
+import { Switch, SwitchThumb } from "@/components/ui/switch"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -38,10 +39,10 @@ export default function TahunAjaranPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [form, setForm] = useState({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "" })
+  const [form, setForm] = useState({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: false })
 
   const resetForm = () => {
-    setForm({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "" })
+    setForm({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: false })
     setEditId(null)
   }
 
@@ -52,6 +53,7 @@ export default function TahunAjaranPage() {
       semester: item.semester,
       tanggalMulai: item.tanggalMulai ? item.tanggalMulai.slice(0, 10) : "",
       tanggalSelesai: item.tanggalSelesai ? item.tanggalSelesai.slice(0, 10) : "",
+      active: item.active,
     })
     setFormOpen(true)
   }
@@ -185,6 +187,18 @@ export default function TahunAjaranPage() {
                 <Label>Tanggal Selesai</Label>
                 <Input type="date" value={form.tanggalSelesai} onChange={(e) => setForm({ ...form, tanggalSelesai: e.target.value })} />
               </div>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border p-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                <Label className="font-bold text-sm cursor-pointer">Aktifkan sebagai tahun ajaran berjalan</Label>
+              </div>
+              <Switch
+                checked={form.active}
+                onCheckedChange={(checked) => setForm({ ...form, active: checked })}
+              >
+                <SwitchThumb />
+              </Switch>
             </div>
             <Button onClick={handleSave} className="w-full" disabled={create.isPending || update.isPending}>
               {create.isPending || update.isPending ? "Menyimpan..." : "Simpan"}

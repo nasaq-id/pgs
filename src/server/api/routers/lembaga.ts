@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and } from "drizzle-orm"
+import { eq, and, ne } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran } from "@/server/db/schema"
@@ -86,6 +86,15 @@ export const lembagaRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
 
+      if (input.active) {
+        await db.update(tahunAjaran)
+          .set({ active: false })
+          .where(and(
+            eq(tahunAjaran.sekolahId, sekolahId),
+            eq(tahunAjaran.active, true),
+          ))
+      }
+
       const [inserted] = await db.insert(tahunAjaran).values({
         id: crypto.randomUUID(),
         sekolahId,
@@ -122,6 +131,15 @@ export const lembagaRouter = router({
       const updateData: Record<string, any> = { ...data }
       if (data.tanggalMulai) updateData.tanggalMulai = new Date(data.tanggalMulai)
       if (data.tanggalSelesai) updateData.tanggalSelesai = new Date(data.tanggalSelesai)
+
+      if (input.active) {
+        await db.update(tahunAjaran)
+          .set({ active: false })
+          .where(and(
+            eq(tahunAjaran.sekolahId, sekolahId ?? existing.sekolahId),
+            eq(tahunAjaran.active, true),
+          ))
+      }
 
       await db.update(tahunAjaran).set(updateData).where(eq(tahunAjaran.id, id))
       await logAudit(ctx, { action: "update", entity: "tahun_ajaran", entityId: id, metadata: { fields: Object.keys(data) } })
