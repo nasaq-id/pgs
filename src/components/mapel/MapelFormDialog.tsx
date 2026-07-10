@@ -110,7 +110,7 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
 
           <div className="flex items-center gap-4">
             <Label className="w-20 text-right flex-shrink-0">Kelompok</Label>
-            <Select value={kelompok} onValueChange={(v) => setKelompok(v ?? "")}>
+            <Select value={kelompok} onValueChange={(v) => setKelompok(v ?? "")} options={KELOMPOK_OPTIONS}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Pilih Kelompok" />
               </SelectTrigger>

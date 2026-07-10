@@ -113,7 +113,7 @@ export default function EkstrakurikulerFormDialog({ open, onClose, onSubmit, ini
 
           <div className="flex items-center gap-4">
             <Label className="w-20 text-right flex-shrink-0">Pembina</Label>
-            <Select value={pembinaId} onValueChange={(v) => setPembinaId(v ?? "")}>
+            <Select value={pembinaId} onValueChange={(v) => setPembinaId(v ?? "")} options={guruList.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Pilih Pembina" />
               </SelectTrigger>
@@ -127,7 +127,7 @@ export default function EkstrakurikulerFormDialog({ open, onClose, onSubmit, ini
 
           <div className="flex items-center gap-4">
             <Label className="w-20 text-right flex-shrink-0">Hari</Label>
-            <Select value={hari} onValueChange={(v) => setHari(v ?? "")}>
+            <Select value={hari} onValueChange={(v) => setHari(v ?? "")} options={HARI_OPTIONS}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Pilih Hari" />
               </SelectTrigger>

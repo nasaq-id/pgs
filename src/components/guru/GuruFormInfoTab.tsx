@@ -111,6 +111,10 @@ export default function GuruFormInfoTab({ form, onChange }: Props) {
           <Select
             value={(form.jenisKelamin as string) || ""}
             onValueChange={(v) => onChange("jenisKelamin", v)}
+            options={[
+              { value: "L", label: "Laki-laki" },
+              { value: "P", label: "Perempuan" },
+            ]}
           >
             <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
             <SelectContent>

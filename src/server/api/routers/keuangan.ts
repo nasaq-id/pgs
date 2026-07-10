@@ -5,6 +5,11 @@ import { db } from "@/server/db"
 import { tagihanSpp, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { billingRouter } from "./finance-billing"
+import { paymentRouter } from "./finance-payment"
+import { discountRouter } from "./finance-discount"
+import { reportRouter } from "./finance-report"
+import { settingsRouter } from "./finance-settings"
 
 const tagihanCreateSchema = z.object({
   id: z.string().optional(),
@@ -30,6 +35,7 @@ function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?:
 }
 
 export const keuanganRouter = router({
+  // ─── Existing procedures (backward compat) ───────────────
   getBySiswa: protectedProcedure
     .input(
       z.object({
@@ -105,4 +111,11 @@ export const keuanganRouter = router({
       await logAudit(ctx, { action: "update", entity: "tagihan_spp", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
+
+  // ─── New bounded context sub-routers ─────────────────────
+  billing: billingRouter,
+  payment: paymentRouter,
+  discount: discountRouter,
+  report: reportRouter,
+  settings: settingsRouter,
 })

@@ -21,6 +21,7 @@ import { izinRouter } from "./routers/izin"
 import { profilRouter } from "./routers/profil"
 import { poinRouter } from "./routers/poin"
 import { pengampuRouter } from "./routers/pengampu"
+import { dashboardRouter } from "./routers/dashboard"
 
 export const appRouter = router({
   pengampu: pengampuRouter,
@@ -45,6 +46,7 @@ export const appRouter = router({
   izin: izinRouter,
   profil: profilRouter,
   poin: poinRouter,
+  dashboard: dashboardRouter,
 })
 
 export type AppRouter = typeof appRouter

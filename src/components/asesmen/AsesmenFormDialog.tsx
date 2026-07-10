@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { api } from "@/lib/trpc/client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -54,24 +54,6 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
   const createMutation = api.asesmen.create.useMutation()
   const updateMutation = api.asesmen.update.useMutation()
-
-  const selectedGuruLabel = useMemo(() => {
-    if (!guruId) return ""
-    const g = guruList?.find((g) => g.id === guruId)
-    return g ? g.namaLengkap : ""
-  }, [guruId, guruList])
-
-  const selectedKelasLabel = useMemo(() => {
-    if (!kelasId) return ""
-    const k = kelasList?.find((k) => k.id === kelasId)
-    return k ? `${k.tingkat ?? ""} - ${k.namaKelas}` : ""
-  }, [kelasId, kelasList])
-
-  const selectedMapelLabel = useMemo(() => {
-    if (!mataPelajaranId) return ""
-    const m = mapelList?.find((m) => m.id === mataPelajaranId)
-    return m ? m.namaMapel : ""
-  }, [mataPelajaranId, mapelList])
 
   useEffect(() => {
     if (!open) return
@@ -158,7 +140,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
           <div className="grid grid-cols-2 gap-3">
             <FieldWrap label="Kategori" required>
-              <Select value={kategori} onValueChange={(v) => setKategori(v ?? "formatif_proses")}>
+              <Select value={kategori} onValueChange={(v) => setKategori(v ?? "formatif_proses")} options={[{value:"formatif_awal", label:"Formatif Awal"}, {value:"formatif_proses", label:"Formatif Proses"}, {value:"sumatif", label:"Sumatif"}]}>
                 <SelectTrigger className="h-9 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -171,7 +153,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             </FieldWrap>
 
             <FieldWrap label="Teknik">
-              <Select value={teknik} onValueChange={(v) => setTeknik(v ?? "tes_tertulis")}>
+              <Select value={teknik} onValueChange={(v) => setTeknik(v ?? "tes_tertulis")} options={[{value:"tes_tertulis", label:"Tes Tertulis"}, {value:"tes_lisan", label:"Tes Lisan"}, {value:"penugasan", label:"Penugasan"}, {value:"praktik", label:"Praktik"}, {value:"proyek", label:"Proyek"}, {value:"portofolio", label:"Portofolio"}]}>
                 <SelectTrigger className="h-9 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -189,7 +171,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
           <div className="grid grid-cols-2 gap-3">
             <FieldWrap label="Jenis Pengumpulan">
-              <Select value={jenisPengumpulan} onValueChange={(v) => setJenisPengumpulan(v ?? "unggah_file")}>
+              <Select value={jenisPengumpulan} onValueChange={(v) => setJenisPengumpulan(v ?? "unggah_file")} options={[{value:"unggah_file", label:"Unggah File"}, {value:"teks", label:"Teks"}, {value:"cbt", label:"CBT"}]}>
                 <SelectTrigger className="h-9 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -209,9 +191,9 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           <div className="grid grid-cols-2 gap-3">
             {!currentGuru && (
               <FieldWrap label="Guru" required>
-                <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")}>
+                <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")} options={guruList?.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
                   <SelectTrigger className="h-9 rounded-xl">
-                    <SelectValue placeholder="Pilih guru">{selectedGuruLabel || "Pilih guru"}</SelectValue>
+                    <SelectValue placeholder="Pilih guru" />
                   </SelectTrigger>
                   <SelectContent>
                     {guruList?.map((g) => (
@@ -222,9 +204,9 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
               </FieldWrap>
             )}
             <FieldWrap label="Kelas" required>
-              <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
+              <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")} options={kelasList?.map((k) => ({ value: k.id, label: `${k.tingkat ?? ""} - ${k.namaKelas}` }))}>
                 <SelectTrigger className="h-9 rounded-xl">
-                  <SelectValue placeholder="Pilih kelas">{selectedKelasLabel || "Pilih kelas"}</SelectValue>
+                  <SelectValue placeholder="Pilih kelas" />
                 </SelectTrigger>
                 <SelectContent>
                   {kelasList?.map((k) => (
@@ -235,9 +217,9 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             </FieldWrap>
 
             <FieldWrap label="Mata Pelajaran" required>
-              <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")}>
+              <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")} options={mapelList?.map((m) => ({ value: m.id, label: m.namaMapel }))}>
                 <SelectTrigger className="h-9 rounded-xl">
-                  <SelectValue placeholder="Pilih mapel">{selectedMapelLabel || "Pilih mapel"}</SelectValue>
+                  <SelectValue placeholder="Pilih mapel" />
                 </SelectTrigger>
                 <SelectContent>
                   {mapelList?.map((m) => (

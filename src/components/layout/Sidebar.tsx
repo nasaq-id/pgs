@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown,
-  Trophy, Megaphone, DoorOpen, QrCode, Bell,
+  Trophy, Megaphone, DoorOpen, QrCode, Bell, Wallet,
 } from "lucide-react"
 import {
   Dialog,
@@ -23,11 +23,11 @@ interface MenuItem {
   icon: React.ElementType
   label: string
   path?: string
-  allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu")[]
+  allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu" | "yayasan")[]
   children?: {
     label: string
     path: string
-    allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu")[]
+    allowedRoles?: ("super_admin" | "admin_sekolah" | "tu" | "guru" | "siswa" | "ortu" | "yayasan")[]
   }[]
 }
 
@@ -129,10 +129,18 @@ const menuItems: MenuItem[] = [
     ]
   },
   { 
-    icon: Building2, 
+    icon: Wallet, 
     label: "Keuangan", 
-    path: "/keuangan/tagihan",
-    allowedRoles: ["super_admin", "admin_sekolah", "tu", "siswa", "ortu"]
+    allowedRoles: ["super_admin", "admin_sekolah", "tu", "yayasan", "guru"],
+    children: [
+      { label: "Dashboard", path: "/keuangan" },
+      { label: "Tagihan", path: "/keuangan/tagihan" },
+      { label: "Generate Tagihan", path: "/keuangan/tagihan/generate" },
+      { label: "Verifikasi", path: "/keuangan/verifikasi" },
+      { label: "Diskon & Beasiswa", path: "/keuangan/diskon" },
+      { label: "Laporan", path: "/keuangan/laporan" },
+      { label: "Pengaturan", path: "/keuangan/pengaturan" },
+    ]
   },
   { 
     icon: Settings, 

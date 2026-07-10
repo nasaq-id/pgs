@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import Link from "next/link"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,298 +10,193 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { DollarSign, Plus, Search, Loader2, CheckCircle2 } from "lucide-react"
-import { toast } from "sonner"
+import FilterBar from "@/components/keuangan/FilterBar"
+import { DollarSign, Search, Plus, ArrowRight } from "lucide-react"
+
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
 
 const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  pending: "secondary",
-  lunas: "default",
-  tertunggak: "destructive",
+  draft: "secondary",
+  issued: "default",
+  partially_paid: "outline",
+  paid: "default",
+  overdue: "destructive",
+  cancelled: "secondary",
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "Pending",
-  lunas: "Lunas",
-  tertunggak: "Tertunggak",
+  draft: "Draft",
+  issued: "Belum Dibayar",
+  partially_paid: "Sebagian",
+  paid: "Lunas",
+  overdue: "Tertunggak",
+  cancelled: "Dibatalkan",
 }
 
-const BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-]
+function fmtRupiah(num: number) {
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num)
+}
 
 export default function TagihanPage() {
-  const [siswaId, setSiswaId] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [search, setSearch] = useState("")
-  const [formOpen, setFormOpen] = useState(false)
-  const [bayarOpen, setBayarOpen] = useState(false)
-  const [selectedTagihan, setSelectedTagihan] = useState<any>(null)
-  const [newBulan, setNewBulan] = useState("")
-  const [newTahun, setNewTahun] = useState("")
-  const [newJumlah, setNewJumlah] = useState("")
-  const [saving, setSaving] = useState(false)
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [kelasFilter, setKelasFilter] = useState("all")
+  const [siswaId, setSiswaId] = useState("")
 
-  const { data: siswaList } = api.siswa.getAll.useQuery({})
-  const { data: tagihanList, isLoading, refetch } = api.keuangan.getBySiswa.useQuery(
-    { siswaId },
-    { enabled: !!siswaId },
-  )
+  const { data: siswaList, isLoading: siswaLoading } = api.siswa.getAll.useQuery({})
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
+  const { data: invoices, isLoading: invLoading } = api.keuangan.billing.getAll.useQuery({ limit: 500 })
+  const { data: billingTypes } = api.keuangan.settings.billingType.list.useQuery()
 
-  const createTagihan = api.keuangan.create.useMutation()
-  const updateTagihan = api.keuangan.update.useMutation()
-
-  const filtered = (tagihanList || []).filter((t) => {
-    if (statusFilter !== "all" && t.statusPembayaran !== statusFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (t.noTagihan || "").toLowerCase().includes(q)
+  const siswaWithInvoice = useMemo(() => {
+    if (!siswaList || !invoices) return []
+    const invBySiswa = new Map<string, { total: number; paid: number; status: string; dueDate: string }>()
+    for (const inv of invoices) {
+      const existing = invBySiswa.get(inv.studentId)
+      const total = Number(inv.totalAmount)
+      const paid = Number(inv.paidAmount)
+      if (existing) {
+        existing.total += total
+        existing.paid += paid
+        if (inv.status === "overdue") existing.status = "overdue"
+        else if (inv.status === "issued" && existing.status !== "overdue") existing.status = "issued"
+        else if (inv.status === "partially_paid" && existing.status !== "overdue" && existing.status !== "issued") existing.status = "partially_paid"
+      } else {
+        invBySiswa.set(inv.studentId, { total, paid, status: inv.status, dueDate: inv.dueDate })
+      }
     }
-    return true
-  })
 
-  const handleCreateTagihan = async () => {
-    if (!siswaId || !newBulan || !newTahun || !newJumlah) {
-      toast.error("Semua field wajib diisi")
-      return
-    }
-    setSaving(true)
-    try {
-      await createTagihan.mutateAsync({
-        siswaId,
-        bulan: parseInt(newBulan),
-        tahun: parseInt(newTahun),
-        jumlah: parseInt(newJumlah),
+    return siswaList
+      .map((s) => ({
+        id: s.id,
+        nama: s.namaLengkap,
+        kelasId: s.kelasId || "",
+        nisn: s.nisn,
+        tagihan: invBySiswa.get(s.id) || null,
+      }))
+      .filter((s) => {
+        if (statusFilter === "all") return true
+        if (statusFilter === "lunas") return s.tagihan?.status === "paid"
+        if (statusFilter === "menunggak") return s.tagihan && s.tagihan.status !== "paid" && s.tagihan.status !== "cancelled"
+        if (statusFilter === "belum") return !s.tagihan
+        return true
       })
-      toast.success("Tagihan berhasil dibuat")
-      setFormOpen(false)
-      setNewBulan("")
-      setNewTahun("")
-      setNewJumlah("")
-      refetch()
-    } catch {
-      toast.error("Gagal membuat tagihan")
-    }
-    setSaving(false)
-  }
-
-  const handleMarkPaid = async () => {
-    if (!selectedTagihan) return
-    setSaving(true)
-    try {
-      await updateTagihan.mutateAsync({
-        id: selectedTagihan.id,
-        data: {
-          statusPembayaran: "lunas",
-          tanggalBayar: new Date(),
-        },
+      .filter((s) => {
+        if (kelasFilter === "all") return true
+        return s.kelasId === kelasFilter
       })
-      toast.success("Pembayaran berhasil dicatat")
-      setBayarOpen(false)
-      setSelectedTagihan(null)
-      refetch()
-    } catch {
-      toast.error("Gagal mencatat pembayaran")
-    }
-    setSaving(false)
-  }
+      .filter((s) => {
+        if (!search) return true
+        const q = search.toLowerCase()
+        return s.nama.toLowerCase().includes(q) || s.nisn.toLowerCase().includes(q)
+      })
+      .sort((a, b) => {
+        const aUnpaid = a.tagihan ? a.tagihan.total - a.tagihan.paid : 0
+        const bUnpaid = b.tagihan ? b.tagihan.total - b.tagihan.paid : 0
+        return bUnpaid - aUnpaid
+      })
+  }, [siswaList, invoices, statusFilter, kelasFilter, search])
 
-  const fmtRupiah = (num: number) => {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num)
-  }
+  const kelasOptions = useMemo(() => [
+    { value: "all", label: "Semua Kelas" },
+    ...(kelasList || []).map((k: any) => ({ value: k.id, label: `${k.tingkat || ""} ${k.namaKelas}` })),
+  ], [kelasList])
 
-  const fmtDate = (d: Date | string | null | undefined) => {
-    if (!d) return "-"
-    return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
-  }
-
-  const selectedSiswa = siswaList?.find((s) => s.id === siswaId)
+  const isLoading = siswaLoading || invLoading
 
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tagihan SPP</h2>
-          <p className="text-muted-foreground">Kelola tagihan dan pembayaran SPP siswa</p>
+          <h2 className="text-3xl font-bold tracking-tight">Tagihan</h2>
+          <p className="text-muted-foreground">Daftar tagihan semua siswa</p>
         </div>
-        {siswaId && (
-          <Button className="gap-2" onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" /> Tambah Tagihan
+        <Link href="/keuangan/tagihan/generate">
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" /> Generate Tagihan
           </Button>
-        )}
+        </Link>
       </div>
 
       <Card className="p-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
-          <Select value={siswaId} onValueChange={(v) => setSiswaId(v ?? "")}>
-            <SelectTrigger className="w-[250px] h-9">
-              <SelectValue placeholder="Pilih Siswa" />
-            </SelectTrigger>
-            <SelectContent>
-              {siswaList?.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.namaLengkap} ({s.nisn})</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-            <SelectTrigger className="w-[160px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="lunas">Lunas</SelectItem>
-              <SelectItem value="tertunggak">Tertunggak</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="relative sm:ml-auto">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari no. tagihan..." className="pl-9 h-9 w-[200px]" />
-          </div>
-        </div>
+        <FilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Cari siswa..."
+          filters={[
+            { key: "status", label: "Status", options: [
+              { value: "all", label: "Semua Status" },
+              { value: "lunas", label: "Lunas" },
+              { value: "menunggak", label: "Menunggak" },
+              { value: "belum", label: "Belum Ada Tagihan" },
+            ], value: statusFilter, onChange: setStatusFilter },
+            { key: "kelas", label: "Kelas", options: kelasOptions, value: kelasFilter, onChange: setKelasFilter },
+          ]}
+        />
       </Card>
 
-      {!siswaId ? (
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-1">Pilih Siswa</h3>
-            <p className="text-sm text-muted-foreground">Pilih siswa untuk melihat tagihan SPP.</p>
-          </div>
-        </Card>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
         </div>
-      ) : filtered.length === 0 ? (
-        <Card className="p-12">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-1">Tidak Ada Tagihan</h3>
-            <p className="text-sm text-muted-foreground">
-              {selectedSiswa?.namaLengkap} belum memiliki tagihan. Tambahkan tagihan baru.
-            </p>
-          </div>
-        </Card>
       ) : (
         <Card className="overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>No. Tagihan</TableHead>
-                <TableHead>Bulan</TableHead>
-                <TableHead>Tahun</TableHead>
-                <TableHead className="text-right">Jumlah</TableHead>
+                <TableHead>Nama Siswa</TableHead>
+                <TableHead>NISN</TableHead>
+                <TableHead>Kelas</TableHead>
+                <TableHead className="text-right">Total Tagihan</TableHead>
+                <TableHead className="text-right">Terbayar</TableHead>
+                <TableHead className="text-right">Sisa</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Tgl. Bayar</TableHead>
                 <TableHead className="text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs">{t.noTagihan || "-"}</TableCell>
-                  <TableCell>{BULAN[t.bulan - 1]}</TableCell>
-                  <TableCell>{t.tahun}</TableCell>
-                  <TableCell className="text-right font-medium">{fmtRupiah(t.jumlah)}</TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_COLORS[t.statusPembayaran] || "secondary"} className="text-xs">
-                      {STATUS_LABEL[t.statusPembayaran] || t.statusPembayaran}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{fmtDate(t.tanggalBayar)}</TableCell>
-                  <TableCell className="text-center">
-                    {t.statusPembayaran !== "lunas" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setSelectedTagihan(t); setBayarOpen(true) }}
-                      >
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Bayar
-                      </Button>
-                    )}
+              {siswaWithInvoice.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    Tidak ada data siswa
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                siswaWithInvoice.map((s) => {
+                  const sisa = s.tagihan ? s.tagihan.total - s.tagihan.paid : 0
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium">{s.nama}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{s.nisn}</TableCell>
+                      <TableCell className="text-xs">{kelasList?.find((k: any) => k.id === s.kelasId)?.namaKelas || "-"}</TableCell>
+                      <TableCell className="text-right">{s.tagihan ? fmtRupiah(s.tagihan.total) : "-"}</TableCell>
+                      <TableCell className="text-right">{s.tagihan ? fmtRupiah(s.tagihan.paid) : "-"}</TableCell>
+                      <TableCell className="text-right font-medium">{s.tagihan ? fmtRupiah(sisa) : "-"}</TableCell>
+                      <TableCell>
+                        {s.tagihan ? (
+                          <Badge variant={STATUS_COLORS[s.tagihan.status] || "secondary"} className="text-xs">
+                            {STATUS_LABEL[s.tagihan.status] || s.tagihan.status}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Belum Ada</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link
+                          href={`/keuangan/tagihan/${s.id}`}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          Detail <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </Card>
       )}
-
-      <Dialog open={formOpen} onOpenChange={(v) => { if (!v) setFormOpen(false) }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Tambah Tagihan Baru</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-sm">Bulan</Label>
-                <Select value={newBulan} onValueChange={(v) => setNewBulan(v ?? "")}>
-                  <SelectTrigger><SelectValue placeholder="Bulan" /></SelectTrigger>
-                  <SelectContent>
-                    {BULAN.map((nama, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>{nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm">Tahun</Label>
-                <Input type="number" value={newTahun} onChange={(e) => setNewTahun(e.target.value)} placeholder="2025" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Jumlah (Rp)</Label>
-              <Input type="number" value={newJumlah} onChange={(e) => setNewJumlah(e.target.value)} placeholder="500000" />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>Batal</Button>
-              <Button onClick={handleCreateTagihan} disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Simpan
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={bayarOpen} onOpenChange={(v) => { if (!v) { setBayarOpen(false); setSelectedTagihan(null) }}}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {selectedTagihan && (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Apakah Anda yakin ingin menandai tagihan berikut sebagai <strong>Lunas</strong>?
-                </p>
-                <div className="rounded-lg bg-muted p-3 space-y-1 text-sm">
-                  <p><span className="text-muted-foreground">No. Tagihan:</span> <strong>{selectedTagihan.noTagihan || "-"}</strong></p>
-                  <p><span className="text-muted-foreground">Periode:</span> <strong>{BULAN[selectedTagihan.bulan - 1]} {selectedTagihan.tahun}</strong></p>
-                  <p><span className="text-muted-foreground">Jumlah:</span> <strong>{fmtRupiah(selectedTagihan.jumlah)}</strong></p>
-                </div>
-              </>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => { setBayarOpen(false); setSelectedTagihan(null) }} disabled={saving}>Batal</Button>
-              <Button onClick={handleMarkPaid} disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Tandai Lunas
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

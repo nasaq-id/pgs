@@ -111,7 +111,7 @@ export default function PrestasiFormDialog({ open, onClose, onSubmit, initial, s
 
           <div className="flex items-center gap-4">
             <Label className="w-24 text-right flex-shrink-0">Siswa</Label>
-            <Select value={siswaId} onValueChange={(v) => setSiswaId(v ?? "")}>
+            <Select value={siswaId} onValueChange={(v) => setSiswaId(v ?? "")} options={siswaList.map((s) => ({ value: s.id, label: s.namaLengkap }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Pilih Siswa" />
               </SelectTrigger>
@@ -125,7 +125,7 @@ export default function PrestasiFormDialog({ open, onClose, onSubmit, initial, s
 
           <div className="flex items-center gap-4">
             <Label className="w-24 text-right flex-shrink-0">Tingkat</Label>
-            <Select value={tingkat} onValueChange={(v) => setTingkat(v ?? "")}>
+            <Select value={tingkat} onValueChange={(v) => setTingkat(v ?? "")} options={TINGKAT_OPTIONS}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Pilih Tingkat" />
               </SelectTrigger>

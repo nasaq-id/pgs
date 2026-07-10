@@ -156,7 +156,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Tingkat <span className="text-destructive">*</span></Label>
-              <Select value={tingkat} onValueChange={(v) => v && setTingkat(v)}>
+              <Select value={tingkat} onValueChange={(v) => v && setTingkat(v)} options={filteredTingkat}>
                 <SelectTrigger><SelectValue placeholder="Pilih tingkat" /></SelectTrigger>
                 <SelectContent>
                   {filteredTingkat.map((t) => (
@@ -188,8 +188,8 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
 
             <div className="space-y-1.5">
               <Label>Wali Kelas</Label>
-              <Select value={waliKelasId} onValueChange={(v) => v && setWaliKelasId(v)}>
-                <SelectTrigger><SelectValue placeholder="Pilih wali kelas">{guruList.find((g) => g.id === waliKelasId)?.namaLengkap || "Pilih wali kelas"}</SelectValue></SelectTrigger>
+              <Select value={waliKelasId} onValueChange={(v) => v && setWaliKelasId(v)} options={guruList.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
+                <SelectTrigger><SelectValue placeholder="Pilih wali kelas" /></SelectTrigger>
                 <SelectContent>
                   {guruList.map((g) => (
                     <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>
