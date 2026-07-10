@@ -110,12 +110,16 @@ export default function AsesmenPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Asesmen</h2>
-          <p className="text-muted-foreground">Kelola asesmen formatif & sumatif Kurikulum Merdeka</p>
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <ClipboardCheck className="w-5 h-5 text-teal-600" />
+            <span className="text-[10px] font-black uppercase tracking-wider">Modul Asesmen Pembelajaran</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight">Asesmen Kurikulum Merdeka</h2>
+          <p className="text-muted-foreground">Kelola asesmen formatif & sumatif</p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditItem(null); setFormOpen(true) }}>
+        <Button className="gap-2 shrink-0" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => { setEditItem(null); setFormOpen(true) }}>
           <Plus className="h-4 w-4" /> Buat Asesmen
         </Button>
       </div>
@@ -202,7 +206,7 @@ export default function AsesmenPage() {
               </div>
             </Card>
           ) : (
-            <div className="space-y-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.map((a) => {
                 const deadlineStr = a.deadline ? new Date(a.deadline).toISOString().split("T")[0] : ""
                 const isOverdue = a.status === "aktif" && deadlineStr && deadlineStr < today
@@ -212,61 +216,56 @@ export default function AsesmenPage() {
                 const classLabel = cls ? `${cls.tingkat ?? ""} - ${cls.namaKelas}` : "-"
                 const mapelLabel = mapel ? mapel.namaMapel : "-"
 
-                const leftBorder = isOverdue
-                  ? "border-l-4 border-l-rose-500 shadow-[0_4px_20px_-2px_rgba(244,63,94,0.04)]"
-                  : a.status === "aktif"
-                    ? "border-l-4 border-l-emerald-500 shadow-[0_4px_20px_-2px_rgba(16,185,129,0.04)]"
-                    : "border-l-4 border-l-slate-300 dark:border-l-slate-700"
-
                 return (
-                  <div key={a.id} className={`glass-card rounded-2xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${leftBorder}`} onClick={() => setDetailId(a.id)}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0 space-y-3">
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                          <Badge variant="outline" className="bg-blue-50/50 text-blue-600 border-blue-100/80 hover:bg-blue-50/50 text-[10px] h-5 px-2 rounded-lg font-medium dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50">
-                            {classLabel}
-                          </Badge>
-                          <Badge variant="outline" className="bg-violet-50/50 text-violet-600 border-violet-100/80 hover:bg-violet-50/50 text-[10px] h-5 px-2 rounded-lg font-medium dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/50">
-                            {mapelLabel}
-                          </Badge>
-                          <Badge variant="outline" className={`text-[10px] h-5 px-2 rounded-lg font-semibold border-0 ${KATEGORI_COLORS[a.kategori] || ""}`}>
-                            {KATEGORI_LABEL[a.kategori] || a.kategori}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-base text-foreground tracking-tight leading-snug">
-                            {a.judul}
-                          </h4>
-                          {isOverdue ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/20 dark:text-rose-400 px-2 py-0.5 rounded-full border border-rose-100 dark:border-rose-900/40">
-                              Melewati Deadline
-                            </span>
-                          ) : (
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                              a.status === "aktif"
-                                ? "text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40"
-                                : "text-slate-600 bg-slate-50 border-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                            }`}>
-                              {a.status === "aktif" ? "Aktif" : "Ditutup"}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
-                          <span className="inline-flex items-center gap-1 font-medium">
-                            <ClipboardCheck className="h-3.5 w-3.5 text-muted-foreground/70" /> KKTP: {a.kktp}
+                  <div key={a.id} className="glass-card rounded-2xl p-5 hover:shadow-lg hover:border-teal-100/50 transition-all duration-300 cursor-pointer flex flex-col justify-between" onClick={() => setDetailId(a.id)}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${KATEGORI_COLORS[a.kategori] || "bg-slate-50 text-slate-600"}`}>
+                          {KATEGORI_LABEL[a.kategori] || a.kategori}
+                        </span>
+                        {isOverdue ? (
+                          <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                            Terlambat
                           </span>
-                          {a.deadline && (
-                            <span className={`inline-flex items-center gap-1.5 font-semibold ${isOverdue ? "text-rose-600 dark:text-rose-400" : ""}`}>
-                              <Clock className="h-3.5 w-3.5" /> Deadline: {fmtDate(a.deadline)}
-                            </span>
-                          )}
-                        </div>
+                        ) : (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            a.status === "aktif"
+                              ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+                              : "text-slate-500 bg-slate-50 border-slate-100"
+                          }`}>
+                            {a.status === "aktif" ? "Aktif" : "Ditutup"}
+                          </span>
+                        )}
                       </div>
 
+                      <div>
+                        <h4 className="font-extrabold text-foreground text-sm leading-tight">{a.judul}</h4>
+                        <p className="text-[11px] text-muted-foreground font-medium mt-1.5">
+                          {classLabel} &middot; {mapelLabel}
+                        </p>
+                      </div>
+
+                      <div className="bg-muted/30 p-3 rounded-xl space-y-1 text-[10px] text-muted-foreground font-semibold">
+                        <p>Target KKTP: <span className="text-teal-600 font-bold">{a.kktp}</span></p>
+                        {a.deadline && (
+                          <p className={`font-semibold ${isOverdue ? "text-rose-600" : ""}`}>
+                            Deadline: {fmtDate(a.deadline)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 mt-3 border-t border-border/50 gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 h-9 rounded-xl text-xs font-bold"
+                        onClick={(e) => { e.stopPropagation(); setDetailId(a.id) }}
+                      >
+                        Detail & Nilai
+                      </Button>
                       <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted rounded-xl flex-shrink-0" onClick={(e) => e.stopPropagation()} />}>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-muted rounded-xl" onClick={(e) => e.stopPropagation()} />}>
                           <MoreVertical className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">

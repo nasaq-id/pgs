@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react"
+import { Search, BookOpen, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users, ClipboardList, Activity } from "lucide-react"
 import { toast } from "sonner"
 import JurnalFormDialog from "@/components/jurnal/JurnalFormDialog"
 
@@ -193,15 +193,68 @@ export default function JurnalMengajarPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <ClipboardList className="w-5 h-5 text-teal-600" />
+            <span className="text-[10px] font-black uppercase tracking-wider">Learning Management System (LMS)</span>
+          </div>
           <h2 className="text-3xl font-bold tracking-tight">Jurnal Mengajar</h2>
           <p className="text-muted-foreground">Kelola jurnal mengajar harian</p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-50 border border-border/60 rounded-xl px-3 py-2 shrink-0">
+          <Calendar className="h-4 w-4 text-muted-foreground/80" />
+          <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="bg-transparent text-xs font-bold text-foreground focus:outline-none w-[130px]" />
+          <span className="text-[10px] font-black px-2 py-0.5 bg-teal-100 text-teal-700 rounded-lg uppercase">{hariName}</span>
         </div>
       </div>
 
       {isAdmin && (
         <div className="space-y-4">
+          {/* Stat Widgets */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Mengajar</span>
+                <span className="text-2xl font-black text-foreground block">{monitoringJurnal?.length ?? 0}</span>
+              </div>
+              <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600">
+                <ClipboardList className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Jurnal Terisi</span>
+                <span className="text-2xl font-black text-emerald-600 block">{monitoringJurnal?.filter((j: any) => j.status === "selesai").length ?? 0}</span>
+              </div>
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Belum Terisi</span>
+                <span className="text-2xl font-black text-rose-500 block">{monitoringJurnal?.filter((j: any) => j.status !== "selesai").length ?? 0}</span>
+              </div>
+              <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Kepatuhan Guru</span>
+                <span className="text-2xl font-black text-foreground block">
+                  {monitoringJurnal && monitoringJurnal.length > 0
+                    ? Math.round((monitoringJurnal.filter((j: any) => j.status === "selesai").length / monitoringJurnal.length) * 100)
+                    : 0}%
+                </span>
+              </div>
+              <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500">
+                <Activity className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-lg font-semibold">Monitoring Guru &mdash; {fmtDate(selectedDate)}</h3>
@@ -350,11 +403,6 @@ export default function JurnalMengajarPage() {
             </SelectContent>
           </Select>
 
-          <div className="relative flex items-center gap-2 bg-muted/10 border border-border/60 rounded-xl px-2.5 h-9">
-            <Calendar className="h-4 w-4 text-muted-foreground/80" />
-            <Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="h-full border-none shadow-none focus-visible:ring-0 p-0 w-[130px] bg-transparent" />
-          </div>
-
           <div className="relative sm:ml-auto w-full sm:w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/80" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari judul jurnal..." className="pl-9.5 h-9 rounded-xl w-full" />
@@ -370,10 +418,20 @@ export default function JurnalMengajarPage() {
         <Card className="p-16 border-dashed border-2 border-border/60 rounded-2xl shadow-none bg-muted/5">
           <div className="flex flex-col items-center justify-center text-center">
             <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
-              <BookOpen className="h-7 w-7 text-muted-foreground/75" />
+              {isGuru ? (
+                <CheckCircle2 className="h-7 w-7 text-muted-foreground/75" />
+              ) : (
+                <BookOpen className="h-7 w-7 text-muted-foreground/75" />
+              )}
             </div>
-            <h3 className="text-lg font-bold mb-1.5 text-foreground">Tidak Ada Jurnal</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Belum ada jurnal mengajar harian yang terinput atau cocok dengan filter hari ini.</p>
+            <h3 className="text-lg font-bold mb-1.5 text-foreground">
+              {isGuru ? "Alhamdulillah, Tidak Ada Jadwal" : "Tidak Ada Jurnal"}
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              {isGuru
+                ? "Tidak ada jadwal mengajar untuk hari ini. Silakan hubungi admin jika seharusnya ada."
+                : "Belum ada jurnal mengajar harian yang terinput atau cocok dengan filter hari ini."}
+            </p>
           </div>
         </Card>
       ) : (
@@ -387,13 +445,14 @@ export default function JurnalMengajarPage() {
             const mapelLabel = mapel ? mapel.namaMapel : "-"
             const guruLabel = guruRec ? guruRec.namaLengkap : "-"
 
-            const leftBorder = j.status === "selesai"
-              ? "border-l-4 border-l-emerald-500 shadow-[0_4px_20px_-2px_rgba(16,185,129,0.04)]"
-              : "border-l-4 border-l-amber-500 shadow-[0_4px_20px_-2px_rgba(245,158,11,0.04)]"
+            const isFilled = j.status === "selesai"
 
             return (
-              <Card key={j.id} className={`p-5 transition-all duration-300 rounded-2xl glass-card hover:shadow-md hover:-translate-y-0.5 ${leftBorder}`}>
-                <div className="flex items-start justify-between gap-4">
+              <Card key={j.id} className={`p-5 transition-all duration-300 rounded-2xl glass-card hover:shadow-md hover:-translate-y-0.5 ${isFilled ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-amber-500"}`}>
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${isFilled ? "bg-emerald-500 border-emerald-500 text-white" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                    {isFilled ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                  </div>
                   <div className="flex-1 min-w-0 space-y-3">
                     {/* Badges metadata */}
                     <div className="flex flex-wrap gap-1.5 items-center">

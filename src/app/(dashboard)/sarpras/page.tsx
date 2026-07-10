@@ -257,21 +257,21 @@ export default function SarprasPage() {
   const tipeOptions = ["Semua Tipe", "Ruang Kelas", "Laboratorium", "Perpustakaan", "Kantor Guru", "Fasilitas Olahraga", "Lainnya"]
 
   const tabClass = (tab: string) =>
-    `flex-1 shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+    `flex-1 shrink-0 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
       activeTab === tab
-        ? "bg-white text-teal-700 shadow-xs"
-        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+        ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs"
+        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/40 dark:hover:bg-slate-800/40"
     }`
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-6 text-left">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Sarana & Prasarana</h2>
-        <p className="text-muted-foreground">Kelola data sarana dan prasarana sekolah</p>
+        <h2 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Sarana & Prasarana</h2>
+        <p className="text-muted-foreground text-xs mt-1">Kelola data sarana dan prasarana sekolah</p>
       </div>
 
       {/* Custom Tabs */}
-      <div className="flex space-x-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto w-full max-w-lg hide-scrollbar">
+      <div className="flex space-x-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-md hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
         <button onClick={() => setActiveTab("kelas")} className={tabClass("kelas")}>Rombel Kelas</button>
         <button onClick={() => setActiveTab("sarana")} className={tabClass("sarana")}>Data Sarana</button>
         <button onClick={() => setActiveTab("prasarana")} className={tabClass("prasarana")}>Prasarana</button>
@@ -285,48 +285,49 @@ export default function SarprasPage() {
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-teal-50 text-teal-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
                 <Box className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Sarana / Inventaris</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">{totalSaranaUnits} Unit</h3>
+                <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Total Sarana / Inventaris</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalSaranaUnits} Unit</h3>
               </div>
             </div>
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Kondisi Baik</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">
-                  {goodSaranaCount} <span className="text-sm font-medium text-slate-400">/ {totalSaranaUnits} Unit</span>
+                <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Kondisi Baik</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+                  {goodSaranaCount} <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">/ {totalSaranaUnits} Unit</span>
                 </h3>
               </div>
             </div>
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-rose-50 text-rose-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-450 rounded-xl shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Perlu Perbaikan / Rusak</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">{damagedSaranaCount} <span className="text-sm font-medium text-slate-400">Unit</span></h3>
+                <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Perlu Perbaikan / Rusak</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{damagedSaranaCount} <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Unit</span></h3>
               </div>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="glass-card rounded-2xl p-5">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <Input
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
                     value={saranaSearch}
                     onChange={e => setSaranaSearch(e.target.value)}
                     placeholder="Cari nama/spesifikasi..."
-                    className="pl-9 h-10 text-xs"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
                   />
                 </div>
                 <SearchableSelect
@@ -334,14 +335,14 @@ export default function SarprasPage() {
                   onValueChange={setSaranaKategoriFilter}
                   options={kategoriOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kategori"
-                  className="h-10 text-xs"
+                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
                 />
                 <SearchableSelect
                   value={saranaKondisiFilter}
                   onValueChange={setSaranaKondisiFilter}
                   options={kondisiOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kondisi"
-                  className="h-10 text-xs"
+                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
                 />
                 <SearchableSelect
                   value={saranaLokasiFilter}
@@ -352,90 +353,154 @@ export default function SarprasPage() {
                     ...prasaranaList.map(p => ({ value: p.id, label: p.nama })),
                   ]}
                   placeholder="Semua Lokasi"
-                  className="h-10 text-xs"
+                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
                 />
               </div>
-              <Button
+              <button
                 onClick={handleOpenAddSarana}
-                className="w-full lg:w-auto gap-2 shrink-0"
-                style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                className="w-full lg:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
-                Tambah Sarana
-              </Button>
+                <Plus className="w-4 h-4 mr-2" />
+                <span>Tambah Sarana</span>
+              </button>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="glass-card rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+          {/* Mobile View: Card List (Visible on mobile, hidden on desktop) */}
+          <div className="md:hidden space-y-4">
+            {filteredSarana.length === 0 ? (
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+                Tidak ada data sarana yang cocok dengan filter pencarian.
+              </div>
+            ) : (
+              filteredSarana.map(s => (
+                <div key={s.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">TAHUN: {s.tahunPengadaan}</span>
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-tight mt-0.5 truncate">{s.nama}</h4>
+                    </div>
+                    <span className="px-2.5 py-0.5 text-[8px] font-black uppercase rounded-full border shrink-0 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/30">
+                      Jumlah: {s.jumlah} Unit
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`px-2 py-0.5 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getCategoryBadgeColor(s.kategori)}`}>
+                      {s.kategori}
+                    </span>
+                    <span className={`px-2 py-0.5 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getConditionColor(s.kondisi)}`}>
+                      {s.kondisi}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                    <div className="min-w-0 pr-2">
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Lokasi / Ruangan</span>
+                      {s.lokasiPrasaranaId === "unassigned" ? (
+                        <span className="text-[10px] text-slate-400 italic font-semibold mt-1 block">Belum Ditempatkan</span>
+                      ) : (
+                        <span className="font-bold text-teal-600 dark:text-teal-400 text-xs flex items-center gap-1 mt-1 truncate">
+                          <Building2 className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate max-w-[150px]">{getPrasaranaName(s.lokasiPrasaranaId)}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex space-x-1.5 items-center shrink-0">
+                      <button
+                        onClick={() => handleOpenEditSarana(s)}
+                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSarana(s)}
+                        className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-600 dark:text-rose-450 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop View: Table (Visible on desktop, hidden on mobile) */}
+          <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
+                <TableRow>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Sarana</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Kategori</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jumlah</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Kondisi</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Lokasi / Ruangan</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Spesifikasi & Merk</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Pengadaan</TableHead>
+                  <TableHead className="text-right w-24 text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSarana.length === 0 ? (
                   <TableRow>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Sarana</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Kategori</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jumlah</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Kondisi</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lokasi / Ruangan</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Spesifikasi & Merk</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pengadaan</TableHead>
-                    <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
+                    <TableCell colSpan={8} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
+                      Tidak ada data sarana yang cocok dengan filter pencarian.
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSarana.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-slate-400 text-sm font-semibold">
-                        Tidak ada data sarana yang cocok dengan filter pencarian.
+                ) : (
+                  filteredSarana.map(s => (
+                    <TableRow key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                      <TableCell className="font-extrabold text-slate-800 dark:text-slate-205 text-xs">{s.nama}</TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-1 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getCategoryBadgeColor(s.kategori)}`}>
+                          {s.kategori}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-extrabold text-slate-700 dark:text-slate-300 text-xs">{s.jumlah} Unit</TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-1 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getConditionColor(s.kondisi)}`}>
+                          {s.kondisi}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {s.lokasiPrasaranaId === "unassigned" ? (
+                          <span className="text-slate-400 font-semibold text-xs italic">Belum Ditempatkan</span>
+                        ) : (
+                          <span className="font-bold text-teal-600 dark:text-teal-400 text-xs flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5" />
+                            {getPrasaranaName(s.lokasiPrasaranaId)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs block max-w-[200px] truncate" title={s.merkSpec}>
+                          {s.merkSpec || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-mono font-bold text-slate-500 dark:text-slate-400 text-xs">{s.tahunPengadaan}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEditSarana(s)}
+                            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-900/30 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSarana(s)}
+                            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-900/30 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredSarana.map(s => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-extrabold text-slate-800 text-xs">{s.nama}</TableCell>
-                        <TableCell>
-                          <span className={`px-2.5 py-1 border rounded-lg text-[10px] font-bold uppercase tracking-wide ${getCategoryBadgeColor(s.kategori)}`}>
-                            {s.kategori}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-extrabold text-slate-700 text-xs">{s.jumlah} Unit</TableCell>
-                        <TableCell>
-                          <span className={`px-2.5 py-1 border rounded-lg text-[10px] font-bold uppercase tracking-wide ${getConditionColor(s.kondisi)}`}>
-                            {s.kondisi}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {s.lokasiPrasaranaId === "unassigned" ? (
-                            <span className="text-slate-400 font-semibold text-xs italic">Belum Ditempatkan</span>
-                          ) : (
-                            <span className="font-bold text-teal-600 text-xs flex items-center gap-1">
-                              <Building2 className="w-3.5 h-3.5" />
-                              {getPrasaranaName(s.lokasiPrasaranaId)}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-slate-500 font-semibold text-xs block max-w-[200px] truncate" title={s.merkSpec}>
-                            {s.merkSpec || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-mono font-bold text-slate-500 text-xs">{s.tahunPengadaan}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditSarana(s)}>
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteSarana(s)}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
@@ -445,48 +510,49 @@ export default function SarprasPage() {
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-teal-50 text-teal-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Ruangan / Prasarana</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">{prasaranaList.length} Ruangan</h3>
+                <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Total Ruangan / Prasarana</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{prasaranaList.length} Ruangan</h3>
               </div>
             </div>
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
                 <Hash className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Luas Bangunan</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">{totalPrasaranaLuas} m&sup2;</h3>
+                <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Total Luas Bangunan</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalPrasaranaLuas} m&sup2;</h3>
               </div>
             </div>
-            <div className="glass-card rounded-2xl p-5 flex items-center space-x-4">
-              <div className="p-3.5 bg-sky-50 text-sky-600 rounded-xl">
+            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+              <div className="p-3.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 rounded-xl shrink-0">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Kondisi Baik</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">
-                  {goodPrasaranaCount} <span className="text-sm font-medium text-slate-400">/ {prasaranaList.length} Ruang</span>
+                <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Kondisi Baik</span>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+                  {goodPrasaranaCount} <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">/ {prasaranaList.length} Ruang</span>
                 </h3>
               </div>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="glass-card rounded-2xl p-5">
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <Input
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
                     value={prasaranaSearch}
                     onChange={e => setPrasaranaSearch(e.target.value)}
                     placeholder="Cari prasarana/ruangan..."
-                    className="pl-9 h-10 text-xs"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
                   />
                 </div>
                 <SearchableSelect
@@ -494,32 +560,31 @@ export default function SarprasPage() {
                   onValueChange={setPrasaranaTipeFilter}
                   options={tipeOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Tipe"
-                  className="h-10 text-xs"
+                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
                 />
                 <SearchableSelect
                   value={prasaranaKondisiFilter}
                   onValueChange={setPrasaranaKondisiFilter}
                   options={kondisiOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kondisi"
-                  className="h-10 text-xs"
+                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
                 />
               </div>
-              <Button
+              <button
                 onClick={handleOpenAddPrasarana}
-                className="w-full lg:w-auto gap-2 shrink-0"
-                style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                className="w-full lg:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
-                Tambah Prasarana
-              </Button>
+                <Plus className="w-4 h-4 mr-2" />
+                <span>Tambah Prasarana</span>
+              </button>
             </div>
           </div>
 
           {/* Card Grid */}
           {filteredPrasarana.length === 0 ? (
-            <div className="glass-card rounded-2xl p-12 text-center">
-              <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-700">Tidak ada Prasarana</h3>
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+              <Building2 className="w-16 h-16 text-slate-300 dark:text-slate-700 mb-4" />
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-350">Tidak ada Prasarana</h3>
               <p className="text-slate-400 text-sm mt-1">Data prasarana tidak ditemukan berdasarkan filter yang diterapkan.</p>
             </div>
           ) : (
@@ -531,39 +596,45 @@ export default function SarprasPage() {
                   <div
                     key={p.id}
                     onClick={() => setDetailPrasarana(p)}
-                    className="glass-card rounded-2xl p-5 hover:shadow-xl hover:border-teal-100 transition-all cursor-pointer flex flex-col justify-between"
+                    className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-xl hover:border-teal-300 dark:hover:border-teal-850 hover:bg-white dark:hover:bg-slate-900/50 transition-all cursor-pointer flex flex-col justify-between bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]"
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div className="p-2.5 bg-slate-50 rounded-xl">{getPrasaranaIcon(p.tipe)}</div>
-                      <span className={`px-2.5 py-1 border rounded-lg text-[10px] font-bold uppercase tracking-wide ${getConditionColor(p.kondisi)}`}>
+                      <div className="p-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl">{getPrasaranaIcon(p.tipe)}</div>
+                      <span className={`px-2.5 py-1 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getConditionColor(p.kondisi)}`}>
                         {p.kondisi}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">{p.tipe}</span>
-                      <h4 className="text-base font-extrabold text-slate-800 mt-1 block truncate">{p.nama}</h4>
-                      <p className="text-slate-400 text-xs mt-1.5 font-medium line-clamp-2">
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{p.tipe}</span>
+                      <h4 className="text-base font-extrabold text-slate-800 dark:text-slate-200 mt-1 block truncate">{p.nama}</h4>
+                      <p className="text-slate-400 dark:text-slate-450 text-xs mt-1.5 font-medium line-clamp-2">
                         {p.keterangan || "Tidak ada keterangan tambahan."}
                       </p>
                     </div>
-                    <div className="border-t border-slate-100 pt-4 mt-5 flex justify-between items-center">
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-5 flex justify-between items-center">
                       <div className="flex space-x-4">
                         <div>
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Luas</span>
-                          <span className="text-xs font-extrabold text-slate-700">{p.luas} m&sup2;</span>
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Luas</span>
+                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{p.luas} m&sup2;</span>
                         </div>
-                        <div className="border-l border-slate-100 pl-4">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Inventaris</span>
-                          <span className="text-xs font-extrabold text-teal-600">{totalItemsQty} Unit</span>
+                        <div className="border-l border-slate-150 dark:border-slate-800 pl-4">
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Inventaris</span>
+                          <span className="text-xs font-extrabold text-teal-650 dark:text-teal-400">{totalItemsQty} Unit</span>
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => handleOpenEditPrasarana(p, e)}>
+                      <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={e => handleOpenEditPrasarana(p, e)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-900/30 transition-all shadow-xs cursor-pointer"
+                        >
                           <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={e => handleDeletePrasarana(p, e)}>
+                        </button>
+                        <button
+                          onClick={e => handleDeletePrasarana(p, e)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-450 hover:border-rose-200 dark:hover:border-rose-900/30 transition-all shadow-xs cursor-pointer"
+                        >
                           <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -646,8 +717,20 @@ export default function SarprasPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" type="button" onClick={() => setPrasaranaModalOpen(false)} className="flex-1">Batal</Button>
-                <Button type="submit" className="flex-1" style={{ backgroundColor: "hsl(142 72% 40%)" }}>Simpan</Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setPrasaranaModalOpen(false)}
+                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+                >
+                  Batal
+                </Button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer"
+                >
+                  Simpan
+                </button>
               </div>
             </form>
           </div>
@@ -751,8 +834,20 @@ export default function SarprasPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" type="button" onClick={() => setSaranaModalOpen(false)} className="flex-1">Batal</Button>
-                <Button type="submit" className="flex-1" style={{ backgroundColor: "hsl(142 72% 40%)" }}>Simpan</Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setSaranaModalOpen(false)}
+                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+                >
+                  Batal
+                </Button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer"
+                >
+                  Simpan
+                </button>
               </div>
             </form>
           </div>
@@ -832,7 +927,13 @@ export default function SarprasPage() {
             </div>
 
             <div className="flex justify-end px-6 py-4 glass-dialog-footer">
-              <Button variant="outline" onClick={() => setDetailPrasarana(null)}>Tutup Detail</Button>
+              <Button
+                variant="outline"
+                onClick={() => setDetailPrasarana(null)}
+                className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+              >
+                Tutup Detail
+              </Button>
             </div>
           </div>
         </div>
