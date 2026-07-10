@@ -152,15 +152,9 @@ export default function JadwalFormDialog({
     return p?.guruNama ?? ""
   }, [mataPelajaranId, pengampuMap])
 
-  const filteredMapel = useMemo(() => {
-    if (initial) return mapelList
-    return mapelList.filter((m) => {
-      if (!kelasId) return true
-      const sisa = sisaJpMap.get(m.id)
-      if (sisa === undefined) return false
-      return sisa > 0
-    })
-  }, [mapelList, sisaJpMap, kelasId, initial])
+  const filteredMapel = mapelList
+
+  const hasGuru = mataPelajaranId && pengampuMap.has(mataPelajaranId)
 
   const sisaForSelected = useMemo(() => {
     if (!mataPelajaranId) return 0
@@ -169,8 +163,8 @@ export default function JadwalFormDialog({
 
   const maxJpCount = useMemo(() => {
     if (initial) return initial.jpCount ?? 5
-    const sisa = sisaForSelected
-    return Math.min(sisa, 5)
+    if (sisaForSelected > 0) return Math.min(sisaForSelected, 5)
+    return 1
   }, [sisaForSelected, initial])
 
   const occupiedJpSlots = useMemo(() => {
@@ -244,7 +238,10 @@ export default function JadwalFormDialog({
   const isValid = hari && mataPelajaranId && guruId && computedJpCount >= 1 && selectedJpMulai !== null
 
   const validationError = useMemo(() => {
-    if (!selectedJpMulai || !computedJpCount) return null
+    if (!mataPelajaranId || !selectedJpMulai || !computedJpCount) return null
+    if (!pengampuMap.has(mataPelajaranId)) {
+      return "Guru belum diplotting, tidak bisa menyimpan jadwal"
+    }
     for (let i = 0; i < computedJpCount; i++) {
       if (occupiedJpSlots.has(selectedJpMulai + i)) {
         return "Slot yang dipilih bertabrakan dengan jadwal lain"
@@ -254,7 +251,7 @@ export default function JadwalFormDialog({
       return `Melebihi sisa alokasi (maks ${maxJpCount} JP)`
     }
     return null
-  }, [selectedJpMulai, computedJpCount, occupiedJpSlots, maxJpCount])
+  }, [selectedJpMulai, computedJpCount, occupiedJpSlots, maxJpCount, mataPelajaranId, pengampuMap])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -275,9 +272,10 @@ export default function JadwalFormDialog({
               <SelectContent>
                 {filteredMapel.map((m) => {
                   const sisa = sisaJpMap.get(m.id)
-                  const label = sisa !== undefined
-                    ? `${m.namaMapel} ${m.kodeMapel ? `(${m.kodeMapel})` : ""} • Sisa ${sisa} JP`
-                    : `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`
+                  const adaGuru = pengampuMap.has(m.id)
+                  const label = adaGuru && sisa !== undefined
+                    ? `${m.namaMapel} ${m.kodeMapel ? `(${m.kodeMapel})` : ""} • Sisa ${sisa} JP • ${pengampuMap.get(m.id)?.guruNama}`
+                    : `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""} • Belum diplot`
                   return (
                     <SelectItem key={m.id} value={m.id}>
                       {label}
@@ -295,6 +293,17 @@ export default function JadwalFormDialog({
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Sisa alokasi: {sisaForSelected} JP ({sisaForSelected * durasiJP} menit)
+              </p>
+            </div>
+          )}
+
+          {mataPelajaranId && !pengampuMap.has(mataPelajaranId) && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10 px-3 py-2">
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                Guru belum diplotting
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-300 mt-0.5">
+                Silakan atur Plotting Pengajar terlebih dahulu
               </p>
             </div>
           )}
@@ -319,7 +328,7 @@ export default function JadwalFormDialog({
                 {computedJpCount >= 1
                   ? `= ${computedJpCount} JP (${computedJpCount * durasiJP} menit)`
                   : "Masukkan durasi dalam menit"}
-                {computedJpCount > maxJpCount && (
+                {computedJpCount > maxJpCount && sisaForSelected > 0 && (
                   <span className="text-destructive ml-2">
                     · melebihi sisa alokasi (maks {maxJpCount} JP / {maxJpCount * durasiJP} menit)
                   </span>
@@ -347,7 +356,7 @@ export default function JadwalFormDialog({
               {validationError && (
                 <p className="text-xs text-destructive">{validationError}</p>
               )}
-              {selectedJpMulai && computedJpCount >= 1 && !validationError && (
+              {!validationError && selectedJpMulai && computedJpCount >= 1 && hasGuru && (
                 <p className="text-xs text-green-600 dark:text-green-400">
                   Akan ditempatkan di JP {selectedJpMulai}–{selectedJpMulai + computedJpCount - 1}
                 </p>
