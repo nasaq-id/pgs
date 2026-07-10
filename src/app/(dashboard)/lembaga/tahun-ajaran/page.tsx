@@ -161,7 +161,7 @@ export default function TahunAjaranPage() {
       </div>
 
       <Dialog open={formOpen} onOpenChange={(open) => { if (!open) resetForm(); setFormOpen(open) }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editId ? "Edit" : "Tambah"} Tahun Ajaran</DialogTitle>
           </DialogHeader>
