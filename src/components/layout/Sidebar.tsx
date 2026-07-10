@@ -175,6 +175,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   // Fetch active academic year
   const { data: activeTa } = api.lembaga.getActiveTahunAjaran.useQuery(undefined, {
     enabled: !!session,
+    refetchInterval: 30000,
   })
 
   // Fetch user profile

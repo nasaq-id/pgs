@@ -66,6 +66,7 @@ export default function TahunAjaranPage() {
       await create.mutateAsync(data)
     }
     utils.lembaga.getTahunAjaran.invalidate()
+    utils.lembaga.getActiveTahunAjaran.invalidate()
     setFormOpen(false)
     resetForm()
   }
@@ -74,6 +75,7 @@ export default function TahunAjaranPage() {
     if (!deleteId) return
     await remove.mutateAsync({ id: deleteId })
     utils.lembaga.getTahunAjaran.invalidate()
+    utils.lembaga.getActiveTahunAjaran.invalidate()
     setDeleteId(null)
   }
 
