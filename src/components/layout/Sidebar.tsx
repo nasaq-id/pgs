@@ -86,9 +86,9 @@ const menuItems: MenuItem[] = [
   { 
     icon: Monitor, 
     label: "LMS", 
-    allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"],
+    allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"],
     children: [
-      { label: "Jurnal Mengajar", path: "/lms/jurnal" },
+      { label: "Jurnal Mengajar", path: "/lms/jurnal", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
       { label: "Asesmen", path: "/lms/asesmen" },
     ]
   },
