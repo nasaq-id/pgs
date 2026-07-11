@@ -132,6 +132,7 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
                       <Select
                         value={row.guruId}
                         onValueChange={(v) => updateRow(i, { guruId: v || "", kelasIds: row.guruId !== v ? [] : row.kelasIds })}
+                        options={allGuru.map((g) => ({ value: g.id, label: g.namaLengkap }))}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih guru" />
