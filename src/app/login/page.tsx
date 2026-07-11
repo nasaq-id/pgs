@@ -309,26 +309,24 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {process.env.NODE_ENV !== "production" && (
-                <div className="space-y-2 relative z-10">
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">
-                    Akses Cepat Demo
-                  </p>
-                  <div className="flex gap-2">
-                    {(Object.entries(DEMO_CREDENTIALS) as [RoleKey, typeof DEMO_CREDENTIALS[RoleKey]][]).map(([role, creds]) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => handleDemoLogin(role)}
-                        className="flex-1 text-[11px] px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-200 text-slate-600 hover:text-teal-700 font-bold transition-all cursor-pointer text-center leading-tight"
-                      >
-                        <span className="block">{creds.label}</span>
-                        <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{creds.email}</span>
-                      </button>
-                    ))}
-                  </div>
+              <div className="space-y-2 relative z-10">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">
+                  Akses Cepat Demo
+                </p>
+                <div className="flex gap-2">
+                  {(Object.entries(DEMO_CREDENTIALS) as [RoleKey, typeof DEMO_CREDENTIALS[RoleKey]][]).map(([role, creds]) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => handleDemoLogin(role)}
+                      className="flex-1 text-[11px] px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-200 text-slate-600 hover:text-teal-700 font-bold transition-all cursor-pointer text-center leading-tight"
+                    >
+                      <span className="block">{creds.label}</span>
+                      <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{creds.email}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <button
                 type="submit"
