@@ -21,6 +21,7 @@ import {
 import { Loader2, Plus, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles, ChevronDown } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { timeToMinutes, minutesToTime } from "./constants"
+import { toast } from "sonner"
 
 const ALL_DAYS = [
   { value: "senin", label: "Senin" },
@@ -129,6 +130,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
   const [insertLabel, setInsertLabel] = useState("")
   const [insertJamMulai, setInsertJamMulai] = useState("")
   const [insertJamSelesai, setInsertJamSelesai] = useState("")
+  const [insertAfterUrutan, setInsertAfterUrutan] = useState<number | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -203,23 +205,109 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
     if (!insertJamMulai || !insertJamSelesai) return
     if (insertType === "pembiasaan" && !insertLabel.trim()) return
 
-    const items = itemsByDay.get(insertHari) ?? []
-    const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
+    setSaving(true)
+    try {
+      const items = itemsByDay.get(insertHari) ?? []
+      const label = insertType === "pembiasaan" ? insertLabel.trim() : undefined
 
-    const label = insertType === "pembiasaan" ? insertLabel.trim() : undefined
+      if (insertAfterUrutan !== null) {
+        // 1. Shift all subsequent items (urutan >= targetUrutan)
+        for (const item of items) {
+          if (item.urutan >= insertAfterUrutan && item.id) {
+            await upsertTimeline.mutateAsync({
+              id: item.id,
+              hari: item.hari as any,
+              tipe: item.tipe as any,
+              label: item.label ?? undefined,
+              jamMulai: item.jamMulai,
+              jamSelesai: item.jamSelesai,
+              urutan: item.urutan + 1,
+              warna: item.warna ?? undefined,
+            })
+          }
+        }
 
-    await upsertTimeline.mutateAsync({
-      hari: insertHari as any,
-      tipe: insertType as any,
-      label,
-      jamMulai: insertJamMulai,
-      jamSelesai: insertJamSelesai,
-      urutan: maxUrutan + 1,
-    })
+        // 2. Insert new activity at target urutan
+        await upsertTimeline.mutateAsync({
+          hari: insertHari as any,
+          tipe: insertType as any,
+          label,
+          jamMulai: insertJamMulai,
+          jamSelesai: insertJamSelesai,
+          urutan: insertAfterUrutan,
+        })
+      } else {
+        const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
+        await upsertTimeline.mutateAsync({
+          hari: insertHari as any,
+          tipe: insertType as any,
+          label,
+          jamMulai: insertJamMulai,
+          jamSelesai: insertJamSelesai,
+          urutan: maxUrutan + 1,
+        })
+      }
 
-    setShowInsertForm(false)
-    setInsertLabel("")
-    setInsertType("istirahat")
+      setShowInsertForm(false)
+      setInsertLabel("")
+      setInsertType("istirahat")
+      setInsertAfterUrutan(null)
+      toast.success("Kegiatan berhasil ditambahkan")
+    } catch (err: any) {
+      toast.error("Gagal menambahkan kegiatan")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleInsertAfter = async (hari: string, afterItem: TimelineFormData, tipe: string) => {
+    const items = itemsByDay.get(hari) ?? []
+    const targetUrutan = afterItem.urutan + 1
+
+    if (tipe === "jp") {
+      setSaving(true)
+      try {
+        // 1. Shift all subsequent items
+        for (const item of items) {
+          if (item.urutan >= targetUrutan && item.id) {
+            await upsertTimeline.mutateAsync({
+              id: item.id,
+              hari: item.hari as any,
+              tipe: item.tipe as any,
+              label: item.label ?? undefined,
+              jamMulai: item.jamMulai,
+              jamSelesai: item.jamSelesai,
+              urutan: item.urutan + 1,
+              warna: item.warna ?? undefined,
+            })
+          }
+        }
+
+        // 2. Insert new JP
+        const { jamMulai: jm, jamSelesai: js } = getNextJpTime(hari)
+        await upsertTimeline.mutateAsync({
+          hari: hari as any,
+          tipe: "jp",
+          jamMulai: jm,
+          jamSelesai: js,
+          urutan: targetUrutan,
+        })
+        toast.success("Jam Pelajaran (JP) berhasil disisipkan")
+      } catch (err: any) {
+        toast.error("Gagal menyisipkan JP")
+      } finally {
+        setSaving(false)
+      }
+    } else {
+      setInsertHari(hari)
+      setInsertType(tipe)
+      setInsertLabel("")
+      setInsertJamMulai(afterItem.jamSelesai)
+      const endMin = timeToMinutes(afterItem.jamSelesai) + 30
+      setInsertJamSelesai(minutesToTime(endMin))
+      setInsertAfterUrutan(targetUrutan)
+      setShowInsertForm(true)
+    }
   }
 
   const handleDeleteItem = async (id: string) => {
@@ -383,12 +471,50 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                     <span className="font-medium truncate">{displayLabel}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/20 cursor-pointer"
+                          title="Sisipkan kegiatan setelah ini"
+                          disabled={saving}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      } />
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "jp")} className="cursor-pointer font-medium text-xs">
+                          <Clock className="h-4 w-4 mr-2 text-teal-600" />
+                          Sisip JP Baru
+                        </DropdownMenuItem>
+                        {hari === "senin" && (
+                          <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "upacara")} className="cursor-pointer font-medium text-xs">
+                            <Flag className="h-4 w-4 mr-2 text-amber-500" />
+                            Upacara (Senin)
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "istirahat")} className="cursor-pointer font-medium text-xs">
+                          <Coffee className="h-4 w-4 mr-2 text-blue-400" />
+                          Istirahat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "sholat")} className="cursor-pointer font-medium text-xs">
+                          <Sparkles className="h-4 w-4 mr-2 text-purple-450" />
+                          Sholat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "pembiasaan")} className="cursor-pointer font-medium text-xs">
+                          <BookOpen className="h-4 w-4 mr-2 text-emerald-500" />
+                          Pembiasaan...
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button
                       size="icon-xs"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive cursor-pointer"
                       onClick={() => item.id && handleDeleteItem(item.id)}
-                      disabled={deleteTimeline.isPending}
+                      disabled={deleteTimeline.isPending || saving}
                     >
                       {deleteTimeline.isPending ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -475,10 +601,10 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
           <Tabs defaultValue="dasar">
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="dasar">Dasar</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              {specialDays.map((d) => (
+              <TabsTrigger value="timeline">Template Timeline</TabsTrigger>
+              {ALL_DAYS.map((d) => (
                 <TabsTrigger key={`khusus-${d.value}`} value={`khusus-${d.value}`}>
-                  Peng. Khusus - {d.label}
+                  Peng. {d.label}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -523,7 +649,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
               {renderTimelinePanel(timelineHari, false)}
             </TabsContent>
 
-            {specialDays.map((d) => (
+            {ALL_DAYS.map((d) => (
               <TabsContent key={`khusus-${d.value}`} value={`khusus-${d.value}`} className="space-y-0">
                 {renderTimelinePanel(d.value, true)}
               </TabsContent>
@@ -583,6 +709,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                   onClick={() => {
                     setShowInsertForm(false)
                     setInsertLabel("")
+                    setInsertAfterUrutan(null)
                   }}
                   disabled={upsertTimeline.isPending}
                 >
