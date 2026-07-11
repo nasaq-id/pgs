@@ -162,13 +162,8 @@ export default function JadwalPage() {
 
   // Get active days from timeline items
   const aktifDays = useMemo(() => {
-    const days = new Set<string>()
-    for (const t of timelineRecords) {
-      if (t.tipe === "jp") days.add(t.hari)
-    }
-    if (days.size === 0) return DAYS
-    return DAYS.filter((d) => days.has(d))
-  }, [timelineRecords])
+    return DAYS
+  }, [])
 
   // Build timeline-based academic JP mapping
   const timelineByDay = useMemo(() => {
@@ -373,9 +368,13 @@ export default function JadwalPage() {
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-[hsl(142_72%_40%)]" />
           </div>
-        ) : !hasData ? (
+        ) : maxJpSlots === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">Belum ada jadwal untuk kelas ini</p>
+            <Settings className="h-10 w-10 text-muted-foreground/45 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">Jam Pelajaran Belum Diatur</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+              Silakan atur Jam Pelajaran (JP) terlebih dahulu melalui tombol <strong>Pengaturan Jadwal</strong>.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/10">
@@ -410,11 +409,17 @@ export default function JadwalPage() {
                     <td className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 px-3 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span>JP {slotIdx + 1}</span>
-                        {jpGridByDay[0]?.jpSlots[slotIdx] && (
-                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold tracking-tight mt-0.5">
-                            {jpGridByDay[0].jpSlots[slotIdx].timeStart} - {jpGridByDay[0].jpSlots[slotIdx].timeEnd}
-                          </span>
-                        )}
+                        {(() => {
+                          const slotWithTime = jpGridByDay.find((g) => g.jpSlots[slotIdx])?.jpSlots[slotIdx]
+                          if (slotWithTime) {
+                            return (
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold tracking-tight mt-0.5">
+                                {slotWithTime.timeStart} - {slotWithTime.timeEnd}
+                              </span>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
                     </td>
                     {aktifDays.map((day) => {
@@ -519,6 +524,10 @@ export default function JadwalPage() {
           setFormOpen(false)
           setEditEntry(null)
           setAddForHari(null)
+        }}
+        onOpenPengaturan={() => {
+          setFormOpen(false)
+          setPengaturanOpen(true)
         }}
         onSubmit={handleSubmit}
         initial={editEntry}

@@ -80,6 +80,7 @@ interface Props {
   timelineItems?: TimelineItemData[]
   contextHari?: string
   kelasId?: string
+  onOpenPengaturan: () => void
 }
 
 export default function JadwalFormDialog({
@@ -92,6 +93,7 @@ export default function JadwalFormDialog({
   existingJadwal = [],
   contextHari,
   kelasId,
+  onOpenPengaturan,
 }: Props) {
   const [hari, setHari] = useState(contextHari || initial?.hari || "senin")
   const [mataPelajaranId, setMataPelajaranId] = useState("")
@@ -352,6 +354,7 @@ export default function JadwalFormDialog({
                 selectedJpCount={computedJpCount}
                 onSelect={handleTimelineSelect}
                 excludeId={initial?.id}
+                onOpenPengaturan={onOpenPengaturan}
               />
               {validationError && (
                 <p className="text-xs text-destructive">{validationError}</p>

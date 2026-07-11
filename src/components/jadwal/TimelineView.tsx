@@ -2,6 +2,8 @@
 
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Settings, AlertTriangle } from "lucide-react"
 
 interface TimelineItemData {
   id: string
@@ -25,6 +27,7 @@ interface Props {
   selectedJpCount: number | null
   onSelect: (jpMulai: number | null) => void
   excludeId?: string
+  onOpenPengaturan?: () => void
 }
 
 export default function TimelineView({
@@ -34,6 +37,7 @@ export default function TimelineView({
   selectedJpCount,
   onSelect,
   excludeId,
+  onOpenPengaturan,
 }: Props) {
   const sorted = useMemo(
     () => [...timelineItems].sort((a, b) => a.urutan - b.urutan),
@@ -100,9 +104,24 @@ export default function TimelineView({
   return (
     <div className="space-y-1">
       {jpSlots.length === 0 && (
-        <p className="text-xs text-muted-foreground italic py-2 text-center">
-          Tidak ada slot JP untuk hari ini
-        </p>
+        <div className="flex flex-col items-center justify-center p-4 border border-dashed border-amber-200 dark:border-amber-800/60 bg-amber-500/5 rounded-2xl text-center space-y-2.5 my-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            <span>Slot JP Belum Dibuat</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground max-w-xs leading-relaxed">
+            Belum ada slot Jam Pelajaran (JP) yang dikonfigurasi untuk hari ini.
+          </p>
+          {onOpenPengaturan && (
+            <Button
+              onClick={onOpenPengaturan}
+              className="h-7 text-[9px] px-3 font-black uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-sm cursor-pointer"
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Atur Jam Pelajaran
+            </Button>
+          )}
+        </div>
       )}
 
       {jpSlots.map((slot, idx) => {
