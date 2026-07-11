@@ -4,7 +4,7 @@ import { eq, and, like, or, desc, asc, inArray, isNull } from "drizzle-orm"
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { siswa, users, kelas } from "@/server/db/schema"
+import { siswa, users, kelas, catatanMutasi } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -396,6 +396,104 @@ export const siswaRouter = router({
         }
       }
       await logAudit(ctx, { action: "reset_password", entity: "siswa", entityId: input.id })
+      return { success: true }
+    }),
+
+  getMutasi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .query(async ({ ctx }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = []
+      if (sekolahIdFilter) {
+        conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      }
+      
+      const result = await db
+        .select({
+          id: catatanMutasi.id,
+          siswaId: catatanMutasi.siswaId,
+          tanggalMutasi: catatanMutasi.tanggalMutasi,
+          jenisMutasi: catatanMutasi.jenisMutasi,
+          alasanMutasi: catatanMutasi.alasanMutasi,
+          sekolahTujuan: catatanMutasi.sekolahTujuan,
+          createdAt: catatanMutasi.createdAt,
+          namaSiswa: siswa.namaLengkap,
+          nisn: siswa.nisn,
+          nisLokal: siswa.nisLokal,
+          kelasId: siswa.kelasId,
+          namaKelas: kelas.namaKelas,
+        })
+        .from(catatanMutasi)
+        .innerJoin(siswa, eq(catatanMutasi.siswaId, siswa.id))
+        .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(catatanMutasi.tanggalMutasi))
+      
+      return result.map((r) => ({
+        id: r.id,
+        siswaId: r.siswaId,
+        tanggalMutasi: r.tanggalMutasi,
+        jenisMutasi: r.jenisMutasi,
+        alasanMutasi: r.alasanMutasi,
+        sekolahTujuan: r.sekolahTujuan,
+        createdAt: r.createdAt,
+        siswa: {
+          namaLengkap: r.namaSiswa,
+          nisn: r.nisn,
+          nisLokal: r.nisLokal,
+          kelasId: r.kelasId,
+          kelas: r.namaKelas ? { namaKelas: r.namaKelas } : null
+        }
+      }))
+    }),
+
+  createMutasi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      siswaId: z.string(),
+      tanggalMutasi: z.coerce.date(),
+      jenisMutasi: z.enum(["Pindah Sekolah", "Mengundurkan Diri", "Dikeluarkan", "Meninggal Dunia"]),
+      alasanMutasi: z.string().min(1),
+      sekolahTujuan: z.string().optional().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(siswa.id, input.siswaId)]
+      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      
+      const existingSiswa = await db.query.siswa.findFirst({
+        where: and(...conditions)
+      })
+      if (!existingSiswa) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+      }
+
+      // Step 1: Save mutation record
+      const id = crypto.randomUUID()
+      await db.insert(catatanMutasi).values({
+        id,
+        siswaId: input.siswaId,
+        tanggalMutasi: input.tanggalMutasi,
+        jenisMutasi: input.jenisMutasi,
+        alasanMutasi: input.alasanMutasi,
+        sekolahTujuan: input.sekolahTujuan,
+      })
+
+      // Step 2: Update student status
+      const newStatus = input.jenisMutasi === "Pindah Sekolah" ? "pindah" : "keluar"
+      await db
+        .update(siswa)
+        .set({
+          status: newStatus,
+          updatedAt: new Date()
+        })
+        .where(eq(siswa.id, input.siswaId))
+
+      await logAudit(ctx, {
+        action: "create",
+        entity: "catatan_mutasi",
+        entityId: id,
+        metadata: { siswaId: input.siswaId, jenisMutasi: input.jenisMutasi }
+      })
+
       return { success: true }
     }),
 })

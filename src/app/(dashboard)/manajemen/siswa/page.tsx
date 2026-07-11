@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
+import MutasiFormDialog from "@/components/siswa/MutasiFormDialog"
 import SiswaDetailDialog from "@/components/siswa/SiswaDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -90,6 +91,7 @@ export default function SiswaPage() {
   })
 
   const [formOpen, setFormOpen] = useState(false)
+  const [mutasiOpen, setMutasiOpen] = useState(false)
   const [editingSiswa, setEditingSiswa] = useState<SiswaItem | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -739,7 +741,13 @@ export default function SiswaPage() {
           </div>
 
           <button
-            onClick={handleCreate}
+            onClick={() => {
+              if (activeTab === "mutasi_keluar") {
+                setMutasiOpen(true)
+              } else {
+                handleCreate()
+              }
+            }}
             className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -1288,6 +1296,12 @@ export default function SiswaPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         initialData={editingSiswa}
+        onSuccess={handleFormSuccess}
+      />
+
+      <MutasiFormDialog
+        open={mutasiOpen}
+        onOpenChange={setMutasiOpen}
         onSuccess={handleFormSuccess}
       />
 
