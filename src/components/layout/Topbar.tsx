@@ -118,6 +118,26 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     }
     fetchWhatsApp()
   }, [utils])
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        const toggleBtn = document.getElementById("calendar-toggle-btn")
+        if (toggleBtn && toggleBtn.contains(event.target as Node)) {
+          return
+        }
+        setShowCalendar(false)
+      }
+    }
+    if (showCalendar) {
+      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("touchstart", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("touchstart", handleClickOutside)
+    }
+  }, [showCalendar])
+
 
   const handleNotificationClick = async (notif: any) => {
     if (!notif.dibaca) {
@@ -209,6 +229,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex items-center gap-2 flex-shrink-0">
         <Tooltip>
           <TooltipTrigger 
+            id="calendar-toggle-btn"
             className="clickable hidden lg:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 px-3 py-1.5 rounded-xl bg-teal-50/50 dark:bg-teal-950/30 backdrop-blur-sm border border-teal-200/50 dark:border-teal-900/40 hover:bg-teal-100/50 dark:hover:bg-teal-900/30 transition-all shadow-sm"
             onClick={() => setShowCalendar(!showCalendar)}
           >
@@ -376,7 +397,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       {showCalendar && (
         <div
           ref={calendarRef}
-          className="absolute top-full right-0 mt-2 z-50 bg-card/95 backdrop-blur-xl border rounded-xl p-4 shadow-lg w-80 animate-fade-in"
+          className="absolute top-full right-0 mt-2 z-50 bg-card/95 backdrop-blur-xl border rounded-xl p-4 shadow-lg w-[calc(100vw-2.5rem)] sm:w-80 max-w-sm animate-fade-in"
         >
           <div className="flex items-center justify-between mb-4">
             <button onClick={prevMonth} className="p-1 rounded hover:bg-muted transition-colors cursor-pointer">
