@@ -515,7 +515,7 @@ export default function Dashboard() {
                 let cellColorClass = "text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"
                 if (today) {
                   cellColorClass = "bg-slate-900 text-white font-extrabold shadow-sm border border-slate-900 dark:bg-slate-150 dark:text-slate-900 dark:border-slate-150"
-                } else if (hasHoliday) {
+                } else if (hasHoliday || colIndex === 0) {
                   cellColorClass = "bg-rose-500/10 text-rose-600 dark:text-rose-455 font-extrabold border border-rose-500/20"
                 } else if (hasKegiatan) {
                   cellColorClass = "bg-teal-500/10 text-teal-650 dark:text-teal-400 font-extrabold border border-teal-500/20"

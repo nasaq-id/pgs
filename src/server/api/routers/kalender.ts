@@ -176,19 +176,23 @@ export const kalenderRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
+      const startDate = new Date(input.tahun, 0, 1)
+      const endDate = new Date(input.tahun, 11, 31, 23, 59, 59)
+
+      // Delete existing national holidays for this school and year to prevent duplicates and clean old data
+      await db.delete(kalenderEvent).where(
+        and(
+          eq(kalenderEvent.sekolahId, sekolahId),
+          eq(kalenderEvent.isLiburNasional, true),
+          gte(kalenderEvent.tanggalMulai, startDate),
+          lte(kalenderEvent.tanggalMulai, endDate),
+        ),
+      )
+
       const holidays = getLiburNasional(input.tahun)
       let created = 0
 
       for (const h of holidays) {
-        const existing = await db.query.kalenderEvent.findFirst({
-          where: and(
-            eq(kalenderEvent.sekolahId, sekolahId),
-            eq(kalenderEvent.judul, h.judul),
-            eq(kalenderEvent.tanggalMulai, new Date(h.tanggalMulai)),
-          ),
-        })
-        if (existing) continue
-
         await db.insert(kalenderEvent).values({
           id: crypto.randomUUID(),
           sekolahId,
