@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Loader2, Plus, Calendar, Check, X, FileText, Upload, Eye } from "lucide-react"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 
 const JENIS_IZIN_LABEL: Record<string, string> = {
   terlambat: "Izin Terlambat",
@@ -113,22 +114,8 @@ export default function IzinPage() {
 
     setUploading(true)
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: JSON.stringify({ fileName: file.name }),
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-
-      const uploadRes = await fetch(data.signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      })
-
-      if (!uploadRes.ok) throw new Error("Gagal mengunggah file ke storage")
-
-      setBuktiUrl(data.publicUrl)
+      const url = await uploadToCloudinary(file, "izin-bukti")
+      setBuktiUrl(url)
       toast.success("Surat/bukti berhasil diunggah")
     } catch (err: any) {
       toast.error(err.message || "Gagal mengunggah surat/bukti")

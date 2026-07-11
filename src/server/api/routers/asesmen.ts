@@ -25,14 +25,15 @@ async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]
 const asesmenCreateSchema = z.object({
   id: z.string().optional(),
   guruId: z.string(),
-  kelasId: z.string(),
+  kelasId: z.string().optional(),
+  kelasIds: z.array(z.string()).optional(),
   mataPelajaranId: z.string(),
   jurnalMengajarId: z.string().nullable().optional(),
   judul: z.string().min(1),
   deskripsi: z.string().nullable().optional(),
   kategori: z.enum(["formatif_awal", "formatif_proses", "sumatif"]).optional().default("formatif_proses"),
   teknik: z.enum(["tes_tertulis", "tes_lisan", "penugasan", "praktik", "proyek", "portofolio"]).optional().default("tes_tertulis"),
-  jenisPengumpulan: z.enum(["unggah_file", "teks", "cbt"]).optional().default("unggah_file"),
+  jenisPengumpulan: z.enum(["unggah_file", "teks", "cbt", "langsung"]).optional().default("unggah_file"),
   kktp: z.number().min(0).max(100).optional().default(70),
   deadline: z.coerce.date().nullable().optional(),
   status: z.enum(["aktif", "ditutup"]).optional().default("aktif"),
@@ -108,25 +109,46 @@ export const asesmenRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan di sesi" })
 
-      const kelasIds = await getKelasIdsForSekolah(sekolahId)
-      if (!kelasIds.includes(input.kelasId)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
+      const targetKelasIds = input.kelasIds && input.kelasIds.length > 0
+        ? input.kelasIds
+        : [input.kelasId].filter((x): x is string => !!x)
+
+      if (targetKelasIds.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Minimal satu kelas harus dipilih" })
       }
-      const id = input.id || crypto.randomUUID()
-      const result = await db
-        .insert(asesmen)
-        .values({ ...input, id, sekolahId } as any)
-        .returning()
 
-      await logAudit(ctx, { action: "create", entity: "asesmen", entityId: id, metadata: { judul: input.judul, kelasId: input.kelasId } })
-      await createNotifikasi(ctx, {
-        judul: "Asesmen Baru",
-        pesan: `Asesmen "${input.judul}" telah dibuat untuk kelas.`,
-        tipe: "info",
-        link: `/lms/asesmen`,
-      })
+      const schoolKelasIds = await getKelasIdsForSekolah(sekolahId)
+      for (const kId of targetKelasIds) {
+        if (!schoolKelasIds.includes(kId)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: `Kelas ${kId} tidak berada di sekolah Anda` })
+        }
+      }
 
-      return result[0]
+      const results = []
+      for (const kelasId of targetKelasIds) {
+        const id = crypto.randomUUID()
+        const result = await db
+          .insert(asesmen)
+          .values({
+            ...input,
+            id,
+            kelasId,
+            kelasIds: undefined,
+            sekolahId,
+          } as any)
+          .returning()
+
+        await logAudit(ctx, { action: "create", entity: "asesmen", entityId: id, metadata: { judul: input.judul, kelasId } })
+        await createNotifikasi(ctx, {
+          judul: "Asesmen Baru",
+          pesan: `Asesmen "${input.judul}" telah dibuat untuk kelas.`,
+          tipe: "info",
+          link: `/lms/asesmen`,
+        })
+        results.push(result[0])
+      }
+
+      return results[0]
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
@@ -180,13 +202,41 @@ export const asesmenRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
       }
 
-      const entries = await db
-        .select()
-        .from(asesmenSiswa)
-        .where(eq(asesmenSiswa.asesmenId, input.asesmenId))
-        .orderBy(asc(asesmenSiswa.createdAt))
+      // Fetch all active students in this class
+      const classStudents = await db.query.siswa.findMany({
+        where: and(eq(siswa.kelasId, a.kelasId), eq(siswa.status, "aktif")),
+        orderBy: asc(siswa.namaLengkap),
+      })
 
-      return entries
+      // Fetch existing submission/grading records
+      const existingEntries = await db.query.asesmenSiswa.findMany({
+        where: eq(asesmenSiswa.asesmenId, input.asesmenId),
+        with: { siswa: true },
+      })
+
+      const entryMap = new Map(existingEntries.map((e) => [e.siswaId, e]))
+
+      // Return existing entry or a temp placeholder matching the schema shape
+      return classStudents.map((s) => {
+        const existing = entryMap.get(s.id)
+        if (existing) return existing
+        return {
+          id: `temp_${input.asesmenId}_${s.id}`,
+          asesmenId: input.asesmenId,
+          siswaId: s.id,
+          status: "belum_dikerjakan" as const,
+          jawabanTeks: null,
+          berkasUrl: null,
+          nilai: null,
+          statusKetuntasan: null,
+          feedback: null,
+          submittedAt: null,
+          dinilaiAt: null,
+          dinilaiOleh: null,
+          createdAt: new Date(),
+          siswa: s,
+        }
+      })
     }),
 
   submitTugas: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "siswa"])
@@ -268,13 +318,65 @@ export const asesmenRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const entry = await db.query.asesmenSiswa.findFirst({
-        where: eq(asesmenSiswa.id, input.asesmenSiswaId),
+      let entryId = input.asesmenSiswaId
+      let entry = await db.query.asesmenSiswa.findFirst({
+        where: eq(asesmenSiswa.id, entryId),
         with: { asesmen: { with: { kelas: true } } },
       })
-      if (!entry) throw new TRPCError({ code: "NOT_FOUND", message: "Entry tidak ditemukan" })
 
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+
+      if (!entry) {
+        // Handle grading mock student entry (temp_asesmenId_siswaId)
+        if (entryId.startsWith("temp_")) {
+          const parts = entryId.split("_")
+          const asesmenId = parts[1]
+          const siswaId = parts[2]
+
+          if (!asesmenId || !siswaId) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "ID temp tidak valid" })
+          }
+
+          const a = await db.query.asesmen.findFirst({
+            where: eq(asesmen.id, asesmenId),
+            with: { kelas: true },
+          })
+          if (!a) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
+          if (sekolahIdFilter && a.kelas?.sekolahId !== sekolahIdFilter) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
+          }
+
+          const kktp = a.kktp
+          const statusKetuntasan = input.nilai >= kktp ? "tuntas" : "belum_tuntas"
+
+          const guruRecord = await db.query.guru.findFirst({
+            where: eq(guru.id, a.guruId),
+          })
+          const dinilaiOleh = guruRecord?.namaLengkap || ctx.session.user.email || ""
+
+          const newId = crypto.randomUUID()
+          const [created] = await db
+            .insert(asesmenSiswa)
+            .values({
+              id: newId,
+              asesmenId,
+              siswaId,
+              nilai: input.nilai,
+              statusKetuntasan,
+              feedback: input.feedback || null,
+              status: "sudah_dinilai",
+              dinilaiAt: new Date(),
+              dinilaiOleh,
+            })
+            .returning()
+
+          await logAudit(ctx, { action: "nilai", entity: "asesmen_siswa", entityId: newId, metadata: { nilai: input.nilai, kktp, statusKetuntasan } })
+          return created
+        }
+
+        throw new TRPCError({ code: "NOT_FOUND", message: "Entry tidak ditemukan" })
+      }
+
       if (sekolahIdFilter && entry.asesmen.kelas?.sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Entry tidak ditemukan" })
       }
@@ -292,15 +394,15 @@ export const asesmenRouter = router({
         .set({
           nilai: input.nilai,
           statusKetuntasan,
-          feedback: input.feedback,
+          feedback: input.feedback || null,
           status: "sudah_dinilai",
           dinilaiAt: new Date(),
           dinilaiOleh,
         })
-        .where(eq(asesmenSiswa.id, input.asesmenSiswaId))
+        .where(eq(asesmenSiswa.id, entryId))
         .returning()
 
-      await logAudit(ctx, { action: "nilai", entity: "asesmen_siswa", entityId: input.asesmenSiswaId, metadata: { nilai: input.nilai, kktp, statusKetuntasan } })
+      await logAudit(ctx, { action: "nilai", entity: "asesmen_siswa", entityId: entryId, metadata: { nilai: input.nilai, kktp, statusKetuntasan } })
       return updated
     }),
 

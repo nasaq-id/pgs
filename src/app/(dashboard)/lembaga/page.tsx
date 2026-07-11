@@ -148,22 +148,8 @@ export default function LembagaPage() {
 
     setIsUploading(true)
     try {
-      const presigned = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: uploadFile.name }),
-      })
-      const { signedUrl, publicUrl, error } = await presigned.json()
-      if (!presigned.ok) throw new Error(error || "Gagal mendapatkan URL upload")
-
-      const uploadRes = await fetch(signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": uploadFile.type },
-        body: uploadFile,
-      })
-      if (!uploadRes.ok) throw new Error("Gagal upload ke storage")
-
-      setForm({ ...form, logo: publicUrl })
+      const url = await uploadToCloudinary(uploadFile, "logo-lembaga")
+      setForm({ ...form, logo: url })
     } catch (e) {
       alert(e instanceof Error ? e.message : "Upload gagal")
     }

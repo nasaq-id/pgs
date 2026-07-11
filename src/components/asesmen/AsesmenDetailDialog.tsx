@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const KATEGORI_LABEL: Record<string, string> = {
   formatif_awal: "Formatif Awal",
-  formatif_proses: "Formatif Proses",
+  formatif_proses: "Formatif",
   sumatif: "Sumatif",
 }
 

@@ -114,4 +114,17 @@ export const pengampuRouter = router({
 
       return { success: true, count: values.length }
     }),
+
+  getByGuru: protectedProcedure
+    .input(z.object({ guruId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const data = await db.query.pengampu.findMany({
+        where: eq(pengampu.guruId, input.guruId),
+        with: {
+          kelas: true,
+          mataPelajaran: true,
+        },
+      })
+      return data
+    }),
 })

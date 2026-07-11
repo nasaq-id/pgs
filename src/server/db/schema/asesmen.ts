@@ -21,7 +21,7 @@ export const asesmen = pgTable("asesmen", {
 
   kategori: text("kategori", { enum: ["formatif_awal", "formatif_proses", "sumatif"] }).notNull().default("formatif_proses"),
   teknik: text("teknik", { enum: ["tes_tertulis", "tes_lisan", "penugasan", "praktik", "proyek", "portofolio"] }).notNull().default("tes_tertulis"),
-  jenisPengumpulan: text("jenis_pengumpulan", { enum: ["unggah_file", "teks", "cbt"] }).notNull().default("unggah_file"),
+  jenisPengumpulan: text("jenis_pengumpulan", { enum: ["unggah_file", "teks", "cbt", "langsung"] }).notNull().default("unggah_file"),
 
   kktp: integer("kktp").notNull().default(70),
   deadline: timestamp("deadline"),

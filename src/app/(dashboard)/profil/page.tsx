@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/trpc/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 
 const roleLabels: Record<string, string> = {
   super_admin: "Super Admin",
@@ -76,22 +77,8 @@ export default function ProfilPage() {
 
     setUploading(true)
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name }),
-      })
-      if (!res.ok) throw new Error("Gagal mendapatkan URL upload")
-      const { signedUrl, publicUrl } = await res.json()
-
-      const uploadRes = await fetch(signedUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      })
-      if (!uploadRes.ok) throw new Error("Gagal mengupload foto")
-
-      await updatePhoto.mutateAsync({ photo: publicUrl })
+      const url = await uploadToCloudinary(file, "profile-photo")
+      await updatePhoto.mutateAsync({ photo: url })
     } catch (err) {
       console.error("Upload error:", err)
     } finally {
