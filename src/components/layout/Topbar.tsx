@@ -435,20 +435,20 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                   key={day.toISOString()}
                   onClick={() => handleDateClick(day)}
                   title={hasEvent ? eventTooltip : undefined}
-                  className={`h-8 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  className={`h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selected
-                      ? "bg-primary text-white"
+                      ? "bg-teal-600 hover:bg-teal-700 text-white shadow-sm shadow-teal-500/20"
                       : today
                       ? isLibur || dayOfWeek === 0
-                        ? "bg-red-50 dark:bg-red-950/20 text-red-600 font-bold"
-                        : "bg-primary/10 text-primary font-bold"
+                        ? "bg-red-50 dark:bg-red-950/20 text-red-600 font-black"
+                        : "bg-teal-500/10 text-teal-600 dark:text-teal-400 font-black"
                       : hasEvent && !isLibur
-                      ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                      ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold"
                       : isLibur || dayOfWeek === 0
                       ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
                       : dayOfWeek === 6
                       ? "text-blue-500 hover:bg-muted"
-                      : "hover:bg-muted"
+                      : "hover:bg-muted text-foreground/80"
                   } ${hasEvent ? "relative" : ""}`}
                 >
                   {format(day, "d")}

@@ -342,8 +342,12 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
 
       {/* Academic Year Info */}
       {!isMinimized ? (
-        <div className="mx-4 mt-4 p-3 bg-gradient-to-br from-slate-50/80 to-slate-100/50 dark:from-slate-900/40 dark:to-slate-800/20 rounded-xl border border-border/60 sidebar-text-container transition-all duration-300">
+        <div className="mx-4 mt-4 p-3 bg-gradient-to-br from-teal-500/[0.02] to-emerald-500/[0.02] dark:from-teal-500/[0.01] dark:to-emerald-500/[0.01] rounded-xl border border-border/60 hover:border-teal-500/20 dark:hover:border-teal-500/10 sidebar-text-container transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
           <div className="flex items-center space-x-2 text-muted-foreground mb-1.5">
+            <span className="flex h-1.5 w-1.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
+            </span>
             <CalendarDays className="w-3.5 h-3.5 text-teal-500" />
             <span className="text-[9px] font-black uppercase tracking-wider">Tahun Akademik</span>
           </div>
@@ -355,11 +359,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           </div>
         </div>
       ) : (
-        <div className="hidden lg:flex flex-col items-center py-4 text-muted-foreground border-b border-border/50" title={`Tahun Ajaran ${activeTa?.namaTahunAjaran || "-"}`}>
+        <div className="hidden lg:flex flex-col items-center py-4 text-muted-foreground border-b border-border/50 relative group" title={`Tahun Ajaran ${activeTa?.namaTahunAjaran || "-"}`}>
           <CalendarDays className="w-5 h-5 text-teal-500 mb-1" />
           <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-teal-50/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 rounded border border-teal-500/20 uppercase">
             {activeTa?.semester?.slice(0, 3) || "-"}
           </span>
+          {/* Minimized tooltip */}
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-800">
+            Tahun Ajaran {activeTa?.namaTahunAjaran || "-"} ({activeTa?.semester || "-"})
+          </div>
         </div>
       )}
 
@@ -376,23 +384,53 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
             if (isMinimized) {
               const firstChildPath = item.children![0]?.path
               return (
-                <Link
-                  key={item.label}
-                  href={firstChildPath || "#"}
-                  onClick={onClose}
-                  className={cn(
-                    "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 justify-center border border-transparent",
-                    isGroupActive
-                      ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
-                  )}
-                  title={item.label}
-                >
-                  {isGroupActive && (
-                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full" />
-                  )}
-                  <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-105", isGroupActive ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground group-hover:text-foreground")} />
-                </Link>
+                <div key={item.label} className="relative group">
+                  <Link
+                    href={firstChildPath || "#"}
+                    onClick={onClose}
+                    className={cn(
+                      "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
+                      isGroupActive
+                        ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
+                    )}
+                  >
+                    {isGroupActive && (
+                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full" />
+                    )}
+                    <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-105", isGroupActive ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground group-hover:text-foreground")} />
+                  </Link>
+
+                  {/* Floating child sub-menu tooltip for minimized group items */}
+                  <div className="absolute left-full top-0 ml-2 py-2 w-48 bg-card border border-border shadow-xl rounded-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-200 z-50 text-left">
+                    <div className="px-3 py-1.5 text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest border-b border-border/50 mb-1.5">
+                      {item.label}
+                    </div>
+                    <div className="space-y-0.5 px-1.5">
+                      {item.children!.map(child => (
+                        <Link
+                          key={child.path}
+                          href={child.path}
+                          onClick={onClose}
+                          className={cn(
+                            "flex items-center px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all text-left",
+                            isActive(child.path)
+                              ? "bg-teal-50/60 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/50"
+                              : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
+                          )}
+                        >
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full mr-2 transition-all",
+                            isActive(child.path)
+                              ? "bg-teal-500 scale-125 shadow-[0_0_8px_rgba(20,184,166,0.6)]"
+                              : "bg-muted-foreground/40"
+                          )} />
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )
             }
 
@@ -472,7 +510,6 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
               )}
-              title={isMinimized ? item.label : undefined}
             >
               {isItemActive && !isMinimized && (
                 <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full" />
@@ -485,7 +522,19 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               )}>
                 <Icon className="h-4 w-4" />
               </div>
-              {!isMinimized && <span className="truncate ml-1.5">{item.label}</span>}
+              <span className={cn(
+                "transition-all duration-300 overflow-hidden truncate",
+                isMinimized ? "max-w-0 opacity-0 ml-0" : "max-w-xs opacity-100 ml-1.5"
+              )}>
+                {item.label}
+              </span>
+
+              {/* Hover tooltip when minimized */}
+              {isMinimized && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-850">
+                  {item.label}
+                </div>
+              )}
             </Link>
           )
         })}
@@ -511,6 +560,13 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   {userRoleLabel}
                 </p>
               </div>
+              <button
+                onClick={() => setLogoutOpen(true)}
+                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer ml-auto flex-shrink-0"
+                title="Keluar dari Akun"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
             <div className="flex items-center justify-between mt-2.5 px-1">
               <span className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase">Sistem Portal</span>
@@ -518,7 +574,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
             </div>
           </div>
         ) : (
-          <div className="hidden lg:flex flex-col items-center justify-center gap-1.5" title={`${displayName} - ${userRoleLabel}`}>
+          <div className="hidden lg:flex flex-col items-center justify-center gap-1.5 relative group" title={`${displayName} - ${userRoleLabel}`}>
             {userPhoto ? (
               <div className="w-8.5 h-8.5 rounded-xl overflow-hidden border border-border flex-shrink-0">
                 <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
@@ -529,6 +585,28 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               </div>
             )}
             <span className="text-[8px] text-teal-600 dark:text-teal-400 font-bold">v1.0.5</span>
+
+            {/* Hover tooltip profile menu when minimized */}
+            <div className="absolute left-full bottom-0 ml-2 py-2 w-48 bg-card border border-border shadow-xl rounded-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-200 z-50 text-left">
+              <div className="px-3 py-1.5 border-b border-border/50 mb-1.5">
+                <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
+                <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{userRoleLabel}</p>
+              </div>
+              <div className="space-y-0.5 px-1.5">
+                <Link
+                  href="/profil"
+                  className="flex items-center px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
+                >
+                  Profil Saya
+                </Link>
+                <button
+                  onClick={() => setLogoutOpen(true)}
+                  className="w-full flex items-center px-3 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-left cursor-pointer"
+                >
+                  Keluar
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
