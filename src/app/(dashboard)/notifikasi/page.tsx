@@ -127,20 +127,6 @@ export default function NotifikasiPage() {
     }
   }
 
-  const getAccent = (tipe: string, dibaca: boolean) => {
-    if (dibaca) return ""
-    switch (tipe) {
-      case "success":
-        return "border-l-green-500/30"
-      case "warning":
-        return "border-l-amber-500/30"
-      case "error":
-        return "border-l-rose-500/30"
-      default:
-        return "border-l-blue-500/30"
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Meta tags / SEO */}
@@ -162,7 +148,7 @@ export default function NotifikasiPage() {
               variant="ghost"
               size="sm"
               onClick={() => markAllAsReadMutation.mutate()}
-              className="neumo-sm h-10 rounded-xl"
+              className="neumo-sm border-0 h-10 rounded-xl"
             >
               <Check className="h-4 w-4 mr-2" />
               Tandai Semua Dibaca
@@ -173,7 +159,7 @@ export default function NotifikasiPage() {
               variant="ghost"
               size="sm"
               onClick={() => setCreateOpen(true)}
-              className="neumo-sm h-10 rounded-xl font-semibold"
+              className="neumo-sm border-0 h-10 rounded-xl font-semibold"
             >
               <Plus className="h-4 w-4 mr-2" />
               Kirim Notifikasi
@@ -183,7 +169,7 @@ export default function NotifikasiPage() {
       </div>
 
       {/* Tab Filter */}
-      <div className="flex gap-2 p-1.5 bg-muted/30 rounded-xl w-fit border">
+      <div className="flex gap-2 p-1.5 bg-muted/30 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab("semua")}
           className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
@@ -209,7 +195,7 @@ export default function NotifikasiPage() {
           <p className="text-sm text-muted-foreground">Memuat notifikasi...</p>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="neumo-card bg-white dark:bg-[oklch(0.22_0_0)] border border-border/60 dark:border-white/10 rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
+        <div className="neumo-card bg-white dark:bg-[oklch(0.22_0_0)] rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
           <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
             <Bell className="h-8 w-8 text-muted-foreground/60" />
           </div>
@@ -230,9 +216,9 @@ export default function NotifikasiPage() {
               <div
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
-                className={`neumo-card bg-white dark:bg-[oklch(0.22_0_0)] border border-border/60 dark:border-white/10 border-l-4 rounded-2xl p-5 flex items-start gap-4 transition-all duration-300 relative group ${
+                className={`neumo-card bg-white dark:bg-[oklch(0.22_0_0)] rounded-2xl p-5 flex items-start gap-4 transition-all duration-300 relative group ${
                   notif.link ? "clickable" : ""
-                } ${getAccent(notif.tipe, notif.dibaca)}`}
+                }`}
               >
                 <div className="mt-0.5 flex-shrink-0">{getIcon(notif.tipe)}</div>
                 
@@ -343,7 +329,7 @@ export default function NotifikasiPage() {
                 type="button"
                 variant="ghost"
                 onClick={() => setCreateOpen(false)}
-                className="neumo rounded-xl flex-1 h-11"
+                className="neumo border-0 rounded-xl flex-1 h-11"
               >
                 Batal
               </Button>
@@ -351,7 +337,7 @@ export default function NotifikasiPage() {
                 type="submit"
                 variant="ghost"
                 disabled={creating}
-                className="neumo rounded-xl flex-1 h-11"
+                className="neumo border-0 rounded-xl flex-1 h-11"
               >
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Kirim Notifikasi
