@@ -1,10 +1,12 @@
 import { pgTable, text, numeric, integer, boolean, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
+import { sekolah } from "./sekolah"
 
 // ─── BILLING TYPE ──────────────────────────────────────────
 
 export const billingType = pgTable("billing_type", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   category: text("category", { enum: ["recurring", "one_time"] }).notNull(),
   isMandatory: boolean("is_mandatory").notNull().default(true),
@@ -17,6 +19,7 @@ export const billingType = pgTable("billing_type", {
 
 export const feeStructure = pgTable("fee_structure", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   billingTypeId: text("billing_type_id").notNull().references(() => billingType.id, { onDelete: "cascade" }),
   academicYearId: text("academic_year_id").notNull(),
   gradeLevel: text("grade_level").notNull(),
@@ -29,6 +32,7 @@ export const feeStructure = pgTable("fee_structure", {
 
 export const lateFeeRule = pgTable("late_fee_rule", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   billingTypeId: text("billing_type_id").notNull().references(() => billingType.id, { onDelete: "cascade" }),
   gracePeriodDays: integer("grace_period_days").notNull().default(0),
   feeType: text("fee_type", { enum: ["fixed", "percent", "per_day"] }).notNull(),
@@ -39,12 +43,20 @@ export const lateFeeRule = pgTable("late_fee_rule", {
 
 // ─── RELATIONS ─────────────────────────────────────────────
 
-export const billingTypeRelations = relations(billingType, ({ many }) => ({
+export const billingTypeRelations = relations(billingType, ({ one, many }) => ({
+  sekolah: one(sekolah, {
+    fields: [billingType.sekolahId],
+    references: [sekolah.id],
+  }),
   feeStructures: many(feeStructure),
   lateFeeRules: many(lateFeeRule),
 }))
 
 export const feeStructureRelations = relations(feeStructure, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [feeStructure.sekolahId],
+    references: [sekolah.id],
+  }),
   billingType: one(billingType, {
     fields: [feeStructure.billingTypeId],
     references: [billingType.id],
@@ -52,6 +64,10 @@ export const feeStructureRelations = relations(feeStructure, ({ one }) => ({
 }))
 
 export const lateFeeRuleRelations = relations(lateFeeRule, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [lateFeeRule.sekolahId],
+    references: [sekolah.id],
+  }),
   billingType: one(billingType, {
     fields: [lateFeeRule.billingTypeId],
     references: [billingType.id],

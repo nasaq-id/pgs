@@ -1,5 +1,5 @@
 import { db } from "../src/server/db"
-import { tagihanSpp, billingType, invoice } from "../src/server/db/schema"
+import { tagihanSpp, billingType, invoice, siswa } from "../src/server/db/schema"
 import { eq } from "drizzle-orm"
 
 const STATUS_MAP: Record<string, string> = {
@@ -14,13 +14,23 @@ async function main() {
   // 1. Ensure billingType "SPP" exists
   let sppBillingType = await db.select().from(billingType).where(eq(billingType.name, "SPP")).limit(1)
   let sppId: string
+  let sppSekolahId: string | undefined
   if (sppBillingType[0]) {
     sppId = sppBillingType[0].id
+    sppSekolahId = sppBillingType[0].sekolahId
     console.log(`Found existing SPP billing type: ${sppId}`)
   } else {
+    // Get sekolahId from first siswa record
+    const firstSiswa = await db.query.siswa.findFirst()
+    sppSekolahId = firstSiswa?.sekolahId
+    if (!sppSekolahId) {
+      console.error("No siswa found to determine sekolahId")
+      return
+    }
     sppId = crypto.randomUUID()
     await db.insert(billingType).values({
       id: sppId,
+      sekolahId: sppSekolahId,
       name: "SPP",
       category: "recurring",
       isMandatory: true,
@@ -64,9 +74,16 @@ async function main() {
       continue
     }
 
+    // Get sekolahId from the student's record
+    const recSiswa = await db.query.siswa.findFirst({
+      where: eq(siswa.id, rec.siswaId),
+    })
+    const recSekolahId = recSiswa?.sekolahId || sppSekolahId || "unknown"
+
     const invId = crypto.randomUUID()
     await db.insert(invoice).values({
       id: invId,
+      sekolahId: recSekolahId,
       studentId: rec.siswaId,
       billingTypeId: sppId,
       academicYearId,
@@ -88,6 +105,7 @@ async function main() {
     const { invoiceStatusHistory } = await import("../src/server/db/schema")
     await db.insert(invoiceStatusHistory).values({
       id: crypto.randomUUID(),
+      sekolahId: recSekolahId,
       invoiceId: invId,
       fromStatus: null,
       toStatus: newStatus as any,

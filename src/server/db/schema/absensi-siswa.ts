@@ -6,7 +6,7 @@ import { sekolah } from "./sekolah"
 
 export const absensiSiswa = pgTable("absensi_siswa", {
   id: text("id").primaryKey(),
-  sekolahId: text("sekolah_id").references(() => sekolah.id, { onDelete: "cascade" }),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   siswaId: text("siswa_id").notNull().references(() => siswa.id, { onDelete: "cascade" }),
   kelasId: text("kelas_id").notNull().references(() => kelas.id, { onDelete: "cascade" }),
   tanggal: timestamp("tanggal").notNull(),

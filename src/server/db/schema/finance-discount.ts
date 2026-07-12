@@ -1,9 +1,12 @@
 import { pgTable, text, numeric, boolean, timestamp } from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm"
+import { sekolah } from "./sekolah"
 
 // ─── DISCOUNT ──────────────────────────────────────────────
 
 export const discount = pgTable("discount", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   studentId: text("student_id").notNull(),
   type: text("type", {
     enum: ["sibling", "scholarship", "yayasan", "other"],
@@ -25,3 +28,10 @@ export const discount = pgTable("discount", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
+
+export const discountRelations = relations(discount, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [discount.sekolahId],
+    references: [sekolah.id],
+  }),
+}))

@@ -1,11 +1,13 @@
 import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
+import { sekolah } from "./sekolah"
 import { kelas } from "./kelas"
 import { mataPelajaran } from "./mata-pelajaran"
 import { guru } from "./guru"
 
 export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   kelasId: text("kelas_id").notNull().references(() => kelas.id, { onDelete: "cascade" }),
   mataPelajaranId: text("mata_pelajaran_id").notNull().references(() => mataPelajaran.id, { onDelete: "cascade" }),
   guruId: text("guru_id").notNull().references(() => guru.id, { onDelete: "cascade" }),
@@ -17,6 +19,10 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
 })
 
 export const jadwalPelajaranRelations = relations(jadwalPelajaran, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [jadwalPelajaran.sekolahId],
+    references: [sekolah.id],
+  }),
   kelas: one(kelas, {
     fields: [jadwalPelajaran.kelasId],
     references: [kelas.id],

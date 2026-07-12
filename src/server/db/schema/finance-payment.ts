@@ -1,11 +1,13 @@
 import { pgTable, text, numeric, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
+import { sekolah } from "./sekolah"
 import { invoice } from "./finance-invoice"
 
 // ─── PAYMENT ───────────────────────────────────────────────
 
 export const payment = pgTable("payment", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   invoiceId: text("invoice_id").notNull().references(() => invoice.id, { onDelete: "restrict" }),
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   method: text("method", {
@@ -29,6 +31,10 @@ export const payment = pgTable("payment", {
 // ─── RELATIONS ─────────────────────────────────────────────
 
 export const paymentRelations = relations(payment, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [payment.sekolahId],
+    references: [sekolah.id],
+  }),
   invoice: one(invoice, {
     fields: [payment.invoiceId],
     references: [invoice.id],

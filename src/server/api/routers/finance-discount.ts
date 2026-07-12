@@ -60,9 +60,13 @@ export const discountRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
 
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
+
       const id = crypto.randomUUID()
       await db.insert(discount).values({
         id,
+        sekolahId,
         studentId: input.studentId,
         type: input.type,
         valueType: input.valueType,

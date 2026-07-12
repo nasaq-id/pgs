@@ -27,6 +27,7 @@ async function updateInvoiceStatus(invoiceId: string, userId: string) {
   await db.update(invoice).set({ status: newStatus as any }).where(eq(invoice.id, invoiceId))
   await db.insert(invoiceStatusHistory).values({
     id: crypto.randomUUID(),
+    sekolahId: inv.sekolahId,
     invoiceId,
     fromStatus: inv.status,
     toStatus: newStatus as any,
@@ -149,10 +150,12 @@ export const paymentRouter = router({
       const userId = ctx.session.user.id!
       const invResult = await db.select().from(invoice).where(eq(invoice.id, input.invoiceId)).limit(1)
       if (!invResult[0]) throw new TRPCError({ code: "NOT_FOUND" })
+      const inv = invResult[0]
 
       const payId = crypto.randomUUID()
       await db.insert(payment).values({
         id: payId,
+        sekolahId: inv.sekolahId,
         invoiceId: input.invoiceId,
         amount: String(input.amount) as any,
         method: "cash",
@@ -164,7 +167,6 @@ export const paymentRouter = router({
       })
 
       // Update invoice paidAmount
-      const inv = invResult[0]
       const newPaidAmount = Number(inv.paidAmount) + input.amount
       await db
         .update(invoice)

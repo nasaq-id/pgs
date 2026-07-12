@@ -1,11 +1,13 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
+import { sekolah } from "./sekolah"
 import { invoice } from "./finance-invoice"
 
 // ─── REMINDER ──────────────────────────────────────────────
 
 export const reminder = pgTable("reminder", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   invoiceId: text("invoice_id").notNull().references(() => invoice.id, { onDelete: "cascade" }),
   channel: text("channel", {
     enum: ["whatsapp", "email", "in_app"],
@@ -23,6 +25,10 @@ export const reminder = pgTable("reminder", {
 // ─── RELATIONS ─────────────────────────────────────────────
 
 export const reminderRelations = relations(reminder, ({ one }) => ({
+  sekolah: one(sekolah, {
+    fields: [reminder.sekolahId],
+    references: [sekolah.id],
+  }),
   invoice: one(invoice, {
     fields: [reminder.invoiceId],
     references: [invoice.id],

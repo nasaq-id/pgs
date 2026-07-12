@@ -48,8 +48,10 @@ export const settingsRouter = router({
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(billingTypeSchema)
       .mutation(async ({ ctx, input }) => {
+        const sekolahId = ctx.session.user.sekolahId
+        if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
         const id = crypto.randomUUID()
-        await db.insert(billingType).values({ id, ...input, category: input.category })
+        await db.insert(billingType).values({ id, sekolahId, ...input, category: input.category })
         await logAudit(ctx, { action: "create_billing_type", entity: "billing_type", entityId: id })
         return { id }
       }),
@@ -90,9 +92,12 @@ export const settingsRouter = router({
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(feeStructureSchema)
       .mutation(async ({ ctx, input }) => {
+        const sekolahId = ctx.session.user.sekolahId
+        if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
         const id = crypto.randomUUID()
         await db.insert(feeStructure).values({
           id,
+          sekolahId,
           ...input,
           amount: String(input.amount) as any,
         })
@@ -125,8 +130,10 @@ export const settingsRouter = router({
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(lateFeeRuleSchema)
       .mutation(async ({ ctx, input }) => {
+        const sekolahId = ctx.session.user.sekolahId
+        if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
         const id = crypto.randomUUID()
-        await db.insert(lateFeeRule).values({ id, ...input, value: String(input.value) as any })
+        await db.insert(lateFeeRule).values({ id, sekolahId, ...input, value: String(input.value) as any })
         await logAudit(ctx, { action: "create_late_fee_rule", entity: "late_fee_rule", entityId: id })
         return { id }
       }),

@@ -238,6 +238,8 @@ export const nilaiRouter = router({
     .input(saveBukuNilaiSchema)
     .mutation(async ({ ctx, input }) => {
       const { kelasId, mataPelajaranId, tahunAjaranId, records } = input
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const results = []
 
       for (const rec of records) {
@@ -250,6 +252,7 @@ export const nilaiRouter = router({
         })
 
         const dataToSave = {
+          sekolahId,
           siswaId: rec.siswaId,
           mataPelajaranId,
           tahunAjaranId: tahunAjaranId || null,

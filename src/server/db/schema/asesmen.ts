@@ -44,6 +44,7 @@ export const asesmenRelations = relations(asesmen, ({ one, many }) => ({
 
 export const asesmenSiswa = pgTable("asesmen_siswa", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   asesmenId: text("asesmen_id").notNull().references(() => asesmen.id, { onDelete: "cascade" }),
   siswaId: text("siswa_id").notNull().references(() => siswa.id, { onDelete: "cascade" }),
 
@@ -64,12 +65,14 @@ export const asesmenSiswa = pgTable("asesmen_siswa", {
 })
 
 export const asesmenSiswaRelations = relations(asesmenSiswa, ({ one }) => ({
+  sekolah: one(sekolah, { fields: [asesmenSiswa.sekolahId], references: [sekolah.id] }),
   asesmen: one(asesmen, { fields: [asesmenSiswa.asesmenId], references: [asesmen.id] }),
   siswa: one(siswa, { fields: [asesmenSiswa.siswaId], references: [siswa.id] }),
 }))
 
 export const asesmenKomentar = pgTable("asesmen_komentar", {
   id: text("id").primaryKey(),
+  sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   asesmenId: text("asesmen_id").notNull().references(() => asesmen.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   pesan: text("pesan").notNull(),
@@ -77,6 +80,7 @@ export const asesmenKomentar = pgTable("asesmen_komentar", {
 })
 
 export const asesmenKomentarRelations = relations(asesmenKomentar, ({ one }) => ({
+  sekolah: one(sekolah, { fields: [asesmenKomentar.sekolahId], references: [sekolah.id] }),
   asesmen: one(asesmen, { fields: [asesmenKomentar.asesmenId], references: [asesmen.id] }),
   user: one(users, { fields: [asesmenKomentar.userId], references: [users.id] }),
 }))

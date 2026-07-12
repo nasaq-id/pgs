@@ -25,9 +25,10 @@ function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?:
   return sekolahId ?? null
 }
 
-async function writeStatusHistory(invoiceId: string, fromStatus: string | null, toStatus: string, changedBy: string, note?: string) {
+async function writeStatusHistory(sekolahId: string, invoiceId: string, fromStatus: string | null, toStatus: string, changedBy: string, note?: string) {
   await db.insert(invoiceStatusHistory).values({
     id: crypto.randomUUID(),
+    sekolahId,
     invoiceId,
     fromStatus: fromStatus as any,
     toStatus: toStatus as any,
@@ -133,6 +134,7 @@ export const billingRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      if (!ctx.session.user.sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const sekolahId = ctx.session.user.sekolahId
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
 
@@ -222,6 +224,7 @@ export const billingRouter = router({
         const invId = crypto.randomUUID()
         await db.insert(invoice).values({
           id: invId,
+          sekolahId,
           studentId,
           billingTypeId: input.billingTypeId,
           academicYearId,
@@ -237,7 +240,7 @@ export const billingRouter = router({
           generatedBy: userId,
         })
 
-        await writeStatusHistory(invId, null, "issued", userId, "Generated bulk")
+        await writeStatusHistory(sekolahId, invId, null, "issued", userId, "Generated bulk")
 
         created.push({ id: invId, studentId, totalAmount })
       }
@@ -277,7 +280,7 @@ export const billingRouter = router({
         .set({ status: "cancelled", cancelledAt: new Date(), cancelReason: input.reason })
         .where(eq(invoice.id, input.id))
 
-      await writeStatusHistory(input.id, inv.status, "cancelled", userId, input.reason)
+      await writeStatusHistory(inv.sekolahId, input.id, inv.status, "cancelled", userId, input.reason)
       await logAudit(ctx, { action: "cancel", entity: "invoice", entityId: input.id, metadata: { reason: input.reason } })
 
       return { success: true }

@@ -110,6 +110,7 @@ export const pengaturanJadwalRouter = router({
         .insert(timelineItem)
         .values({
           id,
+          sekolahId,
           pengaturanJadwalId: pengaturan.id,
           hari: input.hari,
           tipe: input.tipe,
@@ -163,6 +164,7 @@ export const pengaturanJadwalRouter = router({
         for (const item of sourceItems) {
           await db.insert(timelineItem).values({
             id: crypto.randomUUID(),
+            sekolahId,
             pengaturanJadwalId: pengaturan.id,
             hari: target,
             tipe: item.tipe,

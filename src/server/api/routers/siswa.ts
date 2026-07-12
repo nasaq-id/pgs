@@ -455,6 +455,8 @@ export const siswaRouter = router({
       sekolahTujuan: z.string().optional().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const conditions = [eq(siswa.id, input.siswaId)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
@@ -470,6 +472,7 @@ export const siswaRouter = router({
       const id = crypto.randomUUID()
       await db.insert(catatanMutasi).values({
         id,
+        sekolahId,
         siswaId: input.siswaId,
         tanggalMutasi: input.tanggalMutasi,
         jenisMutasi: input.jenisMutasi,

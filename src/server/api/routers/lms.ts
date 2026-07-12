@@ -268,6 +268,8 @@ export const lmsRouter = router({
       tanggal: z.coerce.date(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const hariList = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
       const hari = hariList[input.tanggal.getDay()] as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu"
 
@@ -307,6 +309,7 @@ export const lmsRouter = router({
             .insert(jurnalMengajar)
             .values({
               id,
+              sekolahId,
               guruId: input.guruId,
               kelasId: jadwal.kelasId,
               mataPelajaranId: jadwal.mataPelajaranId,
@@ -375,6 +378,7 @@ export const lmsRouter = router({
         if (existing.length === 0) {
           await db.insert(jurnalMengajar).values({
             id: crypto.randomUUID(),
+            sekolahId,
             guruId: jadwal.guruId,
             kelasId: jadwal.kelasId,
             mataPelajaranId: jadwal.mataPelajaranId,

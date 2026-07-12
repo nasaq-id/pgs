@@ -287,6 +287,7 @@ export const asesmenRouter = router({
           .insert(asesmenSiswa)
           .values({
             id: crypto.randomUUID(),
+            sekolahId: a.sekolahId,
             asesmenId: input.asesmenId,
             siswaId: siswaRecord.id,
             jawabanTeks: input.jawabanTeks,
@@ -359,6 +360,7 @@ export const asesmenRouter = router({
             .insert(asesmenSiswa)
             .values({
               id: newId,
+              sekolahId: a.sekolahId,
               asesmenId,
               siswaId,
               nilai: input.nilai,
@@ -428,10 +430,17 @@ export const asesmenRouter = router({
       const userId = ctx.session.user.id
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User tidak ditemukan" })
 
+      const a = await db.query.asesmen.findFirst({
+        where: eq(asesmen.id, input.asesmenId),
+        columns: { sekolahId: true },
+      })
+      if (!a) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
+
       const [created] = await db
         .insert(asesmenKomentar)
         .values({
           id: crypto.randomUUID(),
+          sekolahId: a.sekolahId,
           asesmenId: input.asesmenId,
           userId,
           pesan: input.pesan,

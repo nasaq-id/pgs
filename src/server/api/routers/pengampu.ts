@@ -84,15 +84,18 @@ export const pengampuRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { mataPelajaranId, assignments } = input
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
 
       await db.delete(pengampu)
         .where(eq(pengampu.mataPelajaranId, mataPelajaranId))
 
-      const values: { id: string; guruId: string; mataPelajaranId: string; kelasId: string; jumlahJam: number }[] = []
+      const values: { id: string; sekolahId: string; guruId: string; mataPelajaranId: string; kelasId: string; jumlahJam: number }[] = []
       for (const a of assignments) {
         for (const kelasId of a.kelasIds) {
           values.push({
             id: crypto.randomUUID(),
+            sekolahId,
             guruId: a.guruId,
             mataPelajaranId,
             kelasId,
