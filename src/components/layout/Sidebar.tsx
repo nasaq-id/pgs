@@ -165,6 +165,27 @@ interface SidebarProps {
   setIsMinimized?: (val: boolean) => void
 }
 
+function IosSwitch({ checked, onChange, title }: { checked: boolean; onChange: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={cn(
+        "w-9 h-5 rounded-full relative transition-colors duration-300 outline-none cursor-pointer flex-shrink-0 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]",
+        checked ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-800"
+      )}
+      title={title}
+    >
+      <span
+        className={cn(
+          "w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform duration-300",
+          checked ? "translate-x-4" : "translate-x-0"
+        )}
+      />
+    </button>
+  )
+}
+
 export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
@@ -284,24 +305,14 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           )}
         </div>
 
-        {/* Toggle Button for Desktop */}
+        {/* Switch Toggler for Desktop */}
         {!isMinimized && setIsMinimized && (
-          <div className="hidden lg:block">
-            <button
-              onClick={() => setIsMinimized(true)}
-              className="p-1.5 hover:bg-foreground/[0.06] text-muted-foreground hover:text-foreground rounded-lg transition-colors duration-200 cursor-pointer"
+          <div className="hidden lg:block ml-auto pl-3">
+            <IosSwitch
+              checked={!isMinimized}
+              onChange={() => setIsMinimized(true)}
               title="Sembunyikan Menu"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth="2.5"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+            />
           </div>
         )}
 
@@ -322,21 +333,11 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       {/* Dynamic Desktop Expander Toggler */}
       {isMinimized && setIsMinimized && (
         <div className="hidden lg:flex justify-center py-4 border-b border-border/50">
-          <button
-            onClick={() => setIsMinimized(false)}
-            className="p-1.5 hover:bg-foreground/[0.06] text-muted-foreground hover:text-foreground rounded-lg transition-colors duration-200 cursor-pointer"
+          <IosSwitch
+            checked={!isMinimized}
+            onChange={() => setIsMinimized(false)}
             title="Tampilkan Menu"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="2.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          />
         </div>
       )}
 
