@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -11,7 +11,9 @@ export const poinAturan = pgTable("poin_aturan", {
   status: text("status").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("poin_aturan_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const poinAturanRelations = relations(poinAturan, ({ one }) => ({
   sekolah: one(sekolah, {

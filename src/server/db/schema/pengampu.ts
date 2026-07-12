@@ -1,4 +1,4 @@
-import { pgTable, text, integer } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { guru } from "./guru"
@@ -14,7 +14,9 @@ export const pengampu = pgTable("pengampu", {
   kelasId: text("kelas_id").notNull().references(() => kelas.id, { onDelete: "cascade" }),
   tahunAjaranId: text("tahun_ajaran_id").references(() => tahunAjaran.id, { onDelete: "set null" }),
   jumlahJam: integer("jumlah_jam").notNull().default(4),
-})
+}, (table) => [
+  index("pengampu_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const pengampuRelations = relations(pengampu, ({ one }) => ({
   sekolah: one(sekolah, { fields: [pengampu.sekolahId], references: [sekolah.id] }),

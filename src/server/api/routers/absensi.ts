@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const absensiBulkCreateSchema = z.object({
   absensi: z.array(
@@ -29,11 +30,6 @@ const absensiUpdateSchema = z.object({
   keterangan: z.string().nullable().optional(),
 })
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
   if (!sekolahId) return []

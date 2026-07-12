@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { jsonb, pgTable, text, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { users } from "./users"
 import { sekolah } from "./sekolah"
@@ -12,7 +12,9 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: text("entity_id"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("audit_logs_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {

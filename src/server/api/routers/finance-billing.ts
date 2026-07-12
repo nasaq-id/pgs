@@ -1,10 +1,11 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, or, inArray, sql, desc } from "drizzle-orm"
+import { eq, and, inArray, sql, desc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { invoice, invoiceStatusHistory, billingType, feeStructure, discount } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const invoiceSchema = z.object({
   studentId: z.string(),
@@ -19,11 +20,6 @@ const invoiceSchema = z.object({
   dueDate: z.coerce.date(),
 })
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function writeStatusHistory(sekolahId: string, invoiceId: string, fromStatus: string | null, toStatus: string, changedBy: string, note?: string) {
   await db.insert(invoiceStatusHistory).values({
@@ -103,10 +99,14 @@ export const billingRouter = router({
   getDetail: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const result = await db
         .select()
         .from(invoice)
-        .where(eq(invoice.id, input.id))
+        .where(and(
+          eq(invoice.id, input.id),
+          sekolahIdFilter ? eq(invoice.sekolahId, sekolahIdFilter) : undefined,
+        ))
         .limit(1)
       if (!result[0]) throw new TRPCError({ code: "NOT_FOUND" })
       const inv = result[0]
@@ -114,7 +114,10 @@ export const billingRouter = router({
       const statusHistory = await db
         .select()
         .from(invoiceStatusHistory)
-        .where(eq(invoiceStatusHistory.invoiceId, input.id))
+        .where(and(
+          eq(invoiceStatusHistory.invoiceId, input.id),
+          sekolahIdFilter ? eq(invoiceStatusHistory.sekolahId, sekolahIdFilter) : undefined,
+        ))
         .orderBy(invoiceStatusHistory.changedAt)
 
       return { invoice: inv, statusHistory }

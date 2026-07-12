@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { siswa } from "./siswa"
@@ -22,7 +22,9 @@ export const pengajuanIzin = pgTable("pengajuan_izin", {
   catatanApproval: text("catatan_approval"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("pengajuan_izin_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const pengajuanIzinRelations = relations(pengajuanIzin, ({ one }) => ({
   sekolah: one(sekolah, {

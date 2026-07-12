@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs"
 import { siswa, users, kelas, catatanMutasi } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
@@ -104,11 +105,6 @@ const siswaCreateSchema = z.object({
 
 const siswaUpdateSchema = siswaCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const siswaRouter = router({
   getAll: protectedProcedure

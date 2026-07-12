@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const mapelCreateSchema = z.object({
   id: z.string().optional(),
@@ -19,11 +20,6 @@ const mapelCreateSchema = z.object({
 
 const mapelUpdateSchema = mapelCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const mapelRouter = router({
   getAll: protectedProcedure

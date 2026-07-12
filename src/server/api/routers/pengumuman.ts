@@ -6,6 +6,7 @@ import { pengumuman } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -29,11 +30,6 @@ const roleTargetMap: Record<string, string> = {
   yayasan: "semua",
 }
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const pengumumanRouter = router({
   getAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])

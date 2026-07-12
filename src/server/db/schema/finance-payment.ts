@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, numeric, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { invoice } from "./finance-invoice"
@@ -26,7 +26,9 @@ export const payment = pgTable("payment", {
   receiptNumber: text("receipt_number").unique(),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("payment_sekolah_id_idx").on(table.sekolahId),
+])
 
 // ─── RELATIONS ─────────────────────────────────────────────
 

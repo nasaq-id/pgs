@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, numeric, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -16,7 +16,9 @@ export const cashLedger = pgTable("cash_ledger", {
   date: timestamp("date").notNull(),
   recordedBy: text("recorded_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("cash_ledger_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const cashLedgerRelations = relations(cashLedger, ({ one }) => ({
   sekolah: one(sekolah, {

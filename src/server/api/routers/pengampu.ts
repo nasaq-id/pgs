@@ -1,10 +1,11 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { pengampu, kelas, guru, mataPelajaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const pengampuRouter = router({
   getByMapel: protectedProcedure
@@ -14,7 +15,10 @@ export const pengampuRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
       const data = await db.query.pengampu.findMany({
-        where: eq(pengampu.mataPelajaranId, input.mataPelajaranId),
+        where: and(
+          eq(pengampu.mataPelajaranId, input.mataPelajaranId),
+          eq(pengampu.sekolahId, sekolahId),
+        ),
         with: {
           guru: true,
           kelas: true,
@@ -55,7 +59,10 @@ export const pengampuRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
       const data = await db.query.pengampu.findMany({
-        where: eq(pengampu.kelasId, input.kelasId),
+        where: and(
+          eq(pengampu.kelasId, input.kelasId),
+          eq(pengampu.sekolahId, sekolahId),
+        ),
         with: {
           guru: true,
           mataPelajaran: true,
@@ -121,8 +128,12 @@ export const pengampuRouter = router({
   getByGuru: protectedProcedure
     .input(z.object({ guruId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
       const data = await db.query.pengampu.findMany({
-        where: eq(pengampu.guruId, input.guruId),
+        where: and(
+          eq(pengampu.guruId, input.guruId),
+          sekolahId ? eq(pengampu.sekolahId, sekolahId) : undefined,
+        ),
         with: {
           kelas: true,
           mataPelajaran: true,

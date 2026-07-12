@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -12,7 +12,9 @@ export const notifikasi = pgTable("notifikasi", {
   dibaca: boolean("dibaca").notNull().default(false),
   link: text("link"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("notifikasi_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const notifikasiRelations = relations(notifikasi, ({ one }) => ({
   sekolah: one(sekolah, {

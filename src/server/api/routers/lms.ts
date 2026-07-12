@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { jurnalMengajar, kelas, jadwalPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const jurnalCreateSchema = z.object({
   id: z.string().optional(),
@@ -27,11 +28,6 @@ const jurnalCreateSchema = z.object({
 
 const jurnalUpdateSchema = jurnalCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
   if (!sekolahId) return []
@@ -48,11 +44,15 @@ export const lmsRouter = router({
       if (ctx.session.user.role !== "guru") return null
       const userEmail = ctx.session.user.email
       if (!userEmail) return null
+      const sekolahId = ctx.session.user.sekolahId
       const record = await db.query.guru.findFirst({
-        where: or(
-          eq(guru.email, userEmail),
-          eq(guru.usernameGuru, userEmail),
-          eq(guru.nipnuptk, userEmail)
+        where: and(
+          or(
+            eq(guru.email, userEmail),
+            eq(guru.usernameGuru, userEmail),
+            eq(guru.nipnuptk, userEmail)
+          ),
+          sekolahId ? eq(guru.sekolahId, sekolahId) : undefined,
         )
       })
       return record ?? null
@@ -177,10 +177,18 @@ export const lmsRouter = router({
         }
       }
 
+      const kelasRecord = await db.query.kelas.findFirst({
+        where: eq(kelas.id, input.kelasId),
+      })
+      if (!kelasRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+      }
+      const sekolahId = kelasRecord.sekolahId
+
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(jurnalMengajar)
-        .values({ ...input, id } as any)
+        .values({ ...input, id, sekolahId } as any)
         .returning()
       await logAudit(ctx, { action: "create", entity: "jurnal_mengajar", entityId: result[0]?.id, metadata: { kelasId: input.kelasId } })
       return result[0]
@@ -279,6 +287,7 @@ export const lmsRouter = router({
         .where(and(
           eq(jadwalPelajaran.guruId, input.guruId),
           eq(jadwalPelajaran.hari, hari),
+          eq(jadwalPelajaran.sekolahId, sekolahId),
         ))
 
       if (jadwalList.length === 0) {
@@ -299,6 +308,7 @@ export const lmsRouter = router({
             eq(jurnalMengajar.guruId, input.guruId),
             eq(jurnalMengajar.kelasId, jadwal.kelasId),
             eq(jurnalMengajar.mataPelajaranId, jadwal.mataPelajaranId),
+            eq(jurnalMengajar.sekolahId, sekolahId),
             between(jurnalMengajar.tanggal, startOfDay, endOfDay),
           ))
           .limit(1)

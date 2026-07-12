@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -12,7 +12,9 @@ export const tahunAjaran = pgTable("tahun_ajaran", {
   active: boolean("active").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("tahun_ajaran_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const tahunAjaranRelations = relations(tahunAjaran, ({ one }) => ({
   sekolah: one(sekolah, {

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { users } from "./users"
@@ -30,7 +30,9 @@ export const asesmen = pgTable("asesmen", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("asesmen_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const asesmenRelations = relations(asesmen, ({ one, many }) => ({
   sekolah: one(sekolah, { fields: [asesmen.sekolahId], references: [sekolah.id] }),
@@ -62,7 +64,9 @@ export const asesmenSiswa = pgTable("asesmen_siswa", {
   dinilaiOleh: text("dinilai_oleh"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("asesmen_siswa_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const asesmenSiswaRelations = relations(asesmenSiswa, ({ one }) => ({
   sekolah: one(sekolah, { fields: [asesmenSiswa.sekolahId], references: [sekolah.id] }),
@@ -77,7 +81,9 @@ export const asesmenKomentar = pgTable("asesmen_komentar", {
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   pesan: text("pesan").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("asesmen_komentar_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const asesmenKomentarRelations = relations(asesmenKomentar, ({ one }) => ({
   sekolah: one(sekolah, { fields: [asesmenKomentar.sekolahId], references: [sekolah.id] }),

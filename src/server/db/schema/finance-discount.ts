@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, boolean, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, numeric, boolean, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -27,7 +27,9 @@ export const discount = pgTable("discount", {
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("discount_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const discountRelations = relations(discount, ({ one }) => ({
   sekolah: one(sekolah, {

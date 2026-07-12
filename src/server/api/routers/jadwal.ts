@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const jadwalCreateSchema = z.object({
   id: z.string().optional(),
@@ -40,11 +41,6 @@ const autoGenerateInputSchema = z.object({
   ),
 })
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
   if (!sekolahId) return []
@@ -237,6 +233,7 @@ export const jadwalRouter = router({
         where: and(
           eq(jadwalPelajaran.kelasId, input.kelasId),
           eq(jadwalPelajaran.hari, input.hari as any),
+          sekolahIdFilter ? eq(jadwalPelajaran.sekolahId, sekolahIdFilter) : undefined,
         ),
       })
 
@@ -254,14 +251,22 @@ export const jadwalRouter = router({
   getSisaJp: protectedProcedure
     .input(z.object({ kelasId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+
       const pengampuList = await db.query.pengampu.findMany({
-        where: eq(pengampu.kelasId, input.kelasId),
+        where: and(
+          eq(pengampu.kelasId, input.kelasId),
+          sekolahIdFilter ? eq(pengampu.sekolahId, sekolahIdFilter) : undefined,
+        ),
       })
 
       const jadwalList = await db
         .select({ mataPelajaranId: jadwalPelajaran.mataPelajaranId, jpTerpakai: jadwalPelajaran.jpCount })
         .from(jadwalPelajaran)
-        .where(eq(jadwalPelajaran.kelasId, input.kelasId))
+        .where(and(
+          eq(jadwalPelajaran.kelasId, input.kelasId),
+          sekolahIdFilter ? eq(jadwalPelajaran.sekolahId, sekolahIdFilter) : undefined,
+        ))
 
       const jpTerpakaiMap = new Map<string, number>()
       for (const j of jadwalList) {
@@ -398,6 +403,7 @@ export const jadwalRouter = router({
       const result = await db.insert(jadwalPelajaran).values({
         ...input,
         id,
+        sekolahId,
         jpMulai,
         jpCount,
         jamMulai,
@@ -657,6 +663,7 @@ export const jadwalRouter = router({
         const { jamMulai, jamSelesai } = await computeTimesForJadwal(pengaturanJadwalId, g.hari, g.jpMulai, g.jpCount)
         insertData.push({
           id: crypto.randomUUID(),
+          sekolahId,
           kelasId: g.kelasId,
           mataPelajaranId: g.mataPelajaranId,
           guruId: g.guruId,

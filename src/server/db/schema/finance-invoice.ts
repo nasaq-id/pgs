@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, integer, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { pgTable, text, numeric, integer, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { billingType } from "./finance-master"
@@ -31,11 +31,12 @@ export const invoice = pgTable("invoice", {
   generatedBy: text("generated_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => ({
-  uniqueInvoiceIdx: uniqueIndex("idx_unique_invoice").on(
+}, (table) => [
+  index("invoice_sekolah_id_idx").on(table.sekolahId),
+  uniqueIndex("idx_unique_invoice").on(
     table.studentId, table.billingTypeId, table.academicYearId, table.periodMonth, table.periodYear,
   ),
-}))
+])
 
 // ─── INVOICE STATUS HISTORY ────────────────────────────────
 
@@ -52,7 +53,9 @@ export const invoiceStatusHistory = pgTable("invoice_status_history", {
   changedBy: text("changed_by").notNull(),
   changedAt: timestamp("changed_at").notNull().defaultNow(),
   note: text("note"),
-})
+}, (table) => [
+  index("invoice_status_history_sekolah_id_idx").on(table.sekolahId),
+])
 
 // ─── RELATIONS ─────────────────────────────────────────────
 

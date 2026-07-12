@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, integer, boolean, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, numeric, integer, boolean, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -13,7 +13,9 @@ export const billingType = pgTable("billing_type", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("billing_type_sekolah_id_idx").on(table.sekolahId),
+])
 
 // ─── FEE STRUCTURE ─────────────────────────────────────────
 
@@ -26,7 +28,9 @@ export const feeStructure = pgTable("fee_structure", {
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   effectiveFrom: timestamp("effective_from").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("fee_structure_sekolah_id_idx").on(table.sekolahId),
+])
 
 // ─── LATE FEE RULE ─────────────────────────────────────────
 
@@ -39,7 +43,9 @@ export const lateFeeRule = pgTable("late_fee_rule", {
   value: numeric("value", { precision: 14, scale: 2 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("late_fee_rule_sekolah_id_idx").on(table.sekolahId),
+])
 
 // ─── RELATIONS ─────────────────────────────────────────────
 

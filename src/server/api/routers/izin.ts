@@ -6,6 +6,7 @@ import { pengajuanIzin, siswa, guru, absensiSiswa, absensiGuru, kelas } from "@/
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const izinRouter = router({
   submitIzin: protectedProcedure

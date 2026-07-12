@@ -6,12 +6,8 @@ import { db } from "@/server/db"
 import { asesmen, asesmenSiswa, asesmenKomentar, kelas, guru, siswa } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
   if (!sekolahId) return []
@@ -410,11 +406,15 @@ export const asesmenRouter = router({
 
   getKomentar: protectedProcedure
     .input(z.object({ asesmenId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       const comments = await db
         .select()
         .from(asesmenKomentar)
-        .where(eq(asesmenKomentar.asesmenId, input.asesmenId))
+        .where(and(
+          eq(asesmenKomentar.asesmenId, input.asesmenId),
+          sekolahIdFilter ? eq(asesmenKomentar.sekolahId, sekolahIdFilter) : undefined,
+        ))
         .orderBy(asc(asesmenKomentar.createdAt))
       return comments
     }),

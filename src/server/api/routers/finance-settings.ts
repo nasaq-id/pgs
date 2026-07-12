@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { billingType, feeStructure, lateFeeRule } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 // ─── BILLING TYPE ──────────────────────────────────────────
 

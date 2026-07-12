@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs"
 import { guru, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const guruCreateSchema = z.object({
   id: z.string().optional(),
@@ -35,11 +36,6 @@ const guruCreateSchema = z.object({
 
 const guruUpdateSchema = guruCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const guruRouter = router({
   getAll: protectedProcedure

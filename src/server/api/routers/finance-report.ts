@@ -3,12 +3,8 @@ import { eq, and, sql, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { invoice, payment } from "@/server/db/schema"
 import { router, protectedProcedure } from "@/server/api/trpc"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const reportRouter = router({
   // ─── DASHBOARD SUMMARY ───────────────────────────────────
@@ -55,6 +51,10 @@ export const reportRouter = router({
     .input(z.object({ tahun: z.number() }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(invoice.periodYear, input.tahun)]
+      if (sekolahIdFilter) {
+        conditions.push(eq(invoice.sekolahId, sekolahIdFilter))
+      }
       const bulanInvoices = await db
         .select({
           bulan: invoice.periodMonth,
@@ -62,7 +62,7 @@ export const reportRouter = router({
           paid: sql<number>`sum(${invoice.paidAmount})`,
         })
         .from(invoice)
-        .where(eq(invoice.periodYear, input.tahun))
+        .where(and(...conditions))
         .groupBy(invoice.periodMonth)
         .orderBy(invoice.periodMonth)
 
@@ -77,15 +77,18 @@ export const reportRouter = router({
   outstanding: protectedProcedure
     .input(z.object({ kelasId: z.string().optional(), limit: z.number().default(100) }))
     .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions: any[] = [
+        sql`${invoice.status} NOT IN ('paid', 'cancelled')`,
+        sql`${invoice.dueDate} < NOW()`,
+      ]
+      if (sekolahIdFilter) {
+        conditions.push(eq(invoice.sekolahId, sekolahIdFilter))
+      }
       const overdueInvoices = await db
         .select()
         .from(invoice)
-        .where(
-          and(
-            sql`${invoice.status} NOT IN ('paid', 'cancelled')`,
-            sql`${invoice.dueDate} < NOW()`,
-          ),
-        )
+        .where(and(...conditions))
         .limit(input.limit)
 
       return overdueInvoices
@@ -96,10 +99,15 @@ export const reportRouter = router({
     .input(z.object({ tahun: z.number().optional(), kelasId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const tahun = input?.tahun || new Date().getFullYear()
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(invoice.periodYear, tahun)]
+      if (sekolahIdFilter) {
+        conditions.push(eq(invoice.sekolahId, sekolahIdFilter))
+      }
       const invoices = await db
         .select()
         .from(invoice)
-        .where(eq(invoice.periodYear, tahun))
+        .where(and(...conditions))
 
       return invoices
     }),

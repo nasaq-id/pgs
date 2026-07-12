@@ -13,12 +13,8 @@ import {
   ruangKelas,
 } from "@/server/db/schema"
 import { router, protectedProcedure } from "@/server/api/trpc"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const dashboardRouter = router({
   // ─── TOTAL SISWA ───────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { pgTable, text } from "drizzle-orm/pg-core"
+import { pgTable, text, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { guru } from "./guru"
@@ -11,7 +11,9 @@ export const ekstrakurikuler = pgTable("ekstrakurikuler", {
   deskripsi: text("deskripsi"),
   hari: text("hari"),
   jam: text("jam"),
-})
+}, (table) => [
+  index("ekstrakurikuler_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const ekstrakurikulerRelations = relations(ekstrakurikuler, ({ one }) => ({
   sekolah: one(sekolah, {

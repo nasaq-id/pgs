@@ -5,12 +5,8 @@ import { db } from "@/server/db"
 import { payment, invoice, invoiceStatusHistory } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 async function updateInvoiceStatus(invoiceId: string, userId: string) {
   const invResult = await db.select().from(invoice).where(eq(invoice.id, invoiceId)).limit(1)
@@ -75,10 +71,15 @@ export const paymentRouter = router({
   // ─── GET PENDING COUNT (for badge) ───────────────────────
   getPendingCount: protectedProcedure
     .query(async ({ ctx }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(payment.status, "pending_verification")]
+      if (sekolahIdFilter) {
+        conditions.push(eq(payment.sekolahId, sekolahIdFilter))
+      }
       const result = await db
         .select({ count: sql<number>`count(*)` })
         .from(payment)
-        .where(eq(payment.status, "pending_verification"))
+        .where(and(...conditions))
       return Number(result[0]?.count || 0)
     }),
 
@@ -182,11 +183,15 @@ export const paymentRouter = router({
   // ─── PAYMENT HISTORY FOR INVOICE ─────────────────────────
   getHistory: protectedProcedure
     .input(z.object({ invoiceId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
       return db
         .select()
         .from(payment)
-        .where(eq(payment.invoiceId, input.invoiceId))
+        .where(and(
+          eq(payment.invoiceId, input.invoiceId),
+          sekolahIdFilter ? eq(payment.sekolahId, sekolahIdFilter) : undefined,
+        ))
         .orderBy(desc(payment.paidAt))
     }),
 })

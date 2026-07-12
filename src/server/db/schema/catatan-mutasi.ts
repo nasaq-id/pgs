@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { siswa } from "./siswa"
@@ -13,7 +13,9 @@ export const catatanMutasi = pgTable("catatan_mutasi", {
   sekolahTujuan: text("sekolah_tujuan"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("catatan_mutasi_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const catatanMutasiRelations = relations(catatanMutasi, ({ one }) => ({
   sekolah: one(sekolah, {

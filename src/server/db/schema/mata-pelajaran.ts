@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -11,7 +11,9 @@ export const mataPelajaran = pgTable("mata_pelajaran", {
   kkm: integer("kkm").default(70),
   aktif: boolean("aktif").notNull().default(true),
   urutan: integer("urutan").default(0),
-})
+}, (table) => [
+  index("mata_pelajaran_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const mataPelajaranRelations = relations(mataPelajaran, ({ one }) => ({
   sekolah: one(sekolah, {

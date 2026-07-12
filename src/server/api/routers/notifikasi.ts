@@ -5,6 +5,7 @@ import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { notifikasi, sekolah } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const notifikasiRouter = router({
   getRecent: protectedProcedure

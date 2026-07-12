@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { invoice } from "./finance-invoice"
@@ -18,7 +18,9 @@ export const reminder = pgTable("reminder", {
   sentAt: timestamp("sent_at"),
   errorMsg: text("error_msg"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("reminder_sekolah_id_idx").on(table.sekolahId),
+])
 
 // TODO: cron job — process QUEUED reminders (whatsapp/email/in_app) and mark as sent/failed
 

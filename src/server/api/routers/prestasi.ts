@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { prestasi, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const prestasiCreateSchema = z.object({
   id: z.string().optional(),
@@ -18,11 +19,6 @@ const prestasiCreateSchema = z.object({
 
 const prestasiUpdateSchema = prestasiCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const prestasiRouter = router({
   getAll: protectedProcedure
@@ -75,14 +71,18 @@ export const prestasiRouter = router({
     .input(prestasiCreateSchema)
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      if (sekolahIdFilter) {
-        const siswaRecord = await db.query.siswa.findFirst({
-          where: and(eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahIdFilter)),
-        })
-        if (!siswaRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+      const siswaRecord = await db.query.siswa.findFirst({
+        where: eq(siswa.id, input.siswaId),
+      })
+      if (!siswaRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+      const sekolahId = siswaRecord.sekolahId
+
+      if (sekolahIdFilter && sekolahId !== sekolahIdFilter) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Siswa tidak berada di sekolah Anda" })
       }
+
       const id = input.id || crypto.randomUUID()
-      const result = await db.insert(prestasi).values({ ...input, id } as any).returning()
+      const result = await db.insert(prestasi).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "prestasi", entityId: result[0]?.id, metadata: { siswaId: input.siswaId } })
       return result[0]
     }),

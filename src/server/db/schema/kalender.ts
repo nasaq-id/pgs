@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -14,7 +14,9 @@ export const kalenderEvent = pgTable("kalender_event", {
   warna: text("warna").default("#3b82f6"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("kalender_event_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const kalenderEventRelations = relations(kalenderEvent, ({ one }) => ({
   sekolah: one(sekolah, {

@@ -93,17 +93,17 @@ async function seed() {
   // Jadwal Pelajaran
   const jadwalData = [
     // Guru 1 (Budi) - Bahasa Inggris
-    { id: "jadwal-1", kelasId: "kelas-7a", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "senin", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
-    { id: "jadwal-2", kelasId: "kelas-7b", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "selasa", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
-    { id: "jadwal-3", kelasId: "kelas-8a", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "rabu", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
+    { id: "jadwal-1", sekolahId: "sekolah-1", kelasId: "kelas-7a", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "senin", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
+    { id: "jadwal-2", sekolahId: "sekolah-1", kelasId: "kelas-7b", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "selasa", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
+    { id: "jadwal-3", sekolahId: "sekolah-1", kelasId: "kelas-8a", mataPelajaranId: "mapel-1", guruId: "guru-1", hari: "rabu", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
     // Guru 2 (Siti) - Matematika
-    { id: "jadwal-4", kelasId: "kelas-7a", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "senin", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
-    { id: "jadwal-5", kelasId: "kelas-7b", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "rabu", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
-    { id: "jadwal-6", kelasId: "kelas-8a", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "kamis", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
+    { id: "jadwal-4", sekolahId: "sekolah-1", kelasId: "kelas-7a", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "senin", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
+    { id: "jadwal-5", sekolahId: "sekolah-1", kelasId: "kelas-7b", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "rabu", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
+    { id: "jadwal-6", sekolahId: "sekolah-1", kelasId: "kelas-8a", mataPelajaranId: "mapel-2", guruId: "guru-2", hari: "kamis", jamMulai: new Date("2024-01-01T08:30:00"), jamSelesai: new Date("2024-01-01T10:00:00") },
     // Guru 3 (Ahmad) - Bahasa Indonesia & IPA
-    { id: "jadwal-7", kelasId: "kelas-7a", mataPelajaranId: "mapel-3", guruId: "guru-3", hari: "selasa", jamMulai: new Date("2024-01-01T10:00:00"), jamSelesai: new Date("2024-01-01T11:30:00") },
-    { id: "jadwal-8", kelasId: "kelas-7b", mataPelajaranId: "mapel-3", guruId: "guru-3", hari: "kamis", jamMulai: new Date("2024-01-01T10:00:00"), jamSelesai: new Date("2024-01-01T11:30:00") },
-    { id: "jadwal-9", kelasId: "kelas-8a", mataPelajaranId: "mapel-4", guruId: "guru-3", hari: "jumat", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
+    { id: "jadwal-7", sekolahId: "sekolah-1", kelasId: "kelas-7a", mataPelajaranId: "mapel-3", guruId: "guru-3", hari: "selasa", jamMulai: new Date("2024-01-01T10:00:00"), jamSelesai: new Date("2024-01-01T11:30:00") },
+    { id: "jadwal-8", sekolahId: "sekolah-1", kelasId: "kelas-7b", mataPelajaranId: "mapel-3", guruId: "guru-3", hari: "kamis", jamMulai: new Date("2024-01-01T10:00:00"), jamSelesai: new Date("2024-01-01T11:30:00") },
+    { id: "jadwal-9", sekolahId: "sekolah-1", kelasId: "kelas-8a", mataPelajaranId: "mapel-4", guruId: "guru-3", hari: "jumat", jamMulai: new Date("2024-01-01T07:00:00"), jamSelesai: new Date("2024-01-01T08:30:00") },
   ]
   await db.insert(jadwalPelajaran).values(jadwalData as any).onConflictDoNothing()
   console.log(`✅ ${jadwalData.length} jadwal pelajaran created`)
@@ -119,22 +119,22 @@ async function seed() {
 
   // Timeline items (agenda khusus migrated to timeline_item)
   const timelineData = [
-    { id: "timeline-senin-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:00", jamSelesai: "07:40", urutan: 1 },
-    { id: "timeline-senin-2", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:40", jamSelesai: "08:20", urutan: 2 },
-    { id: "timeline-senin-3", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "upacara", label: "Upacara", jamMulai: "08:20", jamSelesai: "08:50", urutan: 3 },
-    { id: "timeline-senin-4", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "08:50", jamSelesai: "09:30", urutan: 4 },
-    { id: "timeline-senin-5", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "09:30", jamSelesai: "10:10", urutan: 5 },
-    { id: "timeline-senin-6", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "istirahat", label: "Istirahat", jamMulai: "10:10", jamSelesai: "10:40", urutan: 6 },
-    { id: "timeline-senin-7", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "10:40", jamSelesai: "11:20", urutan: 7 },
-    { id: "timeline-senin-8", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "11:20", jamSelesai: "12:00", urutan: 8 },
-    { id: "timeline-selasa-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "pembiasaan", label: "Pembiasaan : Literasi Pagi", jamMulai: "07:00", jamSelesai: "07:20", urutan: 1 },
-    { id: "timeline-selasa-2", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "07:20", jamSelesai: "08:00", urutan: 2 },
-    { id: "timeline-selasa-3", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:00", jamSelesai: "08:40", urutan: 3 },
-    { id: "timeline-selasa-4", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:40", jamSelesai: "09:20", urutan: 4 },
-    { id: "timeline-selasa-5", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "istirahat", label: "Istirahat", jamMulai: "09:20", jamSelesai: "09:50", urutan: 5 },
-    { id: "timeline-selasa-6", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "09:50", jamSelesai: "10:30", urutan: 6 },
-    { id: "timeline-selasa-7", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "10:30", jamSelesai: "11:10", urutan: 7 },
-    { id: "timeline-selasa-8", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "11:10", jamSelesai: "11:50", urutan: 8 },
+    { id: "timeline-senin-1", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:00", jamSelesai: "07:40", urutan: 1 },
+    { id: "timeline-senin-2", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "07:40", jamSelesai: "08:20", urutan: 2 },
+    { id: "timeline-senin-3", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "upacara", label: "Upacara", jamMulai: "08:20", jamSelesai: "08:50", urutan: 3 },
+    { id: "timeline-senin-4", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "08:50", jamSelesai: "09:30", urutan: 4 },
+    { id: "timeline-senin-5", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "09:30", jamSelesai: "10:10", urutan: 5 },
+    { id: "timeline-senin-6", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "istirahat", label: "Istirahat", jamMulai: "10:10", jamSelesai: "10:40", urutan: 6 },
+    { id: "timeline-senin-7", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "10:40", jamSelesai: "11:20", urutan: 7 },
+    { id: "timeline-senin-8", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "senin", tipe: "jp", jamMulai: "11:20", jamSelesai: "12:00", urutan: 8 },
+    { id: "timeline-selasa-1", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "pembiasaan", label: "Pembiasaan : Literasi Pagi", jamMulai: "07:00", jamSelesai: "07:20", urutan: 1 },
+    { id: "timeline-selasa-2", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "07:20", jamSelesai: "08:00", urutan: 2 },
+    { id: "timeline-selasa-3", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:00", jamSelesai: "08:40", urutan: 3 },
+    { id: "timeline-selasa-4", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "08:40", jamSelesai: "09:20", urutan: 4 },
+    { id: "timeline-selasa-5", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "istirahat", label: "Istirahat", jamMulai: "09:20", jamSelesai: "09:50", urutan: 5 },
+    { id: "timeline-selasa-6", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "09:50", jamSelesai: "10:30", urutan: 6 },
+    { id: "timeline-selasa-7", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "10:30", jamSelesai: "11:10", urutan: 7 },
+    { id: "timeline-selasa-8", sekolahId: "sekolah-1", pengaturanJadwalId: "pengaturan-1", hari: "selasa", tipe: "jp", jamMulai: "11:10", jamSelesai: "11:50", urutan: 8 },
   ]
   await db.insert(timelineItem).values(timelineData as any).onConflictDoNothing()
   console.log(`✅ ${timelineData.length} timeline items created`)

@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { ekstrakurikuler } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const ekstrakurikulerCreateSchema = z.object({
   id: z.string().optional(),
@@ -18,11 +19,6 @@ const ekstrakurikulerCreateSchema = z.object({
 
 const ekstrakurikulerUpdateSchema = ekstrakurikulerCreateSchema.partial()
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const ekstrakurikulerRouter = router({
   getAll: protectedProcedure

@@ -14,6 +14,7 @@ import {
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
+import { getSekolahIdFilter } from "@/server/api/tenant"
 
 const kategoriCreateSchema = z.object({
   id: z.string().optional(),
@@ -49,11 +50,6 @@ const sikapCreateSchema = z.object({
   deskripsi: z.string().nullable().optional(),
 })
 
-function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
-  if (role === "super_admin") return null
-  return sekolahId ?? null
-}
 
 export const poinRouter = router({
   // ── Kategori ──

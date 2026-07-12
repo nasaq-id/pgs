@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { siswa } from "./siswa"
 import { kelas } from "./kelas"
@@ -14,7 +14,9 @@ export const absensiSiswa = pgTable("absensi_siswa", {
   jamMasuk: timestamp("jam_masuk"),
   jamPulang: timestamp("jam_pulang"),
   keterangan: text("keterangan"),
-})
+}, (table) => [
+  index("absensi_siswa_sekolah_id_idx").on(table.sekolahId),
+])
 
 export const absensiSiswaRelations = relations(absensiSiswa, ({ one }) => ({
   siswa: one(siswa, {
