@@ -158,10 +158,10 @@ export default function NotifikasiPage() {
         <div className="flex items-center gap-2">
           {notifications.some((n) => !n.dibaca) && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => markAllAsReadMutation.mutate()}
-              className="h-10 rounded-xl"
+              className="neumo-sm h-10 rounded-xl"
             >
               <Check className="h-4 w-4 mr-2" />
               Tandai Semua Dibaca
@@ -169,10 +169,10 @@ export default function NotifikasiPage() {
           )}
           {isAdmin && (
             <Button
-              variant="default"
+              variant="ghost"
               size="sm"
               onClick={() => setCreateOpen(true)}
-              className="h-10 rounded-xl font-semibold shadow-sm shadow-primary/20"
+              className="neumo-sm h-10 rounded-xl font-semibold"
             >
               <Plus className="h-4 w-4 mr-2" />
               Kirim Notifikasi
@@ -340,16 +340,17 @@ export default function NotifikasiPage() {
             <DialogFooter className="pt-2 flex gap-2">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setCreateOpen(false)}
-                className="rounded-xl flex-1 h-11"
+                className="neumo rounded-xl flex-1 h-11"
               >
                 Batal
               </Button>
               <Button
                 type="submit"
+                variant="ghost"
                 disabled={creating}
-                className="rounded-xl flex-1 h-11 shadow-sm shadow-primary/20"
+                className="neumo rounded-xl flex-1 h-11"
               >
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Kirim Notifikasi
