@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
@@ -24,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
 export default function NotifikasiPage() {
+  const router = useRouter()
   const { data: session } = useSession()
   const role = session?.user?.role
   const isAdmin = role === "super_admin" || role === "admin_sekolah"
@@ -91,7 +93,7 @@ export default function NotifikasiPage() {
       await markAsReadMutation.mutateAsync({ id: notif.id })
     }
     if (notif.link) {
-      window.location.href = notif.link
+      router.push(notif.link)
     }
   }
 
@@ -132,7 +134,7 @@ export default function NotifikasiPage() {
       {/* Meta tags / SEO */}
       <title>Notifikasi & Pemberitahuan - EduManage</title>
       <meta name="description" content="Halaman informasi dan pengumuman untuk guru, siswa, dan staf sekolah." />
-      <div className="bg-white dark:bg-[oklch(0.145_0_0)] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 -mt-6 sm:-mt-8 min-h-[calc(100vh-4rem)]">
+      <div className="bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 -mt-6 sm:-mt-8 min-h-[calc(100vh-4rem)] transition-colors duration-300">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -148,7 +150,7 @@ export default function NotifikasiPage() {
               variant="ghost"
               size="sm"
               onClick={() => markAllAsReadMutation.mutate()}
-              className="neumo-sm border-0 h-10 rounded-xl"
+              className="neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border-0 h-10 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Check className="h-4 w-4 mr-2" />
               Tandai Semua Dibaca
@@ -159,7 +161,7 @@ export default function NotifikasiPage() {
               variant="ghost"
               size="sm"
               onClick={() => setCreateOpen(true)}
-              className="neumo-sm border-0 h-10 rounded-xl font-semibold"
+              className="neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border-0 h-10 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Plus className="h-4 w-4 mr-2" />
               Kirim Notifikasi
@@ -169,11 +171,13 @@ export default function NotifikasiPage() {
       </div>
 
       {/* Tab Filter */}
-      <div className="flex gap-2 p-1.5 bg-muted/30 rounded-xl w-fit">
+      <div className="flex gap-2 p-1.5 neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] rounded-xl w-fit">
         <button
           onClick={() => setActiveTab("semua")}
           className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-            activeTab === "semua" ? "neumo-sm" : "text-muted-foreground hover:text-foreground"
+            activeTab === "semua"
+              ? "neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Semua
@@ -181,7 +185,9 @@ export default function NotifikasiPage() {
         <button
           onClick={() => setActiveTab("unread")}
           className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-            activeTab === "unread" ? "neumo-sm" : "text-muted-foreground hover:text-foreground"
+            activeTab === "unread"
+              ? "neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Belum Dibaca
@@ -195,7 +201,7 @@ export default function NotifikasiPage() {
           <p className="text-sm text-muted-foreground">Memuat notifikasi...</p>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="neumo-card bg-white dark:bg-[oklch(0.22_0_0)] rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
+        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
           <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
             <Bell className="h-8 w-8 text-muted-foreground/60" />
           </div>
@@ -216,7 +222,7 @@ export default function NotifikasiPage() {
               <div
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
-                className={`neumo-card bg-white dark:bg-[oklch(0.22_0_0)] rounded-2xl p-5 flex items-start gap-4 transition-all duration-300 relative group ${
+                className={`neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-2xl p-5 flex items-start gap-4 transition-all duration-300 relative group hover:scale-[1.005] ${
                   notif.link ? "clickable" : ""
                 }`}
               >
@@ -300,9 +306,9 @@ export default function NotifikasiPage() {
                   value={newType}
                   onValueChange={(v: any) => setNewType(v)}
                 >
-                  <SelectTrigger className="rounded-xl neumo-sm">
-                    <SelectValue placeholder="Pilih Jenis" />
-                  </SelectTrigger>
+                <SelectTrigger className="rounded-xl neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)]">
+                  <SelectValue placeholder="Pilih Jenis" />
+                </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="info">Info (Biru)</SelectItem>
                     <SelectItem value="success">Sukses (Hijau)</SelectItem>
@@ -329,7 +335,7 @@ export default function NotifikasiPage() {
                 type="button"
                 variant="ghost"
                 onClick={() => setCreateOpen(false)}
-                className="neumo border-0 rounded-xl flex-1 h-11"
+                className="neumo bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border-0 rounded-xl flex-1 h-11 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 Batal
               </Button>
@@ -337,7 +343,7 @@ export default function NotifikasiPage() {
                 type="submit"
                 variant="ghost"
                 disabled={creating}
-                className="neumo border-0 rounded-xl flex-1 h-11"
+                className="neumo bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border-0 rounded-xl flex-1 h-11 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Kirim Notifikasi
