@@ -30,16 +30,16 @@ function StatCard({ icon: Icon, label, value, sub, isLoading }: {
 }) {
   if (isLoading) return <StatCardSkeleton />
   return (
-    <div className="bg-white border border-slate-100 p-5 rounded-[1.75rem] shadow-sm flex flex-col justify-between h-[120px] hover:shadow-md transition-shadow">
+    <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] flex flex-col justify-between h-[120px] hover:scale-[1.01] transition-all duration-300">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-        <div className="w-7 h-7 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
+        <div className="w-7 h-7 neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] rounded-lg flex items-center justify-center text-muted-foreground">
           <Icon className="w-3.5 h-3.5" />
         </div>
       </div>
       <div>
-        <p className="text-2xl font-extrabold text-slate-900">{value}</p>
-        {sub && <p className="text-[10px] text-slate-400 font-medium mt-0.5">{sub}</p>}
+        <p className="text-2xl font-extrabold text-foreground">{value}</p>
+        {sub && <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -51,30 +51,30 @@ function CompactCard({ icon: Icon, label, value, sub, accent = "slate", isLoadin
   if (isLoading) return <Skeleton className="h-[104px] rounded-[1.75rem]" />
   if (isNull) {
     return (
-      <div className="bg-white border border-slate-100 p-5 rounded-[1.75rem] shadow-sm opacity-60">
+      <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] opacity-60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300">
+          <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-muted-foreground/50">
             <Icon className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{label}</p>
-            <p className="text-xl font-black text-slate-900">&mdash;</p>
-            <p className="text-[10px] text-slate-400 font-medium">Data belum tersedia</p>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{label}</p>
+            <p className="text-xl font-black text-foreground">&mdash;</p>
+            <p className="text-[10px] text-muted-foreground font-medium">Data belum tersedia</p>
           </div>
         </div>
       </div>
     )
   }
   return (
-    <div className="bg-white border border-slate-100 p-5 rounded-[1.75rem] shadow-sm hover:shadow-md transition-shadow">
+    <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] hover:scale-[1.01] transition-all duration-300">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+        <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-muted-foreground">
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{label}</p>
-          <p className="text-xl font-extrabold text-slate-900">{value}</p>
-          {sub && <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">{sub}</p>}
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{label}</p>
+          <p className="text-xl font-extrabold text-foreground">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{sub}</p>}
         </div>
       </div>
     </div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
             </div>
 
             {/* Leaderboard Card */}
-            <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm flex flex-col justify-between">
+            <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -229,7 +229,7 @@ export default function Dashboard() {
 
         {/* Announcements */}
         {announcements && announcements.length > 0 && (
-          <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
+          <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-6 rounded-[2rem]">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Megaphone className="h-5 w-5 text-primary" />
@@ -280,34 +280,34 @@ export default function Dashboard() {
               Aktivitas Hari Ini
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#d5f2e8] p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/siswa"}>
+              <div className="bg-[#d5f2e8] dark:bg-[oklch(0.20_0.02_140)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/siswa"}>
                 <div className="flex items-start justify-between">
-                  <span className="px-3 py-1 bg-white/70 text-emerald-800 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm">
+                  <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-emerald-800 dark:text-emerald-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-emerald-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
                     {studentSummary.data?.total ?? 0}
                   </span>
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:bg-slate-900 transition-colors">
-                    <ArrowRight size={18} className="text-slate-800" />
+                  <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm group-hover:bg-slate-900 transition-colors">
+                    <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-none">Manajemen Siswa</h3>
-                  <p className="text-[11px] text-emerald-800/70 font-semibold mt-1">Kelola data & rekap profil</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-emerald-100 tracking-tight leading-none">Manajemen Siswa</h3>
+                  <p className="text-[11px] text-emerald-800/70 dark:text-emerald-300/70 font-semibold mt-1">Kelola data & rekap profil</p>
                 </div>
               </div>
-              <div className="bg-[#e0e7ff] p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/guru"}>
+              <div className="bg-[#e0e7ff] dark:bg-[oklch(0.20_0.02_250)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/guru"}>
                 <div className="flex items-start justify-between">
-                  <span className="px-3 py-1 bg-white/70 text-indigo-900 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm">
+                  <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-indigo-900 dark:text-indigo-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-indigo-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
                     {staffSummary.data?.total ?? 0}
                   </span>
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <ArrowRight size={18} className="text-slate-800" />
+                  <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm">
+                    <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-none">Pendidik & Tendik</h3>
-                  <p className="text-[11px] text-indigo-900/70 font-semibold mt-1">Staf pengajar & kurikulum</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-indigo-100 tracking-tight leading-none">Pendidik & Tendik</h3>
+                  <p className="text-[11px] text-indigo-900/70 dark:text-indigo-300/70 font-semibold mt-1">Staf pengajar & kurikulum</p>
                 </div>
               </div>
             </div>
@@ -327,7 +327,7 @@ export default function Dashboard() {
           {/* Poin Kedisiplinan */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Top 5 Positif */}
-            <div className="bg-white rounded-[2.5rem] border border-emerald-100 shadow-sm p-6">
+            <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6">
               <div className="flex items-center justify-between border-b border-emerald-50 pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black shadow-md shadow-emerald-500/10">
@@ -362,7 +362,7 @@ export default function Dashboard() {
             </div>
 
             {/* Top 5 Negatif */}
-            <div className="bg-white rounded-[2.5rem] border border-rose-100 shadow-sm p-6">
+            <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6">
               <div className="flex items-center justify-between border-b border-rose-50 pb-3 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center font-black shadow-md shadow-rose-500/10">
@@ -428,7 +428,7 @@ export default function Dashboard() {
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 rounded-xl bg-slate-100 animate-pulse" />)}</div>
             </div>
           ) : announcements && announcements.length > 0 ? (
-            <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
+            <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-6 rounded-[2rem]">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Megaphone className="h-5 w-5 text-primary" />
@@ -458,7 +458,7 @@ export default function Dashboard() {
           </div>
 
           {/* Calendar Card */}
-          <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm space-y-4">
+          <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800 text-sm">
                 {monthNames[calendarMonth]} {calendarYear}

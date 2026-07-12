@@ -102,9 +102,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f5f6] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
       {/* ── Brand Nav ── */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50">
+      <nav className="glass py-4 px-6 md:px-12 flex items-center justify-between sticky top-2 z-50 mx-4 rounded-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-500/20 text-white">
             <Compass className="w-5 h-5" />
@@ -145,30 +145,30 @@ export default function LoginPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3">
+            <div className="neumo-card bg-background p-5 rounded-2xl hover:scale-[1.02] transition-all duration-300">
+              <div className="w-10 h-10 neumo-inset bg-[oklch(0.94_0.01_250)] text-teal-600 rounded-xl flex items-center justify-center mb-3">
                 <Users size={20} />
               </div>
-              <p className="text-2xl font-black text-slate-800">—</p>
-              <p className="text-xs text-slate-400 font-bold mt-1">Siswa Terdaftar</p>
+              <p className="text-2xl font-black text-foreground">—</p>
+              <p className="text-xs text-muted-foreground font-bold mt-1">Siswa Terdaftar</p>
             </div>
-            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
+            <div className="neumo-card bg-background p-5 rounded-2xl hover:scale-[1.02] transition-all duration-300">
+              <div className="w-10 h-10 neumo-inset bg-[oklch(0.94_0.01_250)] text-emerald-600 rounded-xl flex items-center justify-center mb-3">
                 <GraduationCap size={20} />
               </div>
-              <p className="text-2xl font-black text-slate-800">—</p>
-              <p className="text-xs text-slate-400 font-bold mt-1">Guru & Tendik</p>
+              <p className="text-2xl font-black text-foreground">—</p>
+              <p className="text-xs text-muted-foreground font-bold mt-1">Guru & Tendik</p>
             </div>
-            <div className="col-span-2 sm:col-span-1 bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="col-span-2 sm:col-span-1 neumo-card bg-background p-5 rounded-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between">
               <div className="flex justify-between items-start">
-                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 neumo-inset bg-[oklch(0.94_0.01_250)] text-amber-600 rounded-xl flex items-center justify-center">
                   <School size={20} />
                 </div>
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded">TERAKREDITASI</span>
+                <span className="bg-amber-100 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-[10px] font-black px-2 py-0.5 rounded">TERAKREDITASI</span>
               </div>
               <div className="mt-3">
-                <p className="text-2xl font-black text-slate-800">A</p>
-                <p className="text-xs text-slate-400 font-bold mt-1">Akreditasi</p>
+                <p className="text-2xl font-black text-foreground">A</p>
+                <p className="text-xs text-muted-foreground font-bold mt-1">Akreditasi</p>
               </div>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function LoginPage() {
 
         {/* ── Right Column: Login Card ── */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white border border-slate-100 shadow-2xl rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden">
+          <div className="neumo-card bg-background rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden">
             {/* Decorative blobs */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
             <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
@@ -224,7 +224,7 @@ export default function LoginPage() {
             </div>
 
             {/* Role Switcher */}
-            <div className="flex p-1 bg-slate-100 rounded-xl mb-6 relative z-10">
+            <div className="flex p-1 neumo-inset bg-[oklch(0.94_0.01_250)] rounded-xl mb-6 relative z-10">
               {ROLE_TABS.map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -253,7 +253,7 @@ export default function LoginPage() {
             {/* Form */}
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 relative z-10 text-left">
               <div>
-                <label htmlFor="email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                <label htmlFor="email" className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">
                   {ROLE_CONFIG[activeRole].emailLabel}
                 </label>
                 <div className="relative">
@@ -263,7 +263,7 @@ export default function LoginPage() {
                     name="email"
                     type="text"
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-slate-700"
+                    className="w-full px-4 py-3.5 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] border-0 focus:outline-none focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-foreground placeholder-slate-400"
                     placeholder={ROLE_CONFIG[activeRole].emailPlaceholder}
                   />
                 </div>
@@ -271,7 +271,7 @@ export default function LoginPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <label htmlFor="password" className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     Kata Sandi
                   </label>
                 </div>
@@ -282,13 +282,13 @@ export default function LoginPage() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
-                    className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-slate-700 pr-11"
+                    className="w-full px-4 py-3.5 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] border-0 focus:outline-none focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-foreground pr-11 placeholder-slate-400"
                     placeholder="Masukkan sandi akun Anda"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -310,7 +310,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2 relative z-10">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest text-center">
                   Akses Cepat Demo
                 </p>
                 <div className="flex gap-2">
@@ -319,10 +319,10 @@ export default function LoginPage() {
                       key={role}
                       type="button"
                       onClick={() => handleDemoLogin(role)}
-                      className="flex-1 text-[11px] px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-teal-50 hover:border-teal-200 text-slate-600 hover:text-teal-700 font-bold transition-all cursor-pointer text-center leading-tight"
+                      className="flex-1 text-[11px] px-3 py-2 rounded-xl neumo-sm bg-background hover:scale-[1.02] active:scale-[0.98] text-muted-foreground hover:text-teal-750 font-bold transition-all cursor-pointer text-center leading-tight"
                     >
                       <span className="block">{creds.label}</span>
-                      <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{creds.email}</span>
+                      <span className="block text-[10px] text-muted-foreground/60 font-mono mt-0.5">{creds.email}</span>
                     </button>
                   ))}
                 </div>
@@ -346,8 +346,8 @@ export default function LoginPage() {
           </div>
 
           {/* Quick Info */}
-          <div className="bg-slate-100/80 rounded-3xl border border-slate-200/50 p-5 text-center">
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+          <div className="neumo-card bg-background rounded-3xl p-5 text-center">
+            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
               Butuh bantuan? Hubungi administrator sekolah
             </p>
           </div>
