@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and } from "drizzle-orm"
 import { db } from "@/server/db"
 import { billingType, feeStructure, lateFeeRule } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
@@ -39,11 +39,12 @@ export const settingsRouter = router({
   billingType: router({
     list: protectedProcedure
       .input(z.object({ isActive: z.boolean().optional() }).optional())
-      .query(async ({ input }) => {
-        if (input?.isActive !== undefined) {
-          return db.select().from(billingType).where(eq(billingType.isActive, input.isActive)).orderBy(billingType.name)
-        }
-        return db.select().from(billingType).orderBy(billingType.name)
+      .query(async ({ ctx, input }) => {
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(billingType.sekolahId, sekolahIdFilter))
+        if (input?.isActive !== undefined) conditions.push(eq(billingType.isActive, input.isActive))
+        return db.select().from(billingType).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(billingType.name)
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -60,7 +61,12 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string(), data: billingTypeSchema.partial() }))
       .mutation(async ({ ctx, input }) => {
-        await db.update(billingType).set(input.data).where(eq(billingType.id, input.id))
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const whereClause = sekolahIdFilter
+          ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
+          : eq(billingType.id, input.id)
+        const [updated] = await db.update(billingType).set(input.data).where(whereClause).returning()
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Billing type tidak ditemukan" })
         await logAudit(ctx, { action: "update_billing_type", entity: "billing_type", entityId: input.id })
         return { success: true }
       }),
@@ -68,9 +74,13 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const existing = await db.select().from(billingType).where(eq(billingType.id, input.id)).limit(1)
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const whereClause = sekolahIdFilter
+          ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
+          : eq(billingType.id, input.id)
+        const existing = await db.select().from(billingType).where(whereClause).limit(1)
         if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
-        await db.update(billingType).set({ isActive: !existing[0].isActive }).where(eq(billingType.id, input.id))
+        await db.update(billingType).set({ isActive: !existing[0].isActive }).where(whereClause)
         return { isActive: !existing[0].isActive }
       }),
   }),
@@ -79,15 +89,12 @@ export const settingsRouter = router({
   feeStructure: router({
     list: protectedProcedure
       .input(z.object({ billingTypeId: z.string().optional() }).optional())
-      .query(async ({ input }) => {
-        if (input?.billingTypeId) {
-          return db
-            .select()
-            .from(feeStructure)
-            .where(eq(feeStructure.billingTypeId, input.billingTypeId))
-            .orderBy(desc(feeStructure.effectiveFrom))
-        }
-        return db.select().from(feeStructure).orderBy(desc(feeStructure.effectiveFrom))
+      .query(async ({ ctx, input }) => {
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(feeStructure.sekolahId, sekolahIdFilter))
+        if (input?.billingTypeId) conditions.push(eq(feeStructure.billingTypeId, input.billingTypeId))
+        return db.select().from(feeStructure).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(feeStructure.effectiveFrom))
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -109,9 +116,14 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string(), data: feeStructureSchema.partial() }))
       .mutation(async ({ ctx, input }) => {
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const whereClause = sekolahIdFilter
+          ? and(eq(feeStructure.id, input.id), eq(feeStructure.sekolahId, sekolahIdFilter))
+          : eq(feeStructure.id, input.id)
         const updateData: any = { ...input.data }
         if (updateData.amount) updateData.amount = String(updateData.amount) as any
-        await db.update(feeStructure).set(updateData).where(eq(feeStructure.id, input.id))
+        const [updated] = await db.update(feeStructure).set(updateData).where(whereClause).returning()
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Fee structure tidak ditemukan" })
         await logAudit(ctx, { action: "update_fee_structure", entity: "fee_structure", entityId: input.id })
         return { success: true }
       }),
@@ -121,11 +133,12 @@ export const settingsRouter = router({
   lateFeeRule: router({
     list: protectedProcedure
       .input(z.object({ billingTypeId: z.string().optional() }).optional())
-      .query(async ({ input }) => {
-        if (input?.billingTypeId) {
-          return db.select().from(lateFeeRule).where(eq(lateFeeRule.billingTypeId, input.billingTypeId))
-        }
-        return db.select().from(lateFeeRule)
+      .query(async ({ ctx, input }) => {
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(lateFeeRule.sekolahId, sekolahIdFilter))
+        if (input?.billingTypeId) conditions.push(eq(lateFeeRule.billingTypeId, input.billingTypeId))
+        return db.select().from(lateFeeRule).where(conditions.length > 0 ? and(...conditions) : undefined)
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -142,9 +155,13 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const existing = await db.select().from(lateFeeRule).where(eq(lateFeeRule.id, input.id)).limit(1)
+        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const whereClause = sekolahIdFilter
+          ? and(eq(lateFeeRule.id, input.id), eq(lateFeeRule.sekolahId, sekolahIdFilter))
+          : eq(lateFeeRule.id, input.id)
+        const existing = await db.select().from(lateFeeRule).where(whereClause).limit(1)
         if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
-        await db.update(lateFeeRule).set({ isActive: !existing[0].isActive }).where(eq(lateFeeRule.id, input.id))
+        await db.update(lateFeeRule).set({ isActive: !existing[0].isActive }).where(whereClause)
         return { isActive: !existing[0].isActive }
       }),
   }),

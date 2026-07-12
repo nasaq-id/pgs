@@ -54,6 +54,7 @@ export const keuanganRouter = router({
         }
       }
       const conditions = [eq(tagihanSpp.siswaId, input.siswaId)]
+      if (sekolahIdFilter) conditions.push(eq(tagihanSpp.sekolahId, sekolahIdFilter))
       if (input.tahun) conditions.push(eq(tagihanSpp.tahun, input.tahun))
       const orderBy = input.sortOrder === "asc" ? asc(tagihanSpp[input.sortBy]) : desc(tagihanSpp[input.sortBy])
       const data = await db
@@ -95,18 +96,17 @@ export const keuanganRouter = router({
     .input(z.object({ id: z.string(), data: tagihanUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const whereClause = sekolahIdFilter
+        ? and(eq(tagihanSpp.id, input.id), eq(tagihanSpp.sekolahId, sekolahIdFilter))
+        : eq(tagihanSpp.id, input.id)
       const existing = await db.query.tagihanSpp.findFirst({
-        where: eq(tagihanSpp.id, input.id),
-        with: { siswa: true },
+        where: whereClause,
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tagihan tidak ditemukan" })
-      if (sekolahIdFilter && existing.siswa?.sekolahId !== sekolahIdFilter) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Tagihan tidak ditemukan" })
-      }
       const result = await db
         .update(tagihanSpp)
         .set(input.data as any)
-        .where(eq(tagihanSpp.id, input.id))
+        .where(whereClause)
         .returning()
       await logAudit(ctx, { action: "update", entity: "tagihan_spp", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]

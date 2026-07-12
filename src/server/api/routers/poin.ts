@@ -257,8 +257,13 @@ export const poinRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
 
+      const studentRecord = await db.query.siswa.findFirst({
+        where: and(eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)),
+      })
+      if (!studentRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan di sekolah Anda" })
+
       const kategori = await db.query.poinKategori.findFirst({
-        where: eq(poinKategori.id, input.kategoriId),
+        where: and(eq(poinKategori.id, input.kategoriId), eq(poinKategori.sekolahId, sekolahId)),
       })
       if (!kategori) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
 

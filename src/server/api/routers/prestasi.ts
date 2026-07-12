@@ -91,44 +91,32 @@ export const prestasiRouter = router({
     .input(z.object({ id: z.string(), data: prestasiUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      const existing = await db
-        .select({ id: prestasi.id })
-        .from(prestasi)
-        .innerJoin(siswa, eq(prestasi.siswaId, siswa.id))
-        .where(
-          sekolahIdFilter
-            ? and(eq(prestasi.id, input.id), eq(siswa.sekolahId, sekolahIdFilter))
-            : eq(prestasi.id, input.id),
-        )
-        .limit(1)
-      if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })
+      const whereClause = sekolahIdFilter
+        ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
+        : eq(prestasi.id, input.id)
+
       const updateData = { ...input.data }
       delete (updateData as any).id
-      const result = await db
+      const [updated] = await db
         .update(prestasi)
         .set(updateData as any)
-        .where(eq(prestasi.id, input.id))
+        .where(whereClause)
         .returning()
-      await logAudit(ctx, { action: "update", entity: "prestasi", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
-      return result[0]
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })
+      await logAudit(ctx, { action: "update", entity: "prestasi", entityId: updated.id, metadata: { fields: Object.keys(updateData) } })
+      return updated
     }),
 
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx as any)
-      const existing = await db
-        .select({ id: prestasi.id })
-        .from(prestasi)
-        .innerJoin(siswa, eq(prestasi.siswaId, siswa.id))
-        .where(
-          sekolahIdFilter
-            ? and(eq(prestasi.id, input.id), eq(siswa.sekolahId, sekolahIdFilter))
-            : eq(prestasi.id, input.id),
-        )
-        .limit(1)
-      if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })
-      await db.delete(prestasi).where(eq(prestasi.id, input.id))
+      const whereClause = sekolahIdFilter
+        ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
+        : eq(prestasi.id, input.id)
+
+      const [deleted] = await db.delete(prestasi).where(whereClause).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "prestasi", entityId: input.id })
       return { success: true }
     }),

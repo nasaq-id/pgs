@@ -3,7 +3,6 @@ import { eq, or } from "drizzle-orm"
 import { db } from "@/server/db"
 import { users, siswa, guru, kelas, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure } from "@/server/api/trpc"
-import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const profilRouter = router({
   getProfile: protectedProcedure.query(async ({ ctx }) => {

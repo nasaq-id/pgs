@@ -120,14 +120,15 @@ export const lembagaRouter = router({
       active: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const whereClause = sekolahIdFilter
+        ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
+        : eq(tahunAjaran.id, input.id)
       const existing = await db.query.tahunAjaran.findFirst({
-        where: eq(tahunAjaran.id, input.id),
+        where: whereClause,
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
-      if (sekolahId && existing.sekolahId !== sekolahId) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
-      }
+
       const { id, ...data } = input
       const updateData: Record<string, any> = { ...data }
       if (data.tanggalMulai) updateData.tanggalMulai = new Date(data.tanggalMulai)
@@ -137,12 +138,12 @@ export const lembagaRouter = router({
         await db.update(tahunAjaran)
           .set({ active: false })
           .where(and(
-            eq(tahunAjaran.sekolahId, sekolahId ?? existing.sekolahId),
+            eq(tahunAjaran.sekolahId, existing.sekolahId),
             eq(tahunAjaran.active, true),
           ))
       }
 
-      await db.update(tahunAjaran).set(updateData).where(eq(tahunAjaran.id, id))
+      await db.update(tahunAjaran).set(updateData).where(whereClause)
       await logAudit(ctx, { action: "update", entity: "tahun_ajaran", entityId: id, metadata: { fields: Object.keys(data) } })
       return { success: true }
     }),
@@ -150,15 +151,15 @@ export const lembagaRouter = router({
   removeTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const whereClause = sekolahIdFilter
+        ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
+        : eq(tahunAjaran.id, input.id)
       const existing = await db.query.tahunAjaran.findFirst({
-        where: eq(tahunAjaran.id, input.id),
+        where: whereClause,
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
-      if (sekolahId && existing.sekolahId !== sekolahId) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
-      }
-      await db.delete(tahunAjaran).where(eq(tahunAjaran.id, input.id))
+      await db.delete(tahunAjaran).where(whereClause)
       await logAudit(ctx, { action: "delete", entity: "tahun_ajaran", entityId: input.id })
       return { success: true }
     }),

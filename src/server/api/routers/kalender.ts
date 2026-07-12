@@ -7,7 +7,6 @@ import { kalenderEvent } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getLiburNasional } from "@/lib/libur-nasional"
-import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const kalenderRouter = router({
   getAll: protectedProcedure

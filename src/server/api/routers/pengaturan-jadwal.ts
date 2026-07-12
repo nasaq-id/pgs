@@ -101,8 +101,9 @@ export const pengaturanJadwalRouter = router({
             urutan: input.urutan,
             warna: input.warna,
           })
-          .where(eq(timelineItem.id, input.id))
+          .where(and(eq(timelineItem.id, input.id), eq(timelineItem.sekolahId, sekolahId)))
           .returning()
+        if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item timeline tidak ditemukan" })
         await logAudit(ctx, { action: "update", entity: "timeline_item", entityId: input.id, metadata: {} })
         return result[0]
       }
@@ -129,7 +130,10 @@ export const pengaturanJadwalRouter = router({
   deleteTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await db.delete(timelineItem).where(eq(timelineItem.id, input.id))
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const [deleted] = await db.delete(timelineItem).where(and(eq(timelineItem.id, input.id), eq(timelineItem.sekolahId, sekolahId))).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Item timeline tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
       return { success: true }
     }),

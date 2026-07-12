@@ -150,6 +150,7 @@ export const nilaiRouter = router({
       const classRecord = await db.query.kelas.findFirst({
         where: eq(kelas.id, input.kelasId),
       })
+      if (!classRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
 
       // Check if Wali Kelas or Admin
       let isWaliKelas = false
@@ -168,7 +169,7 @@ export const nilaiRouter = router({
       const siswaRows = await db
         .select()
         .from(siswa)
-        .where(eq(siswa.kelasId, input.kelasId))
+        .where(and(eq(siswa.kelasId, input.kelasId), sekolahIdFilter ? eq(siswa.sekolahId, sekolahIdFilter) : undefined))
         .orderBy(asc(siswa.namaLengkap))
 
       if (siswaRows.length === 0) {
@@ -185,7 +186,8 @@ export const nilaiRouter = router({
           and(
             eq(asesmen.kelasId, input.kelasId),
             eq(asesmen.mataPelajaranId, input.mataPelajaranId),
-            eq(asesmen.kategori, "sumatif")
+            eq(asesmen.kategori, "sumatif"),
+            sekolahIdFilter ? eq(asesmen.sekolahId, sekolahIdFilter) : undefined
           )
         )
         .orderBy(asc(asesmen.createdAt))
@@ -198,7 +200,8 @@ export const nilaiRouter = router({
           .where(
             and(
               inArray(asesmenSiswa.asesmenId, listAsesmen.map((a) => a.id)),
-              inArray(asesmenSiswa.siswaId, studentIds)
+              inArray(asesmenSiswa.siswaId, studentIds),
+              sekolahIdFilter ? eq(asesmenSiswa.sekolahId, sekolahIdFilter) : undefined
             )
           )
       }
@@ -210,14 +213,15 @@ export const nilaiRouter = router({
         .where(
           and(
             eq(nilai.mataPelajaranId, input.mataPelajaranId),
-            inArray(nilai.siswaId, studentIds)
+            inArray(nilai.siswaId, studentIds),
+            sekolahIdFilter ? eq(nilai.sekolahId, sekolahIdFilter) : undefined
           )
         )
 
       // Fetch school weights settings
-      const schoolId = ctx.session.user.sekolahId || ""
+      const targetSchoolId = classRecord.sekolahId
       const schoolSettings = await db.query.sekolah.findFirst({
-        where: eq(sekolah.id, schoolId),
+        where: eq(sekolah.id, targetSchoolId),
       })
 
       return {
@@ -225,7 +229,7 @@ export const nilaiRouter = router({
         asesmen: listAsesmen,
         scores: asesmenSiswaRows,
         savedNilai,
-        kelas: classRecord || null,
+        kelas: classRecord,
         isWaliKelas,
         settings: {
           bobotSumatif: schoolSettings?.bobotSumatif ?? 60,
@@ -238,8 +242,18 @@ export const nilaiRouter = router({
     .input(saveBukuNilaiSchema)
     .mutation(async ({ ctx, input }) => {
       const { kelasId, mataPelajaranId, tahunAjaranId, records } = input
-      const sekolahId = ctx.session.user.sekolahId
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      
+      const classRecord = await db.query.kelas.findFirst({
+        where: eq(kelas.id, kelasId),
+      })
+      if (!classRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+      
+      const targetSekolahId = classRecord.sekolahId
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      if (sekolahIdFilter && targetSekolahId !== sekolahIdFilter) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Akses ke kelas ini ditolak" })
+      }
+
       const results = []
 
       for (const rec of records) {
@@ -247,12 +261,13 @@ export const nilaiRouter = router({
         const existing = await db.query.nilai.findFirst({
           where: and(
             eq(nilai.siswaId, rec.siswaId),
-            eq(nilai.mataPelajaranId, mataPelajaranId)
+            eq(nilai.mataPelajaranId, mataPelajaranId),
+            eq(nilai.sekolahId, targetSekolahId)
           )
         })
 
         const dataToSave = {
-          sekolahId,
+          sekolahId: targetSekolahId,
           siswaId: rec.siswaId,
           mataPelajaranId,
           tahunAjaranId: tahunAjaranId || null,
@@ -267,7 +282,7 @@ export const nilaiRouter = router({
           const updated = await db
             .update(nilai)
             .set(dataToSave)
-            .where(eq(nilai.id, existing.id))
+            .where(and(eq(nilai.id, existing.id), eq(nilai.sekolahId, targetSekolahId)))
             .returning()
           results.push(updated[0])
         } else {
@@ -307,11 +322,17 @@ export const nilaiRouter = router({
         }
       }
 
+      // Fetch class details
+      const classRecord = await db.query.kelas.findFirst({
+        where: eq(kelas.id, input.kelasId),
+      })
+      if (!classRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
+
       // Fetch students in this class
       const siswaRows = await db
         .select()
         .from(siswa)
-        .where(eq(siswa.kelasId, input.kelasId))
+        .where(and(eq(siswa.kelasId, input.kelasId), sekolahIdFilter ? eq(siswa.sekolahId, sekolahIdFilter) : undefined))
         .orderBy(asc(siswa.namaLengkap))
 
       if (siswaRows.length === 0) {
@@ -321,7 +342,7 @@ export const nilaiRouter = router({
       const studentIds = siswaRows.map((s) => s.id)
 
       // Fetch all subjects in the school
-      const schoolId = ctx.session.user.sekolahId || ""
+      const schoolId = classRecord.sekolahId
       const mapelRows = await db
         .select()
         .from(mataPelajaran)
@@ -332,7 +353,7 @@ export const nilaiRouter = router({
       const nilaiRows = await db
         .select()
         .from(nilai)
-        .where(inArray(nilai.siswaId, studentIds))
+        .where(and(inArray(nilai.siswaId, studentIds), eq(nilai.sekolahId, schoolId)))
 
       return {
         siswa: siswaRows,
