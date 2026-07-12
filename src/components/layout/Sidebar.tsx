@@ -391,7 +391,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     className={cn(
                       "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
                       isGroupActive
-                        ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
+                        ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-0 font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
                     )}
                   >
@@ -415,7 +415,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                           className={cn(
                             "flex items-center px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all text-left",
                             isActive(child.path)
-                              ? "bg-teal-50/60 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/50"
+                              ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-0"
                               : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
                           )}
                         >
@@ -441,7 +441,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   className={cn(
                     "w-full relative flex items-center gap-2.5 px-4 py-3 mx-3 rounded-xl text-sm cursor-pointer border transition-all duration-200",
                     isGroupActive
-                      ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
+                      ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-transparent font-bold"
                       : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
                   )}
                 >
@@ -479,7 +479,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                         className={cn(
                           "flex items-center px-3 py-1.5 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
                           isActive(child.path)
-                            ? "bg-teal-50/60 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 font-bold border border-teal-100/50 dark:border-teal-900/50"
+                            ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 font-bold border-0"
                             : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
                         )}
                       >
@@ -507,7 +507,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-sm",
                 isMinimized ? "lg:justify-center lg:px-0 lg:mx-2.5" : "justify-start",
                 isItemActive
-                  ? "bg-gradient-to-r from-teal-50/80 to-emerald-50/40 text-teal-700 dark:from-teal-950/40 dark:to-emerald-950/20 dark:text-teal-400 border-teal-100/50 dark:border-teal-900/50 font-bold shadow-sm"
+                  ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-transparent font-bold"
                   : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
               )}
             >
