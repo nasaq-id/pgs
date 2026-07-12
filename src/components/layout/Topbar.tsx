@@ -440,15 +440,15 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                       ? "bg-teal-600 hover:bg-teal-700 text-white shadow-sm shadow-teal-500/20"
                       : today
                       ? isLibur || dayOfWeek === 0
-                        ? "bg-red-50 dark:bg-red-950/20 text-red-600 font-black"
-                        : "bg-teal-500/10 text-teal-600 dark:text-teal-400 font-black"
+                        ? "neumo-sm bg-[oklch(0.97_0.015_250)] dark:bg-[oklch(0.17_0.01_250)] text-red-600 font-black"
+                        : "neumo-sm bg-teal-500/10 text-teal-600 dark:text-teal-400 font-black"
                       : hasEvent && !isLibur
-                      ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold"
+                      ? "neumo-sm bg-amber-50 dark:bg-amber-950/20 text-amber-600 font-bold"
                       : isLibur || dayOfWeek === 0
-                      ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      ? "neumo-sm bg-red-50/50 dark:bg-red-950/10 text-red-500"
                       : dayOfWeek === 6
-                      ? "text-blue-500 hover:bg-muted"
-                      : "hover:bg-muted text-foreground/80"
+                      ? "neumo-sm bg-blue-50/50 dark:bg-blue-950/10 text-blue-500"
+                      : "neumo-sm bg-[oklch(0.97_0.015_250)] dark:bg-[oklch(0.17_0.01_250)] text-foreground/80"
                   } ${hasEvent ? "relative" : ""}`}
                 >
                   {format(day, "d")}
