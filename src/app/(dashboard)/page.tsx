@@ -512,15 +512,15 @@ export default function Dashboard() {
                 const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay()
                 const colIndex = (firstDayIndex + idx) % 7
 
-                let cellColorClass = "text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"
+                let cellColorClass = "neumo-sm bg-[oklch(0.97_0.015_250)] dark:bg-[oklch(0.17_0.01_250)] text-slate-700 dark:text-slate-350"
                 if (today) {
                   cellColorClass = "bg-slate-900 text-white font-extrabold shadow-sm border border-slate-900 dark:bg-slate-150 dark:text-slate-900 dark:border-slate-150"
                 } else if (hasHoliday || colIndex === 0) {
-                  cellColorClass = "bg-rose-500/10 text-rose-600 dark:text-rose-455 font-extrabold border border-rose-500/20"
+                  cellColorClass = "neumo-sm bg-rose-50/70 dark:bg-rose-950/10 text-rose-600 dark:text-rose-400 font-extrabold"
                 } else if (hasKegiatan) {
-                  cellColorClass = "bg-teal-500/10 text-teal-650 dark:text-teal-400 font-extrabold border border-teal-500/20"
+                  cellColorClass = "neumo-sm bg-teal-50 dark:bg-teal-950/20 text-teal-650 dark:text-teal-400 font-extrabold"
                 } else if (hasLainnya) {
-                  cellColorClass = "bg-sky-500/10 text-sky-650 dark:text-sky-400 font-extrabold border border-sky-500/20"
+                  cellColorClass = "neumo-sm bg-sky-50 dark:bg-sky-950/20 text-sky-650 dark:text-sky-400 font-extrabold"
                 }
 
                 return (
