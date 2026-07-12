@@ -74,7 +74,7 @@ export function SearchableSelect({
       </SelectTrigger>
       <SelectContent className={cn("p-0", contentClassName)}>
         <div
-          className="p-2 pb-1 sticky top-0 z-10 bg-popover"
+          className="p-2 pb-1 sticky top-0 z-10 bg-background/80 backdrop-blur-md"
           onPointerDown={stopPropagation}
           onMouseDown={stopPropagation}
           onClick={stopPropagation}
