@@ -132,9 +132,13 @@ export default function PoinSiswaPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Input Poin
-          </Button>
+          <button
+            onClick={() => setFormOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Input Poin</span>
+          </button>
         </div>
 
         {riwayatLoading ? (
