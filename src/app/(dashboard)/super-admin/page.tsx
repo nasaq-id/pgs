@@ -333,12 +333,13 @@ export default function SuperAdminPage() {
 
       {/* ── Registration Modal ── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md p-6 rounded-3xl bg-background border-0 shadow-2xl relative overflow-hidden">
-          {/* Background decorations */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+        <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+            {/* Background decorations */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
 
-          <DialogHeader className="text-left relative z-10">
+            <DialogHeader className="text-left relative z-10">
             <div className="w-10 h-10 rounded-xl bg-teal-550/10 text-teal-600 flex items-center justify-center mb-4">
               <School size={20} />
             </div>
@@ -501,8 +502,9 @@ export default function SuperAdminPage() {
               </button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </DialogContent>
+    </Dialog>
     </div>
   )
 }
