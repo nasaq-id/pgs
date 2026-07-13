@@ -80,15 +80,19 @@ export default function TahunAjaranPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 text-left">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">Tahun Ajaran</h2>
-          <p className="text-sm text-muted-foreground">Kelola tahun ajaran dan semester aktif</p>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Tahun Ajaran</h2>
+          <p className="text-xs text-slate-450 font-bold mt-1">Kelola tahun ajaran dan semester aktif</p>
         </div>
-        <Button onClick={() => { resetForm(); setFormOpen(true) }} className="gap-2">
-          <Plus className="h-4 w-4" /> Tambah
-        </Button>
+        <button
+          onClick={() => { resetForm(); setFormOpen(true) }}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Tambah</span>
+        </button>
       </div>
 
       <div className="glass-card rounded-2xl">
@@ -161,50 +165,61 @@ export default function TahunAjaranPage() {
       </div>
 
       <Dialog open={formOpen} onOpenChange={(open) => { if (!open) resetForm(); setFormOpen(open) }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editId ? "Edit" : "Tambah"} Tahun Ajaran</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nama Tahun Ajaran</Label>
-              <Input value={form.namaTahunAjaran} onChange={(e) => setForm({ ...form, namaTahunAjaran: e.target.value })} placeholder="2025/2026" />
-            </div>
-            <div className="space-y-2">
-              <Label>Semester</Label>
-              <Select value={form.semester} onValueChange={(v) => v && setForm({ ...form, semester: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ganjil">Ganjil</SelectItem>
-                  <SelectItem value="genap">Genap</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tanggal Mulai</Label>
-                <Input type="date" value={form.tanggalMulai} onChange={(e) => setForm({ ...form, tanggalMulai: e.target.value })} />
+        <DialogContent className="sm:max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="p-6 relative">
+            <DialogHeader className="text-left mb-4">
+              <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">{editId ? "Edit" : "Tambah"} Tahun Ajaran</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5 text-left">
+                <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Nama Tahun Ajaran</Label>
+                <Input value={form.namaTahunAjaran} onChange={(e) => setForm({ ...form, namaTahunAjaran: e.target.value })} placeholder="2025/2026" />
               </div>
-              <div className="space-y-2">
-                <Label>Tanggal Selesai</Label>
-                <Input type="date" value={form.tanggalSelesai} onChange={(e) => setForm({ ...form, tanggalSelesai: e.target.value })} />
+              <div className="space-y-1.5 text-left">
+                <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Semester</Label>
+                <Select value={form.semester} onValueChange={(v) => v && setForm({ ...form, semester: v })}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ganjil">Ganjil</SelectItem>
+                    <SelectItem value="genap">Genap</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border p-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-teal-600" />
-                <Label className="font-bold text-sm cursor-pointer">Aktifkan sebagai tahun ajaran berjalan</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 text-left">
+                  <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Tanggal Mulai</Label>
+                  <Input type="date" value={form.tanggalMulai} onChange={(e) => setForm({ ...form, tanggalMulai: e.target.value })} />
+                </div>
+                <div className="space-y-1.5 text-left">
+                  <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Tanggal Selesai</Label>
+                  <Input type="date" value={form.tanggalSelesai} onChange={(e) => setForm({ ...form, tanggalSelesai: e.target.value })} />
+                </div>
               </div>
-              <Switch
-                checked={form.active}
-                onCheckedChange={(checked) => setForm({ ...form, active: checked })}
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 p-3 bg-slate-50/30">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-teal-650" />
+                  <Label className="font-bold text-xs text-slate-650 cursor-pointer">Aktifkan sebagai tahun ajaran berjalan</Label>
+                </div>
+                <Switch
+                  checked={form.active}
+                  onCheckedChange={(checked) => setForm({ ...form, active: checked })}
+                >
+                  <SwitchThumb />
+                </Switch>
+              </div>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={create.isPending || update.isPending}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed mt-4"
               >
-                <SwitchThumb />
-              </Switch>
+                {create.isPending || update.isPending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span>Simpan</span>
+                )}
+              </button>
             </div>
-            <Button onClick={handleSave} className="w-full" disabled={create.isPending || update.isPending}>
-              {create.isPending || update.isPending ? "Menyimpan..." : "Simpan"}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
