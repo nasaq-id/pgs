@@ -34,7 +34,7 @@ export default function GuruFormInfoTab({ form, onChange }: Props) {
     
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "avatar-guru")
+      const url = await uploadToCloudinary(file, "avatar-guru", { maxSize: 200 * 1024, maxDim: 500 })
       onChange("foto", url)
       toast.success("Foto berhasil diunggah!")
     } catch (err) {

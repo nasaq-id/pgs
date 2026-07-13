@@ -1,8 +1,67 @@
 /**
  * Uploads a file to Cloudinary using unsigned upload preset.
  * Requires NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET in .env.local.
+ *
+ * Opsi kompresi: bila `maxSize` diberikan dan file lebih besar dari itu,
+ * gambar akan di-resize (maks `maxDim` px) dan di-compress ke JPEG agar
+ * tidak memakan kuota storage Cloudinary.
  */
-export async function uploadToCloudinary(file: File, folderName?: string): Promise<string> {
+export interface UploadOptions {
+  /** Batas maksimal ukuran file dalam byte. Bila terlewati, gambar di-compress. */
+  maxSize?: number
+  /** Dimensi maksimal (lebar/tinggi) dalam px sebelum di-compress. */
+  maxDim?: number
+  /** Kualitas awal JPEG (0.1 - 1). */
+  quality?: number
+}
+
+export async function compressImage(
+  file: File,
+  maxSize: number,
+  maxDim = 800,
+  startQuality = 0.9
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = (height / width) * maxDim
+          width = maxDim
+        } else {
+          width = (width / height) * maxDim
+          height = maxDim
+        }
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext("2d")!
+      ctx.drawImage(img, 0, 0, width, height)
+
+      const tryCompress = (quality: number) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("Gagal mengompres gambar"))
+            return
+          }
+          if (blob.size <= maxSize || quality <= 0.1) resolve(blob)
+          else tryCompress(quality - 0.1)
+        }, "image/jpeg", quality)
+      }
+      tryCompress(startQuality)
+    }
+    img.onerror = () => reject(new Error("Gagal memuat gambar"))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+export async function uploadToCloudinary(
+  file: File,
+  folderName?: string,
+  options?: UploadOptions
+): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
@@ -12,8 +71,15 @@ export async function uploadToCloudinary(file: File, folderName?: string): Promi
     )
   }
 
+  let uploadFile: File | Blob = file
+  const maxSize = options?.maxSize
+  if (maxSize && file.size > maxSize) {
+    const blob = await compressImage(file, maxSize, options?.maxDim ?? 1000, options?.quality ?? 0.9)
+    uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })
+  }
+
   const formData = new FormData()
-  formData.append("file", file)
+  formData.append("file", uploadFile)
   formData.append("upload_preset", uploadPreset)
   if (folderName) {
     formData.append("folder", folderName)

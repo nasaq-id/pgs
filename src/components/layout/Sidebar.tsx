@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, DoorOpen, QrCode, Bell, Wallet, Compass, X, CalendarDays
+  Trophy, Megaphone, DoorOpen, QrCode, Bell, Wallet, Compass, X, CalendarDays, Shield
 } from "lucide-react"
 import {
   Dialog,
@@ -157,6 +157,12 @@ const menuItems: MenuItem[] = [
       { label: "Poin", path: "/pengaturan/poin" },
     ]
   },
+  {
+    icon: Shield,
+    label: "Super Admin",
+    path: "/super-admin",
+    allowedRoles: ["super_admin"]
+  },
 ]
 
 interface SidebarProps {
@@ -217,7 +223,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const initials = (displayName[0] || "A").toUpperCase()
   const userPhoto = (profile?.photo as string) || session?.user?.photo
 
-  const schoolName = (sekolahData?.namaSekolah || "SIM Sekolah")
+  const schoolName = sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
     .replace(/SMP Negeri/gi, "SMPN")
     .replace(/SMA Negeri/gi, "SMAN")
     .replace(/SMK Negeri/gi, "SMKN")

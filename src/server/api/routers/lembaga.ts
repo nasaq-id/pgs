@@ -22,6 +22,7 @@ export const lembagaRouter = router({
   updateSekolah: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({
       namaSekolah: z.string().optional(),
+      namaSingkat: z.string().optional(),
       npsn: z.string().optional(),
       jenjang: z.enum(["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]).optional(),
       alamat: z.string().optional(),

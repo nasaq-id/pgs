@@ -5,6 +5,7 @@ import { users } from "./users"
 export const sekolah = pgTable("sekolah", {
   id: text("id").primaryKey(),
   namaSekolah: text("nama_sekolah").notNull(),
+  namaSingkat: text("nama_singkat"),
   npsn: text("npsn"),
   jenjang: text("jenjang", { enum: ["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"] }),
   alamat: text("alamat"),

@@ -443,7 +443,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "avatar-siswa")
+      const url = await uploadToCloudinary(file, "avatar-siswa", { maxSize: 200 * 1024, maxDim: 500 })
       setFotoUrl(url)
       handleChange("foto", url)
       toast.success("Foto berhasil diunggah!")

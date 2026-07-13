@@ -32,7 +32,7 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/trpc/client"
-import { uploadToCloudinary } from "@/lib/cloudinary"
+import { uploadToCloudinary, compressImage } from "@/lib/cloudinary"
 import {
   Dialog,
   DialogContent,
@@ -104,43 +104,13 @@ export default function LembagaPage() {
   const [sosmedPreviews, setSosmedPreviews] = useState<Record<string, string>>({})
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  const compressImage = (file: File, maxSize: number): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement("canvas")
-        let { width, height } = img
-        const MAX_DIM = 800
-        if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) { height = (height / width) * MAX_DIM; width = MAX_DIM }
-          else { width = (width / height) * MAX_DIM; height = MAX_DIM }
-        }
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext("2d")!
-        ctx.drawImage(img, 0, 0, width, height)
-
-        const tryCompress = (quality: number) => {
-          canvas.toBlob((blob) => {
-            if (!blob) { reject(new Error("Gagal kompres")); return }
-            if (blob.size <= maxSize || quality <= 0.1) resolve(blob)
-            else tryCompress(quality - 0.1)
-          }, "image/jpeg", quality)
-        }
-        tryCompress(0.9)
-      }
-      img.onerror = reject
-      img.src = URL.createObjectURL(file)
-    })
-  }
-
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     let uploadFile = file
     if (file.size > 300 * 1024) {
-      uploadFile = new File([await compressImage(file, 300 * 1024)], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })
+      uploadFile = new File([await compressImage(file, 300 * 1024, 800)], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })
     }
 
     const previewUrl = URL.createObjectURL(uploadFile)
@@ -173,6 +143,7 @@ export default function LembagaPage() {
     if (sekolah) {
       setForm({
         namaSekolah: sekolah.namaSekolah || "",
+        namaSingkat: sekolah.namaSingkat || "",
         npsn: sekolah.npsn || "",
         jenjang: sekolah.jenjang || "",
         alamat: sekolah.alamat || "",
@@ -469,9 +440,15 @@ export default function LembagaPage() {
               )}
               <p className="text-xs text-muted-foreground">Klik lingkaran untuk upload foto/logo sekolah</p>
             </div>
-            <div className="space-y-2">
-              <Label>Nama Sekolah</Label>
-              <Input value={form.namaSekolah || ""} onChange={(e) => setForm({ ...form, namaSekolah: e.target.value })} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nama Sekolah</Label>
+                <Input value={form.namaSekolah || ""} onChange={(e) => setForm({ ...form, namaSekolah: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Alias / Nama Singkat</Label>
+                <Input value={form.namaSingkat || ""} onChange={(e) => setForm({ ...form, namaSingkat: e.target.value })} placeholder="Contoh: SMAN 1" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
