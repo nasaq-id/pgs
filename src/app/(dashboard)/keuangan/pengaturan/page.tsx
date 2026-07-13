@@ -53,8 +53,16 @@ function BillingTypeTab() {
   if (isLoading) return <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
 
   return (
-    <div className="space-y-4">
-      <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" /> Tambah</Button>
+    <div className="space-y-4 text-left">
+      <div>
+        <button
+          onClick={() => setFormOpen(true)}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Tambah</span>
+        </button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -143,8 +151,16 @@ function FeeStructureTab() {
   if (isLoading) return <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
 
   return (
-    <div className="space-y-4">
-      <Button size="sm" className="gap-2" onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" /> Tambah Tarif</Button>
+    <div className="space-y-4 text-left">
+      <div>
+        <button
+          onClick={() => setFormOpen(true)}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Tambah Tarif</span>
+        </button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>

@@ -188,15 +188,19 @@ export default function TagihanPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-3 text-left">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tagihan</h2>
-          <p className="text-muted-foreground">Daftar tagihan semua siswa</p>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Tagihan</h2>
+          <p className="text-xs text-slate-450 font-bold mt-1">Daftar tagihan semua siswa</p>
         </div>
         <Link href="/keuangan/tagihan/generate">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> Generate Tagihan
-          </Button>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Generate Tagihan</span>
+          </button>
         </Link>
       </div>
 
