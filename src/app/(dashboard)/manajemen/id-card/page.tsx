@@ -324,14 +324,14 @@ export default function IdCardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={handlePrint} 
+          <button
+            onClick={handlePrint}
             disabled={totalSelected === 0}
-            className="w-full md:w-auto shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed transition-all duration-300 transform active:scale-95"
           >
-            <Printer className="mr-2 h-4 w-4" />
-            Cetak Kartu ({totalSelected})
-          </Button>
+            <Printer className="h-4 w-4" />
+            <span>Cetak Kartu ({totalSelected})</span>
+          </button>
         </div>
       </div>
 
