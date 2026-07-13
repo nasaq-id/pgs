@@ -161,10 +161,22 @@ export default function EkstrakurikulerFormDialog({ open, onClose, onSubmit, ini
         </div>
 
         <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>Batal</Button>
-          <Button onClick={handleSubmit} disabled={isLoading || !namaEkskul.trim()}>
+          <button 
+            type="button"
+            onClick={onClose} 
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-80"
+          >
+            Batal
+          </button>
+          <button 
+            type="button"
+            onClick={handleSubmit} 
+            disabled={isLoading || !namaEkskul.trim()}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed transition-all duration-300 transform active:scale-95"
+          >
             {isLoading ? "Menyimpan..." : "Simpan"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>
