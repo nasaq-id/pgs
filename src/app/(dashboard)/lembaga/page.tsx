@@ -411,11 +411,12 @@ export default function LembagaPage() {
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Profil Lembaga</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="max-w-lg p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+            <DialogHeader className="text-left mb-4">
+              <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">Edit Profil Lembaga</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
             <div className="flex flex-col items-center gap-3">
               <div
                 className="h-24 w-24 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden clickable hover:border-primary/50 transition-colors"
@@ -567,12 +568,22 @@ export default function LembagaPage() {
                 </div>
               ))}
             </div>
-            <Button onClick={handleSave} className="w-full" disabled={updateSekolah.isPending}>
-              {updateSekolah.isPending ? "Menyimpan..." : "Simpan"}
-            </Button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={updateSekolah.isPending}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed mt-6"
+            >
+              {updateSekolah.isPending ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>Simpan</span>
+              )}
+            </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </DialogContent>
+    </Dialog>
     </>
   )
 }

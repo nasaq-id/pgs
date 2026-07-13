@@ -120,7 +120,7 @@ export default function AsesmenPage() {
           <p className="text-muted-foreground text-xs mt-1">Kelola asesmen formatif & sumatif</p>
         </div>
         <button
-          className="gap-2 shrink-0 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-sm cursor-pointer transition-all flex items-center justify-center"
+          className="gap-2 shrink-0 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-md shadow-teal-500/5 cursor-pointer transition-all flex items-center justify-center transform active:scale-95"
           onClick={() => { setEditItem(null); setFormOpen(true) }}
         >
           <Plus className="h-4 w-4" />
