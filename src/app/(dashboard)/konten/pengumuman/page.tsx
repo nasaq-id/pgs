@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, Loader2, Search, X, Megaphone, CalendarDays, Eye, Bell } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, X, Megaphone, CalendarDays, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,9 +27,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -62,10 +59,10 @@ const TARGET_LABEL: Record<string, string> = {
 }
 
 const TARGET_BADGE: Record<string, string> = {
-  semua: "bg-secondary text-secondary-foreground",
-  guru: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  siswa: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  orang_tua: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
+  semua: "bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400 border border-teal-200/50 dark:border-teal-900/30 font-black uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full",
+  guru: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/30 font-black uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full",
+  siswa: "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30 font-black uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full",
+  orang_tua: "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 font-black uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full",
 }
 
 interface PengumumanRecord {
@@ -233,12 +230,18 @@ export default function PengumumanPage() {
   const saving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Pengumuman</h2>
-        <p className="text-sm text-muted-foreground">
-          {isAdmin ? "Kelola dan lihat pengumuman sekolah" : "Pengumuman terbaru dari sekolah"}
-        </p>
+    <div className="space-y-6 max-w-[1400px] mx-auto px-1 sm:px-3 text-left">
+      {/* Page Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4 p-5 rounded-3xl bg-card border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2.5 uppercase">
+            <Megaphone className="h-6 w-6 text-teal-600 animate-pulse" />
+            Pengumuman
+          </h2>
+          <p className="text-xs text-slate-450 font-bold mt-1">
+            {isAdmin ? "Kelola, buat, dan publikasikan pengumuman sekolah" : "Daftar pengumuman terbaru dan terhangat dari sekolah"}
+          </p>
+        </div>
       </div>
 
       {isAdmin && (
@@ -248,7 +251,7 @@ export default function PengumumanPage() {
             <TabsTrigger value="kelola" className="rounded-xl">
               Kelola
               {counts && (
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-muted">
+                <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 font-bold text-slate-650">
                   {counts.draft > 0 ? `${counts.draft} draft` : counts.total}
                 </span>
               )}
@@ -284,25 +287,56 @@ export default function PengumumanPage() {
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={(v) => { if (!v) setFormOpen(false) }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{formData.id ? "Edit Pengumuman" : "Buat Pengumuman"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Judul</Label>
-              <Input value={formData.judul} onChange={(e) => setFormData({ ...formData, judul: e.target.value })} placeholder="Judul pengumuman" />
+        <DialogContent className="max-w-lg p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">
+              {formData.id ? "Edit Pengumuman" : "Buat Pengumuman Baru"}
+            </h3>
+            <button 
+              type="button" 
+              onClick={() => setFormOpen(false)} 
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div className="px-6 py-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Judul Pengumuman</Label>
+              <Input 
+                value={formData.judul} 
+                onChange={(e) => setFormData({ ...formData, judul: e.target.value })} 
+                placeholder="Tulis judul pengumuman yang jelas..." 
+                className="rounded-xl border-slate-200 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50" 
+              />
             </div>
-            <div>
-              <Label>Konten</Label>
-              <Textarea value={formData.konten} onChange={(e) => setFormData({ ...formData, konten: e.target.value })} placeholder="Isi pengumuman..." className="min-h-[120px]" />
+            
+            <div className="space-y-1.5">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Isi / Konten Pengumuman</Label>
+              <Textarea 
+                value={formData.konten} 
+                onChange={(e) => setFormData({ ...formData, konten: e.target.value })} 
+                placeholder="Tulis isi pengumuman secara rinci di sini..." 
+                className="rounded-xl border-slate-200 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50 min-h-[140px]" 
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Target</Label>
-                <Select value={formData.target} onValueChange={(v) => setFormData({ ...formData, target: v || "semua" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Target Penerima</Label>
+                <Select 
+                  value={formData.target} 
+                  onValueChange={(v) => setFormData({ ...formData, target: v || "semua" })}
+                  options={[
+                    { value: "semua", label: "Semua" },
+                    { value: "guru", label: "Guru" },
+                    { value: "siswa", label: "Siswa" },
+                    { value: "orang_tua", label: "Orang Tua" }
+                  ]}
+                >
+                  <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/50"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="semua">Semua</SelectItem>
                     <SelectItem value="guru">Guru</SelectItem>
                     <SelectItem value="siswa">Siswa</SelectItem>
@@ -310,68 +344,131 @@ export default function PengumumanPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Tgl Publish</Label>
-                <Input type="date" value={formData.tanggalPublish} onChange={(e) => setFormData({ ...formData, tanggalPublish: e.target.value })} />
+              
+              <div className="space-y-1.5">
+                <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Tanggal Publikasi</Label>
+                <Input 
+                  type="date" 
+                  value={formData.tanggalPublish} 
+                  onChange={(e) => setFormData({ ...formData, tanggalPublish: e.target.value })} 
+                  className="rounded-xl border-slate-200 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50" 
+                />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={formData.published} onCheckedChange={(v: boolean) => setFormData({ ...formData, published: v })}>
-                <SwitchThumb />
-              </Switch>
-              <Label className="cursor-pointer">{formData.published ? "Published" : "Draft"}</Label>
+
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/50 border border-slate-150">
+              <div className="space-y-0.5 text-left">
+                <Label className="block text-[9px] font-black text-slate-700 uppercase tracking-wider">Status Penerbitan</Label>
+                <span className="text-[10px] text-slate-450 font-bold">{formData.published ? "Pengumuman langsung aktif diterbitkan" : "Simpan sebagai draft terlebih dahulu"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={formData.published} onCheckedChange={(v: boolean) => setFormData({ ...formData, published: v })}>
+                  <SwitchThumb />
+                </Switch>
+                <Label className="cursor-pointer text-xs font-bold text-slate-700">{formData.published ? "Published" : "Draft"}</Label>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>Batal</Button>
-            <Button onClick={handleSubmit} disabled={saving || !formData.judul.trim()}>
+          
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            <button 
+              type="button" 
+              onClick={() => setFormOpen(false)} 
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-80"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              onClick={handleSubmit} 
+              disabled={saving || !formData.judul.trim()}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed transition-all duration-300 transform active:scale-95 h-[38px]"
+            >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {formData.id ? "Simpan" : "Buat"}
-            </Button>
-          </DialogFooter>
+              <span>{formData.id ? "Simpan Perubahan" : "Terbitkan"}</span>
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           {selectedDetail && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className={TARGET_BADGE[selectedDetail.target] ?? ""} variant="secondary">
-                    {TARGET_LABEL[selectedDetail.target] ?? selectedDetail.target}
-                  </Badge>
-                  <Badge variant={selectedDetail.published ? "default" : "outline"} className={selectedDetail.published ? "bg-green-600" : ""}>
-                    {selectedDetail.published ? "Published" : "Draft"}
-                  </Badge>
+            <div className="p-6 md:p-8 space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={TARGET_BADGE[selectedDetail.target] ?? ""} variant="secondary">
+                      {TARGET_LABEL[selectedDetail.target] ?? selectedDetail.target}
+                    </Badge>
+                    {selectedDetail.published ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-250/20 text-[9px] font-black uppercase tracking-wider">
+                        Published
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-650 dark:bg-slate-900/40 dark:text-slate-400 border border-slate-200/50 text-[9px] font-black uppercase tracking-wider">
+                        Draft
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800 tracking-tight leading-snug">{selectedDetail.judul}</h3>
                 </div>
-                <DialogTitle className="text-xl">{selectedDetail.judul}</DialogTitle>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                  <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{formatDate(selectedDetail.tanggalPublish)}</span>
-                </div>
-              </DialogHeader>
-              <div className="max-h-[400px] overflow-y-auto whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">
-                {selectedDetail.konten || "Tidak ada konten"}
+                <button 
+                  type="button" 
+                  onClick={() => setDetailOpen(false)} 
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer self-start"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-            </>
+
+              <div className="max-h-[350px] overflow-y-auto custom-scroll text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                {selectedDetail.konten || "Tidak ada rincian konten untuk pengumuman ini."}
+              </div>
+
+              <div className="border-t border-slate-100 pt-4 flex items-center justify-between text-[10px] text-slate-450 font-bold uppercase tracking-wider">
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                  Tanggal Rilis: {formatDate(selectedDetail.tanggalPublish)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl border-0 shadow-2xl max-w-md text-left">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Pengumuman</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus pengumuman ini? Tindakan ini tidak dapat dibatalkan.
+            <AlertDialogTitle className="text-sm font-black text-slate-800 uppercase tracking-widest">Hapus Pengumuman</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-slate-500 font-bold">
+              Apakah Anda yakin ingin menghapus pengumuman ini secara permanen? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={removeMutation.isPending}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={removeMutation.isPending} className="bg-destructive">
-              {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Hapus
+          <AlertDialogFooter className="mt-2.5">
+            <AlertDialogCancel 
+              disabled={removeMutation.isPending}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={removeMutation.isPending} 
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-rose-500/5 cursor-pointer disabled:opacity-80 transition-all duration-300 transform active:scale-95 border-0"
+            >
+              {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              Hapus Permanen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -392,56 +489,128 @@ function PublishedView({
 }) {
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-        ))}
+      <div className="space-y-4">
+        <Skeleton className="h-48 w-full rounded-3xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 4].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   if (!records.length) {
     return (
-      <Card className="p-12 rounded-3xl flex flex-col items-center justify-center text-center">
-        <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-          <Megaphone className="h-7 w-7 text-muted-foreground" />
+      <Card className="p-16 rounded-3xl flex flex-col items-center justify-center text-center border border-slate-200 bg-card shadow-[0_8px_30px_rgb(0,0,0,0.01)]">
+        <div className="h-16 w-16 rounded-2xl bg-slate-50 border flex items-center justify-center mb-4">
+          <Megaphone className="h-8 w-8 text-slate-400" />
         </div>
-        <h3 className="font-semibold text-foreground">Belum ada pengumuman</h3>
-        <p className="text-sm text-muted-foreground mt-1">Pengumuman yang dipublikasikan akan muncul di sini</p>
+        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Belum ada pengumuman</h3>
+        <p className="text-xs text-slate-450 font-bold mt-1.5">Pengumuman resmi dari sekolah akan muncul di sini.</p>
       </Card>
     )
   }
 
+  const featured = records[0]
+  const remaining = records.slice(1)
+
   return (
-    <div className="space-y-3">
-      {records.map((r) => (
-        <button
-          key={r.id}
-          onClick={() => onDetail(r)}
-          className="w-full text-left glass-card rounded-2xl p-5 clickable transition-all hover:shadow-md"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Badge className={TARGET_BADGE[r.target] ?? ""} variant="secondary" style={{ fontSize: "10px", padding: "0 6px" }}>
-                  {TARGET_LABEL[r.target] ?? r.target}
-                </Badge>
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
-                  {formatDateShort(r.tanggalPublish)}
+    <div className="space-y-6">
+      {/* Featured Announcement Card */}
+      {featured && (
+        <Card className="overflow-hidden border border-teal-500/20 bg-gradient-to-br from-teal-500/[0.02] via-transparent to-indigo-500/[0.01] rounded-3xl shadow-[0_12px_40px_rgba(20,184,166,0.03)] relative p-6 md:p-8 flex flex-col md:flex-row gap-6 items-start md:items-center">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-500/10 to-transparent rounded-bl-full pointer-events-none opacity-50" />
+          
+          <div className="flex-1 space-y-3.5 z-10 text-left">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[10px] font-black uppercase tracking-wider border border-teal-500/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
                 </span>
-              </div>
-              <h3 className="font-semibold text-foreground leading-snug">{r.judul}</h3>
-              {r.konten && (
-                <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">{r.konten}</p>
-              )}
+                Pengumuman Terbaru
+              </span>
+              <Badge className={TARGET_BADGE[featured.target] ?? ""} variant="secondary">
+                {TARGET_LABEL[featured.target] ?? featured.target}
+              </Badge>
+              <span className="text-[11px] text-slate-450 font-bold flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {formatDateShort(featured.tanggalPublish)}
+              </span>
             </div>
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-              <ChevronRightIcon className="h-4 w-4 text-primary" />
+
+            <h3 className="text-xl font-black text-slate-800 leading-snug tracking-tight hover:text-teal-650 transition-colors cursor-pointer" onClick={() => onDetail(featured)}>
+              {featured.judul}
+            </h3>
+
+            {featured.konten && (
+              <p className="text-sm leading-relaxed text-slate-500 line-clamp-3">
+                {featured.konten}
+              </p>
+            )}
+
+            <div className="pt-2">
+              <button
+                onClick={() => onDetail(featured)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-wider border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                <span>Baca Selengkapnya</span>
+                <ChevronRightIcon className="h-3.5 w-3.5 text-slate-500" />
+              </button>
             </div>
           </div>
-        </button>
-      ))}
+
+          {/* Animated Megaphone Icon */}
+          <div className="hidden md:flex shrink-0 items-center justify-center z-10">
+            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <Megaphone className="h-10 w-10 text-white animate-pulse" />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Remaining Announcements Grid */}
+      {remaining.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {remaining.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => onDetail(r)}
+              className="group text-left bg-card hover:bg-slate-50/[0.3] dark:hover:bg-slate-900/[0.2] border border-slate-200/80 rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[140px] cursor-pointer"
+            >
+              <div className="space-y-2.5 w-full">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Badge className={TARGET_BADGE[r.target] ?? ""} variant="secondary">
+                      {TARGET_LABEL[r.target] ?? r.target}
+                    </Badge>
+                  </div>
+                  <span className="text-[10px] text-slate-450 font-bold flex items-center gap-1">
+                    <CalendarDays className="h-3 w-3" />
+                    {formatDateShort(r.tanggalPublish)}
+                  </span>
+                </div>
+                
+                <h4 className="font-bold text-slate-800 group-hover:text-teal-650 transition-colors line-clamp-2 leading-snug tracking-tight text-sm">
+                  {r.judul}
+                </h4>
+                
+                {r.konten && (
+                  <p className="text-xs text-slate-450 line-clamp-2 leading-relaxed">
+                    {r.konten}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-end pt-3 mt-auto text-[10px] font-black text-slate-400 group-hover:text-teal-650 transition-colors uppercase tracking-wider gap-1">
+                <span>Detail</span>
+                <ChevronRightIcon className="h-3 w-3" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -454,7 +623,6 @@ function ChevronRightIcon({ className }: { className?: string }) {
   )
 }
 
-// ── Admin View (CRUD) ──
 function AdminView({
   records,
   isLoading,
@@ -483,88 +651,133 @@ function AdminView({
   openDetail: (r: PengumumanRecord) => void
 }) {
   return (
-    <Card className="p-5 rounded-3xl">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <div className="flex gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cari pengumuman..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+    <Card className="p-6 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] bg-card text-left">
+      <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
+        <div className="flex items-center gap-3 flex-wrap flex-1 min-w-[300px]">
+          <div className="flex-1 min-w-[200px] space-y-1.5">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest">Cari Pengumuman</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input 
+                placeholder="Judul atau isi pengumuman..." 
+                className="pl-9 rounded-xl border-slate-200 focus:ring-teal-500/10 focus:border-teal-500" 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+              />
+            </div>
           </div>
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || "all")}>
-            <SelectTrigger className="w-28"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterTarget} onValueChange={(v) => setFilterTarget(v || "")}>
-            <SelectTrigger className="w-28"><SelectValue placeholder="Target" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value=" ">Semua</SelectItem>
-              <SelectItem value="semua">Semua Role</SelectItem>
-              <SelectItem value="guru">Guru</SelectItem>
-              <SelectItem value="siswa">Siswa</SelectItem>
-              <SelectItem value="orang_tua">Orang Tua</SelectItem>
-            </SelectContent>
-          </Select>
+          
+          <div className="w-32 space-y-1.5">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest">Status</Label>
+            <Select 
+              value={filterStatus} 
+              onValueChange={(v) => setFilterStatus(v || "all")}
+              options={[
+                { value: "all", label: "Semua" },
+                { value: "published", label: "Published" },
+                { value: "draft", label: "Draft" }
+              ]}
+            >
+              <SelectTrigger className="rounded-xl border-slate-200"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-40 space-y-1.5">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest">Target Penerima</Label>
+            <Select 
+              value={filterTarget} 
+              onValueChange={(v) => setFilterTarget(v || "")}
+              options={[
+                { value: " ", label: "Semua" },
+                { value: "semua", label: "Semua Role" },
+                { value: "guru", label: "Guru" },
+                { value: "siswa", label: "Siswa" },
+                { value: "orang_tua", label: "Orang Tua" }
+              ]}
+            >
+              <SelectTrigger className="rounded-xl border-slate-200"><SelectValue placeholder="Target" /></SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value=" ">Semua</SelectItem>
+                <SelectItem value="semua">Semua Role</SelectItem>
+                <SelectItem value="guru">Guru</SelectItem>
+                <SelectItem value="siswa">Siswa</SelectItem>
+                <SelectItem value="orang_tua">Orang Tua</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Button className="gap-2" onClick={openCreateForm}>
-          <Plus className="h-4 w-4" /> Buat Pengumuman
-        </Button>
+
+        <button 
+          onClick={openCreateForm}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300 transform active:scale-95 h-[38px] self-end"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Buat Pengumuman</span>
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">{ [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+        </div>
       ) : !records.length ? (
-        <div className="text-center py-16 text-muted-foreground">
-          {search || filterStatus !== "all" || filterTarget ? "Tidak ditemukan" : "Belum ada pengumuman"}
+        <div className="text-center py-16 text-slate-400 font-semibold text-xs uppercase tracking-wider">
+          {search || filterStatus !== "all" || filterTarget ? "Pengumuman tidak ditemukan" : "Belum ada pengumuman"}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
-                <TableHead>Judul</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Judul Pengumuman</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Target Penerima</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Publish</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
+                <TableHead className="text-right text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3 pr-4">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {records.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium max-w-[250px] truncate">{r.judul}</TableCell>
+                <TableRow key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                  <TableCell className="font-semibold text-slate-800 dark:text-slate-200 max-w-[250px] truncate">{r.judul}</TableCell>
                   <TableCell>
-                    <Badge className={TARGET_BADGE[r.target] ?? ""} variant="secondary" style={{ fontSize: "10px" }}>
+                    <Badge className={TARGET_BADGE[r.target] ?? ""} variant="secondary">
                       {TARGET_LABEL[r.target] ?? r.target}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">{formatDateShort(r.tanggalPublish)}</TableCell>
+                  <TableCell className="text-xs text-slate-650 dark:text-slate-450 font-mono whitespace-nowrap">{formatDateShort(r.tanggalPublish)}</TableCell>
                   <TableCell>
                     {r.published ? (
-                      <Badge variant="default" className="bg-green-600 text-[10px]">Published</Badge>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-250/20 text-[9px] font-black uppercase tracking-wider">
+                        Published
+                      </span>
                     ) : (
-                      <Badge variant="outline" className="text-[10px]">Draft</Badge>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-650 dark:bg-slate-900/40 dark:text-slate-400 border border-slate-200/50 text-[9px] font-black uppercase tracking-wider">
+                        Draft
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right pr-2">
                     <div className="flex justify-end gap-1">
                       <Tooltip>
-                        <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => openDetail(r)} />}>
+                        <TooltipTrigger render={<Button variant="ghost" size="icon" className="hover:bg-teal-50 dark:hover:bg-teal-950/20 hover:text-teal-600 rounded-lg" onClick={() => openDetail(r)} />}>
                           <Eye className="h-4 w-4" />
                         </TooltipTrigger>
                         <TooltipPortal><TooltipPositioner><TooltipPopup>Lihat</TooltipPopup></TooltipPositioner></TooltipPortal>
                       </Tooltip>
                       <Tooltip>
-                        <TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => openEditForm(r)} />}>
+                        <TooltipTrigger render={<Button variant="ghost" size="icon" className="hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600 rounded-lg" onClick={() => openEditForm(r)} />}>
                           <Pencil className="h-4 w-4" />
                         </TooltipTrigger>
                         <TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal>
                       </Tooltip>
                       <Tooltip>
-                        <TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(r.id)} />}>
+                        <TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg" onClick={() => setDeleteId(r.id)} />}>
                           <Trash2 className="h-4 w-4" />
                         </TooltipTrigger>
                         <TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal>
