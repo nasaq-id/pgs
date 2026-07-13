@@ -305,12 +305,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-primary" />
+        <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0 text-left border-b border-slate-100">
+          <DialogTitle className="flex items-center gap-2 text-lg font-black text-slate-800 tracking-tight uppercase">
+            <div className="h-8 w-8 rounded-lg bg-teal-550/10 flex items-center justify-center text-teal-650">
+              <BookOpen className="h-4 w-4" />
             </div>
-            {item ? "Edit Jurnal" : "Buat Jurnal Baru"}
+            <span>{item ? "Edit Jurnal" : "Buat Jurnal Baru"}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -521,12 +521,27 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer flex-shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Batal</Button>
-          <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: "hsl(142 72% 40%)" }} className="text-white hover:bg-[hsl(142_72%_35%)]">
-            {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {item ? "Simpan Perubahan" : "Buat Jurnal"}
-          </Button>
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-100 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <span>{item ? "Simpan Perubahan" : "Buat Jurnal"}</span>
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>
@@ -536,10 +551,10 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 function FieldWrap({ label, required, optional, children }: { label: string; required?: boolean; optional?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">
+      <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">
         {label}
         {required && <span className="text-destructive ml-0.5">*</span>}
-        {optional && <span className="text-muted-foreground text-xs ml-1">(opsional)</span>}
+        {optional && <span className="text-muted-foreground text-[8px] ml-1">(opsional)</span>}
       </Label>
       {children}
     </div>

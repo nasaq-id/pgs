@@ -14,7 +14,7 @@ import { toast } from "sonner"
 function FieldWrap({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-foreground/80">
+      <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       {children}
@@ -193,20 +193,21 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-5 pb-3 border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-              <ClipboardCheck className="h-5 w-5 text-emerald-600" />
+      <DialogContent className="max-w-lg p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+        <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+          <DialogHeader className="text-left mb-4 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-teal-550/10 flex items-center justify-center text-teal-650">
+                <ClipboardCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">{item ? "Edit Asesmen" : "Buat Asesmen Baru"}</DialogTitle>
+                <p className="text-xs text-slate-450 font-bold mt-0.5">Lengkapi informasi asesmen di bawah ini</p>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-lg">{item ? "Edit Asesmen" : "Buat Asesmen Baru"}</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Lengkapi informasi asesmen di bawah ini</p>
-            </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 text-left">
+        <div className="space-y-4 text-left">
           <FieldWrap label="Judul Asesmen" required>
             <Input value={judul} onChange={(e) => setJudul(e.target.value)} placeholder="e.g. Tes Formatif Bab 3" className="h-9 rounded-xl border-slate-200 dark:border-slate-800 focus:border-teal-500" />
           </FieldWrap>
@@ -351,14 +352,29 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           <FieldWrap label="Deskripsi">
             <Textarea value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Deskripsi asesmen..." className="rounded-xl min-h-[80px] border-slate-200 dark:border-slate-800 focus:border-teal-500" />
           </FieldWrap>
-        </div>
+          </div>
 
-        <div className="p-5 pt-4 border-t border-border/50 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-xl h-9 px-4 cursor-pointer">Batal</Button>
-          <Button onClick={handleSave} disabled={saving} className="rounded-xl h-9 px-4 gap-2 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {item ? "Perbarui" : "Simpan"}
-          </Button>
+          <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>{item ? "Perbarui" : "Simpan"}</span>
+              )}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

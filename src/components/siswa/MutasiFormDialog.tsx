@@ -112,152 +112,157 @@ export default function MutasiFormDialog({ open, onOpenChange, onSuccess }: Muta
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <div className="h-8 w-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center">
-              <ClipboardList className="h-4 w-4 text-teal-605" />
-            </div>
-            Catat Mutasi Siswa
-          </DialogTitle>
-          <DialogDescription>
-            Catat mutasi siswa keluar dan perbarui status keaktifan siswa secara otomatis.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
-          {/* 1 & 2. Dropdown Nama Siswa dengan Live Search */}
-          <div className="space-y-1.5 text-left">
-            <Label className="text-sm font-semibold">Nama Siswa / NIS / NISN <span className="text-destructive">*</span></Label>
-            <SearchableSelect
-              options={studentOptions}
-              value={siswaId}
-              onValueChange={setSiswaId}
-              placeholder="Cari nama atau NIS/NISN siswa..."
-              searchPlaceholder="Ketik nama / NIS / NISN..."
-              emptyMessage="Siswa aktif tidak ditemukan"
-              loading={loadingSiswa}
-              className="border-slate-200 dark:border-slate-800"
-            />
-          </div>
-
-          {/* 3. Otomatisasi Data Pendukung (Read-Only) */}
-          {selectedSiswa && (
-            <div className="bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2 shadow-xs text-left">
-              <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
-                <Info className="h-3.5 w-3.5 text-teal-600" />
-                <span>Detail Siswa Terpilih</span>
+      <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+        <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+          <DialogHeader className="text-left mb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg font-black text-slate-800 tracking-tight uppercase">
+              <div className="h-8 w-8 rounded-lg bg-teal-550/10 flex items-center justify-center text-teal-650">
+                <ClipboardList className="h-4 w-4" />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">Nama Lengkap</span>
-                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedSiswa.namaLengkap}</p>
+              <span>Catat Mutasi Siswa</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 font-bold">
+              Catat mutasi siswa keluar dan perbarui status keaktifan siswa secara otomatis.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSave} className="space-y-4">
+            {/* 1 & 2. Dropdown Nama Siswa dengan Live Search */}
+            <div className="space-y-1.5 text-left">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Nama Siswa / NIS / NISN <span className="text-destructive">*</span></Label>
+              <SearchableSelect
+                options={studentOptions}
+                value={siswaId}
+                onValueChange={setSiswaId}
+                placeholder="Cari nama atau NIS/NISN siswa..."
+                searchPlaceholder="Ketik nama / NIS / NISN..."
+                emptyMessage="Siswa aktif tidak ditemukan"
+                loading={loadingSiswa}
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* 3. Otomatisasi Data Pendukung (Read-Only) */}
+            {selectedSiswa && (
+              <div className="bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 space-y-2.5 shadow-xs text-left">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
+                  <Info className="h-3.5 w-3.5 text-teal-600" />
+                  <span>Detail Siswa Terpilih</span>
                 </div>
-                <div>
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">Kelas</span>
-                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedSiswaKelas}</p>
-                </div>
-                <div>
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">NISN</span>
-                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedSiswa.nisn || "—"}</p>
-                </div>
-                <div>
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">NIS Lokal</span>
-                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedSiswa.nisLokal || "—"}</p>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">Nama Lengkap</span>
+                    <p className="font-bold text-slate-850 mt-0.5">{selectedSiswa.namaLengkap}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">Kelas</span>
+                    <p className="font-bold text-slate-850 mt-0.5">{selectedSiswaKelas}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">NISN</span>
+                    <p className="font-bold text-slate-850 mt-0.5">{selectedSiswa.nisn || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">NIS Lokal</span>
+                    <p className="font-bold text-slate-850 mt-0.5">{selectedSiswa.nisLokal || "—"}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* C.1. Tanggal Mutasi */}
-          <div className="space-y-1.5 text-left">
-            <Label className="text-sm font-semibold">Tanggal Mutasi <span className="text-destructive">*</span></Label>
-            <div className="relative">
-              <Input
-                type="date"
-                value={tanggalMutasi}
-                onChange={(e) => setTanggalMutasi(e.target.value)}
-                className="w-full pl-3 pr-10 border-slate-200 dark:border-slate-800"
+            {/* C.1. Tanggal Mutasi */}
+            <div className="space-y-1.5 text-left">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Tanggal Mutasi <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="date"
+                  value={tanggalMutasi}
+                  onChange={(e) => setTanggalMutasi(e.target.value)}
+                  className="pl-10 w-full"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* C.2. Jenis Mutasi */}
+            <div className="space-y-1.5 text-left">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Jenis Mutasi <span className="text-destructive">*</span></Label>
+              <Select
+                value={jenisMutasi}
+                onValueChange={(v) => {
+                  setJenisMutasi(v as JenisMutasiType)
+                  if (v !== "Pindah Sekolah") {
+                    setSekolahTujuan("")
+                  }
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Pilih Jenis Mutasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pindah Sekolah">Pindah Sekolah</SelectItem>
+                  <SelectItem value="Mengundurkan Diri">Mengundurkan Diri</SelectItem>
+                  <SelectItem value="Dikeluarkan">Dikeluarkan</SelectItem>
+                  <SelectItem value="Meninggal Dunia">Meninggal Dunia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* C.4. Sekolah Tujuan / Keterangan Lanjutan (Hanya jika Pindah Sekolah) */}
+            {jenisMutasi === "Pindah Sekolah" && (
+              <div className="space-y-1.5 text-left animate-fade-in">
+                <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1">Sekolah Tujuan <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Landmark size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    value={sekolahTujuan}
+                    onChange={(e) => setSekolahTujuan(e.target.value)}
+                    placeholder="Masukkan nama sekolah tujuan..."
+                    className="pl-10 w-full"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* C.3. Alasan Mutasi */}
+            <div className="space-y-1.5 text-left">
+              <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Alasan Mutasi <span className="text-destructive">*</span></Label>
+              <Textarea
+                value={alasanMutasi}
+                onChange={(e) => setAlasanMutasi(e.target.value)}
+                placeholder="Tuliskan alasan mutasi siswa secara jelas..."
+                rows={3}
+                className="resize-none"
                 required
               />
             </div>
-          </div>
 
-          {/* C.2. Jenis Mutasi */}
-          <div className="space-y-1.5 text-left">
-            <Label className="text-sm font-semibold">Jenis Mutasi <span className="text-destructive">*</span></Label>
-            <Select
-              value={jenisMutasi}
-              onValueChange={(v) => {
-                setJenisMutasi(v as JenisMutasiType)
-                if (v !== "Pindah Sekolah") {
-                  setSekolahTujuan("")
-                }
-              }}
-            >
-              <SelectTrigger className="border-slate-200 dark:border-slate-800">
-                <SelectValue placeholder="Pilih Jenis Mutasi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pindah Sekolah">Pindah Sekolah</SelectItem>
-                <SelectItem value="Mengundurkan Diri">Mengundurkan Diri</SelectItem>
-                <SelectItem value="Dikeluarkan">Dikeluarkan</SelectItem>
-                <SelectItem value="Meninggal Dunia">Meninggal Dunia</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* C.4. Sekolah Tujuan / Keterangan Lanjutan (Hanya jika Pindah Sekolah) */}
-          {jenisMutasi === "Pindah Sekolah" && (
-            <div className="space-y-1.5 text-left animate-fade-in">
-              <Label className="text-sm font-semibold">Sekolah Tujuan <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  value={sekolahTujuan}
-                  onChange={(e) => setSekolahTujuan(e.target.value)}
-                  placeholder="Masukkan nama sekolah tujuan..."
-                  className="pl-9 border-slate-200 dark:border-slate-800"
-                  required
-                />
-                <Landmark className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              </div>
+            <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={saving}
+                className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span>Simpan Mutasi</span>
+                )}
+              </button>
             </div>
-          )}
-
-          {/* C.3. Alasan Mutasi */}
-          <div className="space-y-1.5 text-left">
-            <Label className="text-sm font-semibold">Alasan Mutasi <span className="text-destructive">*</span></Label>
-            <Textarea
-              value={alasanMutasi}
-              onChange={(e) => setAlasanMutasi(e.target.value)}
-              placeholder="Tuliskan alasan mutasi siswa secara jelas..."
-              rows={3}
-              className="resize-none border-slate-200 dark:border-slate-800"
-              required
-            />
-          </div>
-
-          <DialogFooter className="pt-2 flex-shrink-0 !mx-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-              className="rounded-xl border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl cursor-pointer"
-            >
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Simpan Mutasi
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

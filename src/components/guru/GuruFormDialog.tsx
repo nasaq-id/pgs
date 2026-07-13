@@ -158,35 +158,51 @@ export default function GuruFormDialog({ open, onOpenChange, initialData, onSucc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Data Guru/Tendik" : "Tambah Guru/Tendik"}</DialogTitle>
-        </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="info" className="flex-1">Informasi Utama</TabsTrigger>
-            <TabsTrigger value="kepegawaian" className="flex-1">Data Kepegawaian</TabsTrigger>
-          </TabsList>
-          <TabsContent value="info" className="pt-4">
-            <GuruFormInfoTab form={form} onChange={handleChange} />
-          </TabsContent>
-          <TabsContent value="kepegawaian" className="pt-4">
-            <GuruFormKepegawaianTab form={form} onChange={handleChange} />
-          </TabsContent>
-        </Tabs>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-          <Button onClick={handleSubmit} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              "Simpan"
-            )}
-          </Button>
-        </DialogFooter>
+      <DialogContent className="max-w-2xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+        <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+          <DialogHeader className="text-left mb-4">
+            <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">
+              {isEdit ? "Edit Data Guru/Tendik" : "Tambah Guru/Tendik"}
+            </DialogTitle>
+          </DialogHeader>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full flex p-1 bg-slate-100 rounded-xl mb-4">
+              <TabsTrigger value="info" className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
+                Informasi Utama
+              </TabsTrigger>
+              <TabsTrigger value="kepegawaian" className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
+                Data Kepegawaian
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="info" className="pt-2">
+              <GuruFormInfoTab form={form} onChange={handleChange} />
+            </TabsContent>
+            <TabsContent value="kepegawaian" className="pt-2">
+              <GuruFormKepegawaianTab form={form} onChange={handleChange} />
+            </TabsContent>
+          </Tabs>
+          <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <span>Simpan</span>
+              )}
+            </button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

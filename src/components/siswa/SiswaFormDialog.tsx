@@ -591,15 +591,18 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Data Siswa" : "Tambah Data Siswa"}</DialogTitle>
-          <DialogDescription>
-            Lengkapi form di bawah ini. Field bertanda * wajib diisi.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+        <div className="max-h-[85vh] overflow-y-auto p-6 relative">
+          <DialogHeader className="text-left mb-4">
+            <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">
+              {isEdit ? "Edit Data Siswa" : "Tambah Data Siswa"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-450 font-bold">
+              Lengkapi form di bawah ini. Field bertanda <span className="text-destructive">*</span> wajib diisi.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="siswa">Data Siswa</TabsTrigger>
@@ -1688,23 +1691,29 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-2 pt-6 mt-6 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+            >
               Batal
-            </Button>
-            <Button type="submit" disabled={isSaving}>
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+            >
               {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                "Simpan"
+                <span>Simpan</span>
               )}
-            </Button>
+            </button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </DialogContent>
+  </Dialog>
   )
 }
