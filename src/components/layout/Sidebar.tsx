@@ -396,7 +396,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     href={firstChildPath || "#"}
                     onClick={onClose}
                     className={cn(
-                      "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
+                      "relative flex items-center px-0 py-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
                       isGroupActive
                         ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-0 font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
@@ -405,7 +405,14 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     {isGroupActive && (
                       <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full" />
                     )}
-                    <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-105", isGroupActive ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground group-hover:text-foreground")} />
+                    <div className={cn(
+                      "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                      isGroupActive
+                        ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
+                        : "bg-muted/50 text-muted-foreground"
+                    )}>
+                      <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-105" />
+                    </div>
                   </Link>
 
                   {/* Floating child sub-menu tooltip for minimized group items */}
@@ -512,7 +519,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               onClick={onClose}
               className={cn(
                 "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-sm",
-                isMinimized ? "lg:justify-center lg:px-0 lg:mx-2.5" : "justify-start",
+                isMinimized ? "lg:justify-center lg:px-0 lg:mx-0" : "justify-start",
                 isItemActive
                   ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-transparent font-bold"
                   : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
