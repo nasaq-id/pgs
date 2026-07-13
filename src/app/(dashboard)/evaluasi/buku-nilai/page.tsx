@@ -725,14 +725,14 @@ export default function BukuNilaiPage() {
               Lihat dan unduh laporan hasil belajar resmi Anda semester ini.
             </p>
           </div>
-          
-          <Button
+          <button
             onClick={handleDownloadSiswaRapor}
             disabled={grades.length === 0}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg border-0 px-6 h-11 text-sm font-bold gap-2 cursor-pointer transition-all"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed transition-all duration-300 transform active:scale-95"
           >
-            <Printer className="h-4 w-4" /> Unduh Rapor PDF
-          </Button>
+            <Printer className="h-4 w-4" />
+            <span>Unduh Rapor PDF</span>
+          </button>
         </div>
 
         {/* Profile Card */}
@@ -809,36 +809,41 @@ export default function BukuNilaiPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto px-1 sm:px-3">
+    <div className="space-y-6 max-w-[1400px] mx-auto px-1 sm:px-3 text-left">
       {/* Page Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-3xl bg-card border shadow-sm">
+      <div className="flex items-center justify-between flex-wrap gap-4 p-5 rounded-3xl bg-card border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+          <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2.5 uppercase">
+            <BookOpen className="h-6 w-6 text-teal-600" />
             Buku Nilai
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-slate-450 font-bold mt-1">
             Pengolahan nilai Sumatif, nilai Akhir Semester, dan deskripsi capaian rapor siswa.
           </p>
         </div>
 
         {/* Global Configuration Button (Admin Only) */}
         {isAdmin && (
-          <Button
+          <button
             onClick={() => setShowSettings(true)}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md border-0"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
           >
-            <Settings className="h-4 w-4" /> Setelan Bobot
-          </Button>
+            <Settings className="h-4 w-4" />
+            <span>Setelan Bobot</span>
+          </button>
         )}
       </div>
 
       {/* Select Filters Panel */}
-      <Card className="p-4 rounded-2xl border bg-card shadow-sm">
+      <Card className="p-5 rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] bg-card">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase">Pilih Kelas</Label>
-            <Select value={kelasId} onValueChange={(val) => setKelasId(val || "")}>
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Pilih Kelas</Label>
+            <Select 
+              value={kelasId} 
+              onValueChange={(val) => setKelasId(val || "")}
+              options={kelasList.map((k) => ({ value: k.id, label: k.namaKelas }))}
+            >
               <SelectTrigger className="rounded-xl border-slate-200">
                 <SelectValue placeholder="Pilih Kelas" />
               </SelectTrigger>
@@ -851,8 +856,12 @@ export default function BukuNilaiPage() {
           </div>
 
           <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase">Pilih Mata Pelajaran</Label>
-            <Select value={mataPelajaranId} onValueChange={(val) => setMataPelajaranId(val || "")}>
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Pilih Mata Pelajaran</Label>
+            <Select 
+              value={mataPelajaranId} 
+              onValueChange={(val) => setMataPelajaranId(val || "")}
+              options={mapelList.map((m) => ({ value: m.id, label: m.namaMapel }))}
+            >
               <SelectTrigger className="rounded-xl border-slate-200">
                 <SelectValue placeholder="Pilih Mata Pelajaran" />
               </SelectTrigger>
@@ -865,14 +874,14 @@ export default function BukuNilaiPage() {
           </div>
 
           <div className="sm:self-end flex gap-2 w-full sm:w-auto">
-            <Button
+            <button
               onClick={handleSaveData}
               disabled={!kelasId || !mataPelajaranId || saving || isLoading}
-              className="flex-1 sm:flex-none gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 h-10 shadow-sm border-0"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed transition-all duration-300 transform active:scale-95 h-[38px]"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Simpan & Publish
-            </Button>
+              <span>Simpan & Publish</span>
+            </button>
           </div>
         </div>
       </Card>
@@ -1039,13 +1048,14 @@ export default function BukuNilaiPage() {
           {/* TAB 2: Deskripsi Capaian Kompetensi */}
           <TabsContent value="deskripsi" className="outline-none space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2.5">
-              <h3 className="text-lg font-bold text-foreground">Otomatisasi Deskripsi Narasi Capaian</h3>
-              <Button
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Otomatisasi Deskripsi Narasi Capaian</h3>
+              <button
                 onClick={handleAutoGenerateDescriptions}
-                className="gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-sm border-0 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-purple-500/5 cursor-pointer transition-all duration-300 transform active:scale-95"
               >
-                <Sparkles className="h-4 w-4" /> Generate Deskripsi Otomatis
-              </Button>
+                <Sparkles className="h-4 w-4" />
+                <span>Generate Deskripsi Otomatis</span>
+              </button>
             </div>
 
             {isLoading ? (
@@ -1089,25 +1099,27 @@ export default function BukuNilaiPage() {
             <TabsContent value="leger" className="outline-none space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2.5">
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Leger Nilai Akhir (NA) Kelas</h3>
-                  <p className="text-xs text-muted-foreground">Menampilkan rekapitulasi nilai akhir semua mata pelajaran.</p>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Leger Nilai Akhir (NA) Kelas</h3>
+                  <p className="text-xs text-slate-450 font-semibold">Menampilkan rekapitulasi nilai akhir semua mata pelajaran.</p>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button
+                  <button
                     onClick={handleExportLegerExcel}
                     disabled={legerQuery.isLoading || !legerQuery.data}
-                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm border-0 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-80"
                   >
-                    <FileSpreadsheet className="h-4 w-4" /> Export Excel
-                  </Button>
-                  <Button
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Export Excel</span>
+                  </button>
+                  <button
                     onClick={handleCetakLegerPdf}
                     disabled={legerQuery.isLoading || !legerQuery.data}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm border-0 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 transition-all duration-300 transform active:scale-95"
                   >
-                    <Printer className="h-4 w-4" /> Cetak PDF Leger
-                  </Button>
+                    <Printer className="h-4 w-4" />
+                    <span>Cetak PDF Leger</span>
+                  </button>
                 </div>
               </div>
 
