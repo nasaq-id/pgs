@@ -712,7 +712,14 @@ export default function AbsensiPage() {
         <div className="space-y-4">
           <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5 flex flex-col md:flex-row gap-3 items-start md:items-center bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
             <div className="flex gap-2 flex-wrap items-center">
-              <Select value={targetType} onValueChange={(v: any) => setTargetType(v)}>
+              <Select
+                value={targetType}
+                onValueChange={(v: any) => setTargetType(v)}
+                options={[
+                  { value: "siswa", label: "Siswa" },
+                  { value: "guru", label: "Guru/Pegawai" }
+                ]}
+              >
                 <SelectTrigger className="w-full sm:w-36 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                   <SelectValue placeholder="Tipe Absen" />
                 </SelectTrigger>
@@ -723,7 +730,12 @@ export default function AbsensiPage() {
               </Select>
 
               {targetType === "siswa" && (
-                <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")} disabled={role === "guru" && isWaliKelas && !canManageGlobal}>
+                <Select
+                  value={kelasId}
+                  onValueChange={(v) => setKelasId(v ?? "")}
+                  disabled={role === "guru" && isWaliKelas && !canManageGlobal}
+                  options={classes?.map((c) => ({ value: c.id, label: c.namaKelas }))}
+                >
                   <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
                     <SelectValue placeholder="Pilih Kelas" />
                   </SelectTrigger>
