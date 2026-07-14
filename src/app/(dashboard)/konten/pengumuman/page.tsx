@@ -153,6 +153,9 @@ export default function PengumumanPage() {
       utils.pengumuman.getAll.invalidate()
       utils.pengumuman.getPublished.invalidate()
       utils.pengumuman.getCounts.invalidate()
+      utils.notifikasi.getAll.invalidate()
+      utils.notifikasi.getRecent.invalidate()
+      utils.notifikasi.getUnreadCount.invalidate()
     },
     onError: (err) => toast.error(err.message || "Gagal menambahkan pengumuman"),
   })
@@ -163,6 +166,9 @@ export default function PengumumanPage() {
       utils.pengumuman.getAll.invalidate()
       utils.pengumuman.getPublished.invalidate()
       utils.pengumuman.getCounts.invalidate()
+      utils.notifikasi.getAll.invalidate()
+      utils.notifikasi.getRecent.invalidate()
+      utils.notifikasi.getUnreadCount.invalidate()
     },
     onError: (err) => toast.error(err.message || "Gagal memperbarui pengumuman"),
   })
@@ -173,6 +179,9 @@ export default function PengumumanPage() {
       utils.pengumuman.getAll.invalidate()
       utils.pengumuman.getPublished.invalidate()
       utils.pengumuman.getCounts.invalidate()
+      utils.notifikasi.getAll.invalidate()
+      utils.notifikasi.getRecent.invalidate()
+      utils.notifikasi.getUnreadCount.invalidate()
     },
     onError: () => toast.error("Gagal menghapus pengumuman"),
   })

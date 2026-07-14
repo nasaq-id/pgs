@@ -70,17 +70,23 @@ export const pengumumanRouter = router({
     .query(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       const role = ctx.session.user.role || ""
-      const targetRole = roleTargetMap[role] || "semua"
 
-      const conditions = [
+      const conditions: any[] = [
         eq(pengumuman.published, true),
         lte(pengumuman.tanggalPublish, new Date()),
-        or(
-          eq(pengumuman.target, "semua"),
-          eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
-        ),
       ]
       if (sekolahId) conditions.push(eq(pengumuman.sekolahId, sekolahId))
+
+      const isAdmin = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "yayasan"
+      if (!isAdmin) {
+        const targetRole = roleTargetMap[role] || "semua"
+        conditions.push(
+          or(
+            eq(pengumuman.target, "semua"),
+            eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
+          )
+        )
+      }
 
       const data = await db.query.pengumuman.findMany({
         where: and(...conditions),
@@ -117,7 +123,18 @@ export const pengumumanRouter = router({
         }
       }
       const id = input.id || crypto.randomUUID()
-      const tanggalPublish = input.tanggalPublish ? new Date(input.tanggalPublish) : new Date()
+      
+      let tanggalPublish = new Date()
+      if (input.tanggalPublish) {
+        const inputDate = new Date(input.tanggalPublish)
+        const todayStr = new Date().toISOString().split("T")[0]
+        if (input.tanggalPublish === todayStr) {
+          tanggalPublish = new Date()
+        } else {
+          tanggalPublish = inputDate
+        }
+      }
+
       const [result] = await db.insert(pengumuman).values({
         ...input,
         id,
@@ -150,7 +167,17 @@ export const pengumumanRouter = router({
       const { tanggalPublish, ...rest } = input.data
       const updateData: any = { ...rest }
       if (tanggalPublish !== undefined) {
-        updateData.tanggalPublish = tanggalPublish ? new Date(tanggalPublish) : new Date()
+        if (tanggalPublish) {
+          const inputDate = new Date(tanggalPublish)
+          const todayStr = new Date().toISOString().split("T")[0]
+          if (tanggalPublish === todayStr) {
+            updateData.tanggalPublish = new Date()
+          } else {
+            updateData.tanggalPublish = inputDate
+          }
+        } else {
+          updateData.tanggalPublish = new Date()
+        }
       }
       const [result] = await db
         .update(pengumuman)
