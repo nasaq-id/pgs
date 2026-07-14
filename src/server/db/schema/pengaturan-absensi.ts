@@ -8,6 +8,9 @@ export const pengaturanAbsensi = pgTable("pengaturan_absensi", {
   jamMasuk: text("jam_masuk").notNull().default("07:00"),
   jamPulang: text("jam_pulang").notNull().default("14:00"),
   toleransi: integer("toleransi").notNull().default(15),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  radius: integer("radius").notNull().default(100),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [

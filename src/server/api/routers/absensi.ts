@@ -7,6 +7,21 @@ import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
+function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3 // Earth radius in meters
+  const phi1 = (lat1 * Math.PI) / 180
+  const phi2 = (lat2 * Math.PI) / 180
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c // in meters
+}
+
 const absensiBulkCreateSchema = z.object({
   absensi: z.array(
     z.object({
@@ -130,39 +145,55 @@ export const absensiRouter = router({
       return result[0]
     }),
 
-  getPengaturan: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahId = ctx.session.user.sekolahId
-    if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-    let settings = await db.query.pengaturanAbsensi.findFirst({
-      where: eq(pengaturanAbsensi.sekolahId, sekolahId),
-    })
-    if (!settings) {
-      // Create defaults
-      const [newSettings] = await db
-        .insert(pengaturanAbsensi)
-        .values({
-          id: crypto.randomUUID(),
-          sekolahId,
-          jamMasuk: "07:00",
-          jamPulang: "14:00",
-          toleransi: 15,
-        })
-        .returning()
-      settings = newSettings
-    }
-    return settings
-  }),
+  getPengaturan: protectedProcedure
+    .input(z.object({ sekolahId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      let sekolahId = ctx.session.user.sekolahId || input?.sekolahId
+      if (!sekolahId && ctx.session.user.role === "super_admin") {
+        const first = await db.query.sekolah.findFirst()
+        sekolahId = first?.id
+      }
+      if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+      let settings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+      if (!settings) {
+        // Create defaults
+        const [newSettings] = await db
+          .insert(pengaturanAbsensi)
+          .values({
+            id: crypto.randomUUID(),
+            sekolahId,
+            jamMasuk: "07:00",
+            jamPulang: "14:00",
+            toleransi: 15,
+            radius: 100,
+          })
+          .returning()
+        settings = newSettings
+      }
+      return settings
+    }),
 
   savePengaturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(
       z.object({
+        sekolahId: z.string().optional(),
         jamMasuk: z.string(),
         jamPulang: z.string(),
         toleransi: z.number(),
+        latitude: z.string().nullable().optional(),
+        longitude: z.string().nullable().optional(),
+        radius: z.number().optional().default(100),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
+      const { sekolahId: inputSekolahId, ...rest } = input
+      let sekolahId = ctx.session.user.sekolahId || inputSekolahId
+      if (!sekolahId && ctx.session.user.role === "super_admin") {
+        const first = await db.query.sekolah.findFirst()
+        sekolahId = first?.id
+      }
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
       const existing = await db.query.pengaturanAbsensi.findFirst({
@@ -172,13 +203,13 @@ export const absensiRouter = router({
       if (existing) {
         await db
           .update(pengaturanAbsensi)
-          .set({ ...input, updatedAt: new Date() })
+          .set({ ...rest, updatedAt: new Date() })
           .where(eq(pengaturanAbsensi.sekolahId, sekolahId))
       } else {
         await db.insert(pengaturanAbsensi).values({
           id: crypto.randomUUID(),
           sekolahId,
-          ...input,
+          ...rest,
         })
       }
       await logAudit(ctx, { action: "update_pengaturan_absensi", entity: "pengaturan_absensi", metadata: input })
@@ -186,7 +217,13 @@ export const absensiRouter = router({
     }),
 
   absenViaBarcode: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
-    .input(z.object({ barcode: z.string() }))
+    .input(
+      z.object({
+        barcode: z.string(),
+        latitude: z.number().optional().nullable(),
+        longitude: z.number().optional().nullable(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
@@ -226,6 +263,29 @@ export const absensiRouter = router({
         const settings = await db.query.pengaturanAbsensi.findFirst({
           where: eq(pengaturanAbsensi.sekolahId, sekolahId),
         })
+
+        // Geofencing verification
+        if (settings?.latitude && settings?.longitude) {
+          const schoolLat = parseFloat(settings.latitude)
+          const schoolLng = parseFloat(settings.longitude)
+          const radius = settings.radius ?? 100
+
+          if (input.latitude === null || input.latitude === undefined || input.longitude === null || input.longitude === undefined) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Gagal memproses absensi: Izin lokasi (GPS) perangkat diperlukan untuk memverifikasi posisi Anda di area sekolah.",
+            })
+          }
+
+          const distance = getDistanceInMeters(schoolLat, schoolLng, input.latitude, input.longitude)
+          if (distance > radius) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Absen ditolak: Posisi perangkat Anda berada di luar area sekolah (${Math.round(distance)} meter dari titik koordinat resmi). Batas maksimal: ${radius} meter.`,
+            })
+          }
+        }
+
         const jamMasukStr = settings?.jamMasuk ?? "07:00"
         const jamPulangStr = settings?.jamPulang ?? "14:00"
         const toleransi = settings?.toleransi ?? 15

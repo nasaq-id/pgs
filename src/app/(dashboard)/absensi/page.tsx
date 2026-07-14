@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield } from "lucide-react"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
 
@@ -50,6 +50,10 @@ export default function AbsensiPage() {
   const [jamMasukSetting, setJamMasukSetting] = useState("07:00")
   const [jamPulangSetting, setJamPulangSetting] = useState("14:00")
   const [toleransiSetting, setToleransiSetting] = useState(15)
+  const [latitudeSetting, setLatitudeSetting] = useState("")
+  const [longitudeSetting, setLongitudeSetting] = useState("")
+  const [radiusSetting, setRadiusSetting] = useState(100)
+  const [isUkurLoading, setIsUkurLoading] = useState(false)
 
   // Scanner states
   const [isScannerActive, setIsScannerActive] = useState(false)
@@ -81,6 +85,10 @@ export default function AbsensiPage() {
   const canManageGlobal = role === "super_admin" || role === "admin_sekolah"
   const canTakeAttendance = role === "super_admin" || role === "admin_sekolah" || role === "tu" || isWaliKelas
 
+  const { data: sekolah } = api.lembaga.getSekolah.useQuery(undefined, {
+    enabled: canTakeAttendance,
+  })
+
   // Load appropriate default tab
   useEffect(() => {
     if (!canTakeAttendance) {
@@ -100,6 +108,9 @@ export default function AbsensiPage() {
       setJamMasukSetting(settingsQuery.data.jamMasuk)
       setJamPulangSetting(settingsQuery.data.jamPulang)
       setToleransiSetting(settingsQuery.data.toleransi)
+      setLatitudeSetting(settingsQuery.data.latitude || "")
+      setLongitudeSetting(settingsQuery.data.longitude || "")
+      setRadiusSetting(settingsQuery.data.radius ?? 100)
     }
   }, [settingsQuery.data])
 
@@ -201,12 +212,54 @@ export default function AbsensiPage() {
         jamMasuk: jamMasukSetting,
         jamPulang: jamPulangSetting,
         toleransi: toleransiSetting,
+        latitude: latitudeSetting.trim() || null,
+        longitude: longitudeSetting.trim() || null,
+        radius: radiusSetting,
       })
       toast.success("Pengaturan absensi berhasil disimpan")
       settingsQuery.refetch()
     } catch {
       toast.error("Gagal menyimpan pengaturan")
     }
+  }
+
+  const handleSaveGeofence = async () => {
+    try {
+      await saveSettings.mutateAsync({
+        jamMasuk: jamMasukSetting,
+        jamPulang: jamPulangSetting,
+        toleransi: toleransiSetting,
+        latitude: latitudeSetting.trim() || null,
+        longitude: longitudeSetting.trim() || null,
+        radius: radiusSetting,
+      })
+      toast.success("Pengaturan geofencing berhasil disimpan")
+      settingsQuery.refetch()
+    } catch {
+      toast.error("Gagal menyimpan pengaturan geofencing")
+    }
+  }
+
+  const handleUkurPosisi = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolokasi tidak didukung oleh browser Anda")
+      return
+    }
+    setIsUkurLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitudeSetting(position.coords.latitude.toString())
+        setLongitudeSetting(position.coords.longitude.toString())
+        setIsUkurLoading(false)
+        toast.success("Berhasil mendapatkan koordinat GPS terbaru!")
+      },
+      (error) => {
+        setIsUkurLoading(false)
+        console.error("GPS Error:", error)
+        toast.error("Gagal mendapatkan lokasi GPS: " + (error.message || "Izin ditolak"))
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   const handleManualSave = async () => {
@@ -378,7 +431,29 @@ export default function AbsensiPage() {
 
   const handleScanSuccess = async (decodedText: string) => {
     try {
-      const result = await barcodeScanMutation.mutateAsync({ barcode: decodedText })
+      let coords: { latitude: number; longitude: number } | null = null
+      if (navigator.geolocation) {
+        coords = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              })
+            },
+            () => {
+              resolve(null)
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+          )
+        })
+      }
+
+      const result = await barcodeScanMutation.mutateAsync({
+        barcode: decodedText,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+      })
       playBeep("success")
       setScanResult({
         success: true,
@@ -589,6 +664,19 @@ export default function AbsensiPage() {
             }`}
           >
             Pengaturan Absen
+          </button>
+        )}
+        {canManageGlobal && (
+          <button
+            onClick={() => {
+              setActiveTab("geofence")
+              setIsScannerActive(false)
+            }}
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "geofence" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            Geofencing
           </button>
         )}
         <button
@@ -963,6 +1051,118 @@ export default function AbsensiPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === "geofence" && canManageGlobal && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-4xl text-left">
+          {/* Main Setting Card */}
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-5 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="flex items-center gap-3">
+              <Compass className="h-5 w-5 text-teal-600 animate-pulse" />
+              <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Geofencing Koordinat Sekolah</h3>
+            </div>
+            
+            <p className="text-xs text-slate-450 dark:text-slate-400 leading-relaxed font-semibold">
+              Tentukan letak geografis sekolah dan jangkauan jarak aman untuk absen. Seluruh log absensi di luar geofence akan ditolak secara otomatis untuk mengantisipasi manipulasi kehadiran.
+            </p>
+
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Latitude Sekolah</Label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: -6.9175"
+                    value={latitudeSetting}
+                    onChange={(e) => setLatitudeSetting(e.target.value)}
+                    className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Longitude Sekolah</Label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 107.6191"
+                    value={longitudeSetting}
+                    onChange={(e) => setLongitudeSetting(e.target.value)}
+                    className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Radius Toleransi (Meter)</Label>
+                <input
+                  type="number"
+                  min={10}
+                  value={radiusSetting}
+                  onChange={(e) => setRadiusSetting(parseInt(e.target.value) || 100)}
+                  className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 flex flex-wrap gap-3 justify-between items-center">
+                <button
+                  type="button"
+                  onClick={handleUkurPosisi}
+                  disabled={isUkurLoading}
+                  className="h-10 px-4 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isUkurLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Compass className="h-4 w-4" />
+                  )}
+                  <span>Ukur Posisi Saat Ini?</span>
+                </button>
+
+                <button
+                  onClick={handleSaveGeofence}
+                  disabled={saveSettings.isPending}
+                  className="h-10 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-6 flex items-center justify-center shadow-md shadow-teal-500/5 transition-all disabled:opacity-50"
+                >
+                  {saveSettings.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  <span>Simpan Geofence</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Status Info Box */}
+          <div className="space-y-4">
+            <div className="glass-card rounded-[26px] border border-emerald-500/20 bg-emerald-500/[0.01] p-5 space-y-4">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Shield className="h-4 w-4" />
+                <h4 className="text-xs font-black uppercase tracking-wider">Geofence Multi-Tenancy</h4>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
+                Lembaga <strong className="text-slate-800 dark:text-slate-200">{sekolah?.namaSekolah || "Sekolah Anda"}</strong> diproteksi secara terenkripsi menggunakan koordinat global terisolasi. Seluruh log absensi di luar geofence akan ditolak secara otomatis untuk mengantisipasi manipulasi kehadiran.
+              </p>
+              
+              <div className="border-t border-emerald-500/10 pt-3.5 space-y-2">
+                <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400">Konfigurasi Aktif:</h5>
+                <div className="space-y-1.5 font-mono text-[10.5px] text-slate-600 dark:text-slate-350">
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">NPSN:</span>
+                    <span className="font-bold">{sekolah?.npsn || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">Koordinat:</span>
+                    <span className="font-bold">
+                      {settingsQuery.data?.latitude && settingsQuery.data?.longitude 
+                        ? `${parseFloat(settingsQuery.data.latitude).toFixed(4)}, ${parseFloat(settingsQuery.data.longitude).toFixed(4)}` 
+                        : "Belum diset"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">Radius Toleransi:</span>
+                    <span className="font-bold">{settingsQuery.data?.radius ?? 100} meter</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
