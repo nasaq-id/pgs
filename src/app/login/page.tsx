@@ -46,11 +46,12 @@ export default function LoginPage() {
     { key: "admin", label: "Admin", icon: Shield },
   ]
 
-  const DEMO_CREDENTIALS: Record<RoleKey, { label: string; email: string; password: string }> = {
-    siswa: { label: "Demo Siswa", email: "123455", password: "daus123" },
-    guru:  { label: "Demo Guru",  email: "mohtb",  password: "mohtb123" },
-    admin: { label: "Admin Sekolah", email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
-  }
+  const DEMO_CREDENTIALS = [
+    { label: "Siswa Demo", role: "siswa" as const, email: "123455", password: "daus123" },
+    { label: "Guru Demo", role: "guru" as const, email: "mohtb", password: "mohtb123" },
+    { label: "Admin Cikalongwetan", role: "admin" as const, email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
+    { label: "Admin Muhammadiyah 1", role: "admin" as const, email: "admin.smam1bdg@demo.com", password: "muhammadiyah123" },
+  ]
 
   function handleRoleChange(role: RoleKey) {
     setActiveRole(role)
@@ -60,9 +61,8 @@ export default function LoginPage() {
     if (passwordRef.current) passwordRef.current.value = ""
   }
 
-  function handleDemoLogin(role: RoleKey) {
-    const creds = DEMO_CREDENTIALS[role]
-    setActiveRole(role)
+  function handleDemoLogin(creds: typeof DEMO_CREDENTIALS[number]) {
+    setActiveRole(creds.role)
     setError("")
     setShowPassword(false)
     if (emailRef.current) emailRef.current.value = creds.email
@@ -313,16 +313,16 @@ export default function LoginPage() {
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest text-center">
                   Akses Cepat Demo
                 </p>
-                <div className="flex gap-2">
-                  {(Object.entries(DEMO_CREDENTIALS) as [RoleKey, typeof DEMO_CREDENTIALS[RoleKey]][]).map(([role, creds]) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {DEMO_CREDENTIALS.map((creds, index) => (
                     <button
-                      key={role}
+                      key={index}
                       type="button"
-                      onClick={() => handleDemoLogin(role)}
-                      className="flex-1 text-[11px] px-3 py-2 rounded-xl neumo-sm bg-background hover:scale-[1.02] active:scale-[0.98] text-muted-foreground hover:text-teal-750 font-bold transition-all cursor-pointer text-center leading-tight"
+                      onClick={() => handleDemoLogin(creds)}
+                      className="text-[11px] px-3 py-2 rounded-xl neumo-sm bg-background hover:scale-[1.02] active:scale-[0.98] text-muted-foreground hover:text-teal-750 font-bold transition-all cursor-pointer text-center leading-tight min-h-[50px] flex flex-col justify-center items-center"
                     >
-                      <span className="block">{creds.label}</span>
-                      <span className="block text-[10px] text-muted-foreground/60 font-mono mt-0.5">{creds.email}</span>
+                      <span className="block font-black">{creds.label}</span>
+                      <span className="block text-[9px] text-muted-foreground/60 font-mono mt-0.5">{creds.email}</span>
                     </button>
                   ))}
                 </div>
