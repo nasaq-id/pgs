@@ -77,7 +77,12 @@ export default function ProfilPage() {
 
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "profile-photo", { maxSize: 200 * 1024, maxDim: 500 })
+      const sekolahId = session?.user?.sekolahId || "super_admin"
+      const url = await uploadToCloudinary(file, "profile-photo", { 
+        maxSize: 200 * 1024, 
+        maxDim: 500, 
+        sekolahId 
+      })
       await updatePhoto.mutateAsync({ photo: url })
     } catch (err) {
       console.error("Upload error:", err)

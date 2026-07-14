@@ -118,7 +118,8 @@ export default function LembagaPage() {
 
     setIsUploading(true)
     try {
-      const url = await uploadToCloudinary(uploadFile, "logo-lembaga")
+      const sekolahId = sekolah?.id || "super_admin"
+      const url = await uploadToCloudinary(uploadFile, "logo-lembaga", { sekolahId })
       setForm({ ...form, logo: url })
     } catch (e) {
       alert(e instanceof Error ? e.message : "Upload gagal")
@@ -130,7 +131,8 @@ export default function LembagaPage() {
     setSosmedUploading(field)
     setSosmedPreviews((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }))
     try {
-      const url = await uploadToCloudinary(file, "sosmed-lembaga")
+      const sekolahId = sekolah?.id || "super_admin"
+      const url = await uploadToCloudinary(file, "sosmed-lembaga", { sekolahId })
       setForm((prev) => ({ ...prev, [field]: url }))
     } catch (e) {
       alert(e instanceof Error ? e.message : "Upload gagal")

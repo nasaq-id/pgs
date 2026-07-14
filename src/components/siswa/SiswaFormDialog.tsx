@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -125,6 +126,7 @@ const defaultForm = {
 }
 
 export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuccess }: SiswaFormDialogProps) {
+  const { data: session } = useSession()
   const [form, setForm] = useState({ ...defaultForm })
   const [activeTab, setActiveTab] = useState("siswa")
   const [fotoUrl, setFotoUrl] = useState("")
@@ -443,7 +445,12 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "avatar-siswa", { maxSize: 200 * 1024, maxDim: 500 })
+      const sekolahId = session?.user?.sekolahId || "super_admin"
+      const url = await uploadToCloudinary(file, "avatar-siswa", { 
+        maxSize: 200 * 1024, 
+        maxDim: 500, 
+        sekolahId 
+      })
       setFotoUrl(url)
       handleChange("foto", url)
       toast.success("Foto berhasil diunggah!")

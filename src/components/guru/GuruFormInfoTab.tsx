@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { useSession } from "next-auth/react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function GuruFormInfoTab({ form, onChange }: Props) {
+  const { data: session } = useSession()
   const [showPassword, setShowPassword] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -34,7 +36,12 @@ export default function GuruFormInfoTab({ form, onChange }: Props) {
     
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "avatar-guru", { maxSize: 200 * 1024, maxDim: 500 })
+      const sekolahId = session?.user?.sekolahId || "super_admin"
+      const url = await uploadToCloudinary(file, "avatar-guru", { 
+        maxSize: 200 * 1024, 
+        maxDim: 500,
+        sekolahId
+      })
       onChange("foto", url)
       toast.success("Foto berhasil diunggah!")
     } catch (err) {

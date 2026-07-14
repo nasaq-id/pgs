@@ -114,7 +114,8 @@ export default function IzinPage() {
 
     setUploading(true)
     try {
-      const url = await uploadToCloudinary(file, "izin-bukti")
+      const sekolahId = session?.user?.sekolahId || "super_admin"
+      const url = await uploadToCloudinary(file, "izin-bukti", { sekolahId })
       setBuktiUrl(url)
       toast.success("Surat/bukti berhasil diunggah")
     } catch (err: any) {

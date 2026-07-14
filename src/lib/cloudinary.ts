@@ -13,6 +13,8 @@ export interface UploadOptions {
   maxDim?: number
   /** Kualitas awal JPEG (0.1 - 1). */
   quality?: number
+  /** ID Sekolah untuk mempartisi folder Cloudinary per tenant. */
+  sekolahId?: string
 }
 
 export async function compressImage(
@@ -81,8 +83,15 @@ export async function uploadToCloudinary(
   const formData = new FormData()
   formData.append("file", uploadFile)
   formData.append("upload_preset", uploadPreset)
-  if (folderName) {
-    formData.append("folder", folderName)
+  
+  // Scope folder name with sekolahId prefix if available
+  const sekolahId = options?.sekolahId
+  const finalFolder = sekolahId 
+    ? (folderName ? `${sekolahId}/${folderName}` : sekolahId)
+    : folderName
+
+  if (finalFolder) {
+    formData.append("folder", finalFolder)
   }
 
   console.log(`☁️ [Cloudinary] Memulai upload file: ${file.name} (Tipe: ${file.type}, Ukuran: ${(file.size / 1024).toFixed(2)} KB)`)
