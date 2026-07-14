@@ -296,8 +296,16 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           }}
         >
           {/* Glowing Logo Icon */}
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-500/20 text-white flex-shrink-0 transform group-hover:scale-105 transition-transform duration-300">
-            <Compass className="w-5 h-5 animate-spin-slow stroke-[2]" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-500/20 text-white flex-shrink-0 transform group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+            {sekolahData?.logo ? (
+              <img 
+                src={sekolahData.logo} 
+                alt="Logo" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Compass className="w-5 h-5 animate-spin-slow stroke-[2]" />
+            )}
           </div>
 
           {/* Logo Text */}
