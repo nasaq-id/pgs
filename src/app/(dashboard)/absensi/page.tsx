@@ -941,7 +941,7 @@ export default function AbsensiPage() {
             {isScannerActive && (
               <button
                 onClick={() => setIsScannerActive(false)}
-                className="mt-2 bg-rose-650 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none shadow-sm"
+                className="mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none shadow-sm"
               >
                 Matikan Kamera
               </button>
