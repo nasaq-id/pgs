@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, desc, asc } from "drizzle-orm"
 import { db } from "@/server/db"
-import { ekstrakurikuler } from "@/server/db/schema"
+import { ekstrakurikuler, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
@@ -69,7 +69,15 @@ export const ekstrakurikulerRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(ekstrakurikulerCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      let sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      if (!sekolahId || sekolahId === "") {
+        const firstSekolah = await db.query.sekolah.findFirst()
+        if (firstSekolah) {
+          sekolahId = firstSekolah.id
+        } else {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada sekolah terdaftar di database." })
+        }
+      }
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ekstrakurikuler).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { namaEkskul: input.namaEkskul } })

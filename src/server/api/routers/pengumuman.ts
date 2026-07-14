@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, lte } from "drizzle-orm"
 import { db } from "@/server/db"
-import { pengumuman } from "@/server/db/schema"
+import { pengumuman, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
@@ -107,7 +107,15 @@ export const pengumumanRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(pengumumanCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      let sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      if (!sekolahId || sekolahId === "") {
+        const firstSekolah = await db.query.sekolah.findFirst()
+        if (firstSekolah) {
+          sekolahId = firstSekolah.id
+        } else {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada sekolah terdaftar di database." })
+        }
+      }
       const id = input.id || crypto.randomUUID()
       const tanggalPublish = input.tanggalPublish ? new Date(input.tanggalPublish) : new Date()
       const [result] = await db.insert(pengumuman).values({
