@@ -49,7 +49,7 @@ export default function LoginPage() {
   const DEMO_CREDENTIALS: Record<RoleKey, { label: string; email: string; password: string }> = {
     siswa: { label: "Demo Siswa", email: "123455", password: "daus123" },
     guru:  { label: "Demo Guru",  email: "mohtb",  password: "mohtb123" },
-    admin: { label: "Demo Admin", email: "admin@demo.com", password: "admin123" },
+    admin: { label: "Admin Sekolah", email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
   }
 
   function handleRoleChange(role: RoleKey) {
