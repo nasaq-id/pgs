@@ -689,6 +689,19 @@ export default function AbsensiPage() {
       </div>
 
       <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-0.5">
+        {canManageGlobal && (
+          <button
+            onClick={() => {
+              setActiveTab("setting")
+              setIsScannerActive(false)
+            }}
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+              activeTab === "setting" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            Pengaturan Presensi
+          </button>
+        )}
         {canTakeAttendance && (
           <button
             onClick={() => {
@@ -699,7 +712,7 @@ export default function AbsensiPage() {
               activeTab === "manual" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            Absen Manual
+            Presensi Manual
           </button>
         )}
         {canTakeAttendance && (
@@ -713,19 +726,6 @@ export default function AbsensiPage() {
             }`}
           >
             Scan Barcode
-          </button>
-        )}
-        {canManageGlobal && (
-          <button
-            onClick={() => {
-              setActiveTab("setting")
-              setIsScannerActive(false)
-            }}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "setting" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Pengaturan Absen
           </button>
         )}
         <button
@@ -742,16 +742,16 @@ export default function AbsensiPage() {
         {canTakeAttendance && (
           <>
             <button
-              onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-              className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed"
-            >
-              Face ID <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-            </button>
-            <button
               onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
               className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed"
             >
               Sidik Jari <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+            </button>
+            <button
+              onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
+              className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed"
+            >
+              Face ID <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
             </button>
           </>
         )}
