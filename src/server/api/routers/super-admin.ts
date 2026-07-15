@@ -12,7 +12,7 @@ const registerSekolahSchema = z.object({
   namaSingkat: z.string().optional(),
   npsn: z.string().optional(),
   jenjang: z.enum(["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]),
-  adminEmail: z.string().email("Format email admin tidak valid"),
+  adminEmail: z.string().min(3, "Username/Email admin minimal 3 karakter"),
   adminName: z.string().min(1, "Nama admin wajib diisi"),
   adminPassword: z.string().min(6, "Password minimal 6 karakter"),
 })
@@ -36,7 +36,7 @@ export const superAdminRouter = router({
       if (existingUser) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Email admin sudah terdaftar di sistem",
+          message: "Username/Email admin sudah terdaftar di sistem",
         })
       }
 
