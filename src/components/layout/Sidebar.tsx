@@ -50,7 +50,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Profil Lembaga", path: "/lembaga" },
       { label: "Tahun Ajaran", path: "/lembaga/tahun-ajaran" },
-      { label: "Kurikulum", path: "/lembaga/kurikulum" },
     ]
   },
   { 
@@ -94,9 +93,9 @@ const menuItems: MenuItem[] = [
   },
   { 
     icon: ClipboardCheck, 
-    label: "Absensi", 
+    label: "Presensi", 
     children: [
-      { label: "Absensi Harian", path: "/absensi" },
+      { label: "Presensi Harian", path: "/absensi" },
       { label: "Pengajuan Izin", path: "/absensi/izin" },
     ]
   },
