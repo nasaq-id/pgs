@@ -19,7 +19,7 @@ import AsesmenDetailDialog from "@/components/asesmen/AsesmenDetailDialog"
 
 const KATEGORI_LABEL: Record<string, string> = {
   formatif_awal: "Formatif Awal",
-  formatif_proses: "Formatif",
+  formatif_proses: "Formatif Proses",
   sumatif: "Sumatif",
 }
 

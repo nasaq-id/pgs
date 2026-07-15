@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const KATEGORI_LABEL: Record<string, string> = {
   formatif_awal: "Formatif Awal",
-  formatif_proses: "Formatif",
+  formatif_proses: "Formatif Proses",
   sumatif: "Sumatif",
 }
 
@@ -27,6 +27,13 @@ const TEKNIK_LABEL: Record<string, string> = {
   praktik: "Praktik",
   proyek: "Proyek",
   portofolio: "Portofolio",
+}
+
+const JENIS_PENGUMPULAN_LABEL: Record<string, string> = {
+  unggah_file: "Unggah File",
+  teks: "Teks",
+  cbt: "CBT",
+  langsung: "Langsung",
 }
 
 interface Props {
@@ -183,7 +190,7 @@ export default function AsesmenDetailDialog({ open, asesmenId, onClose }: Props)
                 </div>
                 <div className="bg-muted/30 rounded-xl p-3 border border-border/40">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Pengumpulan</p>
-                  <p className="text-sm font-semibold mt-0.5 capitalize">{detail.jenisPengumpulan}</p>
+                  <p className="text-sm font-semibold mt-0.5">{JENIS_PENGUMPULAN_LABEL[detail.jenisPengumpulan] || detail.jenisPengumpulan}</p>
                 </div>
                 <div className="bg-muted/30 rounded-xl p-3 border border-border/40">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Deadline</p>

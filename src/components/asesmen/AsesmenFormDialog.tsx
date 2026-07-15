@@ -215,7 +215,15 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           <div className="grid grid-cols-2 gap-3">
             {/* 1. Kategori Asesmen dengan opsi terbaru */}
             <FieldWrap label="Kategori Asesmen" required>
-              <Select value={kategori} onValueChange={(v) => setKategori(v ?? "formatif_proses")}>
+              <Select
+                value={kategori}
+                onValueChange={(v) => setKategori(v ?? "formatif_proses")}
+                options={[
+                  { value: "formatif_awal", label: "Formatif Awal (Diagnostik)" },
+                  { value: "formatif_proses", label: "Formatif Proses (Latihan / Tugas)" },
+                  { value: "sumatif", label: "Sumatif (Ulangan / UTS / UAS)" }
+                ]}
+              >
                 <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                   <SelectValue />
                 </SelectTrigger>
@@ -228,7 +236,18 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             </FieldWrap>
 
             <FieldWrap label="Teknik">
-              <Select value={teknik} onValueChange={(v) => setTeknik(v ?? "tes_tertulis")}>
+              <Select
+                value={teknik}
+                onValueChange={(v) => setTeknik(v ?? "tes_tertulis")}
+                options={[
+                  { value: "tes_tertulis", label: "Tes Tertulis" },
+                  { value: "tes_lisan", label: "Tes Lisan" },
+                  { value: "penugasan", label: "Penugasan" },
+                  { value: "praktik", label: "Praktik" },
+                  { value: "proyek", label: "Proyek" },
+                  { value: "portofolio", label: "Portofolio" }
+                ]}
+              >
                 <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                   <SelectValue />
                 </SelectTrigger>
@@ -247,7 +266,16 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           <div className="grid grid-cols-2 gap-3">
             {/* 2. Jenis Pengumpulan dengan opsi Langsung */}
             <FieldWrap label="Jenis Pengumpulan">
-              <Select value={jenisPengumpulan} onValueChange={(v) => setJenisPengumpulan(v ?? "unggah_file")}>
+              <Select
+                value={jenisPengumpulan}
+                onValueChange={(v) => setJenisPengumpulan(v ?? "unggah_file")}
+                options={[
+                  { value: "unggah_file", label: "Unggah File" },
+                  { value: "teks", label: "Teks" },
+                  { value: "cbt", label: "CBT" },
+                  { value: "langsung", label: "Langsung" }
+                ]}
+              >
                 <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                   <SelectValue />
                 </SelectTrigger>
@@ -269,7 +297,11 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
             {/* Guru field (hanya jika admin) */}
             {!currentGuru && (
               <FieldWrap label="Guru" required>
-                <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")}>
+                <Select
+                  value={guruId}
+                  onValueChange={(v) => setGuruId(v ?? "")}
+                  options={guruList?.map((g) => ({ value: g.id, label: g.namaLengkap }))}
+                >
                   <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                     <SelectValue placeholder="Pilih guru" />
                   </SelectTrigger>
@@ -284,7 +316,11 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
 
             {/* 3. Mata Pelajaran terisi otomatis sesuai akun guru */}
             <FieldWrap label="Mata Pelajaran" required>
-              <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")}>
+              <Select
+                value={mataPelajaranId}
+                onValueChange={(v) => setMataPelajaranId(v ?? "")}
+                options={filteredMapelList.map((m) => ({ value: m.id, label: m.namaMapel }))}
+              >
                 <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                   <SelectValue placeholder="Pilih mapel" />
                 </SelectTrigger>
@@ -300,7 +336,11 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
           {/* 4. Pilihan Kelas (Multi-select checkbox list untuk create, single Select untuk edit) */}
           {item ? (
             <FieldWrap label="Kelas" required>
-              <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
+              <Select
+                value={kelasId}
+                onValueChange={(v) => setKelasId(v ?? "")}
+                options={kelasList?.map((k) => ({ value: k.id, label: `${k.tingkat ?? ""} - ${k.namaKelas}` }))}
+              >
                 <SelectTrigger className="h-9 rounded-xl border-slate-200 dark:border-slate-800">
                   <SelectValue placeholder="Pilih kelas" />
                 </SelectTrigger>
