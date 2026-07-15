@@ -87,17 +87,125 @@ export default function SuperAdminPage() {
     return "sma"
   }
 
-  // Parse pasted block into the existing form fields (no auto-submit)
-  function handlePasteInput(text: string) {
-    setPasteData(text)
-    const lines = text.split(/\r?\n/).map((l) => l.trim())
-    if (lines[0] !== undefined && lines[0] !== "") setNamaSekolah(lines[0])
-    if (lines[1] !== undefined && lines[1] !== "") setNpsn(lines[1])
-    if (lines[2] !== undefined && lines[2] !== "") setJenjang(mapJenjang(lines[2]))
-    if (lines[3] !== undefined) setNamaSingkat(lines[3])
-    if (lines[4] !== undefined && lines[4] !== "") setAdminName(lines[4])
-    if (lines[5] !== undefined && lines[5] !== "") setAdminEmail(lines[5])
-    if (lines[6] !== undefined && lines[6] !== "") setAdminPassword(lines[6])
+  // Parse pasted block into the existing form fields with robust validation constraints
+  const handleProcessPaste = () => {
+    if (!pasteData.trim()) {
+      toast.error("Kolom paste masih kosong.")
+      return
+    }
+
+    // Support both line breaks and key-value formats
+    const lines = pasteData.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    if (lines.length === 0) {
+      toast.error("Format data paste tidak valid atau kosong.")
+      return
+    }
+
+    let pName = ""
+    let pNpsn = ""
+    let pJenjang = "sma"
+    let pAlias = ""
+    let pAdminName = ""
+    let pAdminEmail = ""
+    let pAdminPassword = ""
+
+    // Try key-value parsing first
+    let isKeyValue = false
+    const kvMap: Record<string, string> = {}
+    
+    for (const line of lines) {
+      const idx = line.indexOf(":")
+      if (idx !== -1) {
+        const key = line.substring(0, idx).trim().toLowerCase()
+        const value = line.substring(idx + 1).trim()
+        if (key && value) {
+          kvMap[key] = value
+          isKeyValue = true
+        }
+      }
+    }
+
+    if (isKeyValue) {
+      for (const [k, v] of Object.entries(kvMap)) {
+        if (k.includes("sekolah") || (k.includes("nama") && !k.includes("admin") && !k.includes("singkat") && !k.includes("alias"))) {
+          pName = v
+        } else if (k.includes("npsn")) {
+          pNpsn = v
+        } else if (k.includes("jenjang")) {
+          pJenjang = v
+        } else if (k.includes("singkat") || k.includes("alias")) {
+          pAlias = v
+        } else if (k.includes("admin") || k.includes("pj") || k.includes("penanggung")) {
+          pAdminName = v
+        } else if (k.includes("email") || k.includes("username") || k.includes("user")) {
+          pAdminEmail = v
+        } else if (k.includes("pass") || k.includes("password") || k.includes("sandi")) {
+          pAdminPassword = v
+        }
+      }
+    }
+
+    // Fallback or override with line-by-line if not parsed as key-value
+    if (!pName && !pNpsn && lines.length >= 6) {
+      pName = lines[0] || ""
+      pNpsn = lines[1] || ""
+      pJenjang = lines[2] || "sma"
+      pAlias = lines[3] || ""
+      pAdminName = lines[4] || ""
+      pAdminEmail = lines[5] || ""
+      pAdminPassword = lines[6] || ""
+    }
+
+    // Field-level constraints validation
+    // 1. School Name (Nama Sekolah): min 3 chars
+    if (!pName || pName.length < 3) {
+      toast.error("Validasi gagal: Nama sekolah minimal harus 3 karakter.")
+      return
+    }
+
+    // 2. NPSN: must be exactly 8 digits
+    const cleanNpsn = pNpsn.replace(/\D/g, "")
+    if (!cleanNpsn || cleanNpsn.length !== 8) {
+      toast.error("Validasi gagal: NPSN harus berupa 8 digit angka.")
+      return
+    }
+
+    // 3. Jenjang: must map to sd/smp/sma/smk/mi/mts/ma/tk
+    const validJenjang = ["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]
+    const mappedJenjang = mapJenjang(pJenjang)
+    if (!validJenjang.includes(mappedJenjang)) {
+      toast.error("Validasi gagal: Jenjang tidak valid. Masukkan SD, SMP, SMA, SMK, MTs, MA, atau TK.")
+      return
+    }
+
+    // 4. Admin Name: min 2 chars
+    if (!pAdminName || pAdminName.length < 2) {
+      toast.error("Validasi gagal: Nama admin sekolah minimal harus 2 karakter.")
+      return
+    }
+
+    // 5. Admin Email: min 3 chars
+    if (!pAdminEmail || pAdminEmail.length < 3) {
+      toast.error("Validasi gagal: Username/Email admin minimal harus 3 karakter.")
+      return
+    }
+
+    // 6. Admin Password: min 6 chars
+    if (!pAdminPassword || pAdminPassword.length < 6) {
+      toast.error("Validasi gagal: Password admin minimal harus 6 karakter.")
+      return
+    }
+
+    // Assign to fields
+    setNamaSekolah(pName)
+    setNpsn(cleanNpsn)
+    setJenjang(mappedJenjang as any)
+    setNamaSingkat(pAlias)
+    setAdminName(pAdminName)
+    setAdminEmail(pAdminEmail)
+    setAdminPassword(pAdminPassword)
+
+    toast.success("Berhasil memproses! Data telah dimasukkan ke masing-masing kolom form.")
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -393,13 +501,21 @@ export default function SuperAdminPage() {
                 </label>
                 <textarea
                   value={pasteData}
-                  onChange={(e) => handlePasteInput(e.target.value)}
+                  onChange={(e) => setPasteData(e.target.value)}
                   rows={4}
-                  placeholder={"Mts At-Turmudzi\n20278120\nMTs\n\nJalaludin Sayuti\nmtsatturmudzi\nadmin123"}
+                  placeholder={"Contoh:\nSMA Negeri 1 Bandung\n10203040\nSMA\nSMAN 1 BDG\nAhmad Penanggungjawab\nahmad@sch.id\nadminpassword123"}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 placeholder-slate-400 transition-all duration-300 resize-none"
                 />
-                <p className="text-[9px] text-slate-400 font-bold mt-1.5 leading-relaxed">
-                  Urutan: Nama Sekolah, NPSN, Jenjang, Alias (baris kosong bila tidak ada), Nama Admin, Username/Email, Password. Field di bawah akan terisi otomatis — klik <span className="text-teal-600 font-black">Daftarkan</span> untuk menyimpan.
+                <button
+                  type="button"
+                  onClick={handleProcessPaste}
+                  className="mt-2.5 w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-md shadow-slate-950/5 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Check size={14} />
+                  <span>Proses & Isi Form</span>
+                </button>
+                <p className="text-[9px] text-slate-400 font-bold mt-2 leading-relaxed">
+                  Urutan baris data: Nama Sekolah, NPSN (8 digit), Jenjang (SD/SMP/SMA/SMK), Alias, Nama Pj Admin, Email/Username, Password. Klik <span className="text-slate-700 dark:text-slate-300 font-black">PROSES & ISI FORM</span> untuk mendistribusikan data ke kolom form di bawah.
                 </p>
               </div>
             </div>
