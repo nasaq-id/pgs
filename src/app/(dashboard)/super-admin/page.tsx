@@ -29,6 +29,9 @@ export default function SuperAdminPage() {
   const [adminEmail, setAdminEmail] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
 
+  // Quick-paste state
+  const [pasteData, setPasteData] = useState("")
+
   // Queries & Mutations
   const utils = api.useUtils()
   const { data: sekolahList = [], isLoading } = api.superAdmin.listSekolah.useQuery()
@@ -45,6 +48,7 @@ export default function SuperAdminPage() {
       setAdminName("")
       setAdminEmail("")
       setAdminPassword("")
+      setPasteData("")
       await utils.superAdmin.listSekolah.invalidate()
     },
     onError: (err) => {
@@ -71,6 +75,30 @@ export default function SuperAdminPage() {
       (s.npsn && s.npsn.includes(query))
     )
   })
+
+  // Map raw jenjang text to one of the select's allowed values
+  function mapJenjang(raw: string): "sd" | "smp" | "sma" | "smk" | "mi" | "mts" | "ma" | "tk" {
+    const v = raw.trim().toLowerCase()
+    if (["tk", "paud"].includes(v)) return "tk"
+    if (["sd", "mi"].includes(v)) return "sd"
+    if (["smp", "mts"].includes(v)) return "smp"
+    if (["sma", "ma"].includes(v)) return "sma"
+    if (["smk", "mak"].includes(v)) return "smk"
+    return "sma"
+  }
+
+  // Parse pasted block into the existing form fields (no auto-submit)
+  function handlePasteInput(text: string) {
+    setPasteData(text)
+    const lines = text.split(/\r?\n/).map((l) => l.trim())
+    if (lines[0] !== undefined && lines[0] !== "") setNamaSekolah(lines[0])
+    if (lines[1] !== undefined && lines[1] !== "") setNpsn(lines[1])
+    if (lines[2] !== undefined && lines[2] !== "") setJenjang(mapJenjang(lines[2]))
+    if (lines[3] !== undefined) setNamaSingkat(lines[3])
+    if (lines[4] !== undefined && lines[4] !== "") setAdminName(lines[4])
+    if (lines[5] !== undefined && lines[5] !== "") setAdminEmail(lines[5])
+    if (lines[6] !== undefined && lines[6] !== "") setAdminPassword(lines[6])
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -352,6 +380,30 @@ export default function SuperAdminPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-4 relative z-10 text-left">
+            {/* Quick Paste Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 text-slate-400 border-b border-slate-100 pb-1.5 mb-2">
+                <Sparkles size={14} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Input Cepat (Paste Data)</span>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">
+                  Tempel Data Sekolah
+                </label>
+                <textarea
+                  value={pasteData}
+                  onChange={(e) => handlePasteInput(e.target.value)}
+                  rows={4}
+                  placeholder={"Mts At-Turmudzi\n20278120\nMTs\n\nJalaludin Sayuti\nmtsatturmudzi\nadmin123"}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 placeholder-slate-400 transition-all duration-300 resize-none"
+                />
+                <p className="text-[9px] text-slate-400 font-bold mt-1.5 leading-relaxed">
+                  Urutan: Nama Sekolah, NPSN, Jenjang, Alias (baris kosong bila tidak ada), Nama Admin, Username/Email, Password. Field di bawah akan terisi otomatis — klik <span className="text-teal-600 font-black">Daftarkan</span> untuk menyimpan.
+                </p>
+              </div>
+            </div>
+
             {/* School Info Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-slate-400 border-b border-slate-100 pb-1.5 mb-2">
