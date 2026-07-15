@@ -1,9 +1,22 @@
 import { initTRPC, TRPCError } from "@trpc/server"
 import { auth } from "@/auth"
 import { db } from "@/server/db"
+import { cookies } from "next/headers"
 
 export const createTRPCContext = async () => {
   const session = await auth()
+
+  let impersonatedSekolahId: string | null = null
+  try {
+    const cookieStore = await cookies()
+    impersonatedSekolahId = cookieStore.get("impersonated_sekolah_id")?.value || null
+  } catch (e) {
+    // Catch silently in non-request contexts
+  }
+
+  if (session?.user && session.user.role === "super_admin" && impersonatedSekolahId) {
+    session.user.sekolahId = impersonatedSekolahId
+  }
 
   return {
     session,

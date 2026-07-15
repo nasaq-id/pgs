@@ -312,6 +312,12 @@ export default function SuperAdminPage() {
     }
   }
 
+  const handleImpersonate = (sekolahId: string) => {
+    document.cookie = `impersonated_sekolah_id=${sekolahId}; path=/; max-age=${7 * 24 * 60 * 60}`
+    toast.success("Masuk ke mode pengelolaan sekolah")
+    window.location.href = "/"
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
@@ -466,7 +472,16 @@ export default function SuperAdminPage() {
                         )}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
+                      {item.active && (
+                        <button
+                          type="button"
+                          onClick={() => handleImpersonate(item.id)}
+                          className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-teal-50 border border-teal-200 text-teal-650 hover:bg-teal-100 cursor-pointer shadow-sm"
+                        >
+                          Kelola
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleActiveMutation.mutate({ id: item.id })}
@@ -533,17 +548,28 @@ export default function SuperAdminPage() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleActiveMutation.mutate({ id: item.id })}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
-                      item.active
-                        ? "bg-rose-50 border-rose-200 text-rose-600"
-                        : "bg-emerald-50 border-emerald-200 text-emerald-600"
-                    }`}
-                  >
-                    {item.active ? "Suspend" : "Unsuspend"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {item.active && (
+                      <button
+                        type="button"
+                        onClick={() => handleImpersonate(item.id)}
+                        className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all bg-teal-50 border border-teal-200 text-teal-650 cursor-pointer"
+                      >
+                        Kelola
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggleActiveMutation.mutate({ id: item.id })}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                        item.active
+                          ? "bg-rose-50 border-rose-200 text-rose-600"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-600"
+                      }`}
+                    >
+                      {item.active ? "Suspend" : "Unsuspend"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
