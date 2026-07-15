@@ -145,16 +145,101 @@ export default function SuperAdminPage() {
       }
     }
 
-    // Fallback or override with line-by-line if not parsed as key-value
-    if (!pName && !pNpsn && lines.length >= 6) {
-      pName = lines[0] || ""
-      pNpsn = lines[1] || ""
-      pJenjang = lines[2] || "sma"
-      pAlias = lines[3] || ""
-      pAdminName = lines[4] || ""
-      pAdminEmail = lines[5] || ""
-      pAdminPassword = lines[6] || ""
+    // Intelligent Heuristic parsing for line-by-line format
+    if (!pName && !pNpsn) {
+      // Find NPSN line (8 digits)
+      const npsnIndex = lines.findIndex((l) => /^\d{8}$/.test(l))
+      
+      // Find Email/Username line (contains '@' or index-based fallback)
+      let emailIndex = lines.findIndex((l) => l.includes("@"))
+      if (emailIndex === -1 && lines.length >= 5) {
+        emailIndex = lines.length - 2
+      }
+
+      if (npsnIndex !== -1) {
+        pNpsn = lines[npsnIndex]
+        
+        // School Name is usually the line before NPSN
+        if (npsnIndex > 0) {
+          pName = lines[npsnIndex - 1]
+        }
+        
+        // Jenjang is usually the line after NPSN
+        if (npsnIndex < lines.length - 1) {
+          pJenjang = lines[npsnIndex + 1]
+        }
+      }
+
+      if (emailIndex !== -1 && emailIndex < lines.length) {
+        pAdminEmail = lines[emailIndex]
+        
+        // Password is the line after email
+        if (emailIndex < lines.length - 1) {
+          pAdminPassword = lines[emailIndex + 1]
+        }
+        
+        // Admin Name is the line before email
+        if (emailIndex > 0) {
+          const candidate = lines[emailIndex - 1]
+          if (candidate !== pNpsn && candidate !== pJenjang) {
+            pAdminName = candidate
+          }
+        }
+      }
+
+      // If we still don't have Admin Name, try index-based fallback
+      if (!pAdminName && lines.length >= 5) {
+        const expectedAdminNameIndex = lines.length === 6 ? 3 : 4
+        pAdminName = lines[expectedAdminNameIndex] || ""
+      }
+
+      // Find Alias / Nama Singkat (any unused line)
+      const usedIndices = new Set([
+        npsnIndex,
+        npsnIndex - 1, // name
+        npsnIndex + 1, // jenjang
+        emailIndex,
+        emailIndex + 1, // password
+        emailIndex - 1, // adminName
+      ])
+
+      for (let i = 0; i < lines.length; i++) {
+        if (!usedIndices.has(i)) {
+          pAlias = lines[i]
+          break
+        }
+      }
     }
+
+    // Absolute Fallback to exact indices if heuristics didn't yield enough data
+    if (!pName || !pNpsn || !pAdminEmail || !pAdminPassword) {
+      if (lines.length === 6) {
+        pName = lines[0] || ""
+        pNpsn = lines[1] || ""
+        pJenjang = lines[2] || "sma"
+        pAlias = ""
+        pAdminName = lines[3] || ""
+        pAdminEmail = lines[4] || ""
+        pAdminPassword = lines[5] || ""
+      } else if (lines.length >= 7) {
+        pName = lines[0] || ""
+        pNpsn = lines[1] || ""
+        pJenjang = lines[2] || "sma"
+        pAlias = lines[3] || ""
+        pAdminName = lines[4] || ""
+        pAdminEmail = lines[5] || ""
+        pAdminPassword = lines[6] || ""
+      }
+    }
+
+    // Clean outputs
+    pName = pName.trim()
+    pNpsn = pNpsn.replace(/\D/g, "").trim()
+    pJenjang = pJenjang.trim()
+    pAlias = pAlias.trim()
+    pAdminName = pAdminName.trim()
+    pAdminEmail = pAdminEmail.trim()
+    pAdminPassword = pAdminPassword.trim()
 
     // Field-level constraints validation
     // 1. School Name (Nama Sekolah): min 3 chars
@@ -164,8 +249,7 @@ export default function SuperAdminPage() {
     }
 
     // 2. NPSN: must be exactly 8 digits
-    const cleanNpsn = pNpsn.replace(/\D/g, "")
-    if (!cleanNpsn || cleanNpsn.length !== 8) {
+    if (!pNpsn || pNpsn.length !== 8) {
       toast.error("Validasi gagal: NPSN harus berupa 8 digit angka.")
       return
     }
@@ -198,7 +282,7 @@ export default function SuperAdminPage() {
 
     // Assign to fields
     setNamaSekolah(pName)
-    setNpsn(cleanNpsn)
+    setNpsn(pNpsn)
     setJenjang(mappedJenjang as any)
     setNamaSingkat(pAlias)
     setAdminName(pAdminName)
