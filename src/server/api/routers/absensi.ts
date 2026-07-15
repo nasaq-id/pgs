@@ -222,6 +222,7 @@ export const absensiRouter = router({
         barcode: z.string(),
         latitude: z.number().optional().nullable(),
         longitude: z.number().optional().nullable(),
+        alasan: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -319,6 +320,17 @@ export const absensiRouter = router({
           const isLate = now > limitMasuk
           const status = isLate ? "terlambat" : "hadir"
 
+          if (isLate && !input.alasan) {
+            return {
+              success: true,
+              requireReason: true,
+              type: "siswa" as const,
+              name: student.namaLengkap,
+              action: "masuk" as const,
+              status,
+            }
+          }
+
           const [created] = await db
             .insert(absensiSiswa)
             .values({
@@ -329,11 +341,12 @@ export const absensiRouter = router({
               tanggal: now,
               status,
               jamMasuk: now,
+              keterangan: input.alasan ?? null,
             })
             .returning()
 
           await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } })
-          return { success: true, type: "siswa", name: student.namaLengkap, action: "masuk", status }
+          return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status }
         } else {
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
@@ -459,6 +472,17 @@ export const absensiRouter = router({
           const isLate = now > limitMasuk
           const status = isLate ? "terlambat" : "hadir"
 
+          if (isLate && !input.alasan) {
+            return {
+              success: true,
+              requireReason: true,
+              type: "guru" as const,
+              name: teacher.namaLengkap,
+              action: "masuk" as const,
+              status,
+            }
+          }
+
           const [created] = await db
             .insert(absensiGuru)
             .values({
@@ -468,11 +492,12 @@ export const absensiRouter = router({
               tanggal: now,
               status,
               jamMasuk: now,
+              keterangan: input.alasan ?? null,
             })
             .returning()
 
           await logAudit(ctx, { action: "scan_checkin_guru", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } })
-          return { success: true, type: "guru", name: teacher.namaLengkap, action: "masuk", status }
+          return { success: true, type: "guru" as const, name: teacher.namaLengkap, action: "masuk" as const, status }
         } else {
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
