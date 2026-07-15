@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import JSZip from "jszip"
+import QRCode from "qrcode"
 import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield, X } from "lucide-react"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
@@ -70,6 +72,11 @@ export default function AbsensiPage() {
   } | null>(null)
   const [lateReason, setLateReason] = useState("")
   const [submittingLateReason, setSubmittingLateReason] = useState(false)
+
+  // Bulk download barcode states
+  const [bulkFilterClassId, setBulkFilterClassId] = useState<string>("semua")
+  const [bulkDownloading, setBulkDownloading] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState("")
 
   useEffect(() => {
     setTanggal(new Date().toISOString().split("T")[0])
@@ -532,6 +539,78 @@ export default function AbsensiPage() {
       toast.error(err.message || "Gagal Kirim Alasan")
     } finally {
       setSubmittingLateReason(false)
+    }
+  }
+
+  const handleBulkDownloadBarcodes = async () => {
+    if (!siswaAll || siswaAll.length === 0) {
+      toast.error("Data siswa tidak tersedia atau belum dimuat.")
+      return
+    }
+
+    let filteredSiswa = siswaAll
+    let filterName = "semua"
+
+    if (bulkFilterClassId !== "semua") {
+      filteredSiswa = siswaAll.filter((s) => s.kelasId === bulkFilterClassId)
+      const targetClass = classes?.find((c) => c.id === bulkFilterClassId)
+      if (targetClass) {
+        filterName = targetClass.namaKelas.replace(/[/\\?%*:|"<>\s]+/g, "_")
+      }
+    }
+
+    if (filteredSiswa.length === 0) {
+      toast.error("Tidak ada siswa ditemukan untuk filter terpilih.")
+      return
+    }
+
+    setBulkDownloading(true)
+    setBulkProgress("Mempersiapkan...")
+
+    try {
+      const zip = new JSZip()
+      let count = 0
+
+      for (const std of filteredSiswa) {
+        count++
+        setBulkProgress(`Membuat QR (${count}/${filteredSiswa.length}): ${std.namaLengkap}`)
+
+        const qrText = std.nisn || std.nisLokal || std.id
+        const qrDataUrl = await QRCode.toDataURL(qrText, {
+          width: 300,
+          margin: 2,
+          errorCorrectionLevel: "M",
+        })
+
+        const base64Data = qrDataUrl.split(",")[1]
+        if (!base64Data) continue
+
+        const classObj = classes?.find((c) => c.id === std.kelasId)
+        const className = classObj ? classObj.namaKelas.replace(/[/\\?%*:|"<>\s]+/g, "_") : "Tanpa_Kelas"
+        const studentNameClean = std.namaLengkap.replace(/[/\\?%*:|"<>\s]+/g, "_")
+        const fileName = `${className}/${studentNameClean}_${qrText}.png`
+
+        zip.file(fileName, base64Data, { base64: true })
+      }
+
+      setBulkProgress("Mengompresi berkas ZIP...")
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+
+      const link = document.createElement("a")
+      link.href = URL.createObjectURL(zipBlob)
+      link.download = `barcode_presensi_siswa_${filterName}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(link.href)
+
+      toast.success(`Berhasil mengunduh ZIP barcode untuk ${filteredSiswa.length} siswa`)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal membuat berkas ZIP barcode.")
+    } finally {
+      setBulkDownloading(false)
+      setBulkProgress("")
     }
   }
 
@@ -1216,7 +1295,8 @@ export default function AbsensiPage() {
 
       {activeTab === "pribadi" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-5 flex flex-col items-center text-center bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+          <div className="space-y-6">
+            <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-5 flex flex-col items-center text-center bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
             <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center">
               <QrCode className="h-6 w-6" />
             </div>
@@ -1289,7 +1369,70 @@ export default function AbsensiPage() {
             )}
           </div>
 
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 md:col-span-2 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
+          {/* Bulk Barcode Download Card */}
+          {(role === "super_admin" || role === "admin_sekolah" || role === "tu") && (
+            <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
+                  <Download className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-tight">Unduh Barcode Siswa</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Cetak & bagikan QR Code presensi massal</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                    Filter Rombel (Kelas)
+                  </Label>
+                  <Select
+                    value={bulkFilterClassId}
+                    onValueChange={(v) => setBulkFilterClassId(v ?? "semua")}
+                    options={[
+                      { value: "semua", label: "Semua Kelas & Siswa" },
+                      ...(classes?.map((c) => ({ value: c.id, label: c.namaKelas })) || [])
+                    ]}
+                  >
+                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                      <SelectValue placeholder="Semua Kelas" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
+                      <SelectItem value="semua" className="text-xs font-semibold">Semua Kelas & Siswa</SelectItem>
+                      {classes?.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                          {c.namaKelas}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBulkDownloadBarcodes}
+                  disabled={bulkDownloading || !siswaAll || siswaAll.length === 0}
+                  className="w-full h-10 rounded-xl bg-gradient-to-r from-teal-650 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  {bulkDownloading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span className="truncate max-w-[180px]">{bulkProgress || "Mengunduh..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 shrink-0" />
+                      <span>Unduh Barcode ZIP</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 md:col-span-2 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
             <div>
               <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100">Riwayat Kehadiran (30 Hari Terakhir)</h3>
               <p className="text-xs text-muted-foreground mt-1">Log kehadiran masuk dan pulang mandiri</p>
