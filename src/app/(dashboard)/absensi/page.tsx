@@ -923,64 +923,121 @@ export default function AbsensiPage() {
               Tidak ada siswa terdaftar di kelas ini.
             </div>
           ) : targetType === "siswa" ? (
-            <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                    <TableHead className="w-12 text-center text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">NISN</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Lengkap</TableHead>
-                    <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
-                    <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
-                    <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {siswaDiKelas.map((std, idx) => {
-                    const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
-                    return (
-                      <TableRow key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                        <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
-                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{std.nisn}</TableCell>
-                        <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{std.namaLengkap}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 justify-center flex-wrap">
-                            {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                              <button
-                                key={st}
-                                type="button"
-                                onClick={() => updateManualRecord(std.id, "status", st)}
-                                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                  record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
-                                }`}
-                              >
-                                {STATUS_LABELS[st]}
-                              </button>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                      <TableHead className="w-12 text-center text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">NISN</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Lengkap</TableHead>
+                      <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
+                      <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
+                      <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {siswaDiKelas.map((std, idx) => {
+                      const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                      return (
+                        <TableRow key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                          <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{std.nisn}</TableCell>
+                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{std.namaLengkap}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 justify-center flex-wrap">
+                              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => updateManualRecord(std.id, "status", st)}
+                                  className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                                    record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
+                                  }`}
+                                >
+                                  {STATUS_LABELS[st]}
+                                </button>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="time"
+                              value={record.jamMasuk}
+                              onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="time"
+                              value={record.jamPulang}
+                              onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-2">
+                {siswaDiKelas.map((std, idx) => {
+                  const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                  return (
+                    <div key={std.id} className="glass-card rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{std.nisn}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold">#{idx + 1}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">Status</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              onClick={() => updateManualRecord(std.id, "status", st)}
+                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                                record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550"
+                              }`}
+                            >
+                              {STATUS_LABELS[st]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
                           <input
                             type="time"
                             value={record.jamMasuk}
                             onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
                           <input
                             type="time"
                             value={record.jamPulang}
                             onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           ) : null}
 
           {targetType === "guru" && guruAttendanceQuery.isLoading ? (
@@ -992,64 +1049,121 @@ export default function AbsensiPage() {
               Tidak ada guru terdaftar.
             </div>
           ) : targetType === "guru" && guruAll ? (
-            <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                    <TableHead className="w-12 text-center text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">NIP/NUPTK</TableHead>
-                    <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Guru</TableHead>
-                    <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
-                    <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
-                    <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {guruAll.map((g, idx) => {
-                    const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
-                    return (
-                      <TableRow key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                        <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
-                        <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{g.nipnuptk || "-"}</TableCell>
-                        <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{g.namaLengkap}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 justify-center flex-wrap">
-                            {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                              <button
-                                key={st}
-                                type="button"
-                                onClick={() => updateManualRecord(g.id, "status", st)}
-                                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                  record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
-                                }`}
-                              >
-                                {STATUS_LABELS[st]}
-                              </button>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
+                      <TableHead className="w-12 text-center text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">NIP/NUPTK</TableHead>
+                      <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Guru</TableHead>
+                      <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
+                      <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
+                      <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {guruAll.map((g, idx) => {
+                      const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                      return (
+                        <TableRow key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                          <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
+                          <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{g.nipnuptk || "-"}</TableCell>
+                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{g.namaLengkap}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 justify-center flex-wrap">
+                              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => updateManualRecord(g.id, "status", st)}
+                                  className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                                    record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
+                                  }`}
+                                >
+                                  {STATUS_LABELS[st]}
+                                </button>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="time"
+                              value={record.jamMasuk}
+                              onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="time"
+                              value={record.jamPulang}
+                              onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-2">
+                {guruAll.map((g, idx) => {
+                  const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                  return (
+                    <div key={g.id} className="glass-card rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{g.namaLengkap}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{g.nipnuptk || "-"}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold">#{idx + 1}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">Status</span>
+                        <div className="flex gap-1 flex-wrap">
+                          {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              onClick={() => updateManualRecord(g.id, "status", st)}
+                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                                record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550"
+                              }`}
+                            >
+                              {STATUS_LABELS[st]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
                           <input
                             type="time"
                             value={record.jamMasuk}
                             onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
                           <input
                             type="time"
                             value={record.jamPulang}
                             onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           ) : null}
         </div>
       )}

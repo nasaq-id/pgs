@@ -377,7 +377,8 @@ export default function JadwalPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/10">
+          <>
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/10">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
@@ -490,7 +491,58 @@ export default function JadwalPage() {
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Mobile schedule view */}
+          <div className="md:hidden space-y-3">
+            {aktifDays.map((day) => {
+              const dayEntryList = jadwalRecords.filter((e) => e.hari === day)
+              const daySlots = jpGridByDay.find((g) => g.day === day)?.jpSlots || []
+              return (
+                <div key={day} className="glass-card rounded-2xl overflow-hidden">
+                  <div className="flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{DAY_LABEL[day]}</span>
+                    <button
+                      onClick={() => openAdd(day)}
+                      className="rounded-lg p-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 hover:bg-teal-600 hover:text-white transition-all cursor-pointer border border-teal-100 dark:border-teal-900/20"
+                      title={`Tambah jadwal ${DAY_LABEL[day]}`}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {dayEntryList.length === 0 ? (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-xs text-slate-400">Tidak ada jadwal</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {dayEntryList.map((entry) => {
+                        const jpStartTime = daySlots[entry.jpMulai ? entry.jpMulai - 1 : 0]
+                        return (
+                          <div key={entry.id} className="px-4 py-3 flex items-center gap-3">
+                            <div className="flex-shrink-0 w-14 text-center">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">JP {entry.jpMulai}</span>
+                              {jpStartTime && (
+                                <span className="text-[8px] text-slate-400">{jpStartTime.timeStart}</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{mapelMap.get(entry.mataPelajaranId)?.namaMapel ?? "-"}</p>
+                              <p className="text-[11px] text-slate-500 font-semibold truncate">{guruMap.get(entry.guruId)?.namaLengkap ?? "-"}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => openEdit(entry)} className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => setDeleteId(entry.id)} className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>)}
 
         {hasData && !isLoading && (
           <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground flex-wrap">

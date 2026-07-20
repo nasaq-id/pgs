@@ -63,30 +63,48 @@ function BillingTypeTab() {
           <span>Tambah</span>
         </button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nama</TableHead>
-            <TableHead>Kategori</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.map((bt: any) => (
-            <TableRow key={bt.id}>
-              <TableCell className="font-medium">{bt.name}</TableCell>
-              <TableCell><Badge variant="outline" className="text-xs uppercase">{bt.category}</Badge></TableCell>
-              <TableCell><Badge variant={bt.isActive ? "default" : "secondary"} className="text-xs">{bt.isActive ? "Aktif" : "Nonaktif"}</Badge></TableCell>
-              <TableCell className="text-center">
-                <Button variant="ghost" size="sm" onClick={() => handleToggle(bt.id)}>
-                  {bt.isActive ? <PowerOff className="h-4 w-4 text-red-500" /> : <Power className="h-4 w-4 text-emerald-500" />}
-                </Button>
-              </TableCell>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nama</TableHead>
+              <TableHead>Kategori</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Aksi</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data?.map((bt: any) => (
+              <TableRow key={bt.id}>
+                <TableCell className="font-medium">{bt.name}</TableCell>
+                <TableCell><Badge variant="outline" className="text-xs uppercase">{bt.category}</Badge></TableCell>
+                <TableCell><Badge variant={bt.isActive ? "default" : "secondary"} className="text-xs">{bt.isActive ? "Aktif" : "Nonaktif"}</Badge></TableCell>
+                <TableCell className="text-center">
+                  <Button variant="ghost" size="sm" onClick={() => handleToggle(bt.id)}>
+                    {bt.isActive ? <PowerOff className="h-4 w-4 text-red-500" /> : <Power className="h-4 w-4 text-emerald-500" />}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="md:hidden space-y-2">
+        {data?.map((bt: any) => (
+          <div key={bt.id} className="glass-card rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{bt.name}</p>
+              <div className="flex gap-2 mt-1">
+                <Badge variant="outline" className="text-xs uppercase">{bt.category}</Badge>
+                <Badge variant={bt.isActive ? "default" : "secondary"} className="text-xs">{bt.isActive ? "Aktif" : "Nonaktif"}</Badge>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => handleToggle(bt.id)}>
+              {bt.isActive ? <PowerOff className="h-4 w-4 text-red-500" /> : <Power className="h-4 w-4 text-emerald-500" />}
+            </Button>
+          </div>
+        ))}
+      </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-sm">
@@ -161,26 +179,40 @@ function FeeStructureTab() {
           <span>Tambah Tarif</span>
         </button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Jenis Tagihan</TableHead>
-            <TableHead>Jenjang</TableHead>
-            <TableHead className="text-right">Jumlah</TableHead>
-            <TableHead>Mulai Berlaku</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.map((fs: any) => (
-            <TableRow key={fs.id}>
-              <TableCell className="font-medium">{billingTypes?.find((bt: any) => bt.id === fs.billingTypeId)?.name || fs.billingTypeId}</TableCell>
-              <TableCell>{fs.gradeLevel}</TableCell>
-              <TableCell className="text-right">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(fs.amount))}</TableCell>
-              <TableCell className="text-xs">{fmtDate(fs.effectiveFrom)}</TableCell>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Jenis Tagihan</TableHead>
+              <TableHead>Jenjang</TableHead>
+              <TableHead className="text-right">Jumlah</TableHead>
+              <TableHead>Mulai Berlaku</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data?.map((fs: any) => (
+              <TableRow key={fs.id}>
+                <TableCell className="font-medium">{billingTypes?.find((bt: any) => bt.id === fs.billingTypeId)?.name || fs.billingTypeId}</TableCell>
+                <TableCell>{fs.gradeLevel}</TableCell>
+                <TableCell className="text-right">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(fs.amount))}</TableCell>
+                <TableCell className="text-xs">{fmtDate(fs.effectiveFrom)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="md:hidden space-y-2">
+        {data?.map((fs: any) => (
+          <div key={fs.id} className="glass-card rounded-2xl p-4">
+            <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{billingTypes?.find((bt: any) => bt.id === fs.billingTypeId)?.name || fs.billingTypeId}</p>
+            <div className="flex justify-between items-center mt-1 text-xs text-slate-500">
+              <span className="font-semibold">{fs.gradeLevel}</span>
+              <span>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(fs.amount))}</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Mulai: {fmtDate(fs.effectiveFrom)}</p>
+          </div>
+        ))}
+      </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-sm">

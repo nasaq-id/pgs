@@ -197,72 +197,111 @@ export default function NilaiPage() {
           <p className="text-sm text-muted-foreground text-center">Tidak ada siswa di kelas ini.</p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">No</TableHead>
-                <TableHead>NISN</TableHead>
-                <TableHead>Nama Siswa</TableHead>
-                <TableHead className="w-24 text-center">Nilai Tugas</TableHead>
-                <TableHead className="w-24 text-center">Nilai UTS</TableHead>
-                <TableHead className="w-24 text-center">Nilai UAS</TableHead>
-                <TableHead className="w-24 text-center font-bold">Nilai Akhir</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {siswaDiKelas.map((s, idx) => {
-                const record = nilaiMap[s.id] || { nilaiTugas: null, nilaiUts: null, nilaiUas: null, nilaiAkhir: null }
-                return (
-                  <TableRow key={s.id}>
-                    <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                    <TableCell className="font-mono text-xs">{s.nisn}</TableCell>
-                    <TableCell className="font-medium">{s.namaLengkap}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={record.nilaiTugas ?? ""}
-                        onChange={(e) => updateNilaiField(s.id, "nilaiTugas", e.target.value)}
-                        className="h-8 text-center w-20 mx-auto"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={record.nilaiUts ?? ""}
-                        onChange={(e) => updateNilaiField(s.id, "nilaiUts", e.target.value)}
-                        className="h-8 text-center w-20 mx-auto"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={record.nilaiUas ?? ""}
-                        onChange={(e) => updateNilaiField(s.id, "nilaiUas", e.target.value)}
-                        className="h-8 text-center w-20 mx-auto"
-                      />
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-lg">
-                      {record.nilaiAkhir !== null ? (
-                        <span className={record.nilaiAkhir >= 75 ? "text-primary" : "text-destructive"}>
-                          {record.nilaiAkhir}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+        <>
+          {/* Desktop table */}
+          <Card className="overflow-hidden hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">No</TableHead>
+                  <TableHead>NISN</TableHead>
+                  <TableHead>Nama Siswa</TableHead>
+                  <TableHead className="w-24 text-center">Nilai Tugas</TableHead>
+                  <TableHead className="w-24 text-center">Nilai UTS</TableHead>
+                  <TableHead className="w-24 text-center">Nilai UAS</TableHead>
+                  <TableHead className="w-24 text-center font-bold">Nilai Akhir</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {siswaDiKelas.map((s, idx) => {
+                  const record = nilaiMap[s.id] || { nilaiTugas: null, nilaiUts: null, nilaiUas: null, nilaiAkhir: null }
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-mono text-xs">{s.nisn}</TableCell>
+                      <TableCell className="font-medium">{s.namaLengkap}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={record.nilaiTugas ?? ""}
+                          onChange={(e) => updateNilaiField(s.id, "nilaiTugas", e.target.value)}
+                          className="h-8 text-center w-20 mx-auto"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={record.nilaiUts ?? ""}
+                          onChange={(e) => updateNilaiField(s.id, "nilaiUts", e.target.value)}
+                          className="h-8 text-center w-20 mx-auto"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={record.nilaiUas ?? ""}
+                          onChange={(e) => updateNilaiField(s.id, "nilaiUas", e.target.value)}
+                          className="h-8 text-center w-20 mx-auto"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-lg">
+                        {record.nilaiAkhir !== null ? (
+                          <span className={record.nilaiAkhir >= 75 ? "text-primary" : "text-destructive"}>
+                            {record.nilaiAkhir}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {siswaDiKelas.map((s, idx) => {
+              const record = nilaiMap[s.id] || { nilaiTugas: null, nilaiUts: null, nilaiUas: null, nilaiAkhir: null }
+              return (
+                <div key={s.id} className="glass-card rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <div>
+                      <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{s.namaLengkap}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{s.nisn}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Nilai Akhir</span>
+                      <p className={`text-xl font-black ${record.nilaiAkhir !== null ? (record.nilaiAkhir >= 75 ? "text-primary" : "text-destructive") : "text-muted-foreground"}`}>
+                        {record.nilaiAkhir !== null ? record.nilaiAkhir : "-"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Tugas</span>
+                      <Input type="number" min={0} max={100} value={record.nilaiTugas ?? ""} onChange={(e) => updateNilaiField(s.id, "nilaiTugas", e.target.value)} className="h-9 text-center" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">UTS</span>
+                      <Input type="number" min={0} max={100} value={record.nilaiUts ?? ""} onChange={(e) => updateNilaiField(s.id, "nilaiUts", e.target.value)} className="h-9 text-center" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">UAS</span>
+                      <Input type="number" min={0} max={100} value={record.nilaiUas ?? ""} onChange={(e) => updateNilaiField(s.id, "nilaiUas", e.target.value)} className="h-9 text-center" />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )

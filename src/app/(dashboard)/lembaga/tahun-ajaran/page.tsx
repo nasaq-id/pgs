@@ -104,63 +104,92 @@ export default function TahunAjaranPage() {
             <p className="text-muted-foreground">Belum ada tahun ajaran</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tahun Ajaran</TableHead>
-                <TableHead>Semester</TableHead>
-                <TableHead>Tanggal Mulai</TableHead>
-                <TableHead>Tanggal Selesai</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((ta) => (
-                <TableRow key={ta.id}>
-                  <TableCell className="font-medium">{ta.namaTahunAjaran}</TableCell>
-                  <TableCell className="capitalize">{ta.semester}</TableCell>
-                  <TableCell>{ta.tanggalMulai ? new Date(ta.tanggalMulai).toLocaleDateString("id-ID") : "—"}</TableCell>
-                  <TableCell>{ta.tanggalSelesai ? new Date(ta.tanggalSelesai).toLocaleDateString("id-ID") : "—"}</TableCell>
-                  <TableCell>
-                    {ta.active ? (
-                      <Badge className="bg-primary/10 text-primary border-primary/20">Aktif</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">Tidak Aktif</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(ta)} />}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Edit</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(ta.id)} />}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Hapus</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
+          <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tahun Ajaran</TableHead>
+                  <TableHead>Semester</TableHead>
+                  <TableHead>Tanggal Mulai</TableHead>
+                  <TableHead>Tanggal Selesai</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {list.map((ta) => (
+                  <TableRow key={ta.id}>
+                    <TableCell className="font-medium">{ta.namaTahunAjaran}</TableCell>
+                    <TableCell className="capitalize">{ta.semester}</TableCell>
+                    <TableCell>{ta.tanggalMulai ? new Date(ta.tanggalMulai).toLocaleDateString("id-ID") : "—"}</TableCell>
+                    <TableCell>{ta.tanggalSelesai ? new Date(ta.tanggalSelesai).toLocaleDateString("id-ID") : "—"}</TableCell>
+                    <TableCell>
+                      {ta.active ? (
+                        <Badge className="bg-primary/10 text-primary border-primary/20">Aktif</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">Tidak Aktif</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(ta)} />}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Edit</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={<Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(ta.id)} />}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Hapus</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {list.map((ta) => (
+              <div key={ta.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{ta.namaTahunAjaran}</span>
+                    <p className="text-xs capitalize text-slate-500">{ta.semester}</p>
+                  </div>
+                  {ta.active ? (
+                    <Badge className="bg-primary/10 text-primary border-primary/20">Aktif</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">Tidak Aktif</Badge>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 space-y-1 mb-2">
+                  <div className="flex justify-between"><span className="font-semibold">Mulai:</span><span>{ta.tanggalMulai ? new Date(ta.tanggalMulai).toLocaleDateString("id-ID") : "—"}</span></div>
+                  <div className="flex justify-between"><span className="font-semibold">Selesai:</span><span>{ta.tanggalSelesai ? new Date(ta.tanggalSelesai).toLocaleDateString("id-ID") : "—"}</span></div>
+                </div>
+                <div className="flex gap-1 border-t border-slate-100 dark:border-slate-800 pt-2">
+                  <button onClick={() => openEdit(ta)} className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteId(ta.id)} className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 

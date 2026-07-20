@@ -769,7 +769,7 @@ export default function BukuNilaiPage() {
 
         {/* Grades Table */}
         <Card className="rounded-2xl border shadow-sm bg-card overflow-hidden">
-          <div className="w-full overflow-x-auto">
+          <div className="hidden md:block w-full overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50 border-b">
                 <TableRow>
@@ -802,6 +802,22 @@ export default function BukuNilaiPage() {
                 )}
               </TableBody>
             </Table>
+          </div>
+          {/* Mobile cards for student grades */}
+          <div className="md:hidden space-y-2 p-4">
+            {grades.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">Belum ada nilai resmi yang di-publish untuk Anda.</div>
+            ) : (
+              grades.map((row, idx) => (
+                <div key={row.nilaiId} className="glass-card rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.namaMapel}</span>
+                    <span className="text-lg font-black text-blue-600">{row.nilaiAkhir}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">{row.deskripsi || "Menunjukkan penguasaan kompetensi yang baik dalam mata pelajaran ini."}</p>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
@@ -926,122 +942,134 @@ export default function BukuNilaiPage() {
                 <p className="text-muted-foreground text-sm">Tidak ada siswa yang terdaftar di kelas ini.</p>
               </Card>
             ) : (
-              <Card className="rounded-2xl border shadow-sm bg-card overflow-hidden">
-                <div className="w-full overflow-x-auto">
-                  <Table className="min-w-[800px]">
-                    <TableHeader className="bg-slate-50 border-b">
-                      <TableRow>
-                        <TableHead className="w-12 text-center font-bold">No</TableHead>
-                        <TableHead className="w-32 font-bold">NISN / NIS</TableHead>
-                        <TableHead className="w-48 font-bold">Nama Siswa</TableHead>
-                        {/* Render columns dynamically for each Sumatif assessment */}
-                        {bukuNilaiQuery.data?.asesmen.map((as, idx) => (
-                          <TableHead key={as.id} className="text-center font-semibold text-xs leading-tight w-24">
-                            Sumatif {idx + 1}<br />
-                            <span className="text-[10px] text-muted-foreground font-normal">{as.judul}</span>
-                          </TableHead>
-                        ))}
-                        <TableHead className="text-center font-bold w-28 bg-blue-50/30">Rata Sumatif ({bobotSumatif}%)</TableHead>
-                        <TableHead className="text-center font-bold w-24">Nilai SAS ({bobotSas}%)</TableHead>
-                        <TableHead className="text-center font-bold w-28 bg-emerald-50/30">Nilai Akhir (NA)</TableHead>
-                        <TableHead className="text-center font-bold w-20">Publish</TableHead>
-                        <TableHead className="text-center font-bold w-24">Rapor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {calculatedData.map((row, idx) => {
-                        const finalNa = row.nilaiAkhir
-                        return (
-                          <TableRow key={row.student.id} className="hover:bg-slate-50/50">
-                            <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
-                            <TableCell className="font-mono text-xs">{row.student.nisn || row.student.nisLokal || "-"}</TableCell>
-                            <TableCell className="font-semibold text-sm">{row.student.namaLengkap}</TableCell>
-                            
-                            {/* Render student scores for each assessment */}
-                            {bukuNilaiQuery.data?.asesmen.map((as) => {
-                              const scoreVal = row.scoresList.find((sc) => sc.asesmenId === as.id)?.nilai
+              <>
+                <Card className="hidden md:block rounded-2xl border shadow-sm bg-card overflow-hidden">
+                  <div className="w-full overflow-x-auto">
+                    <Table className="min-w-[800px]">
+                      <TableHeader className="bg-slate-50 border-b">
+                        <TableRow>
+                          <TableHead className="w-12 text-center font-bold">No</TableHead>
+                          <TableHead className="w-32 font-bold">NISN / NIS</TableHead>
+                          <TableHead className="w-48 font-bold">Nama Siswa</TableHead>
+                          {bukuNilaiQuery.data?.asesmen.map((as, idx) => (
+                            <TableHead key={as.id} className="text-center font-semibold text-xs leading-tight w-24">
+                              Sumatif {idx + 1}<br />
+                              <span className="text-[10px] text-muted-foreground font-normal">{as.judul}</span>
+                            </TableHead>
+                          ))}
+                          <TableHead className="text-center font-bold w-28 bg-blue-50/30">Rata Sumatif ({bobotSumatif}%)</TableHead>
+                          <TableHead className="text-center font-bold w-24">Nilai SAS ({bobotSas}%)</TableHead>
+                          <TableHead className="text-center font-bold w-28 bg-emerald-50/30">Nilai Akhir (NA)</TableHead>
+                          <TableHead className="text-center font-bold w-20">Publish</TableHead>
+                          <TableHead className="text-center font-bold w-24">Rapor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {calculatedData.map((row, idx) => {
+                          const finalNa = row.nilaiAkhir
+                          return (
+                            <TableRow key={row.student.id} className="hover:bg-slate-50/50">
+                              <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
+                              <TableCell className="font-mono text-xs">{row.student.nisn || row.student.nisLokal || "-"}</TableCell>
+                              <TableCell className="font-semibold text-sm">{row.student.namaLengkap}</TableCell>
+                              {bukuNilaiQuery.data?.asesmen.map((as) => {
+                                const scoreVal = row.scoresList.find((sc) => sc.asesmenId === as.id)?.nilai
+                                return (
+                                  <TableCell key={as.id} className="text-center font-medium">
+                                    {scoreVal !== null && scoreVal !== undefined ? (
+                                      <span className={scoreVal >= as.kktp ? "text-slate-700" : "text-rose-500 font-semibold"}>
+                                        {scoreVal}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground/30">-</span>
+                                    )}
+                                  </TableCell>
+                                )
+                              })}
+                              <TableCell className="text-center font-bold bg-blue-50/10">
+                                {row.avgSumatif !== null ? (
+                                  <span className={row.avgSumatif >= 70 ? "text-blue-700" : "text-rose-500"}>{row.avgSumatif}</span>
+                                ) : (<span className="text-muted-foreground/30">-</span>)}
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" min={0} max={100} value={sasInputMap[row.student.id] ?? ""} onChange={(e) => { const val = e.target.value === "" ? "" : Math.min(100, Math.max(0, parseInt(e.target.value) || 0)); setSasInputMap((prev) => ({ ...prev, [row.student.id]: val })) }} className="h-8 text-center font-bold w-16 mx-auto rounded-lg border-slate-200" />
+                              </TableCell>
+                              <TableCell className="text-center font-extrabold text-base bg-emerald-50/10">
+                                {finalNa !== null ? (
+                                  <span className={finalNa >= 70 ? "text-emerald-600" : "text-rose-500"}>{finalNa}</span>
+                                ) : (<span className="text-muted-foreground/30">-</span>)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <input type="checkbox" checked={publishMap[row.student.id] || false} onChange={(e) => { setPublishMap((prev) => ({ ...prev, [row.student.id]: e.target.checked })) }} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button size="xs" variant="ghost" onClick={() => handleCetakRapor(row.student.id)} disabled={finalNa === null} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer" title="Cetak Rapor Siswa">
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+                {/* Mobile cards for Olah Nilai */}
+                <div className="md:hidden space-y-2">
+                  {calculatedData.map((row, idx) => {
+                    const finalNa = row.nilaiAkhir
+                    const asesmen = bukuNilaiQuery.data?.asesmen || []
+                    return (
+                      <div key={row.student.id} className="glass-card rounded-2xl p-4 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.student.namaLengkap}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{row.student.nisn || row.student.nisLokal || "-"}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">NA</span>
+                            <p className={`text-xl font-black ${finalNa !== null ? (finalNa >= 70 ? "text-emerald-600" : "text-rose-500") : "text-muted-foreground"}`}>{finalNa !== null ? finalNa : "-"}</p>
+                          </div>
+                        </div>
+                        {asesmen.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {asesmen.map((as: any, i: number) => {
+                              const scoreVal = row.scoresList.find((sc: any) => sc.asesmenId === as.id)?.nilai
                               return (
-                                <TableCell key={as.id} className="text-center font-medium">
-                                  {scoreVal !== null && scoreVal !== undefined ? (
-                                    <span className={scoreVal >= as.kktp ? "text-slate-700" : "text-rose-500 font-semibold"}>
-                                      {scoreVal}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground/30">-</span>
-                                  )}
-                                </TableCell>
+                                <div key={as.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-2">
+                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Sumatif {i + 1}</span>
+                                  <span className={`font-bold ${scoreVal !== null && scoreVal !== undefined ? (scoreVal >= as.kktp ? "text-slate-800" : "text-rose-500") : "text-slate-300"}`}>
+                                    {scoreVal !== null && scoreVal !== undefined ? scoreVal : "-"}
+                                  </span>
+                                </div>
                               )
                             })}
-
-                            {/* Average of Sumatif */}
-                            <TableCell className="text-center font-bold bg-blue-50/10">
-                              {row.avgSumatif !== null ? (
-                                <span className={row.avgSumatif >= 70 ? "text-blue-700" : "text-rose-500"}>
-                                  {row.avgSumatif}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground/30">-</span>
-                              )}
-                            </TableCell>
-
-                            {/* Input Nilai SAS */}
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={sasInputMap[row.student.id] ?? ""}
-                                onChange={(e) => {
-                                  const val = e.target.value === "" ? "" : Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
-                                  setSasInputMap((prev) => ({ ...prev, [row.student.id]: val }))
-                                }}
-                                className="h-8 text-center font-bold w-16 mx-auto rounded-lg border-slate-200"
-                              />
-                            </TableCell>
-
-                            {/* Final Calculated Nilai Akhir */}
-                            <TableCell className="text-center font-extrabold text-base bg-emerald-50/10">
-                              {finalNa !== null ? (
-                                <span className={finalNa >= 70 ? "text-emerald-600" : "text-rose-500"}>
-                                  {finalNa}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground/30">-</span>
-                              )}
-                            </TableCell>
-
-                            {/* Status Publish Checkbox */}
-                            <TableCell className="text-center">
-                              <input
-                                type="checkbox"
-                                checked={publishMap[row.student.id] || false}
-                                onChange={(e) => {
-                                  setPublishMap((prev) => ({ ...prev, [row.student.id]: e.target.checked }))
-                                }}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                              />
-                            </TableCell>
-
-                            {/* Action: Print Rapor PDF */}
-                            <TableCell className="text-center">
-                              <Button
-                                size="xs"
-                                variant="ghost"
-                                onClick={() => handleCetakRapor(row.student.id)}
-                                disabled={finalNa === null}
-                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer"
-                                title="Cetak Rapor Siswa"
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                            <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl p-2">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Rata Sumatif</span>
+                              <span className={`font-bold ${row.avgSumatif !== null ? (row.avgSumatif >= 70 ? "text-blue-700" : "text-rose-500") : "text-slate-300"}`}>{row.avgSumatif !== null ? row.avgSumatif : "-"}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-800 pt-2.5">
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Nilai SAS</span>
+                            <Input type="number" min={0} max={100} value={sasInputMap[row.student.id] ?? ""} onChange={(e) => { const val = e.target.value === "" ? "" : Math.min(100, Math.max(0, parseInt(e.target.value) || 0)); setSasInputMap((prev) => ({ ...prev, [row.student.id]: val })) }} className="h-9 text-center w-full" />
+                          </div>
+                          <div className="flex items-center gap-2 pt-4">
+                            <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider cursor-pointer">
+                              <input type="checkbox" checked={publishMap[row.student.id] || false} onChange={(e) => { setPublishMap((prev) => ({ ...prev, [row.student.id]: e.target.checked })) }} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                              Publish
+                            </label>
+                            <Button size="xs" variant="ghost" onClick={() => handleCetakRapor(row.student.id)} disabled={finalNa === null} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer" title="Cetak Rapor Siswa">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </Card>
+              </>
             )}
           </TabsContent>
 
@@ -1132,67 +1160,104 @@ export default function BukuNilaiPage() {
                   <p className="text-muted-foreground text-sm">Belum ada nilai akhir yang tercatat untuk kelas ini.</p>
                 </Card>
               ) : (
-                <Card className="rounded-2xl border shadow-sm bg-card overflow-hidden">
-                  <div className="w-full overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-slate-50 border-b">
-                        <TableRow>
-                          <TableHead className="w-12 text-center font-bold">No</TableHead>
-                          <TableHead className="w-32 font-bold">NISN</TableHead>
-                          <TableHead className="w-48 font-bold">Nama Siswa</TableHead>
-                          {/* Subjects headers */}
-                          {legerQuery.data.mapel.map((m) => (
-                            <TableHead key={m.id} className="text-center font-semibold text-xs min-w-[100px]">
-                              {m.namaMapel}
-                            </TableHead>
-                          ))}
-                          <TableHead className="text-center font-bold w-24 bg-slate-100/50">Total</TableHead>
-                          <TableHead className="text-center font-bold w-24 bg-blue-50/50">Rata-rata</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {legerQuery.data.siswa.map((std, idx) => {
-                          let total = 0
-                          let count = 0
+                <>
+                  <Card className="hidden md:block rounded-2xl border shadow-sm bg-card overflow-hidden">
+                    <div className="w-full overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-50 border-b">
+                          <TableRow>
+                            <TableHead className="w-12 text-center font-bold">No</TableHead>
+                            <TableHead className="w-32 font-bold">NISN</TableHead>
+                            <TableHead className="w-48 font-bold">Nama Siswa</TableHead>
+                            {legerQuery.data.mapel.map((m) => (
+                              <TableHead key={m.id} className="text-center font-semibold text-xs min-w-[100px]">
+                                {m.namaMapel}
+                              </TableHead>
+                            ))}
+                            <TableHead className="text-center font-bold w-24 bg-slate-100/50">Total</TableHead>
+                            <TableHead className="text-center font-bold w-24 bg-blue-50/50">Rata-rata</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {legerQuery.data.siswa.map((std, idx) => {
+                            let total = 0
+                            let count = 0
 
-                          return (
-                            <TableRow key={std.id} className="hover:bg-slate-50/50">
-                              <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
-                              <TableCell className="font-mono text-xs">{std.nisn || std.nisLokal || "-"}</TableCell>
-                              <TableCell className="font-semibold text-sm">{std.namaLengkap}</TableCell>
-
-                              {/* Nilai Akhir (NA) for each subject */}
-                              {legerQuery.data.mapel.map((m) => {
-                                const val = legerQuery.data.nilai.find(
-                                  (g) => g.siswaId === std.id && g.mataPelajaranId === m.id
-                                )?.nilaiAkhir ?? null
-
-                                if (val !== null) {
-                                  total += val
-                                  count++
-                                }
-
-                                return (
-                                  <TableCell key={m.id} className="text-center font-medium text-xs">
-                                    {val !== null ? val : <span className="text-muted-foreground/30">-</span>}
-                                  </TableCell>
-                                )
-                              })}
-
-                              {/* Total and Average columns */}
-                              <TableCell className="text-center font-extrabold text-sm bg-slate-100/20">
-                                {total > 0 ? total : "-"}
-                              </TableCell>
-                              <TableCell className="text-center font-extrabold text-sm text-blue-600 bg-blue-50/10">
-                                {count > 0 ? Math.round(total / count) : "-"}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
+                            return (
+                              <TableRow key={std.id} className="hover:bg-slate-50/50">
+                                <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
+                                <TableCell className="font-mono text-xs">{std.nisn || std.nisLokal || "-"}</TableCell>
+                                <TableCell className="font-semibold text-sm">{std.namaLengkap}</TableCell>
+                                {legerQuery.data.mapel.map((m) => {
+                                  const val = legerQuery.data.nilai.find(
+                                    (g) => g.siswaId === std.id && g.mataPelajaranId === m.id
+                                  )?.nilaiAkhir ?? null
+                                  if (val !== null) { total += val; count++ }
+                                  return (
+                                    <TableCell key={m.id} className="text-center font-medium text-xs">
+                                      {val !== null ? val : <span className="text-muted-foreground/30">-</span>}
+                                    </TableCell>
+                                  )
+                                })}
+                                <TableCell className="text-center font-extrabold text-sm bg-slate-100/20">
+                                  {total > 0 ? total : "-"}
+                                </TableCell>
+                                <TableCell className="text-center font-extrabold text-sm text-blue-600 bg-blue-50/10">
+                                  {count > 0 ? Math.round(total / count) : "-"}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                  {/* Mobile cards for Leger Kelas */}
+                  <div className="md:hidden space-y-2">
+                    {legerQuery.data.siswa.map((std, idx) => {
+                      let total = 0
+                      let count = 0
+                      return (
+                        <div key={std.id} className="glass-card rounded-2xl p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</span>
+                              <p className="text-[10px] text-slate-400 font-mono">{std.nisn || std.nisLokal || "-"}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Rata-rata</span>
+                              {(() => {
+                                let t = 0; let c = 0
+                                legerQuery.data.mapel.forEach((m) => {
+                                  const v = legerQuery.data.nilai.find((g) => g.siswaId === std.id && g.mataPelajaranId === m.id)?.nilaiAkhir ?? null
+                                  if (v !== null) { t += v; c++ }
+                                })
+                                return <p className="text-lg font-black text-blue-600">{c > 0 ? Math.round(t / c) : "-"}</p>
+                              })()}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 text-xs">
+                            {legerQuery.data.mapel.map((m) => {
+                              const val = legerQuery.data.nilai.find(
+                                (g) => g.siswaId === std.id && g.mataPelajaranId === m.id
+                              )?.nilaiAkhir ?? null
+                              if (val !== null) { total += val; count++ }
+                              return (
+                                <div key={m.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-2 text-center">
+                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block leading-tight">{m.namaMapel}</span>
+                                  <span className={`font-bold ${val !== null ? "text-slate-800 dark:text-slate-200" : "text-slate-300"}`}>{val !== null ? val : "-"}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <div className="flex gap-3 border-t border-slate-100 dark:border-slate-800 pt-2 text-xs">
+                            <span className="font-semibold text-slate-500">Total: <span className="font-extrabold text-slate-800 dark:text-slate-200">{total > 0 ? total : "-"}</span></span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                </Card>
+                </>
               )}
             </TabsContent>
           )}

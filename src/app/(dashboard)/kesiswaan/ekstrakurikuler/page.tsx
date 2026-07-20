@@ -167,59 +167,61 @@ export default function EkstrakurikulerPage() {
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Ekskul</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pembina</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Hari</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jam</TableHead>
-                <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.namaEkskul}</TableCell>
-                  <TableCell>{r.pembina?.namaLengkap ?? "-"}</TableCell>
-                  <TableCell>
-                    {r.hari ? (
-                      <Badge variant="outline">{HARI_LABEL[r.hari] ?? r.hari}</Badge>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{r.jam ?? "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditData({
-                                  id: r.id,
-                                  namaEkskul: r.namaEkskul,
-                                  pembinaId: r.pembinaId,
-                                  deskripsi: r.deskripsi,
-                                  hari: r.hari,
-                                  jam: r.jam,
-                                })
-                                setFormOpen(true)
-                              }}
-                            />
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Edit</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
+          <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Ekskul</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pembina</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Hari</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Jam</TableHead>
+                  <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.namaEkskul}</TableCell>
+                    <TableCell>{r.pembina?.namaLengkap ?? "-"}</TableCell>
+                    <TableCell>
+                      {r.hari ? (
+                        <Badge variant="outline">{HARI_LABEL[r.hari] ?? r.hari}</Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>{r.jam ?? "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditData({
+                                    id: r.id,
+                                    namaEkskul: r.namaEkskul,
+                                    pembinaId: r.pembinaId,
+                                    deskripsi: r.deskripsi,
+                                    hari: r.hari,
+                                    jam: r.jam,
+                                  })
+                                  setFormOpen(true)
+                                }}
+                              />
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Edit</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
                       <Tooltip>
                         <TooltipTrigger
                           render={
@@ -245,6 +247,26 @@ export default function EkstrakurikulerPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.namaEkskul}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditData({ id: r.id, namaEkskul: r.namaEkskul, pembinaId: r.pembinaId, deskripsi: r.deskripsi, hari: r.hari, jam: r.jam }); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                    {deleteId !== r.id && <button onClick={() => setDeleteId(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>}
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 font-semibold">{r.pembina?.namaLengkap ?? "-"}</div>
+                <div className="flex gap-2 mt-1.5">
+                  {r.hari && <Badge variant="outline" className="text-[10px]">{HARI_LABEL[r.hari] ?? r.hari}</Badge>}
+                  {r.jam && <span className="text-[10px] text-slate-400 font-bold self-center">{r.jam}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </Card>
 

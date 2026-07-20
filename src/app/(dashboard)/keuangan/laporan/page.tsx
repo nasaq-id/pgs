@@ -67,42 +67,69 @@ export default function LaporanPage() {
             {trendLoading ? (
               <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Bulan</TableHead>
-                    <TableHead className="text-right">Total Tagihan</TableHead>
-                    <TableHead className="text-right">Terkumpul</TableHead>
-                    <TableHead className="text-right">Sisa</TableHead>
-                    <TableHead>Efektivitas</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(!trend || trend.length === 0) ? (
+              <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell>
+                      <TableHead>Bulan</TableHead>
+                      <TableHead className="text-right">Total Tagihan</TableHead>
+                      <TableHead className="text-right">Terkumpul</TableHead>
+                      <TableHead className="text-right">Sisa</TableHead>
+                      <TableHead>Efektivitas</TableHead>
                     </TableRow>
-                  ) : (
-                    trend.map((b: any) => {
-                      const sisa = b.total - b.paid
-                      const efektivitas = b.total > 0 ? Math.round((b.paid / b.total) * 100) : 0
-                      return (
-                        <TableRow key={b.bulan}>
-                          <TableCell className="font-medium">{BULAN[b.bulan - 1]}</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(b.total)}</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(b.paid)}</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(sisa)}</TableCell>
-                          <TableCell>
-                            <Badge variant={efektivitas >= 80 ? "default" : efektivitas >= 50 ? "secondary" : "destructive"}>
-                              {efektivitas}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(!trend || trend.length === 0) ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell>
+                      </TableRow>
+                    ) : (
+                      trend.map((b: any) => {
+                        const sisa = b.total - b.paid
+                        const efektivitas = b.total > 0 ? Math.round((b.paid / b.total) * 100) : 0
+                        return (
+                          <TableRow key={b.bulan}>
+                            <TableCell className="font-medium">{BULAN[b.bulan - 1]}</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(b.total)}</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(b.paid)}</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(sisa)}</TableCell>
+                            <TableCell>
+                              <Badge variant={efektivitas >= 80 ? "default" : efektivitas >= 50 ? "secondary" : "destructive"}>
+                                {efektivitas}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-2">
+                {(!trend || trend.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">Belum ada data</div>
+                ) : (
+                  trend.map((b: any) => {
+                    const sisa = b.total - b.paid
+                    const efektivitas = b.total > 0 ? Math.round((b.paid / b.total) * 100) : 0
+                    return (
+                      <div key={b.bulan} className="glass-card rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{BULAN[b.bulan - 1]}</span>
+                          <Badge variant={efektivitas >= 80 ? "default" : efektivitas >= 50 ? "secondary" : "destructive"}>{efektivitas}%</Badge>
+                        </div>
+                        <div className="space-y-1 text-xs text-slate-500">
+                          <div className="flex justify-between"><span className="font-semibold">Tagihan:</span><span>{fmtRupiah(b.total)}</span></div>
+                          <div className="flex justify-between"><span className="font-semibold">Terkumpul:</span><span>{fmtRupiah(b.paid)}</span></div>
+                          <div className="flex justify-between"><span className="font-semibold">Sisa:</span><span>{fmtRupiah(sisa)}</span></div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              </>
             )}
           </Card>
         </TabsContent>
@@ -113,42 +140,69 @@ export default function LaporanPage() {
             {outstandingLoading ? (
               <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Terbayar</TableHead>
-                    <TableHead className="text-right">Sisa</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(!outstanding || outstanding.length === 0) ? (
+              <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Tidak ada piutang</TableCell>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Terbayar</TableHead>
+                      <TableHead className="text-right">Sisa</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    outstanding.slice(0, 50).map((inv) => {
-                      const total = Number(inv.totalAmount)
-                      const paid = Number(inv.paidAmount)
-                      return (
-                        <TableRow key={inv.id}>
-                          <TableCell className="font-mono text-xs">{inv.studentId.slice(0, 8)}...</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(total)}</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(paid)}</TableCell>
-                          <TableCell className="text-right font-medium">{fmtRupiah(total - paid)}</TableCell>
-                          <TableCell>
-                            <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">
-                              {STATUS_LABEL[inv.status] || inv.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(!outstanding || outstanding.length === 0) ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Tidak ada piutang</TableCell>
+                      </TableRow>
+                    ) : (
+                      outstanding.slice(0, 50).map((inv) => {
+                        const total = Number(inv.totalAmount)
+                        const paid = Number(inv.paidAmount)
+                        return (
+                          <TableRow key={inv.id}>
+                            <TableCell className="font-mono text-xs">{inv.studentId.slice(0, 8)}...</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(total)}</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(paid)}</TableCell>
+                            <TableCell className="text-right font-medium">{fmtRupiah(total - paid)}</TableCell>
+                            <TableCell>
+                              <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">
+                                {STATUS_LABEL[inv.status] || inv.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-2">
+                {(!outstanding || outstanding.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">Tidak ada piutang</div>
+                ) : (
+                  outstanding.slice(0, 50).map((inv) => {
+                    const total = Number(inv.totalAmount)
+                    const paid = Number(inv.paidAmount)
+                    return (
+                      <div key={inv.id} className="glass-card rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{inv.studentId.slice(0, 8)}...</span>
+                          <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">{STATUS_LABEL[inv.status] || inv.status}</Badge>
+                        </div>
+                        <div className="space-y-1 text-xs text-slate-500">
+                          <div className="flex justify-between"><span className="font-semibold">Total:</span><span>{fmtRupiah(total)}</span></div>
+                          <div className="flex justify-between"><span className="font-semibold">Terbayar:</span><span>{fmtRupiah(paid)}</span></div>
+                          <div className="flex justify-between font-medium"><span className="font-semibold">Sisa:</span><span>{fmtRupiah(total - paid)}</span></div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              </>
             )}
           </Card>
         </TabsContent>
@@ -159,38 +213,61 @@ export default function LaporanPage() {
             {rekapLoading ? (
               <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Bulan</TableHead>
-                    <TableHead className="text-right">Jumlah</TableHead>
-                    <TableHead className="text-right">Terbayar</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(!rekap || rekap.length === 0) ? (
+              <>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell>
+                      <TableHead>Invoice ID</TableHead>
+                      <TableHead>Bulan</TableHead>
+                      <TableHead className="text-right">Jumlah</TableHead>
+                      <TableHead className="text-right">Terbayar</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    rekap.slice(0, 100).map((inv: any) => (
-                      <TableRow key={inv.id}>
-                        <TableCell className="font-mono text-xs">{inv.id.slice(0, 8)}...</TableCell>
-                        <TableCell>{BULAN[(inv.periodMonth || 1) - 1]}</TableCell>
-                        <TableCell className="text-right">{fmtRupiah(Number(inv.totalAmount))}</TableCell>
-                        <TableCell className="text-right">{fmtRupiah(Number(inv.paidAmount))}</TableCell>
-                        <TableCell>
-                          <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">
-                            {STATUS_LABEL[inv.status] || inv.status}
-                          </Badge>
-                        </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {(!rekap || rekap.length === 0) ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      rekap.slice(0, 100).map((inv: any) => (
+                        <TableRow key={inv.id}>
+                          <TableCell className="font-mono text-xs">{inv.id.slice(0, 8)}...</TableCell>
+                          <TableCell>{BULAN[(inv.periodMonth || 1) - 1]}</TableCell>
+                          <TableCell className="text-right">{fmtRupiah(Number(inv.totalAmount))}</TableCell>
+                          <TableCell className="text-right">{fmtRupiah(Number(inv.paidAmount))}</TableCell>
+                          <TableCell>
+                            <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">
+                              {STATUS_LABEL[inv.status] || inv.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-2">
+                {(!rekap || rekap.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">Belum ada data</div>
+                ) : (
+                  rekap.slice(0, 100).map((inv: any) => (
+                    <div key={inv.id} className="glass-card rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{inv.id.slice(0, 8)}...</span>
+                        <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">{STATUS_LABEL[inv.status] || inv.status}</Badge>
+                      </div>
+                      <div className="space-y-1 text-xs text-slate-500">
+                        <div className="flex justify-between"><span className="font-semibold">Bulan:</span><span>{BULAN[(inv.periodMonth || 1) - 1]}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Jumlah:</span><span>{fmtRupiah(Number(inv.totalAmount))}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Terbayar:</span><span>{fmtRupiah(Number(inv.paidAmount))}</span></div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              </>
             )}
           </Card>
         </TabsContent>

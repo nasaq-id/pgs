@@ -450,8 +450,8 @@ export default function PengumumanPage() {
                   Tutup
                 </button>
               </div>
-            </div>
-          )}
+        </div>
+      )}
         </DialogContent>
       </Dialog>
 
@@ -739,7 +739,8 @@ function AdminView({
           {search || filterStatus !== "all" || filterTarget ? "Pengumuman tidak ditemukan" : "Belum ada pengumuman"}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
@@ -798,6 +799,30 @@ function AdminView({
             </TableBody>
           </Table>
         </div>
+        <div className="md:hidden space-y-2">
+          {records.map((r) => (
+            <div key={r.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{r.judul}</p>
+                  <Badge className={TARGET_BADGE[r.target] ?? ""} variant="secondary" style={{fontSize: "9px"}}>{TARGET_LABEL[r.target] ?? r.target}</Badge>
+                </div>
+                {r.published ? (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-250/20 text-[9px] font-black uppercase tracking-wider">Published</span>
+                ) : (
+                  <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-650 dark:bg-slate-900/40 dark:text-slate-400 border border-slate-200/50 text-[9px] font-black uppercase tracking-wider">Draft</span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono mb-2">{formatDateShort(r.tanggalPublish)}</p>
+              <div className="flex gap-1 border-t border-slate-100 dark:border-slate-800 pt-2">
+                <button onClick={() => openDetail(r)} className="rounded-lg p-1.5 hover:bg-teal-50 dark:hover:bg-teal-950/20 text-teal-600 cursor-pointer"><Eye className="h-3.5 w-3.5" /></button>
+                <button onClick={() => openEditForm(r)} className="rounded-lg p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/20 text-blue-600 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setDeleteId(r.id)} className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
     </Card>
   )

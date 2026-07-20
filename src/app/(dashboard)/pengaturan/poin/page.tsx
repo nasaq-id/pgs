@@ -158,43 +158,65 @@ function KategoriTab() {
       ) : !list?.length ? (
         <div className="text-center py-16 text-muted-foreground">Belum ada kategori sikap</div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Jenis</TableHead>
-              <TableHead>Poin</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.map((item: any) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.nama}</TableCell>
-                <TableCell>
-                  <Badge variant={item.jenis === "positif" ? "default" : "destructive"}>
-                    {item.jenis === "positif" ? "Positif" : "Negatif"}
-                  </Badge>
-                </TableCell>
-                <TableCell className={item.poin > 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-                  {formatPoin(item.poin)}
-                </TableCell>
-                <TableCell>{item.aktif ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Nonaktif</Badge>}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => {
-                      const inst = item as any
-                      setEditData({ id: inst.id, nama: inst.nama, jenis: inst.jenis, poin: String(inst.poin) })
-                      setFormOpen(true)
-                    }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                  </div>
-                </TableCell>
+        <>
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Poin</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {list.map((item: any) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.nama}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.jenis === "positif" ? "default" : "destructive"}>
+                      {item.jenis === "positif" ? "Positif" : "Negatif"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={item.poin > 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                    {formatPoin(item.poin)}
+                  </TableCell>
+                  <TableCell>{item.aktif ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Nonaktif</Badge>}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => {
+                        const inst = item as any
+                        setEditData({ id: inst.id, nama: inst.nama, jenis: inst.jenis, poin: String(inst.poin) })
+                        setFormOpen(true)
+                      }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {list.map((item: any) => (
+            <div key={item.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{item.nama}</span>
+                <span className={`font-black text-sm ${item.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(item.poin)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <Badge variant={item.jenis === "positif" ? "default" : "destructive"} style={{fontSize: "10px"}}>{item.jenis === "positif" ? "Positif" : "Negatif"}</Badge>
+                {item.aktif ? <Badge variant="outline" className="text-[10px]">Aktif</Badge> : <Badge variant="secondary" className="text-[10px]">Nonaktif</Badge>}
+              </div>
+              <div className="flex gap-1 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                <button onClick={() => { const inst = item as any; setEditData({ id: inst.id, nama: inst.nama, jenis: inst.jenis, poin: String(inst.poin) }); setFormOpen(true) }} className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setDeleteId(item.id)} className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-500 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       <Dialog open={formOpen} onOpenChange={(v) => { if (!v) { setFormOpen(false); setEditData(null) } }}>
@@ -311,35 +333,56 @@ function TindakLanjutTab() {
       ) : !list?.length ? (
         <div className="text-center py-16 text-muted-foreground">Belum ada tindak lanjut</div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Jenis</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.map((item: any) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.nama}</TableCell>
-                <TableCell>
-                  <Badge variant={item.jenis === "positif" ? "default" : "destructive"}>
-                    {item.jenis === "positif" ? "Positif" : "Negatif"}
-                  </Badge>
-                </TableCell>
-                <TableCell>{item.aktif ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Nonaktif</Badge>}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setEditData(item); setFormOpen(true) }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                  </div>
-                </TableCell>
+        <>
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {list.map((item: any) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.nama}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.jenis === "positif" ? "default" : "destructive"}>
+                      {item.jenis === "positif" ? "Positif" : "Negatif"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{item.aktif ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Nonaktif</Badge>}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setEditData(item); setFormOpen(true) }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {list.map((item: any) => (
+            <div key={item.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{item.nama}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => { setEditData(item); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteId(item.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+              <div className="flex gap-2 text-xs">
+                <Badge variant={item.jenis === "positif" ? "default" : "destructive"} className="text-[10px]">{item.jenis === "positif" ? "Positif" : "Negatif"}</Badge>
+                {item.aktif ? <Badge variant="outline" className="text-[10px]">Aktif</Badge> : <Badge variant="secondary" className="text-[10px]">Nonaktif</Badge>}
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       <Dialog open={formOpen} onOpenChange={(v) => { if (!v) { setFormOpen(false); setEditData(null) } }}>
@@ -437,35 +480,56 @@ function AturanTab() {
       ) : !list?.length ? (
         <div className="text-center py-16 text-muted-foreground">Belum ada aturan akumulasi</div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Rentang Poin</TableHead>
-              <TableHead>Tindak Lanjut</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.map((item: any) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono font-bold">
-                  {item.poinMin} — {item.poinMax}
-                </TableCell>
-                <TableCell>{item.tindakLanjut}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{item.status}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setEditData(item); setFormOpen(true) }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
-                  </div>
-                </TableCell>
+        <>
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rentang Poin</TableHead>
+                <TableHead>Tindak Lanjut</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {list.map((item: any) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-mono font-bold">
+                    {item.poinMin} — {item.poinMax}
+                  </TableCell>
+                  <TableCell>{item.tindakLanjut}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{item.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" onClick={() => { setEditData(item); setFormOpen(true) }} />}><Pencil className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Edit</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                      <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(item.id)} />}><Trash2 className="h-4 w-4" /></TooltipTrigger><TooltipPortal><TooltipPositioner><TooltipPopup>Hapus</TooltipPopup></TooltipPositioner></TooltipPortal></Tooltip>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {list.map((item: any) => (
+            <div key={item.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-200">{item.poinMin} — {item.poinMax}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => { setEditData(item); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteId(item.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+              <div className="flex gap-2 text-xs">
+                <span className="font-semibold text-slate-500">{item.tindakLanjut}</span>
+                <Badge variant="outline" className="text-[10px]">{item.status}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       <Dialog open={formOpen} onOpenChange={(v) => { if (!v) { setFormOpen(false); setEditData(null) } }}>

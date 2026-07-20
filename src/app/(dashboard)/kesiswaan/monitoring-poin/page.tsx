@@ -102,83 +102,100 @@ function AllEntriesTab({
           <p className="text-sm text-muted-foreground">Belum ada data monitoring</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((r: any) => (
-                <TableRow key={r.id} className={r.status === "belum_diproses" ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {format(new Date(r.createdAt), "d MMM HH:mm", { locale: id })}
-                  </TableCell>
-                  <TableCell className="font-medium">{r.siswa?.namaLengkap || "-"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{r.kategori?.nama || "-"}</TableCell>
-                  <TableCell className={`font-bold ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>
-                    {formatPoin(r.poin)}
-                  </TableCell>
-                  <TableCell className="text-xs max-w-[150px] truncate">{r.tindakLanjut?.nama || "-"}</TableCell>
-                  <TableCell className="text-xs">{r.guru?.namaLengkap || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariants[r.status] || "outline"} className="text-[10px] whitespace-nowrap">
-                      {statusLabels[r.status] || r.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 flex-wrap">
-                      {r.status === "belum_diproses" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          onClick={() => updateStatus.mutate({ id: r.id, status: "sedang_diproses" })}
-                          disabled={updateStatus.isPending}
-                        >
-                          <Clock className="h-3 w-3 mr-1" /> Proses
-                        </Button>
-                      )}
-                      {r.status !== "selesai" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[11px]"
-                          onClick={() => updateStatus.mutate({ id: r.id, status: "selesai" })}
-                          disabled={updateStatus.isPending}
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" /> Selesai
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        className="h-7 text-[11px]"
-                        style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                        onClick={() => kirimNotif.mutate({ siswaId: r.siswaId })}
-                        disabled={kirimNotif.isPending}
-                      >
-                        {kirimNotif.isPending ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Send className="h-3 w-3 mr-1" />
-                        )}
-                        Kirim
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sikap</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Poin</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tindak Lanjut</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Penginput</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {list.map((r: any) => (
+                  <TableRow key={r.id} className={r.status === "belum_diproses" ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {format(new Date(r.createdAt), "d MMM HH:mm", { locale: id })}
+                    </TableCell>
+                    <TableCell className="font-medium">{r.siswa?.namaLengkap || "-"}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{r.kategori?.nama || "-"}</TableCell>
+                    <TableCell className={`font-bold ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatPoin(r.poin)}
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[150px] truncate">{r.tindakLanjut?.nama || "-"}</TableCell>
+                    <TableCell className="text-xs">{r.guru?.namaLengkap || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariants[r.status] || "outline"} className="text-[10px] whitespace-nowrap">
+                        {statusLabels[r.status] || r.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1 flex-wrap">
+                        {r.status === "belum_diproses" && (
+                          <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => updateStatus.mutate({ id: r.id, status: "sedang_diproses" })} disabled={updateStatus.isPending}>
+                            <Clock className="h-3 w-3 mr-1" /> Proses
+                          </Button>
+                        )}
+                        {r.status !== "selesai" && (
+                          <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => updateStatus.mutate({ id: r.id, status: "selesai" })} disabled={updateStatus.isPending}>
+                            <CheckCircle className="h-3 w-3 mr-1" /> Selesai
+                          </Button>
+                        )}
+                        <Button size="sm" className="h-7 text-[11px]" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => kirimNotif.mutate({ siswaId: r.siswaId })} disabled={kirimNotif.isPending}>
+                          {kirimNotif.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                          Kirim
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {list.map((r: any) => (
+              <div key={r.id} className={`glass-card rounded-2xl p-4 space-y-2.5 ${r.status === "belum_diproses" ? "border-l-4 border-l-amber-400" : ""}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{r.siswa?.namaLengkap || "-"}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{format(new Date(r.createdAt), "d MMM HH:mm", { locale: id })}</p>
+                  </div>
+                  <Badge variant={statusVariants[r.status] || "outline"} className="text-[9px]">{statusLabels[r.status] || r.status}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  <div><span className="text-slate-400 font-semibold">Sikap:</span><span className="font-bold ml-1">{r.kategori?.nama || "-"}</span></div>
+                  <div className="text-right"><span className="text-slate-400 font-semibold">Poin:</span><span className={`font-bold ml-1 ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(r.poin)}</span></div>
+                  <div className="col-span-2"><span className="text-slate-400 font-semibold">Tindak Lanjut:</span><span className="font-medium ml-1">{r.tindakLanjut?.nama || "-"}</span></div>
+                  <div className="col-span-2"><span className="text-slate-400 font-semibold">Penginput:</span><span className="font-medium ml-1">{r.guru?.namaLengkap || "-"}</span></div>
+                </div>
+                <div className="flex gap-1.5 flex-wrap border-t border-slate-100 dark:border-slate-800 pt-2.5">
+                  {r.status === "belum_diproses" && (
+                    <Button variant="outline" size="sm" className="h-7 text-[10px] flex-1" onClick={() => updateStatus.mutate({ id: r.id, status: "sedang_diproses" })} disabled={updateStatus.isPending}>
+                      <Clock className="h-3 w-3 mr-1" /> Proses
+                    </Button>
+                  )}
+                  {r.status !== "selesai" && (
+                    <Button variant="outline" size="sm" className="h-7 text-[10px] flex-1" onClick={() => updateStatus.mutate({ id: r.id, status: "selesai" })} disabled={updateStatus.isPending}>
+                      <CheckCircle className="h-3 w-3 mr-1" /> Selesai
+                    </Button>
+                  )}
+                  <Button size="sm" className="h-7 text-[10px] flex-1" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => kirimNotif.mutate({ siswaId: r.siswaId })} disabled={kirimNotif.isPending}>
+                    {kirimNotif.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                    Kirim
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
@@ -235,45 +252,58 @@ function ThresholdTab({ kirimNotif }: { kirimNotif: any }) {
           </div>
 
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8 text-[10px] font-black text-slate-400 uppercase tracking-wider">#</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">NISN</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Poin</TableHead>
-                  <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {group.students.map((st: any, si: number) => (
-                  <TableRow key={st.siswaId}>
-                    <TableCell className="text-xs text-muted-foreground">{si + 1}</TableCell>
-                    <TableCell className="font-medium">{st.namaLengkap}</TableCell>
-                    <TableCell className="text-xs">{st.nisn || "-"}</TableCell>
-                    <TableCell className={`font-bold ${st.totalPoin > 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatPoin(st.totalPoin)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        className="h-7 text-[11px]"
-                        style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                        onClick={() => kirimNotif.mutate({ siswaId: st.siswaId })}
-                        disabled={kirimNotif.isPending}
-                      >
-                        {kirimNotif.isPending ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Send className="h-3 w-3 mr-1" />
-                        )}
-                        Kirim
-                      </Button>
-                    </TableCell>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8 text-[10px] font-black text-slate-400 uppercase tracking-wider">#</TableHead>
+                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">NISN</TableHead>
+                    <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Poin</TableHead>
+                    <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {group.students.map((st: any, si: number) => (
+                    <TableRow key={st.siswaId}>
+                      <TableCell className="text-xs text-muted-foreground">{si + 1}</TableCell>
+                      <TableCell className="font-medium">{st.namaLengkap}</TableCell>
+                      <TableCell className="text-xs">{st.nisn || "-"}</TableCell>
+                      <TableCell className={`font-bold ${st.totalPoin > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {formatPoin(st.totalPoin)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" className="h-7 text-[11px]" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => kirimNotif.mutate({ siswaId: st.siswaId })} disabled={kirimNotif.isPending}>
+                          {kirimNotif.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                          Kirim
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Mobile cards for threshold students */}
+            <div className="md:hidden space-y-2">
+              {group.students.map((st: any, si: number) => (
+                <div key={st.siswaId} className="glass-card rounded-xl p-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="text-xs text-slate-400 font-bold shrink-0">#{si + 1}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{st.namaLengkap}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{st.nisn || "-"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`font-black ${st.totalPoin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(st.totalPoin)}</span>
+                    <Button size="sm" className="h-8 text-[10px]" style={{ backgroundColor: "hsl(142 72% 40%)" }} onClick={() => kirimNotif.mutate({ siswaId: st.siswaId })} disabled={kirimNotif.isPending}>
+                      {kirimNotif.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                      Kirim
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ))}

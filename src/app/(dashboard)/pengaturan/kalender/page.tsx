@@ -299,86 +299,124 @@ export default function KalenderPage() {
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Judul</TableHead>
-                <TableHead>Tipe</TableHead>
-                <TableHead>Tanggal Mulai</TableHead>
-                <TableHead>Tanggal Selesai</TableHead>
-                <TableHead>Warna</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
-                      {r.judul}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={TIPE_BADGE[r.tipe] ?? ""} variant="secondary">
-                      {TIPE_LABEL[r.tipe] ?? r.tipe}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(r.tanggalMulai)}</TableCell>
-                  <TableCell>{r.tanggalSelesai ? formatDate(r.tanggalSelesai) : "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="h-4 w-4 rounded-full border" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
-                      <span className="text-xs text-muted-foreground">{r.warna ?? "#3b82f6"}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {r.isLiburNasional ? (
-                      <Badge variant="outline" className="border-red-300 text-red-600">Libur Nasional</Badge>
-                    ) : (
-                      <Badge variant="outline">Manual</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={<Button variant="ghost" size="icon" onClick={() => openEditForm(r)} />}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Edit</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive"
-                              onClick={() => setDeleteId(r.id)}
-                            />
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Hapus</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
+          <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Judul</TableHead>
+                  <TableHead>Tipe</TableHead>
+                  <TableHead>Tanggal Mulai</TableHead>
+                  <TableHead>Tanggal Selesai</TableHead>
+                  <TableHead>Warna</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
+                        {r.judul}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={TIPE_BADGE[r.tipe] ?? ""} variant="secondary">
+                        {TIPE_LABEL[r.tipe] ?? r.tipe}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(r.tanggalMulai)}</TableCell>
+                    <TableCell>{r.tanggalSelesai ? formatDate(r.tanggalSelesai) : "-"}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="h-4 w-4 rounded-full border" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
+                        <span className="text-xs text-muted-foreground">{r.warna ?? "#3b82f6"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {r.isLiburNasional ? (
+                        <Badge variant="outline" className="border-red-300 text-red-600">Libur Nasional</Badge>
+                      ) : (
+                        <Badge variant="outline">Manual</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={<Button variant="ghost" size="icon" onClick={() => openEditForm(r)} />}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Edit</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive"
+                                onClick={() => setDeleteId(r.id)}
+                              />
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Hapus</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{r.judul}</span>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => openEditForm(r)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setDeleteId(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge className={TIPE_BADGE[r.tipe] ?? ""} variant="secondary" style={{fontSize: "9px"}}>{TIPE_LABEL[r.tipe] ?? r.tipe}</Badge>
+                  {r.isLiburNasional ? (
+                    <Badge variant="outline" className="border-red-300 text-red-600 text-[10px]">Libur Nasional</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Manual</Badge>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 mt-1.5 space-y-0.5">
+                  <div className="flex justify-between"><span className="font-semibold">Mulai:</span><span>{formatDate(r.tanggalMulai)}</span></div>
+                  <div className="flex justify-between"><span className="font-semibold">Selesai:</span><span>{r.tanggalSelesai ? formatDate(r.tanggalSelesai) : "-"}</span></div>
+                  <div className="flex justify-between items-center"><span className="font-semibold">Warna:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />
+                      <span className="text-muted-foreground">{r.warna ?? "#3b82f6"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 

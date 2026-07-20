@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import ResponsiveTable from "@/components/ui/responsive-table"
 import FilterBar from "@/components/keuangan/FilterBar"
 import { DollarSign, Search, Plus, ArrowRight, Eye, Loader2, CheckCircle2, XCircle, FileText } from "lucide-react"
 import { toast } from "sonner"
@@ -227,62 +228,41 @@ export default function TagihanPage() {
         </div>
       ) : (
         <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Siswa</TableHead>
-                <TableHead>NISN</TableHead>
-                <TableHead>Kelas</TableHead>
-                <TableHead className="text-right">Total Tagihan</TableHead>
-                <TableHead className="text-right">Terbayar</TableHead>
-                <TableHead className="text-right">Sisa</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {siswaWithInvoice.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    Tidak ada data siswa
-                  </TableCell>
-                </TableRow>
-              ) : (
-                siswaWithInvoice.map((s) => {
-                  const sisa = s.tagihan ? s.tagihan.total - s.tagihan.paid : 0
-                  return (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.nama}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{s.nisn}</TableCell>
-                      <TableCell className="text-xs">{kelasList?.find((k: any) => k.id === s.kelasId)?.namaKelas || "-"}</TableCell>
-                      <TableCell className="text-right">{s.tagihan ? fmtRupiah(s.tagihan.total) : "-"}</TableCell>
-                      <TableCell className="text-right">{s.tagihan ? fmtRupiah(s.tagihan.paid) : "-"}</TableCell>
-                      <TableCell className="text-right font-medium">{s.tagihan ? fmtRupiah(sisa) : "-"}</TableCell>
-                      <TableCell>
-                        {s.tagihan ? (
-                          <Badge variant="outline" className={`text-xs ${statusBadgeClass(s.tagihan.status)}`}>
-                            {STATUS_LABEL[s.tagihan.status] || s.tagihan.status}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">Belum Ada</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-xs text-primary"
-                          onClick={() => openDetail(s)}
-                        >
-                          <Eye className="h-3 w-3" /> Detail
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            columns={[
+              { header: "Nama Siswa", mobileLabel: "Siswa", accessor: (s: any) => <span className="font-medium">{s.nama}</span> },
+              { header: "NISN", mobileLabel: "NISN", accessor: (s: any) => <span className="text-xs text-muted-foreground">{s.nisn}</span> },
+              { header: "Kelas", accessor: (s: any) => <span className="text-xs">{kelasList?.find((k: any) => k.id === s.kelasId)?.namaKelas || "-"}</span>, hideOnMobile: true },
+              { header: "Total Tagihan", mobileLabel: "Total", accessor: (s: any) => <span className="text-right block">{s.tagihan ? fmtRupiah(s.tagihan.total) : "-"}</span>, headerClassName: "text-right", className: "text-right" },
+              { header: "Terbayar", accessor: (s: any) => <span className="text-right block">{s.tagihan ? fmtRupiah(s.tagihan.paid) : "-"}</span>, headerClassName: "text-right", className: "text-right", hideOnMobile: true },
+              { header: "Sisa", mobileLabel: "Sisa", accessor: (s: any) => { const sisa = s.tagihan ? s.tagihan.total - s.tagihan.paid : 0; return <span className={`text-right block font-medium ${sisa > 0 ? "text-red-600" : ""}`}>{s.tagihan ? fmtRupiah(sisa) : "-"}</span> }, headerClassName: "text-right", className: "text-right" },
+              { header: "Status", mobileLabel: "Status", accessor: (s: any) => s.tagihan ? <Badge variant="outline" className={`text-xs ${statusBadgeClass(s.tagihan.status)}`}>{STATUS_LABEL[s.tagihan.status] || s.tagihan.status}</Badge> : <Badge variant="outline" className="text-xs text-muted-foreground">Belum Ada</Badge> },
+              { header: "Aksi", accessor: (s: any) => <div className="text-center"><Button variant="ghost" size="sm" className="gap-1 text-xs text-primary" onClick={() => openDetail(s)}><Eye className="h-3 w-3" /> Detail</Button></div>, headerClassName: "text-center", className: "text-center" },
+            ]}
+            data={siswaWithInvoice}
+            keyExtractor={(s: any) => s.id}
+            emptyMessage="Tidak ada data siswa"
+            mobileCardTitle={(s: any) => {
+              const sisa = s.tagihan ? s.tagihan.total - s.tagihan.paid : 0
+              return (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{s.nama}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{s.nisn}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold">{s.tagihan ? fmtRupiah(sisa) : "-"}</p>
+                    {s.tagihan ? <Badge variant="outline" className={`text-[9px] mt-0.5 ${statusBadgeClass(s.tagihan.status)}`}>{STATUS_LABEL[s.tagihan.status] || s.tagihan.status}</Badge> : <Badge variant="outline" className="text-[9px] mt-0.5 text-muted-foreground">Belum Ada</Badge>}
+                  </div>
+                </div>
+              )
+            }}
+            mobileCardActions={(s: any) => (
+              <Button variant="ghost" size="sm" className="gap-1 text-xs text-primary w-full" onClick={() => openDetail(s)}>
+                <Eye className="h-3 w-3" /> Lihat Detail Tagihan
+              </Button>
+            )}
+          />
         </Card>
       )}
 
@@ -326,83 +306,133 @@ export default function TagihanPage() {
                 <p>Siswa ini belum memiliki tagihan</p>
               </div>
             ) : (
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Periode</TableHead>
-                      <TableHead className="text-right">Pokok</TableHead>
-                      <TableHead className="text-right">Diskon</TableHead>
-                      <TableHead className="text-right">Denda</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">Terbayar</TableHead>
-                      <TableHead className="text-right">Sisa</TableHead>
-                      <TableHead>Jatuh Tempo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedInvoices.map((inv) => {
+              <div className="rounded-lg border overflow-x-auto">
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Periode</TableHead>
+                        <TableHead className="text-right">Pokok</TableHead>
+                        <TableHead className="text-right">Diskon</TableHead>
+                        <TableHead className="text-right">Denda</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Terbayar</TableHead>
+                        <TableHead className="text-right">Sisa</TableHead>
+                        <TableHead>Jatuh Tempo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-center">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedInvoices.map((inv) => {
+                        const total = Number(inv.totalAmount)
+                        const paid = Number(inv.paidAmount)
+                        const sisa = total - paid
+                        return (
+                          <TableRow key={inv.id}>
+                            <TableCell className="text-xs font-medium">
+                              {BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}
+                            </TableCell>
+                            <TableCell className="text-right">{fmtRupiah(Number(inv.amount))}</TableCell>
+                            <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.discountAmount))}</TableCell>
+                            <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.lateFeeAmount))}</TableCell>
+                            <TableCell className="text-right font-medium">{fmtRupiah(total)}</TableCell>
+                            <TableCell className="text-right">{fmtRupiah(paid)}</TableCell>
+                            <TableCell className={`text-right font-bold ${sisa > 0 ? "text-red-600" : ""}`}>
+                              {fmtRupiah(sisa)}
+                            </TableCell>
+                            <TableCell className="text-xs">{fmtDate(inv.dueDate)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs whitespace-nowrap ${statusBadgeClassDetail(inv.status)}`}>
+                                {STATUS_LABEL[inv.status] || inv.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-0.5">
+                                {inv.status !== "paid" && inv.status !== "cancelled" && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                      onClick={() => openBayar(inv)}
+                                      title="Catat Pembayaran"
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}
+                                      title="Batalkan Tagihan"
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </>
+                                )}
+                                {inv.status === "paid" && (
+                                  <span className="text-xs text-emerald-600 font-medium">Lunas</span>
+                                )}
+                                {inv.status === "cancelled" && (
+                                  <span className="text-xs text-muted-foreground">Batal</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                {/* Mobile cards for detail */}
+                <div className="md:hidden space-y-2">
+                  {selectedInvoices.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground text-xs">Belum ada tagihan</div>
+                  ) : (
+                    selectedInvoices.map((inv) => {
                       const total = Number(inv.totalAmount)
                       const paid = Number(inv.paidAmount)
                       const sisa = total - paid
                       return (
-                        <TableRow key={inv.id}>
-                          <TableCell className="text-xs font-medium">
-                            {BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}
-                          </TableCell>
-                          <TableCell className="text-right">{fmtRupiah(Number(inv.amount))}</TableCell>
-                          <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.discountAmount))}</TableCell>
-                          <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.lateFeeAmount))}</TableCell>
-                          <TableCell className="text-right font-medium">{fmtRupiah(total)}</TableCell>
-                          <TableCell className="text-right">{fmtRupiah(paid)}</TableCell>
-                          <TableCell className={`text-right font-bold ${sisa > 0 ? "text-red-600" : ""}`}>
-                            {fmtRupiah(sisa)}
-                          </TableCell>
-                          <TableCell className="text-xs">{fmtDate(inv.dueDate)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-xs whitespace-nowrap ${statusBadgeClassDetail(inv.status)}`}>
+                        <div key={inv.id} className="glass-card rounded-xl p-3.5 space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                              {BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}
+                            </span>
+                            <Badge variant="outline" className={`text-[9px] whitespace-nowrap ${statusBadgeClassDetail(inv.status)}`}>
                               {STATUS_LABEL[inv.status] || inv.status}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-0.5">
-                              {inv.status !== "paid" && inv.status !== "cancelled" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                    onClick={() => openBayar(inv)}
-                                    title="Catat Pembayaran"
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}
-                                    title="Batalkan Tagihan"
-                                  >
-                                    <XCircle className="h-3.5 w-3.5" />
-                                  </Button>
-                                </>
-                              )}
-                              {inv.status === "paid" && (
-                                <span className="text-xs text-emerald-600 font-medium">Lunas</span>
-                              )}
-                              {inv.status === "cancelled" && (
-                                <span className="text-xs text-muted-foreground">Batal</span>
-                              )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div><span className="text-slate-400">Pokok</span><p className="font-bold">{fmtRupiah(Number(inv.amount))}</p></div>
+                            <div className="text-right"><span className="text-slate-400">Total</span><p className="font-bold">{fmtRupiah(total)}</p></div>
+                            <div><span className="text-slate-400">Diskon</span><p className="font-semibold">{fmtRupiah(Number(inv.discountAmount))}</p></div>
+                            <div className="text-right"><span className="text-slate-400">Terbayar</span><p className="font-semibold">{fmtRupiah(paid)}</p></div>
+                            {(Number(inv.lateFeeAmount) || 0) > 0 && <div><span className="text-slate-400">Denda</span><p className="font-semibold text-rose-600">{fmtRupiah(Number(inv.lateFeeAmount))}</p></div>}
+                            <div className={`text-right ${sisa > 0 ? "" : ""}`}><span className="text-slate-400">Sisa</span><p className={`font-bold ${sisa > 0 ? "text-red-600" : ""}`}>{fmtRupiah(sisa)}</p></div>
+                            <div className="col-span-2"><span className="text-slate-400">Jatuh Tempo</span><p className="font-semibold">{fmtDate(inv.dueDate)}</p></div>
+                          </div>
+                          {inv.status !== "paid" && inv.status !== "cancelled" && (
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 flex gap-2">
+                              <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={() => openBayar(inv)}>
+                                <CheckCircle2 className="h-3 w-3" /> Bayar
+                              </Button>
+                              <Button variant="outline" size="sm" className="flex-1 text-xs gap-1 text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}>
+                                <XCircle className="h-3 w-3" /> Batal
+                              </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          )}
+                          {inv.status === "paid" && (
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 text-center">
+                              <span className="text-xs text-emerald-600 font-bold">Lunas</span>
+                            </div>
+                          )}
+                        </div>
                       )
-                    })}
-                  </TableBody>
-                </Table>
+                    })
+                  )}
+                </div>
               </div>
             )}
           </div>

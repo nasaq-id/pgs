@@ -82,47 +82,75 @@ export default function VerifikasiPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Metode</TableHead>
-                <TableHead className="text-right">Jumlah</TableHead>
-                <TableHead>Bukti</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pending.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="text-xs">{fmtDate(p.paidAt)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs uppercase">{p.method?.replace(/_/g, " ")}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{fmtRupiah(Number(p.amount))}</TableCell>
-                  <TableCell>
-                    {p.paymentProofUrl ? (
-                      <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                        <Eye className="h-3 w-3" /> Lihat
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200" onClick={() => handleVerify(p.id)} disabled={processing}>
-                        <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-200" onClick={() => { setSelectedPayment(p); setRejectOpen(true) }} disabled={processing}>
-                        <XCircle className="h-3 w-3 mr-1" /> Tolak
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Metode</TableHead>
+                  <TableHead className="text-right">Jumlah</TableHead>
+                  <TableHead>Bukti</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pending.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-xs">{fmtDate(p.paidAt)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs uppercase">{p.method?.replace(/_/g, " ")}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{fmtRupiah(Number(p.amount))}</TableCell>
+                    <TableCell>
+                      {p.paymentProofUrl ? (
+                        <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                          <Eye className="h-3 w-3" /> Lihat
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200" onClick={() => handleVerify(p.id)} disabled={processing}>
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600 border-red-200" onClick={() => { setSelectedPayment(p); setRejectOpen(true) }} disabled={processing}>
+                          <XCircle className="h-3 w-3 mr-1" /> Tolak
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="md:hidden space-y-2 p-4">
+            {pending.map((p) => (
+              <div key={p.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm text-slate-800 dark:text-slate-200">{fmtRupiah(Number(p.amount))}</span>
+                  <Badge variant="outline" className="text-xs uppercase">{p.method?.replace(/_/g, " ")}</Badge>
+                </div>
+                <div className="space-y-1 text-xs text-slate-500 mb-3">
+                  <div className="flex justify-between"><span className="font-semibold">Tanggal:</span><span>{fmtDate(p.paidAt)}</span></div>
+                  <div className="flex justify-between"><span className="font-semibold">Bukti:</span>
+                    {p.paymentProofUrl ? (
+                      <a href={p.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Eye className="h-3 w-3" /> Lihat</a>
+                    ) : (<span className="text-muted-foreground">-</span>)}
+                  </div>
+                </div>
+                <div className="flex gap-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                  <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 flex-1" onClick={() => handleVerify(p.id)} disabled={processing}>
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-red-600 border-red-200 flex-1" onClick={() => { setSelectedPayment(p); setRejectOpen(true) }} disabled={processing}>
+                    <XCircle className="h-3 w-3 mr-1" /> Tolak
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -12,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import ResponsiveTable from "@/components/ui/responsive-table"
+import type { Column } from "@/components/ui/responsive-table"
 import { toast } from "sonner"
 import { Loader2, Plus, Calendar, Check, X, FileText, Upload, Eye } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
@@ -323,46 +324,26 @@ export default function IzinPage() {
               Belum ada riwayat pengajuan izin
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Approval</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {historyList.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
-                      {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
-                      {row.jenisIzin === "terlambat" && "Harian"}
-                    </TableCell>
-                    <TableCell>
-                      {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
-                          <Eye className="h-3.5 w-3.5" /> Lihat
-                        </a>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={STATUS_BADGE[row.status]} variant="secondary">
-                        {row.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-500 dark:text-slate-400 text-xs font-semibold">{row.catatanApproval ?? "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              columns={[
+                { header: "Tanggal Mulai", mobileLabel: "Tanggal", accessor: (row: any) => new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) },
+                { header: "Jenis Izin", mobileLabel: "Jenis", accessor: (row: any) => JENIS_IZIN_LABEL[row.jenisIzin] },
+                { header: "Alasan", mobileLabel: "Alasan", accessor: (row: any) => <span title={row.alasan} className="block max-w-[200px] truncate">{row.alasan}</span>, hideOnMobile: true, headerClassName: "max-w-[200px]" },
+                { header: "Durasi / Detail", mobileLabel: "Detail", accessor: (row: any) => row.jenisIzin === "tidak_masuk" ? `${row.jumlahHari} Hari` : row.jenisIzin === "pulang_cepat" ? `Jam ${row.jamPulang}` : "Harian" },
+                { header: "Bukti", mobileLabel: "Bukti", accessor: (row: any) => row.bukti ? <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline inline-flex items-center gap-1 font-bold text-xs"><Eye className="h-3.5 w-3.5" /> Lihat</a> : "-" },
+                { header: "Status", mobileLabel: "Status", accessor: (row: any) => <Badge className={STATUS_BADGE[row.status]} variant="secondary">{row.status}</Badge> },
+                { header: "Catatan Approval", mobileLabel: "Catatan", accessor: (row: any) => row.catatanApproval ?? "-", hideOnMobile: true },
+              ]}
+              data={historyList}
+              keyExtractor={(row: any) => row.id}
+              emptyMessage="Belum ada riwayat pengajuan izin"
+              mobileCardTitle={(row: any) => (
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</span>
+                  <Badge className={STATUS_BADGE[row.status]} variant="secondary">{row.status}</Badge>
+                </div>
+              )}
+            />
           )}
         </div>
       )}
@@ -378,76 +359,66 @@ export default function IzinPage() {
               Tidak ada pengajuan izin pending yang perlu persetujuan
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Pengaju</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Verifikasi</TableHead>
-                  <TableHead className="text-right text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvalList.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                    <TableCell>
-                      <div>
-                        <p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{(row as any).name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(row as any).detail}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
-                      {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
-                      {row.jenisIzin === "terlambat" && "Harian"}
-                    </TableCell>
-                    <TableCell>
-                      {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
-                          <Eye className="h-3.5 w-3.5" /> Lihat
-                        </a>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <input
-                        placeholder="Catatan persetujuan (opsional)"
-                        className="h-8 px-2 rounded-lg text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500/20 max-w-[200px]"
-                        value={catatanApproval[row.id] || ""}
-                        onChange={(e) => setCatatanApproval({ ...catatanApproval, [row.id]: e.target.value })}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          style={{ backgroundColor: "hsl(142 72% 40%)" }}
-                          className="text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => handleApprove(row.id, "disetujui")}
-                          disabled={processingId === row.id}
-                          title="Setujui"
-                        >
-                          {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
-                        </button>
-                        <button
-                          className="bg-rose-600 text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-rose-700 transition-colors"
-                          onClick={() => handleApprove(row.id, "ditolak")}
-                          disabled={processingId === row.id}
-                          title="Tolak"
-                        >
-                          {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              columns={[
+                { header: "Pengaju", mobileLabel: "Pengaju", accessor: (row: any) => <div><p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{row.name}</p><p className="text-[10px] text-slate-400 font-mono mt-0.5">{row.detail}</p></div> },
+                { header: "Tanggal Mulai", mobileLabel: "Tanggal", accessor: (row: any) => new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) },
+                { header: "Jenis Izin", accessor: (row: any) => JENIS_IZIN_LABEL[row.jenisIzin], hideOnMobile: true },
+                { header: "Alasan", accessor: (row: any) => <span title={row.alasan} className="block max-w-[200px] truncate">{row.alasan}</span>, hideOnMobile: true },
+                { header: "Durasi / Detail", mobileLabel: "Detail", accessor: (row: any) => row.jenisIzin === "tidak_masuk" ? `${row.jumlahHari} Hari` : row.jenisIzin === "pulang_cepat" ? `Jam ${row.jamPulang}` : "Harian" },
+                { header: "Bukti", mobileLabel: "Bukti", accessor: (row: any) => row.bukti ? <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline inline-flex items-center gap-1 font-bold text-xs"><Eye className="h-3.5 w-3.5" /> Lihat</a> : "-" },
+                { header: "Catatan Verifikasi", mobileLabel: "Catatan", accessor: (row: any) => (
+                  <input
+                    placeholder="Catatan (opsional)"
+                    className="h-8 px-2 rounded-lg text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500/20 w-full max-w-[200px]"
+                    value={catatanApproval[row.id] || ""}
+                    onChange={(e) => setCatatanApproval({ ...catatanApproval, [row.id]: e.target.value })}
+                  />
+                ), className: "max-w-[220px]" },
+                { header: "Aksi", accessor: () => null, headerClassName: "text-right", className: "text-right" },
+              ]}
+              data={approvalList}
+              keyExtractor={(row: any) => row.id}
+              emptyMessage="Tidak ada pengajuan izin pending yang perlu persetujuan"
+              mobileCardTitle={(row: any) => (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{row.detail}</p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-500">{JENIS_IZIN_LABEL[row.jenisIzin]}</span>
+                </div>
+              )}
+              mobileCardActions={(row: any) => (
+                <div className="flex gap-2 w-full">
+                  <div className="flex-1">
+                    <input
+                      placeholder="Catatan"
+                      className="h-8 px-2 rounded-lg text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500/20 w-full"
+                      value={catatanApproval[row.id] || ""}
+                      onChange={(e) => setCatatanApproval({ ...catatanApproval, [row.id]: e.target.value })}
+                    />
+                  </div>
+                  <button
+                    className="text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                    style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                    onClick={() => handleApprove(row.id, "disetujui")}
+                    disabled={processingId === row.id}
+                    title="Setujui"
+                  >
+                    {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
+                  </button>
+                  <button
+                    className="bg-rose-600 text-white h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-rose-700 transition-colors shrink-0"
+                    onClick={() => handleApprove(row.id, "ditolak")}
+                    disabled={processingId === row.id}
+                    title="Tolak"
+                  >
+                    {processingId === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-4 w-4" />}
+                  </button>
+                </div>
+              )}
+            />
           )}
         </div>
       )}
@@ -463,53 +434,30 @@ export default function IzinPage() {
               Belum ada riwayat persetujuan izin
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Pengaju</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Tanggal Mulai</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jenis Izin</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Alasan</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Durasi / Detail</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Bukti</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Catatan Approval</TableHead>
-                  <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processedList.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                    <TableCell>
-                      <div>
-                        <p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{(row as any).name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(row as any).detail}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
-                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{JENIS_IZIN_LABEL[row.jenisIzin]}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs text-slate-600 dark:text-slate-400" title={row.alasan}>{row.alasan}</TableCell>
-                    <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {row.jenisIzin === "tidak_masuk" && `${row.jumlahHari} Hari`}
-                      {row.jenisIzin === "pulang_cepat" && `Jam ${row.jamPulang}`}
-                      {row.jenisIzin === "terlambat" && "Harian"}
-                    </TableCell>
-                    <TableCell>
-                      {row.bukti ? (
-                        <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-bold text-xs">
-                          <Eye className="h-3.5 w-3.5" /> Lihat
-                        </a>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell className="text-slate-500 dark:text-slate-400 text-xs font-semibold">{row.catatanApproval ?? "-"}</TableCell>
-                    <TableCell>
-                      <Badge className={STATUS_BADGE[row.status]} variant="secondary">
-                        {row.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveTable
+              columns={[
+                { header: "Pengaju", mobileLabel: "Pengaju", accessor: (row: any) => <div><p className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{row.name}</p><p className="text-[10px] text-slate-400 font-mono mt-0.5">{row.detail}</p></div> },
+                { header: "Tanggal Mulai", mobileLabel: "Tanggal", accessor: (row: any) => new Date(row.tanggalMulai).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) },
+                { header: "Jenis Izin", accessor: (row: any) => JENIS_IZIN_LABEL[row.jenisIzin], hideOnMobile: true },
+                { header: "Alasan", accessor: (row: any) => <span title={row.alasan} className="block max-w-[200px] truncate">{row.alasan}</span>, hideOnMobile: true },
+                { header: "Durasi / Detail", mobileLabel: "Detail", accessor: (row: any) => row.jenisIzin === "tidak_masuk" ? `${row.jumlahHari} Hari` : row.jenisIzin === "pulang_cepat" ? `Jam ${row.jamPulang}` : "Harian" },
+                { header: "Bukti", mobileLabel: "Bukti", accessor: (row: any) => row.bukti ? <a href={row.bukti} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline inline-flex items-center gap-1 font-bold text-xs"><Eye className="h-3.5 w-3.5" /> Lihat</a> : "-" },
+                { header: "Catatan Approval", accessor: (row: any) => row.catatanApproval ?? "-", hideOnMobile: true },
+                { header: "Status", mobileLabel: "Status", accessor: (row: any) => <Badge className={STATUS_BADGE[row.status]} variant="secondary">{row.status}</Badge> },
+              ]}
+              data={processedList}
+              keyExtractor={(row: any) => row.id}
+              emptyMessage="Belum ada riwayat persetujuan izin"
+              mobileCardTitle={(row: any) => (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{row.detail}</p>
+                  </div>
+                  <Badge className={STATUS_BADGE[row.status]} variant="secondary">{row.status}</Badge>
+                </div>
+              )}
+            />
           )}
         </div>
       )}

@@ -171,61 +171,63 @@ export default function KelasPage() {
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Kelas</TableHead>
-                <TableHead>Tingkat</TableHead>
-                <TableHead>Wali Kelas</TableHead>
-                <TableHead>Kapasitas</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.namaKelas}</TableCell>
-                  <TableCell>{r.tingkat ?? "-"}</TableCell>
-                  <TableCell>
-                    {r.waliKelasId ? (
-                      <Badge variant="outline">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditData({
-                                  id: r.id,
-                                  namaKelas: r.namaKelas,
-                                  tingkat: r.tingkat ?? "",
-                                  waliKelasId: r.waliKelasId ?? "",
-                                  kapasitas: r.kapasitas ?? undefined,
-                                  siswaIds: [],
-                                })
-                                setFormOpen(true)
-                              }}
-                            />
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Edit</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
+          <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama Kelas</TableHead>
+                  <TableHead>Tingkat</TableHead>
+                  <TableHead>Wali Kelas</TableHead>
+                  <TableHead>Kapasitas</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.namaKelas}</TableCell>
+                    <TableCell>{r.tingkat ?? "-"}</TableCell>
+                    <TableCell>
+                      {r.waliKelasId ? (
+                        <Badge variant="outline">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditData({
+                                    id: r.id,
+                                    namaKelas: r.namaKelas,
+                                    tingkat: r.tingkat ?? "",
+                                    waliKelasId: r.waliKelasId ?? "",
+                                    kapasitas: r.kapasitas ?? undefined,
+                                    siswaIds: [],
+                                  })
+                                  setFormOpen(true)
+                                }}
+                              />
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Edit</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
                       <Tooltip>
                         <TooltipTrigger
                           render={
@@ -251,6 +253,28 @@ export default function KelasPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.namaKelas}</span>
+                    <p className="text-xs text-slate-500">{r.tingkat ?? "-"}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditData({ id: r.id, namaKelas: r.namaKelas, tingkat: r.tingkat ?? "", waliKelasId: r.waliKelasId ?? "", kapasitas: r.kapasitas ?? undefined, siswaIds: [] }); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                    {deleteId !== r.id && <button onClick={() => setDeleteId(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                  {r.waliKelasId && <Badge variant="outline" className="text-[10px]">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>}
+                  <span className="font-semibold">{r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </Card>
 

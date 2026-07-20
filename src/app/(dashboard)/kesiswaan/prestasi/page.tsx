@@ -174,55 +174,57 @@ export default function PrestasiPage() {
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Prestasi</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tingkat</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Juara</TableHead>
-                <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
-                <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.namaPrestasi}</TableCell>
-                  <TableCell>{r.siswa?.namaLengkap ?? "-"}</TableCell>
-                  <TableCell>
-                    {r.tingkat ? (
-                      <Badge variant="outline">{TINGKAT_LABEL[r.tingkat] ?? r.tingkat}</Badge>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{r.juara ?? "-"}</TableCell>
-                  <TableCell>{formatDate(r.tanggal)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditData({
-                                  id: r.id,
-                                  siswaId: r.siswaId,
-                                  namaPrestasi: r.namaPrestasi,
-                                  tingkat: r.tingkat,
-                                  juara: r.juara,
-                                  tanggal: r.tanggal ? new Date(r.tanggal).toISOString().split("T")[0] : null,
-                                })
-                                setFormOpen(true)
-                              }}
-                            />
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </TooltipTrigger>
+          <>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nama Prestasi</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Siswa</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tingkat</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Juara</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal</TableHead>
+                  <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.namaPrestasi}</TableCell>
+                    <TableCell>{r.siswa?.namaLengkap ?? "-"}</TableCell>
+                    <TableCell>
+                      {r.tingkat ? (
+                        <Badge variant="outline">{TINGKAT_LABEL[r.tingkat] ?? r.tingkat}</Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>{r.juara ?? "-"}</TableCell>
+                    <TableCell>{formatDate(r.tanggal)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditData({
+                                    id: r.id,
+                                    siswaId: r.siswaId,
+                                    namaPrestasi: r.namaPrestasi,
+                                    tingkat: r.tingkat,
+                                    juara: r.juara,
+                                    tanggal: r.tanggal ? new Date(r.tanggal).toISOString().split("T")[0] : null,
+                                  })
+                                  setFormOpen(true)
+                                }}
+                              />
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </TooltipTrigger>
                         <TooltipPortal>
                           <TooltipPositioner>
                             <TooltipPopup>Edit</TooltipPopup>
@@ -254,6 +256,29 @@ export default function PrestasiPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.namaPrestasi}</span>
+                    <p className="text-xs text-slate-500">{r.siswa?.namaLengkap ?? "-"}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditData({ id: r.id, siswaId: r.siswaId, namaPrestasi: r.namaPrestasi, tingkat: r.tingkat, juara: r.juara, tanggal: r.tanggal ? new Date(r.tanggal).toISOString().split("T")[0] : null }); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                    {deleteId !== r.id && <button onClick={() => setDeleteId(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {r.tingkat && <Badge variant="outline" className="text-[10px]">{TINGKAT_LABEL[r.tingkat] ?? r.tingkat}</Badge>}
+                  {r.juara && <span className="font-semibold text-slate-600">{r.juara}</span>}
+                  <span className="text-slate-400">{formatDate(r.tanggal)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </Card>
 

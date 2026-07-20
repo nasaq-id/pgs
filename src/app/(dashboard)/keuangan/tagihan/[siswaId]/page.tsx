@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import ResponsiveTable from "@/components/ui/responsive-table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -113,60 +114,64 @@ export default function DetailTagihanSiswaPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Periode</TableHead>
-                <TableHead className="text-right">Tagihan</TableHead>
-                <TableHead className="text-right">Diskon</TableHead>
-                <TableHead className="text-right">Denda</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Terbayar</TableHead>
-                <TableHead className="text-right">Sisa</TableHead>
-                <TableHead>Jatuh Tempo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((inv) => {
-                const total = Number(inv.totalAmount)
-                const paid = Number(inv.paidAmount)
-                const sisa = total - paid
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell className="text-xs">{BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}</TableCell>
-                    <TableCell className="text-right">{fmtRupiah(Number(inv.amount))}</TableCell>
-                    <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.discountAmount))}</TableCell>
-                    <TableCell className="text-right text-xs">{fmtRupiah(Number(inv.lateFeeAmount))}</TableCell>
-                    <TableCell className="text-right font-medium">{fmtRupiah(total)}</TableCell>
-                    <TableCell className="text-right">{fmtRupiah(paid)}</TableCell>
-                    <TableCell className="text-right font-bold">{fmtRupiah(sisa)}</TableCell>
-                    <TableCell className="text-xs">{fmtDate(inv.dueDate)}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_COLORS[inv.status] || "secondary"} className="text-xs">
-                        {STATUS_LABEL[inv.status] || inv.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {inv.status !== "paid" && inv.status !== "cancelled" && (
-                          <>
-                            <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => { setSelectedInvoice(inv); setBayarOpen(true) }}>
-                              <CheckCircle2 className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600" onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}>
-                              <XCircle className="h-3 w-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            columns={[
+              { header: "Periode", mobileLabel: "Periode", accessor: (inv: any) => <span className="text-xs">{BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}</span> },
+              { header: "Tagihan", accessor: (inv: any) => <span className="text-right block">{fmtRupiah(Number(inv.amount))}</span>, headerClassName: "text-right", className: "text-right", hideOnMobile: true },
+              { header: "Diskon", mobileLabel: "Diskon", accessor: (inv: any) => <span className="text-right block text-xs">{fmtRupiah(Number(inv.discountAmount))}</span>, headerClassName: "text-right", className: "text-right" },
+              { header: "Denda", mobileLabel: "Denda", accessor: (inv: any) => <span className="text-right block text-xs">{fmtRupiah(Number(inv.lateFeeAmount))}</span>, headerClassName: "text-right", className: "text-right" },
+              { header: "Total", mobileLabel: "Total", accessor: (inv: any) => { const t = Number(inv.totalAmount); return <span className="text-right block font-medium">{fmtRupiah(t)}</span> }, headerClassName: "text-right", className: "text-right" },
+              { header: "Terbayar", accessor: (inv: any) => <span className="text-right block">{fmtRupiah(Number(inv.paidAmount))}</span>, headerClassName: "text-right", className: "text-right", hideOnMobile: true },
+              { header: "Sisa", mobileLabel: "Sisa", accessor: (inv: any) => { const s = Number(inv.totalAmount) - Number(inv.paidAmount); return <span className={`text-right block font-bold ${s > 0 ? "text-red-600" : ""}`}>{fmtRupiah(s)}</span> }, headerClassName: "text-right", className: "text-right" },
+              { header: "Jatuh Tempo", accessor: (inv: any) => <span className="text-xs">{fmtDate(inv.dueDate)}</span>, hideOnMobile: true },
+              { header: "Status", mobileLabel: "Status", accessor: (inv: any) => <Badge variant={STATUS_COLORS[inv.status] || "secondary"} className="text-xs">{STATUS_LABEL[inv.status] || inv.status}</Badge> },
+              { header: "Aksi", mobileLabel: "Aksi", accessor: (inv: any) => (
+                <div className="flex items-center justify-center gap-1">
+                  {inv.status !== "paid" && inv.status !== "cancelled" && (
+                    <>
+                      <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => { setSelectedInvoice(inv); setBayarOpen(true) }}>
+                        <CheckCircle2 className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}>
+                        <XCircle className="h-3 w-3" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ), headerClassName: "text-center", className: "text-center" },
+            ]}
+            data={invoices}
+            keyExtractor={(inv: any) => inv.id}
+            emptyMessage="Siswa ini belum memiliki tagihan."
+            mobileCardTitle={(inv: any) => {
+              const total = Number(inv.totalAmount)
+              const paid = Number(inv.paidAmount)
+              const sisa = total - paid
+              return (
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">
+                    {BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}
+                  </span>
+                  <Badge variant={STATUS_COLORS[inv.status] || "secondary"} className="text-[9px]">
+                    {STATUS_LABEL[inv.status] || inv.status}
+                  </Badge>
+                </div>
+              )
+            }}
+            mobileCardActions={(inv: any) => {
+              if (inv.status === "paid" || inv.status === "cancelled") return null
+              return (
+                <div className="flex gap-2 w-full">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={() => { setSelectedInvoice(inv); setBayarOpen(true) }}>
+                    <CheckCircle2 className="h-3 w-3" /> Bayar
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs gap-1 text-rose-600 border-rose-200" onClick={() => { setSelectedInvoice(inv); setCancelOpen(true) }}>
+                    <XCircle className="h-3 w-3" /> Batal
+                  </Button>
+                </div>
+              )
+            }}
+          />
         </Card>
       )}
 

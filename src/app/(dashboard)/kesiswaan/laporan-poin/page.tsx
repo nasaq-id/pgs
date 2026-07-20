@@ -193,7 +193,8 @@ export default function LaporanPoinPage() {
                 <p className="text-sm text-muted-foreground">Tidak ada data sesuai filter</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -235,6 +236,25 @@ export default function LaporanPoinPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="md:hidden space-y-2">
+                {laporanData.map((r: any) => (
+                  <div key={r.id} className="glass-card rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.siswa?.namaLengkap || "-"}</span>
+                      <span className={`font-black text-sm ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(r.poin)}</span>
+                    </div>
+                    <div className="space-y-1 text-xs text-slate-500">
+                      <div className="flex justify-between"><span className="font-semibold">Tanggal:</span><span>{format(new Date(r.createdAt), "d MMM yyyy HH:mm", { locale: id })}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Sikap:</span><span>{r.kategori?.nama || "-"}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Jenis:</span><Badge variant={r.kategori?.jenis === "positif" ? "default" : "destructive"} className="text-[10px]">{r.kategori?.jenis === "positif" ? "Positif" : "Negatif"}</Badge></div>
+                      <div className="flex justify-between"><span className="font-semibold">Tindak Lanjut:</span><span>{r.tindakLanjut?.nama || "-"}</span></div>
+                      <div className="flex justify-between"><span className="font-semibold">Penginput:</span><span>{r.guru?.namaLengkap || "-"}</span></div>
+                      <div className="flex justify-between items-center"><span className="font-semibold">Status:</span><Badge variant={r.status === "selesai" ? "default" : "outline"} className="text-[10px]">{r.status === "belum_diproses" ? "Baru" : r.status === "sedang_diproses" ? "Diproses" : "Selesai"}</Badge></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </>
             )}
           </Card>
         </TabsContent>
@@ -303,7 +323,7 @@ export default function LaporanPoinPage() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -342,6 +362,23 @@ export default function LaporanPoinPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+                <div className="md:hidden space-y-2">
+                  {raporData.records.map((r: any) => (
+                    <div key={r.id} className="glass-card rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`font-black text-sm ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(r.poin)}</span>
+                        <Badge variant={r.kategori?.jenis === "positif" ? "default" : "destructive"} className="text-[10px]">{r.kategori?.jenis === "positif" ? "Positif" : "Negatif"}</Badge>
+                      </div>
+                      <div className="space-y-1 text-xs text-slate-500">
+                        <div className="flex justify-between"><span className="font-semibold">Tanggal:</span><span>{format(new Date(r.createdAt), "d MMM yyyy HH:mm", { locale: id })}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Sikap:</span><span>{r.kategori?.nama || "-"}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Tindak Lanjut:</span><span>{r.tindakLanjut?.nama || "-"}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">Penginput:</span><span>{r.guru?.namaLengkap || "-"}</span></div>
+                        <div className="flex justify-between items-center"><span className="font-semibold">Status:</span><Badge variant={r.status === "selesai" ? "default" : "outline"} className="text-[10px]">{r.status === "belum_diproses" ? "Baru" : r.status === "sedang_diproses" ? "Diproses" : "Selesai"}</Badge></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : selectedSiswa ? (

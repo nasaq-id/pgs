@@ -409,7 +409,7 @@ export default function IdCardPage() {
 
               {/* TAB SISWA */}
               <TabsContent value="siswa" className="m-0">
-                <div className="border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto custom-scroll">
+                <div className="hidden md:block border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto custom-scroll">
                   <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
@@ -491,11 +491,43 @@ export default function IdCardPage() {
                     </TableBody>
                   </Table>
                 </div>
+                <div className="md:hidden space-y-2">
+                  {!isLoadingSiswa && siswaList && siswaList.length > 0 && siswaList.map((siswa) => (
+                    <div key={siswa.id} className="glass-card rounded-2xl p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Checkbox
+                          checked={!!selectedSiswaIds[siswa.id]}
+                          onCheckedChange={(checked) => handleSelectOne(siswa.id, checked === true)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{siswa.namaLengkap}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{siswa.nisn || siswa.nisLokal || "-"}</p>
+                        </div>
+                        {siswa.foto ? (
+                          <img src={siswa.foto} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground border font-semibold shrink-0">
+                            {siswa.namaLengkap.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="text-[10px]">{siswa.kelasId ? (kelasMap[siswa.kelasId] || "Loading...") : "Tanpa Rombel"}</Badge>
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-semibold" onClick={() => handlePrintSingle(siswa.id, "siswa")}>
+                          <Printer className="h-3 w-3 mr-1" /> Cetak
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {!isLoadingSiswa && (!siswaList || siswaList.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">Data siswa tidak ditemukan atau filter tidak aktif.</div>
+                  )}
+                </div>
               </TabsContent>
 
               {/* TAB GURU */}
               <TabsContent value="guru" className="m-0">
-                <div className="border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto custom-scroll">
+                <div className="hidden md:block border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto custom-scroll">
                   <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
@@ -578,6 +610,40 @@ export default function IdCardPage() {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+                <div className="md:hidden space-y-2">
+                  {!isLoadingGuru && guruList && guruList.length > 0 && guruList.map((guru) => (
+                    <div key={guru.id} className="glass-card rounded-2xl p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Checkbox
+                          checked={!!selectedGuruIds[guru.id]}
+                          onCheckedChange={(checked) => handleSelectOne(guru.id, checked === true)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{guru.namaLengkap}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{guru.nipnuptk || guru.nik || "-"}</p>
+                        </div>
+                        {guru.foto ? (
+                          <img src={guru.foto} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground border font-semibold shrink-0">
+                            {guru.namaLengkap.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-200 text-[10px]">
+                          {guru.tugasUtama || guru.kategoriPegawai || "Guru"}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-semibold" onClick={() => handlePrintSingle(guru.id, "guru")}>
+                          <Printer className="h-3 w-3 mr-1" /> Cetak
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {!isLoadingGuru && (!guruList || guruList.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">Data guru tidak ditemukan.</div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

@@ -378,7 +378,7 @@ export default function AsesmenPage() {
                         <p className="text-[10px] text-amber-600 font-bold mt-1.5">{belumKerjaCount} siswa belum mengerjakan</p>
                       )}
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="hidden md:block overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
@@ -426,6 +426,35 @@ export default function AsesmenPage() {
                           ))}
                         </TableBody>
                       </Table>
+                    </div>
+                    <div className="md:hidden space-y-2">
+                      {kelasEntries.map((entry) => (
+                        <div key={entry.id} className="glass-card rounded-2xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{(entry as any).siswa?.namaLengkap || "Unknown"}</span>
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{entry.nilai !== null ? entry.nilai : "-"}</span>
+                          </div>
+                          <div className="space-y-1 text-xs text-slate-500">
+                            <div className="flex justify-between items-center"><span className="font-semibold">Status:</span>
+                              <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-bold ${
+                                entry.status === "sudah_dinilai" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20" :
+                                entry.status === "sudah_mengumpulkan" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20" :
+                                "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-900"
+                              }`}>
+                                {entry.status === "sudah_dinilai" ? "Dinilai" : entry.status === "sudah_mengumpulkan" ? "Dikumpulkan" : "Belum"}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center"><span className="font-semibold">Ketuntasan:</span>
+                              {entry.statusKetuntasan ? (
+                                <span className={`font-bold uppercase tracking-wider ${entry.statusKetuntasan === "tuntas" ? "text-emerald-600" : "text-rose-600"}`}>
+                                  {entry.statusKetuntasan === "tuntas" ? "Tuntas" : "Belum Tuntas"}
+                                </span>
+                              ) : (<span className="text-slate-400 font-bold">-</span>)}
+                            </div>
+                            <div className="flex justify-between"><span className="font-semibold">Feedback:</span><span className="truncate max-w-[200px]">{entry.feedback || "-"}</span></div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )

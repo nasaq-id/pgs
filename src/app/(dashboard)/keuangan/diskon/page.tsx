@@ -121,53 +121,88 @@ export default function DiskonPage() {
         <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}</div>
       ) : (
         <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Siswa</TableHead>
-                <TableHead>Tipe</TableHead>
-                <TableHead>Nilai</TableHead>
-                <TableHead>Berlaku</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(!discounts || discounts.length === 0) ? (
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Belum ada diskon</TableCell>
+                  <TableHead>Siswa</TableHead>
+                  <TableHead>Tipe</TableHead>
+                  <TableHead>Nilai</TableHead>
+                  <TableHead>Berlaku</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
-              ) : (
-                discounts.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-medium">{siswaMap.get(d.studentId) || d.studentId}</TableCell>
-                    <TableCell><Badge variant={DISCOUNT_COLOR[d.type]} className="text-xs">{DISCOUNT_LABEL[d.type]}</Badge></TableCell>
-                    <TableCell>{d.valueType === "percent" ? `${d.value}%` : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(d.value))}</TableCell>
-                    <TableCell className="text-xs">{fmtDate(d.validFrom)} {d.validUntil ? `- ${fmtDate(d.validUntil)}` : ""}</TableCell>
-                    <TableCell>
-                      {d.approvedBy ? (
-                        <Badge variant="default" className="text-xs">Disetujui</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">Pending</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {!d.approvedBy && (
-                          <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => handleApprove(d.id)}>
-                            <CheckCircle2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleToggle(d.id)}>
-                          {d.isActive ? <XCircle className="h-3 w-3 text-red-500" /> : <CheckCircle2 className="h-3 w-3 text-muted-foreground" />}
-                        </Button>
-                      </div>
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {(!discounts || discounts.length === 0) ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Belum ada diskon</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  discounts.map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="font-medium">{siswaMap.get(d.studentId) || d.studentId}</TableCell>
+                      <TableCell><Badge variant={DISCOUNT_COLOR[d.type]} className="text-xs">{DISCOUNT_LABEL[d.type]}</Badge></TableCell>
+                      <TableCell>{d.valueType === "percent" ? `${d.value}%` : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(d.value))}</TableCell>
+                      <TableCell className="text-xs">{fmtDate(d.validFrom)} {d.validUntil ? `- ${fmtDate(d.validUntil)}` : ""}</TableCell>
+                      <TableCell>
+                        {d.approvedBy ? (
+                          <Badge variant="default" className="text-xs">Disetujui</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">Pending</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {!d.approvedBy && (
+                            <Button variant="ghost" size="sm" className="text-emerald-600" onClick={() => handleApprove(d.id)}>
+                              <CheckCircle2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => handleToggle(d.id)}>
+                            {d.isActive ? <XCircle className="h-3 w-3 text-red-500" /> : <CheckCircle2 className="h-3 w-3 text-muted-foreground" />}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="md:hidden space-y-2 p-4">
+            {(!discounts || discounts.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">Belum ada diskon</div>
+            ) : (
+              discounts.map((d) => (
+                <div key={d.id} className="glass-card rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{siswaMap.get(d.studentId) || d.studentId}</span>
+                    <Badge variant={DISCOUNT_COLOR[d.type]} className="text-xs">{DISCOUNT_LABEL[d.type]}</Badge>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-500">
+                    <div className="flex justify-between"><span className="font-semibold">Nilai:</span><span>{d.valueType === "percent" ? `${d.value}%` : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(d.value))}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">Berlaku:</span><span>{fmtDate(d.validFrom)} {d.validUntil ? `- ${fmtDate(d.validUntil)}` : ""}</span></div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Status:</span>
+                      {d.approvedBy ? <Badge variant="default" className="text-xs">Disetujui</Badge> : <Badge variant="secondary" className="text-xs">Pending</Badge>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                    {!d.approvedBy && (
+                      <Button variant="ghost" size="sm" className="text-emerald-600 h-8" onClick={() => handleApprove(d.id)}>
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-8" onClick={() => handleToggle(d.id)}>
+                      {d.isActive ? <XCircle className="h-3 w-3 text-red-500 mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {d.isActive ? "Nonaktifkan" : "Aktifkan"}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </Card>
       )}
 
