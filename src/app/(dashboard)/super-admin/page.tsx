@@ -51,23 +51,23 @@ export default function SuperAdminPage() {
       setPasteData("")
       await utils.superAdmin.listSekolah.invalidate()
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error(err.message || "Gagal mendaftarkan sekolah baru.")
     },
   })
 
   const toggleActiveMutation = api.superAdmin.toggleSekolahActive.useMutation({
-    onSuccess: async (data) => {
+    onSuccess: async (data: any) => {
       toast.success(`Status ${data.namaSekolah} berhasil diperbarui!`)
       await utils.superAdmin.listSekolah.invalidate()
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error(err.message || "Gagal mengubah status aktif sekolah.")
     },
   })
 
   // Filter List
-  const filteredSchools = sekolahList.filter((s) => {
+  const filteredSchools = (sekolahList ?? []).filter((s: any) => {
     const query = searchQuery.toLowerCase()
     return (
       s.namaSekolah.toLowerCase().includes(query) ||
@@ -366,7 +366,7 @@ export default function SuperAdminPage() {
             <div>
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Sekolah Aktif</p>
               <h3 className="text-3xl font-black text-emerald-600 mt-2">
-                {isLoading ? "..." : sekolahList.filter((s) => s.active).length}
+                {isLoading ? "..." : (sekolahList ?? []).filter((s: any) => s.active).length}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -380,7 +380,7 @@ export default function SuperAdminPage() {
             <div>
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Suspended / Non-Aktif</p>
               <h3 className="text-3xl font-black text-rose-600 mt-2">
-                {isLoading ? "..." : sekolahList.filter((s) => !s.active).length}
+                {isLoading ? "..." : (sekolahList ?? []).filter((s: any) => !s.active).length}
               </h3>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -433,7 +433,7 @@ export default function SuperAdminPage() {
                   </td>
                 </tr>
               ) : (
-                filteredSchools.map((item, index) => (
+                filteredSchools.map((item: any, index: number) => (
                   <tr
                     key={item.id}
                     className="border-b border-slate-100/70 hover:bg-slate-50/30 transition-colors duration-200 text-xs font-bold text-slate-600"
@@ -508,7 +508,7 @@ export default function SuperAdminPage() {
           ) : filteredSchools.length === 0 ? (
             <p className="text-center py-6 text-xs font-bold text-slate-450">Tidak ada sekolah ditemukan.</p>
           ) : (
-            filteredSchools.map((item) => (
+            filteredSchools.map((item: any) => (
               <div
                 key={item.id}
                 className="p-4 rounded-2xl border border-slate-100 bg-slate-50/20 space-y-3"

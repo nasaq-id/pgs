@@ -28,6 +28,7 @@ export { poinTindakLanjut, poinTindakLanjutRelations } from "./poin-tindak-lanju
 export { poinAturan, poinAturanRelations } from "./poin-aturan"
 export { poinSikap, poinSikapRelations } from "./poin-sikap"
 export { pengampu, pengampuRelations } from "./pengampu"
+export { eMateri, eMateriRelations } from "./e-materi"
 
 // Finance domain
 export { billingType, billingTypeRelations, feeStructure, feeStructureRelations, lateFeeRule, lateFeeRuleRelations } from "./finance-master"

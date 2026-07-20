@@ -23,8 +23,10 @@ import { poinRouter } from "./routers/poin"
 import { pengampuRouter } from "./routers/pengampu"
 import { dashboardRouter } from "./routers/dashboard"
 import { superAdminRouter } from "./routers/super-admin"
+import { eMateriRouter } from "./routers/e-materi"
 
 export const appRouter = router({
+  eMateri: eMateriRouter,
   pengampu: pengampuRouter,
   siswa: siswaRouter,
   guru: guruRouter,

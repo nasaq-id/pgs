@@ -37,6 +37,7 @@ const pageTitles: Record<string, string> = {
   "/manajemen/kelas": "Rombongan Belajar",
   "/akademik": "Akademik",
   "/sarana": "Sarana & Prasarana",
+  "/lms/e-materi": "e-Materi Pembelajaran",
   "/lms/jurnal": "Jurnal Mengajar",
   "/lms/asesmen": "Asesmen",
   "/evaluasi/buku-nilai": "Buku Nilai",
