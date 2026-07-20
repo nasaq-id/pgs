@@ -134,6 +134,29 @@ export const pengaturanJadwalRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const [deleted] = await db.delete(timelineItem).where(and(eq(timelineItem.id, input.id), eq(timelineItem.sekolahId, sekolahId))).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Item timeline tidak ditemukan" })
+
+      // Re-sequence remaining items for the same day
+      const remaining = await db
+        .select()
+        .from(timelineItem)
+        .where(and(
+          eq(timelineItem.pengaturanJadwalId, deleted.pengaturanJadwalId),
+          eq(timelineItem.hari, deleted.hari),
+        ))
+        .orderBy(asc(timelineItem.urutan))
+
+      for (let i = 0; i < remaining.length; i++) {
+        const item = remaining[i]
+        const newUrutan = i + 1
+        if (item.urutan !== newUrutan) {
+          await db
+            .update(timelineItem)
+            .set({ urutan: newUrutan })
+            .where(eq(timelineItem.id, item.id))
+        }
+      }
+
+      await recalculateJpTimes(deleted.pengaturanJadwalId)
       await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
       return { success: true }
     }),

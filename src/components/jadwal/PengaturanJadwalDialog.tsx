@@ -355,6 +355,8 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
 
   const renderTimelinePanel = (hari: string, isKhusus: boolean) => {
     const items = itemsByDay.get(hari) ?? []
+    const jpItems = items.filter((i) => i.tipe === "jp")
+
     return (
       <div className="space-y-4">
         {isKhusus ? (
@@ -452,11 +454,12 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
           ) : (
             items.map((item) => {
               const Icon = TIPE_ICONS[item.tipe] || Clock
+              const jpIndex = jpItems.findIndex((i) => (i.id && item.id ? i.id === item.id : i.urutan === item.urutan))
               const displayLabel =
                 item.tipe === "pembiasaan" && item.label
                   ? `Pembiasaan : ${item.label}`
                   : item.tipe === "jp"
-                    ? `JP ${item.urutan}`
+                    ? `JP ${jpIndex >= 0 ? jpIndex + 1 : item.urutan}`
                     : item.label || TIPE_LABELS[item.tipe]
               return (
                 <div
