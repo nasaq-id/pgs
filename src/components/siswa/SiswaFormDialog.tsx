@@ -1399,13 +1399,13 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   <div className="space-y-2">
                     <Label>Status Kepemilikan Rumah</Label>
                     <Select value={form.statusKepemilikanRumahAyah} onValueChange={(v) => handleChange("statusKepemilikanRumahAyah", v)}>
-                      <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Pilih Status Kepemilikan Rumah" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
-                        <SelectItem value="Kontrakan">Kontrakan</SelectItem>
-                        <SelectItem value="Sewa">Sewa</SelectItem>
+                        <SelectItem value="Rumah Orang Tua">Rumah Orang Tua</SelectItem>
+                        <SelectItem value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</SelectItem>
                         <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
-                        <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
+                        <SelectItem value="Sewa/Kontrak">Sewa/Kontrak</SelectItem>
                         <SelectItem value="Lainnya">Lainnya</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1500,13 +1500,13 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <div className="space-y-2">
                         <Label>Status Kepemilikan Rumah</Label>
                         <Select value={form.statusKepemilikanRumahIbu} onValueChange={(v) => handleChange("statusKepemilikanRumahIbu", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Pilih Status Kepemilikan Rumah" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
-                            <SelectItem value="Kontrakan">Kontrakan</SelectItem>
-                            <SelectItem value="Sewa">Sewa</SelectItem>
+                            <SelectItem value="Rumah Orang Tua">Rumah Orang Tua</SelectItem>
+                            <SelectItem value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</SelectItem>
                             <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
-                            <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
+                            <SelectItem value="Sewa/Kontrak">Sewa/Kontrak</SelectItem>
                             <SelectItem value="Lainnya">Lainnya</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1610,13 +1610,13 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                       <div className="space-y-2">
                         <Label>Status Kepemilikan Rumah</Label>
                         <Select value={form.statusKepemilikanRumahWali} onValueChange={(v) => handleChange("statusKepemilikanRumahWali", v)}>
-                          <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Pilih Status Kepemilikan Rumah" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Milik Sendiri">Milik Sendiri</SelectItem>
-                            <SelectItem value="Kontrakan">Kontrakan</SelectItem>
-                            <SelectItem value="Sewa">Sewa</SelectItem>
+                            <SelectItem value="Rumah Orang Tua">Rumah Orang Tua</SelectItem>
+                            <SelectItem value="Rumah Saudara/Kerabat">Rumah Saudara/Kerabat</SelectItem>
                             <SelectItem value="Rumah Dinas">Rumah Dinas</SelectItem>
-                            <SelectItem value="Milik Orang Tua">Milik Orang Tua</SelectItem>
+                            <SelectItem value="Sewa/Kontrak">Sewa/Kontrak</SelectItem>
                             <SelectItem value="Lainnya">Lainnya</SelectItem>
                           </SelectContent>
                         </Select>
