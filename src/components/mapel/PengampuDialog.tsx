@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2, Plus, X, ChevronDown, Check, Search } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 
@@ -21,6 +20,92 @@ interface Props {
   onClose: () => void
   mataPelajaranId: string
   mataPelajaranNama: string
+}
+
+function SearchableGuruSelect({
+  value,
+  onChange,
+  guruList,
+}: {
+  value: string
+  onChange: (value: string) => void
+  guruList: Array<{ id: string; namaLengkap: string; nip?: string | null }>
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const selectedGuru = guruList.find((g) => g.id === value)
+
+  const filteredGuru = guruList.filter(
+    (g) =>
+      g.namaLengkap.toLowerCase().includes(search.toLowerCase()) ||
+      (g.nip && g.nip.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  return (
+    <div className="relative flex-1" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex h-9 items-center justify-between gap-1.5 px-3 py-2 text-sm rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 text-foreground transition-all outline-none select-none cursor-pointer focus-visible:ring-3 focus-visible:ring-teal-500/15"
+      >
+        <span className="truncate font-medium">{selectedGuru ? selectedGuru.namaLengkap : "Pilih guru..."}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-[60] rounded-2xl glass text-popover-foreground p-2 space-y-2 max-h-60 overflow-y-auto shadow-2xl animate-in fade-in-50 zoom-in-95 border border-border/40">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Cari nama guru..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-background/80 border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-foreground"
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-0.5 max-h-40 overflow-y-auto">
+            {filteredGuru.length === 0 ? (
+              <p className="text-xs text-muted-foreground p-2 text-center">Guru tidak ditemukan</p>
+            ) : (
+              filteredGuru.map((g) => (
+                <div
+                  key={g.id}
+                  onClick={() => {
+                    onChange(g.id)
+                    setOpen(false)
+                    setSearch("")
+                  }}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer font-medium transition-colors ${
+                    g.id === value
+                      ? "bg-teal-50 dark:bg-teal-950/40 text-teal-650 dark:text-teal-400 font-bold"
+                      : "hover:bg-accent text-foreground"
+                  }`}
+                >
+                  <span>{g.namaLengkap}</span>
+                  {g.id === value && <Check className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPelajaranNama }: Props) {
@@ -87,6 +172,20 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
     })
   }
 
+  const toggleAllKelasRow = (rowIndex: number, availableKelas: Array<{ id: string }>) => {
+    const currentIds = rows[rowIndex].kelasIds
+    const availIds = availableKelas.map((k) => k.id)
+    const allChecked = availIds.length > 0 && availIds.every((id) => currentIds.includes(id))
+
+    if (allChecked) {
+      const nextIds = currentIds.filter((id) => !availIds.includes(id))
+      updateRow(rowIndex, { kelasIds: nextIds })
+    } else {
+      const nextSet = new Set([...currentIds, ...availIds])
+      updateRow(rowIndex, { kelasIds: Array.from(nextSet) })
+    }
+  }
+
   const handleSave = async () => {
     const valid = rows.filter((r) => r.guruId && r.kelasIds.length > 0)
     if (valid.length === 0) {
@@ -109,7 +208,7 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto relative overflow-visible">
         <DialogHeader>
           <DialogTitle>Plotting Pengajar — {mataPelajaranNama}</DialogTitle>
         </DialogHeader>
@@ -123,40 +222,37 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
             {rows.map((row, i) => {
               const taken = takenClassIds(i)
               const availableKelas = allKelas.filter((k) => !taken.has(k.id) || row.kelasIds.includes(k.id))
+              const isAllClassesChecked =
+                availableKelas.length > 0 && availableKelas.every((k) => row.kelasIds.includes(k.id))
 
               return (
-                <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+                <div key={i} className="rounded-2xl border border-border/80 p-4 space-y-3 bg-card/50">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-2">
-                      <Label>Guru</Label>
-                      <Select
+                    <div className="flex-1 space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Guru Pengampu</Label>
+                      <SearchableGuruSelect
                         value={row.guruId}
-                        onValueChange={(v) => updateRow(i, { guruId: v || "", kelasIds: row.guruId !== v ? [] : row.kelasIds })}
-                        options={allGuru.map((g) => ({ value: g.id, label: g.namaLengkap }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih guru" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allGuru.map((g) => (
-                            <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(v) =>
+                          updateRow(i, { guruId: v, kelasIds: row.guruId !== v ? [] : row.kelasIds })
+                        }
+                        guruList={allGuru}
+                      />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeRow(i)}
-                      className="mt-6 h-7 w-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRow(i)}
+                        className="mt-6 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
 
                   {row.guruId && (
-                    <div className="space-y-3">
+                    <div className="space-y-3 pt-1 border-t border-border/50">
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Jumlah JP per Kelas</Label>
+                        <Label className="text-xs font-semibold text-muted-foreground">Jumlah JP per Kelas</Label>
                         <Input
                           type="number"
                           min={1}
@@ -168,8 +264,21 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
                           }}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Pilih Kelas</Label>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-muted-foreground">Pilih Kelas</Label>
+                          {availableKelas.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleAllKelasRow(i, availableKelas)}
+                              className="text-xs font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer"
+                            >
+                              {isAllClassesChecked ? "Batal Pilih Semua" : "Pilih Semua Kelas"}
+                            </button>
+                          )}
+                        </div>
+
                         {availableKelas.length === 0 ? (
                           <p className="text-xs text-muted-foreground italic">Semua kelas sudah diampu guru lain</p>
                         ) : (
@@ -179,19 +288,19 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
                               return (
                                 <label
                                   key={k.id}
-                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs cursor-pointer transition-colors border select-none ${
                                     checked
-                                      ? "bg-primary/10 text-primary font-medium"
-                                      : "hover:bg-muted text-foreground"
+                                      ? "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/60 text-teal-650 dark:text-teal-400 font-bold"
+                                      : "border-border/60 hover:bg-accent text-foreground"
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={checked}
                                     onChange={() => toggleKelas(i, k.id)}
-                                    className="accent-primary h-3.5 w-3.5"
+                                    className="accent-teal-600 h-3.5 w-3.5 rounded"
                                   />
-                                  {k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}
+                                  <span>{k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}</span>
                                 </label>
                               )
                             })}
@@ -200,23 +309,24 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
                       </div>
                     </div>
                   )}
-
-                  <Button variant="outline" className="w-full gap-2" onClick={addRow}>
-                    <Plus className="h-4 w-4" /> Tambah Guru
-                  </Button>
                 </div>
               )
             })}
+
+            <Button variant="outline" className="w-full gap-2 rounded-xl" onClick={addRow}>
+              <Plus className="h-4 w-4" /> Tambah Guru Pengampu
+            </Button>
           </div>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>Batal</Button>
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
+            Batal
+          </Button>
           <Button
             onClick={handleSave}
             disabled={isPending || isLoading}
-            className="gap-2"
-            style={{ backgroundColor: "hsl(142 72% 40%)" }}
+            className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
           >
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Simpan
