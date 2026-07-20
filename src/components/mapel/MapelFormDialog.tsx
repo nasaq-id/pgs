@@ -147,8 +147,8 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">
-      <div className="glass-dialog rounded-2xl w-full max-w-md mx-4 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4">
+      <div className="glass-dialog rounded-2xl w-full max-w-md mx-4 relative overflow-visible">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/60">
           <h3 className="font-semibold text-foreground">Form Mata Pelajaran</h3>
           <button
             onClick={onClose}
@@ -209,7 +209,7 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
               </button>
 
               {kelasDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 space-y-1 max-h-56 overflow-y-auto animate-in fade-in-50 zoom-in-95">
+                <div className="absolute left-0 right-0 top-full mt-1 z-[60] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 space-y-1 max-h-52 overflow-y-auto animate-in fade-in-50 zoom-in-95">
                   <div
                     className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 cursor-pointer text-xs font-black uppercase text-teal-650 dark:text-teal-400 select-none border-b border-slate-100 dark:border-slate-800 pb-2 mb-1"
                     onClick={(e) => {
