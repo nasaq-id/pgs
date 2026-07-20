@@ -26,9 +26,10 @@ export const mapelRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
+        tingkat: z.string().optional(),
         sortBy: z.enum(["namaMapel", "kodeMapel", "urutan"]).optional().default("urutan"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
-        limit: z.number().optional().default(50),
+        limit: z.number().optional().default(100),
         offset: z.number().optional().default(0),
       }),
     )
@@ -43,13 +44,33 @@ export const mapelRouter = router({
       }
       const orderBy = input.sortOrder === "asc" ? asc(mataPelajaran[input.sortBy]) : desc(mataPelajaran[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db
-        .select()
-        .from(mataPelajaran)
-        .where(whereClause)
-        .orderBy(orderBy)
-        .limit(input.limit)
-        .offset(input.offset)
+      const data = await db.query.mataPelajaran.findMany({
+        where: whereClause,
+        orderBy,
+        limit: input.limit,
+        offset: input.offset,
+        with: {
+          pengampu: {
+            with: {
+              kelas: true,
+            },
+          },
+        },
+      })
+
+      if (input.tingkat && input.tingkat !== "semua") {
+        const selectedTingkat = input.tingkat.trim().toLowerCase()
+        return data.filter((item) => {
+          if (!item.pengampu || item.pengampu.length === 0) return false
+          return item.pengampu.some((p) => {
+            if (!p.kelas) return false
+            const kTingkat = (p.kelas.tingkat || "").trim().toLowerCase()
+            const kNama = (p.kelas.namaKelas || "").trim().toLowerCase()
+            return kTingkat === selectedTingkat || kTingkat.includes(selectedTingkat) || kNama.startsWith(selectedTingkat)
+          })
+        })
+      }
+
       return data
     }),
 

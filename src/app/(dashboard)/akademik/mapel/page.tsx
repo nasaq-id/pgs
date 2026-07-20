@@ -40,6 +40,7 @@ import {
   TooltipPositioner,
   TooltipPopup,
 } from "@/components/ui/tooltip"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/trpc/client"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
@@ -62,6 +63,7 @@ const KELOMPOK_LABEL: Record<string, string> = {
 
 export default function MapelPage() {
   const [search, setSearch] = useState("")
+  const [tingkatFilter, setTingkatFilter] = useState<string>("")
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -71,6 +73,22 @@ export default function MapelPage() {
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
+
+  // Dynamic tingkat options from active classes
+  const rawTingkatList = Array.from(
+    new Set(
+      (kelasList ?? [])
+        .map((k) => k.tingkat)
+        .filter(Boolean) as string[]
+    )
+  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+
+  const selectOptions = [
+    { value: "semua", label: "Semua Tingkat" },
+    ...rawTingkatList.map((t) => ({ value: t, label: t.toLowerCase().startsWith("kelas") ? t : `Tingkat ${t}` })),
+  ]
 
   // Close active actions dropdown when clicking outside
   useEffect(() => {
@@ -85,7 +103,10 @@ export default function MapelPage() {
     }
   }, [])
 
-  const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({ search })
+  const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({
+    search,
+    tingkat: tingkatFilter || undefined,
+  })
   const utils = api.useUtils()
 
   useEffect(() => {
@@ -213,18 +234,41 @@ export default function MapelPage() {
     <div className="space-y-6">
       <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari mata pelajaran..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
+            <div className="relative w-full sm:max-w-xs lg:max-w-sm">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Cari mata pelajaran..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full sm:w-auto">
+              <span className="shrink-0 font-medium">Tingkat:</span>
+              <Select
+                options={selectOptions}
+                value={tingkatFilter || "semua"}
+                onValueChange={(v) => setTingkatFilter(!v || v === "semua" ? "" : v)}
+              >
+                <SelectTrigger className="w-full sm:w-44 !h-10 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                  <SelectValue placeholder="Semua Tingkat" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <button
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95"
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
             onClick={() => {
               setEditData(null)
               setFormOpen(true)

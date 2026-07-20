@@ -2,6 +2,8 @@ import { pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
+import { pengampu } from "./pengampu"
+
 export const mataPelajaran = pgTable("mata_pelajaran", {
   id: text("id").primaryKey(),
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
@@ -15,9 +17,10 @@ export const mataPelajaran = pgTable("mata_pelajaran", {
   index("mata_pelajaran_sekolah_id_idx").on(table.sekolahId),
 ])
 
-export const mataPelajaranRelations = relations(mataPelajaran, ({ one }) => ({
+export const mataPelajaranRelations = relations(mataPelajaran, ({ one, many }) => ({
   sekolah: one(sekolah, {
     fields: [mataPelajaran.sekolahId],
     references: [sekolah.id],
   }),
+  pengampu: many(pengampu),
 }))
