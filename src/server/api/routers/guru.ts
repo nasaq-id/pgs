@@ -43,6 +43,8 @@ export const guruRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
+        statusKepegawaian: z.string().optional(),
+        kategoriPegawai: z.string().optional(),
         sortBy: z.enum(["namaLengkap", "nipnuptk", "createdAt"]).optional().default("namaLengkap"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
         limit: z.number().optional().default(50),
@@ -55,6 +57,20 @@ export const guruRouter = router({
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       if (input.search) {
         conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
+      }
+      if (input.statusKepegawaian) {
+        if (input.statusKepegawaian === "GTY") {
+          conditions.push(or(eq(guru.statusKepegawaian, "GTY"), like(guru.statusKepegawaian, "%GTY%")))
+        } else if (input.statusKepegawaian === "GTT") {
+          conditions.push(or(eq(guru.statusKepegawaian, "GTT"), like(guru.statusKepegawaian, "%GTT%")))
+        } else if (input.statusKepegawaian === "Honor") {
+          conditions.push(or(eq(guru.statusKepegawaian, "Honor"), like(guru.statusKepegawaian, "%Honor%")))
+        } else {
+          conditions.push(eq(guru.statusKepegawaian, input.statusKepegawaian))
+        }
+      }
+      if (input.kategoriPegawai) {
+        conditions.push(eq(guru.kategoriPegawai, input.kategoriPegawai))
       }
       const orderBy = input.sortOrder === "asc" ? asc(guru[input.sortBy]) : desc(guru[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined

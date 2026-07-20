@@ -68,12 +68,14 @@ export default function GuruPage() {
   const [page, setPage] = useState(0)
   const [limit, setLimit] = useState(25)
   const [sortOption, setSortOption] = useState<"name_asc" | "name_desc" | "nip_desc" | "nip_asc">("name_asc")
+  const [statusFilter, setStatusFilter] = useState<string>("")
 
   const sortBy = sortOption.startsWith("nip") ? "nipnuptk" : "namaLengkap"
   const sortOrder = sortOption.endsWith("desc") ? "desc" : "asc"
 
   const { data: guruList, isLoading } = api.guru.getAll.useQuery({
     search: querySearch || undefined,
+    statusKepegawaian: statusFilter || undefined,
     sortBy,
     sortOrder,
     limit,
@@ -549,6 +551,24 @@ export default function GuruPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap ml-auto">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Status:</span>
+              <Select value={statusFilter || "semua"} onValueChange={(v) => { setStatusFilter(!v || v === "semua" ? "" : v); setPage(0) }}>
+                <SelectTrigger className="w-36 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Status</SelectItem>
+                  <SelectItem value="PNS">PNS</SelectItem>
+                  <SelectItem value="PPPK">PPPK</SelectItem>
+                  <SelectItem value="GTY">GTY</SelectItem>
+                  <SelectItem value="GTT">GTT</SelectItem>
+                  <SelectItem value="Honor">Honor</SelectItem>
+                  <SelectItem value="Lainnya">Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>Urutkan:</span>
               <Select value={sortOption} onValueChange={(v: any) => { setSortOption(v); setPage(0) }}>
