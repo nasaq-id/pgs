@@ -553,7 +553,19 @@ export default function GuruPage() {
           <div className="flex items-center gap-3 flex-wrap ml-auto">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>Status:</span>
-              <Select value={statusFilter || "semua"} onValueChange={(v) => { setStatusFilter(!v || v === "semua" ? "" : v); setPage(0) }}>
+              <Select
+                options={[
+                  { value: "semua", label: "Semua Status" },
+                  { value: "PNS", label: "PNS" },
+                  { value: "PPPK", label: "PPPK" },
+                  { value: "GTY", label: "GTY" },
+                  { value: "GTT", label: "GTT" },
+                  { value: "Honor", label: "Honor" },
+                  { value: "Lainnya", label: "Lainnya" },
+                ]}
+                value={statusFilter || "semua"}
+                onValueChange={(v) => { setStatusFilter(!v || v === "semua" ? "" : v); setPage(0) }}
+              >
                 <SelectTrigger className="w-36 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
@@ -571,7 +583,16 @@ export default function GuruPage() {
 
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>Urutkan:</span>
-              <Select value={sortOption} onValueChange={(v: any) => { setSortOption(v); setPage(0) }}>
+              <Select
+                options={[
+                  { value: "name_asc", label: "Alfabet (A - Z)" },
+                  { value: "name_desc", label: "Alfabet (Z - A)" },
+                  { value: "nip_desc", label: "NIP/NUPTK (Terbesar)" },
+                  { value: "nip_asc", label: "NIP/NUPTK (Terkecil)" },
+                ]}
+                value={sortOption}
+                onValueChange={(v: any) => { setSortOption(v || "name_asc"); setPage(0) }}
+              >
                 <SelectTrigger className="w-44 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
                   <SelectValue />
                 </SelectTrigger>
