@@ -9,6 +9,7 @@ import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import GuruFormInfoTab from "./GuruFormInfoTab"
 import GuruFormKepegawaianTab from "./GuruFormKepegawaianTab"
+import GuruFormPendidikanTab from "./GuruFormPendidikanTab"
 
 interface GuruFormDialogProps {
   open: boolean
@@ -27,6 +28,7 @@ const defaultForm: Record<string, unknown> = {
   noHp: "",
   email: "",
   pendidikanTerakhir: "",
+  riwayatPendidikan: "",
   usernameGuru: "",
   passwordGuru: "",
   statusKepegawaian: "",
@@ -83,6 +85,7 @@ export default function GuruFormDialog({ open, onOpenChange, initialData, onSucc
           noHp: initialData.noHp || "",
           email: initialData.email || "",
           pendidikanTerakhir: initialData.pendidikanTerakhir || "",
+          riwayatPendidikan: initialData.riwayatPendidikan || "",
           usernameGuru: initialData.usernameGuru || "",
           passwordGuru: "",
           statusKepegawaian: initialData.statusKepegawaian || "",
@@ -131,6 +134,7 @@ export default function GuruFormDialog({ open, onOpenChange, initialData, onSucc
       noHp: form.noHp || undefined,
       email: form.email || undefined,
       pendidikanTerakhir: form.pendidikanTerakhir || undefined,
+      riwayatPendidikan: form.riwayatPendidikan ? String(form.riwayatPendidikan) : undefined,
       statusKepegawaian: form.statusKepegawaian || undefined,
       kategoriPegawai: form.kategoriPegawai || undefined,
       tugasUtama: form.tugasUtama || undefined,
@@ -173,12 +177,18 @@ export default function GuruFormDialog({ open, onOpenChange, initialData, onSucc
               <TabsTrigger value="kepegawaian" className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
                 Data Kepegawaian
               </TabsTrigger>
+              <TabsTrigger value="pendidikan" className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
+                Riwayat Pendidikan
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="info" className="pt-2">
               <GuruFormInfoTab form={form} onChange={handleChange} />
             </TabsContent>
             <TabsContent value="kepegawaian" className="pt-2">
               <GuruFormKepegawaianTab form={form} onChange={handleChange} />
+            </TabsContent>
+            <TabsContent value="pendidikan" className="pt-2">
+              <GuruFormPendidikanTab form={form} onChange={handleChange} />
             </TabsContent>
           </Tabs>
           <div className="flex items-center gap-3 pt-6 mt-6 border-t border-slate-100">

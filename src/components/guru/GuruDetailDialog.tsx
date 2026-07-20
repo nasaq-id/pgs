@@ -4,7 +4,7 @@ import { useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { User, Printer, Loader2, IdCard, Phone, Mail, MapPin, Calendar } from "lucide-react"
+import { User, Printer, Loader2, IdCard, Phone, Mail, MapPin, Calendar, GraduationCap } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 
 interface GuruDetailDialogProps {
@@ -240,6 +240,40 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
                 </div>
               </div>
             </SectionBlock>
+
+            {(() => {
+              let pMap: Record<string, any> = {}
+              try {
+                if (guru.riwayatPendidikan) pMap = JSON.parse(guru.riwayatPendidikan)
+              } catch {}
+              const entries = Object.entries(pMap).filter(([_, val]) => val && val.namaSekolah)
+              if (entries.length === 0) return null
+              return (
+                <SectionBlock title="Riwayat Pendidikan" color="bg-emerald-50 text-emerald-800">
+                  {entries.map(([j, val]) => (
+                    <div key={j} className="py-2 border-b border-border/40 last:border-0 text-sm">
+                      <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
+                        <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                          <GraduationCap className="h-4 w-4" /> {j} — {val.namaSekolah}
+                        </span>
+                        {val.tahunMasuk || val.tahunLulus ? (
+                          <span className="text-xs text-muted-foreground font-normal">
+                            {val.tahunMasuk || "?"} - {val.tahunLulus || "?"}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-1 pl-5 text-xs space-y-0.5 text-slate-600 dark:text-slate-400">
+                        {val.fakultasProdi && <p>Prodi/Jurusan: <strong className="text-slate-800 dark:text-slate-200">{val.fakultasProdi}</strong> {val.gelar ? `(${val.gelar})` : ""}</p>}
+                        {val.jurusan && <p>Jurusan: <strong className="text-slate-800 dark:text-slate-200">{val.jurusan}</strong></p>}
+                        {val.noIjazah && <p>No. Ijazah: {val.noIjazah}</p>}
+                        {val.ipk && <p>IPK/Nilai: {val.ipk}</p>}
+                        {val.kota && <p>Lokasi: {val.kota}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </SectionBlock>
+              )
+            })()}
           </div>
         )}
       </DialogContent>

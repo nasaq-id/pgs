@@ -15,6 +15,7 @@ export const guru = pgTable("guru", {
   noHp: text("no_hp"),
   email: text("email"),
   pendidikanTerakhir: text("pendidikan_terakhir"),
+  riwayatPendidikan: text("riwayat_pendidikan"),
   statusKepegawaian: text("status_kepegawaian"),
   kategoriPegawai: text("kategori_pegawai"),
   tugasUtama: text("tugas_utama"),

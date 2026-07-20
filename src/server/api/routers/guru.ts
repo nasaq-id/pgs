@@ -21,6 +21,7 @@ const guruCreateSchema = z.object({
   noHp: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
   pendidikanTerakhir: z.string().nullable().optional(),
+  riwayatPendidikan: z.string().nullable().optional(),
   statusKepegawaian: z.string().nullable().optional(),
   kategoriPegawai: z.string().nullable().optional(),
   tugasUtama: z.string().nullable().optional(),
