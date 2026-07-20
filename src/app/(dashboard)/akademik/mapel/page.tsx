@@ -54,9 +54,9 @@ interface MapelRecord {
 }
 
 const KELOMPOK_LABEL: Record<string, string> = {
-  A: "Kelompok A",
-  B: "Kelompok B",
-  C: "Kelompok C",
+  A: "Mata Pelajaran Wajib",
+  B: "Mata Pelajaran Pilihan",
+  C: "Mata Pelajaran Peminatan",
   muatan_lokal: "Muatan Lokal",
 }
 
@@ -229,7 +229,7 @@ export default function MapelPage() {
                   <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
                     <div>
                       <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kelompok</span>
-                      <span className="inline-block px-2 py-0.5 border border-slate-100 dark:border-slate-800 rounded-md text-[9px] font-black text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 mt-1 uppercase tracking-wide">
+                      <span className="inline-block px-2 py-0.5 border border-slate-100 dark:border-slate-800 rounded-md text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 mt-1 tracking-wide">
                         {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "—"}
                       </span>
                     </div>
@@ -355,7 +355,7 @@ export default function MapelPage() {
                         {r.namaMapel}
                       </TableCell>
                       <TableCell>
-                        <span className="px-2 py-0.5 border border-slate-150 dark:border-slate-800 rounded-lg text-[9px] font-black text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 uppercase tracking-wide">
+                        <span className="px-2 py-0.5 border border-slate-150 dark:border-slate-800 rounded-lg text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 tracking-wide">
                           {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "—"}
                         </span>
                       </TableCell>

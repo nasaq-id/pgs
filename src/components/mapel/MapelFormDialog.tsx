@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const KELOMPOK_OPTIONS = [
   { value: "A", label: "Mata Pelajaran Wajib" },
   { value: "B", label: "Mata Pelajaran Pilihan" },
+  { value: "C", label: "Mata Pelajaran Peminatan" },
   { value: "muatan_lokal", label: "Muatan Lokal" },
 ]
 
