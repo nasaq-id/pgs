@@ -234,6 +234,7 @@ export default function IzinPage() {
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-450 dark:text-slate-500" />
                 <input
                   type="date"
+                  lang="id-ID"
                   className="pl-9 h-10 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full cursor-pointer"
                   value={tanggalMulai}
                   onChange={(e) => setTanggalMulai(e.target.value)}

@@ -206,6 +206,7 @@ export default function JurnalMengajarPage() {
           <Calendar className="h-4 w-4 text-slate-450 dark:text-slate-500" />
           <input
             type="date"
+            lang="id-ID"
             value={tanggal}
             onChange={(e) => setTanggal(e.target.value)}
             className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none w-[130px] cursor-pointer"
