@@ -39,8 +39,10 @@ export default function GuruFormKepegawaianTab({ form, onChange }: Props) {
             <SelectContent>
               <SelectItem value="PNS">PNS</SelectItem>
               <SelectItem value="PPPK">PPPK</SelectItem>
-              <SelectItem value="Guru Tetap Yayasan (GTY)">Guru Tetap Yayasan (GTY)</SelectItem>
-              <SelectItem value="Honorer">Honorer</SelectItem>
+              <SelectItem value="GTY">GTY (Guru Tetap Yayasan)</SelectItem>
+              <SelectItem value="GTT">GTT (Guru Tidak Tetap)</SelectItem>
+              <SelectItem value="Honor">Honor</SelectItem>
+              <SelectItem value="Lainnya">Lainnya</SelectItem>
             </SelectContent>
           </Select>
         </div>

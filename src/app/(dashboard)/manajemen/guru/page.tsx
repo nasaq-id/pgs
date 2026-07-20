@@ -67,9 +67,15 @@ export default function GuruPage() {
   const [querySearch, setQuerySearch] = useState("")
   const [page, setPage] = useState(0)
   const [limit, setLimit] = useState(25)
+  const [sortOption, setSortOption] = useState<"name_asc" | "name_desc" | "nip_desc" | "nip_asc">("name_asc")
+
+  const sortBy = sortOption.startsWith("nip") ? "nipnuptk" : "namaLengkap"
+  const sortOrder = sortOption.endsWith("desc") ? "desc" : "asc"
 
   const { data: guruList, isLoading } = api.guru.getAll.useQuery({
     search: querySearch || undefined,
+    sortBy,
+    sortOrder,
     limit,
     offset: page * limit,
   })
@@ -542,19 +548,36 @@ export default function GuruPage() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
-            <span>Tampil</span>
-            <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
-              <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-            <span>data</span>
+          <div className="flex items-center gap-3 flex-wrap ml-auto">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Urutkan:</span>
+              <Select value={sortOption} onValueChange={(v: any) => { setSortOption(v); setPage(0) }}>
+                <SelectTrigger className="w-44 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name_asc">Alfabet (A - Z)</SelectItem>
+                  <SelectItem value="name_desc">Alfabet (Z - A)</SelectItem>
+                  <SelectItem value="nip_desc">NIP/NUPTK (Terbesar)</SelectItem>
+                  <SelectItem value="nip_asc">NIP/NUPTK (Terkecil)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Tampil</span>
+              <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
+                <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>data</span>
+            </div>
           </div>
         </div>
 
