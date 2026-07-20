@@ -1590,7 +1590,15 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                 <h3 className="font-semibold text-lg">Alamat Wali</h3>
                 <div className="space-y-2">
                   <Label>Opsi Alamat</Label>
-                  <Select value={form.alamatWaliOption} onValueChange={(v) => handleChange("alamatWaliOption", v)}>
+                  <Select
+                    options={[
+                      { value: "sama_ayah", label: "Sama dengan Alamat Ayah" },
+                      { value: "sama_ibu", label: "Sama dengan Alamat Ibu" },
+                      { value: "lainnya", label: "Isi manual" },
+                    ]}
+                    value={form.alamatWaliOption}
+                    onValueChange={(v) => handleChange("alamatWaliOption", v)}
+                  >
                     <SelectTrigger><SelectValue placeholder="Pilih opsi alamat" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sama_ayah">Sama dengan Alamat Ayah</SelectItem>
