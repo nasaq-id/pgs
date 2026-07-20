@@ -202,16 +202,16 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
               <button
                 type="button"
                 onClick={() => setKelasDropdownOpen(!kelasDropdownOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 transition-all cursor-pointer font-semibold"
+                className="w-full flex h-9 items-center justify-between gap-1.5 px-3 py-2 text-sm rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 text-foreground transition-all outline-none select-none cursor-pointer focus-visible:ring-3 focus-visible:ring-teal-500/15"
               >
                 <span className="truncate">{getKelasLabel()}</span>
                 <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
               </button>
 
               {kelasDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-[60] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 space-y-1 max-h-52 overflow-y-auto animate-in fade-in-50 zoom-in-95">
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-[60] rounded-2xl glass text-popover-foreground p-2 space-y-1 max-h-52 overflow-y-auto shadow-2xl animate-in fade-in-50 zoom-in-95 border border-border/40">
                   <div
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 cursor-pointer text-xs font-black uppercase text-teal-650 dark:text-teal-400 select-none border-b border-slate-100 dark:border-slate-800 pb-2 mb-1"
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 cursor-pointer text-xs font-black uppercase text-teal-650 dark:text-teal-400 select-none border-b border-slate-100 dark:border-slate-800 pb-2 mb-1"
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleSemuaKelas()
@@ -230,14 +230,14 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
                   </div>
 
                   {(!kelasList || kelasList.length === 0) ? (
-                    <p className="text-[11px] text-slate-400 p-2 text-center">Tidak ada kelas tersedia</p>
+                    <p className="text-xs text-slate-400 p-2 text-center">Tidak ada kelas tersedia</p>
                   ) : (
                     kelasList.map((k) => {
                       const isChecked = selectedKelasIds.includes(k.id)
                       return (
                         <div
                           key={k.id}
-                          className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300 select-none"
+                          className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300 select-none"
                           onClick={(e) => {
                             e.stopPropagation()
                             toggleKelas(k.id)
