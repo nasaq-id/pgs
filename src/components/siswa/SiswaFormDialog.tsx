@@ -169,9 +169,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const { data: kelurahanAyahOptions = [], isLoading: loadingKelAyah } = useKelurahan(form.kecamatanAyah)
   const { data: kelurahanIbuOptions = [], isLoading: loadingKelIbu } = useKelurahan(form.kecamatanIbu)
   const { data: kelurahanWaliOptions = [], isLoading: loadingKelWali } = useKelurahan(form.kecamatanWali)
-  const { data: kodePosAyah = "" } = useKodePos(form.kelurahanDesaAyah)
-  const { data: kodePosIbu = "" } = useKodePos(form.kelurahanDesaIbu)
-  const { data: kodePosWali = "" } = useKodePos(form.kelurahanDesaWali)
+  const { data: kodePosAyah = "" } = useKodePos(form.kelurahanDesaAyah, form.kecamatanAyah)
+  const { data: kodePosIbu = "" } = useKodePos(form.kelurahanDesaIbu, form.kecamatanIbu)
+  const { data: kodePosWali = "" } = useKodePos(form.kelurahanDesaWali, form.kecamatanWali)
 
   const isAyahNotAlive = form.statusAyah === "Sudah Meninggal" || form.statusAyah === "Tidak Diketahui"
   const isIbuNotAlive = form.statusIbu === "Sudah Meninggal" || form.statusIbu === "Tidak Diketahui"
@@ -184,20 +184,20 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const emailError = form.emailSiswa && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailSiswa) ? "Format email tidak valid" : ""
 
   useEffect(() => {
-    if (kodePosAyah && form.kelurahanDesaAyah) {
-      setForm((prev) => ({ ...prev, kodePosAyah: kodePosAyah }))
+    if (kodePosAyah) {
+      setForm((prev) => ({ ...prev, kodePosAyah }))
     }
   }, [kodePosAyah])
 
   useEffect(() => {
-    if (kodePosIbu && form.kelurahanDesaIbu) {
-      setForm((prev) => ({ ...prev, kodePosIbu: kodePosIbu }))
+    if (kodePosIbu) {
+      setForm((prev) => ({ ...prev, kodePosIbu }))
     }
   }, [kodePosIbu])
 
   useEffect(() => {
-    if (kodePosWali && form.kelurahanDesaWali) {
-      setForm((prev) => ({ ...prev, kodePosWali: kodePosWali }))
+    if (kodePosWali) {
+      setForm((prev) => ({ ...prev, kodePosWali }))
     }
   }, [kodePosWali])
 

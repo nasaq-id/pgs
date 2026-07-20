@@ -84,17 +84,40 @@ interface KodePosResponse {
   data: { kode_desa: string; nama_desa: string; kode_pos: string; status: string; confidence: string }[]
 }
 
-export function useKodePos(kelurahanId?: string) {
+export function useKodePos(kelurahanId?: string, kecamatanId?: string) {
   return useQuery({
-    queryKey: ["kode-pos", kelurahanId],
+    queryKey: ["kode-pos", kelurahanId, kecamatanId],
     queryFn: async () => {
-      if (!kelurahanId) return ""
-      const res = await fetch(`${KODE_POS_URL}?village_code=${kelurahanId}`)
-      if (!res.ok) return ""
-      const json: KodePosResponse = await res.json()
-      return json.data?.[0]?.kode_pos || ""
+      if (!kelurahanId && !kecamatanId) return ""
+
+      if (kelurahanId) {
+        try {
+          const res = await fetch(`${KODE_POS_URL}?village_code=${kelurahanId}`)
+          if (res.ok) {
+            const json: KodePosResponse = await res.json()
+            if (json.data?.[0]?.kode_pos) return json.data[0].kode_pos
+          }
+        } catch (e) {
+          console.warn("Failed to fetch postal code by village_code", e)
+        }
+      }
+
+      if (kecamatanId && kecamatanId.length >= 6) {
+        try {
+          const distCode = kecamatanId.slice(0, 6)
+          const res = await fetch(`${KODE_POS_URL}?district_code=${distCode}`)
+          if (res.ok) {
+            const json: KodePosResponse = await res.json()
+            if (json.data?.[0]?.kode_pos) return json.data[0].kode_pos
+          }
+        } catch (e) {
+          console.warn("Failed to fetch postal code by district_code", e)
+        }
+      }
+
+      return ""
     },
-    enabled: !!kelurahanId,
+    enabled: !!kelurahanId || !!kecamatanId,
     staleTime: 24 * 60 * 60 * 1000,
   })
 }
