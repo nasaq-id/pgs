@@ -116,7 +116,15 @@ export default function MapelPage() {
     },
   })
 
+  const savePengampuMutation = api.pengampu.save.useMutation({
+    onSuccess: () => {
+      utils.pengampu.invalidate()
+    },
+  })
+  const { data: guruList } = api.guru.getAll.useQuery({ limit: 1 })
+
   const handleSubmit = async (data: MapelFormData) => {
+    let mapelId = data.id
     if (data.id) {
       await updateMutation.mutateAsync({
         id: data.id,
@@ -127,12 +135,48 @@ export default function MapelPage() {
         },
       })
     } else {
-      await createMutation.mutateAsync({
+      const res = await createMutation.mutateAsync({
         namaMapel: data.namaMapel,
         kodeMapel: data.kodeMapel || null,
         kelompok: (data.kelompok as "A" | "B" | "C" | "muatan_lokal") || null,
         sekolahId,
       })
+      mapelId = res?.id
+    }
+
+    if (mapelId && data.selectedKelasIds) {
+      try {
+        const existingData = await utils.pengampu.getByMapel.fetch({ mataPelajaranId: mapelId })
+        const existingAssignments = existingData?.assignments || []
+        const fallbackGuruId = existingAssignments[0]?.guruId || (guruList && guruList[0]?.id) || ""
+
+        if (fallbackGuruId && data.selectedKelasIds.length > 0) {
+          const classToGuruMap = new Map<string, string>()
+          for (const a of existingAssignments) {
+            classToGuruMap.set(a.kelasId, a.guruId)
+          }
+
+          const guruToClassesMap = new Map<string, string[]>()
+          for (const kId of data.selectedKelasIds) {
+            const gId = classToGuruMap.get(kId) || fallbackGuruId
+            if (!guruToClassesMap.has(gId)) guruToClassesMap.set(gId, [])
+            guruToClassesMap.get(gId)!.push(kId)
+          }
+
+          const assignments = Array.from(guruToClassesMap.entries()).map(([gId, kIds]) => ({
+            guruId: gId,
+            kelasIds: kIds,
+            jumlahJam: 4,
+          }))
+
+          await savePengampuMutation.mutateAsync({
+            mataPelajaranId: mapelId,
+            assignments,
+          })
+        }
+      } catch (err) {
+        console.error("Error saving class assignments for mapel:", err)
+      }
     }
   }
 

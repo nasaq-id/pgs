@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { X } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { X, ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { api } from "@/lib/trpc/client"
 
 const KELOMPOK_OPTIONS = [
   { value: "A", label: "Mata Pelajaran Wajib" },
@@ -20,6 +21,7 @@ export interface MapelFormData {
   kodeMapel?: string
   kelompok?: string
   aktif?: boolean
+  selectedKelasIds?: string[]
 }
 
 interface Props {
@@ -35,7 +37,27 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
   const [kodeMapel, setKodeMapel] = useState("")
   const [kelompok, setKelompok] = useState("")
   const [aktif, setAktif] = useState("Aktif")
+  const [selectedKelasIds, setSelectedKelasIds] = useState<string[]>([])
+  const [kelasDropdownOpen, setKelasDropdownOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 }, { enabled: open })
+  const { data: existingPengampu } = api.pengampu.getByMapel.useQuery(
+    { mataPelajaranId: initial?.id ?? "" },
+    { enabled: open && !!initial?.id }
+  )
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setKelasDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -44,13 +66,60 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
       setKodeMapel(initial.kodeMapel ?? "")
       setKelompok(initial.kelompok ?? "")
       setAktif(initial.aktif !== false ? "Aktif" : "Tidak Aktif")
+
+      if (initial.selectedKelasIds) {
+        setSelectedKelasIds(initial.selectedKelasIds)
+      } else if (existingPengampu?.assignments) {
+        const kIds = Array.from(new Set(existingPengampu.assignments.map((a) => a.kelasId)))
+        setSelectedKelasIds(kIds)
+      } else {
+        setSelectedKelasIds([])
+      }
     } else {
       setNamaMapel("")
       setKodeMapel("")
       setKelompok("")
       setAktif("Aktif")
+      setSelectedKelasIds([])
     }
-  }, [open, initial])
+  }, [open, initial, existingPengampu])
+
+  const isSemuaSelected = (kelasList?.length ?? 0) > 0 && selectedKelasIds.length === kelasList!.length
+
+  const toggleSemuaKelas = () => {
+    if (!kelasList) return
+    if (isSemuaSelected) {
+      setSelectedKelasIds([])
+    } else {
+      setSelectedKelasIds(kelasList.map((k) => k.id))
+    }
+  }
+
+  const toggleKelas = (id: string) => {
+    if (selectedKelasIds.includes(id)) {
+      setSelectedKelasIds(selectedKelasIds.filter((kId) => kId !== id))
+    } else {
+      setSelectedKelasIds([...selectedKelasIds, id])
+    }
+  }
+
+  const getKelasLabel = () => {
+    if (!kelasList || kelasList.length === 0) return "Memuat kelas..."
+    if (selectedKelasIds.length === 0) return "Pilih Kelas..."
+    if (isSemuaSelected) return `Semua Kelas (${kelasList.length} Kelas)`
+    if (selectedKelasIds.length === 1) {
+      const found = kelasList.find((k) => k.id === selectedKelasIds[0])
+      return found ? found.namaKelas : "1 Kelas"
+    }
+    if (selectedKelasIds.length <= 3) {
+      const names = selectedKelasIds
+        .map((id) => kelasList.find((k) => k.id === id)?.namaKelas)
+        .filter(Boolean)
+        .join(", ")
+      return names || `${selectedKelasIds.length} Kelas`
+    }
+    return `${selectedKelasIds.length} Kelas Terpilih`
+  }
 
   const handleSubmit = async () => {
     if (!namaMapel.trim()) return
@@ -62,6 +131,7 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
         kodeMapel: kodeMapel.trim() || undefined,
         kelompok: kelompok || undefined,
         aktif: aktif === "Aktif",
+        selectedKelasIds,
       })
       onClose()
     } catch {
@@ -117,10 +187,79 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
               </SelectTrigger>
               <SelectContent>
                 {KELOMPOK_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Multi-Select Kelas */}
+          <div className="flex items-center gap-4">
+            <Label className="w-20 text-right flex-shrink-0">Pilih Kelas</Label>
+            <div className="relative flex-1" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setKelasDropdownOpen(!kelasDropdownOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 transition-all cursor-pointer font-semibold"
+              >
+                <span className="truncate">{getKelasLabel()}</span>
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+              </button>
+
+              {kelasDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 space-y-1 max-h-56 overflow-y-auto animate-in fade-in-50 zoom-in-95">
+                  <div
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 cursor-pointer text-xs font-black uppercase text-teal-650 dark:text-teal-400 select-none border-b border-slate-100 dark:border-slate-800 pb-2 mb-1"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleSemuaKelas()
+                    }}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                        isSemuaSelected
+                          ? "bg-teal-600 border-teal-600 text-white"
+                          : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      }`}
+                    >
+                      {isSemuaSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                    <span>Semua Kelas</span>
+                  </div>
+
+                  {(!kelasList || kelasList.length === 0) ? (
+                    <p className="text-[11px] text-slate-400 p-2 text-center">Tidak ada kelas tersedia</p>
+                  ) : (
+                    kelasList.map((k) => {
+                      const isChecked = selectedKelasIds.includes(k.id)
+                      return (
+                        <div
+                          key={k.id}
+                          className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300 select-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleKelas(k.id)
+                          }}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                              isChecked
+                                ? "bg-teal-600 border-teal-600 text-white"
+                                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            }`}
+                          >
+                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          <span>{k.namaKelas}</span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -138,7 +277,9 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
         </div>
 
         <div className="flex justify-end gap-2 px-6 py-4 glass-dialog-footer">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>Batal</Button>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+            Batal
+          </Button>
           <Button onClick={handleSubmit} disabled={isLoading || !namaMapel.trim()}>
             {isLoading ? "Menyimpan..." : "Simpan"}
           </Button>
