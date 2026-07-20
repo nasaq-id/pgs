@@ -12,12 +12,12 @@ import {
   Eye,
   Pencil,
   Trash2,
-  Loader2,
-  ExternalLink,
-  Layers,
-  GraduationCap,
+  Folder,
+  ChevronRight,
+  User,
   Sparkles,
-  MoreHorizontal,
+  Layers,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -42,26 +42,36 @@ export default function EMateriPage() {
   const { data: session } = useSession()
   const userRole = session?.user?.role ?? "guru"
 
-  const [search, setSearch] = useState("")
+  const [activeTab, setActiveTab] = useState<"mapel_cards" | "semua_materi">("mapel_cards")
+
+  // Filter States
+  const [searchMapel, setSearchMapel] = useState("")
+  const [tingkatFilter, setTingkatFilter] = useState("semua")
+  const [searchMateri, setSearchMateri] = useState("")
   const [mapelFilter, setMapelFilter] = useState("semua")
   const [kelasFilter, setKelasFilter] = useState("semua")
   const [tipeFilter, setTipeFilter] = useState("semua")
-  const [statusFilter, setStatusFilter] = useState("semua")
 
+  // Modal States
   const [formOpen, setFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<EMateriFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [previewItem, setPreviewItem] = useState<any | null>(null)
 
-  const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 100 })
+  // tRPC Queries
+  const { data: mapelList, isLoading: isLoadingMapel } = api.mapel.getAll.useQuery({
+    search: searchMapel || undefined,
+    tingkat: tingkatFilter !== "semua" ? tingkatFilter : undefined,
+    limit: 100,
+  })
+
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
 
-  const { data: materiList, isLoading } = api.eMateri.getAll.useQuery({
-    search: search || undefined,
+  const { data: materiList, isLoading: isLoadingMateri } = api.eMateri.getAll.useQuery({
+    search: searchMateri || undefined,
     mataPelajaranId: mapelFilter !== "semua" ? mapelFilter : undefined,
     kelasId: kelasFilter !== "semua" ? kelasFilter : undefined,
     tipeMateri: tipeFilter !== "semua" ? tipeFilter : undefined,
-    status: statusFilter !== "semua" ? statusFilter : undefined,
   })
 
   const utils = api.useUtils()
@@ -108,11 +118,29 @@ export default function EMateriPage() {
     incrementViewsMutation.mutate({ id: item.id })
   }
 
+  const handleOpenAddForMapel = (mapelId: string) => {
+    setEditingItem({
+      mataPelajaranId: mapelId,
+      judul: "",
+      tipeMateri: "dokumen",
+      status: "terbit",
+    })
+    setFormOpen(true)
+  }
+
   // Calculate stats
   const totalMateri = materiList?.length ?? 0
   const countDokumen = (materiList ?? []).filter((m) => m.tipeMateri === "dokumen").length
   const countVideo = (materiList ?? []).filter((m) => m.tipeMateri === "video").length
   const countTerbit = (materiList ?? []).filter((m) => m.status === "terbit").length
+
+  // Map materi count per mapelId
+  const countPerMapel: Record<string, number> = {}
+  ;(materiList ?? []).forEach((m) => {
+    if (m.mataPelajaranId) {
+      countPerMapel[m.mataPelajaranId] = (countPerMapel[m.mataPelajaranId] || 0) + 1
+    }
+  })
 
   const getTipeBadge = (tipe: string) => {
     switch (tipe) {
@@ -145,28 +173,64 @@ export default function EMateriPage() {
 
   const canManage = ["super_admin", "admin_sekolah", "tu", "guru"].includes(userRole)
 
+  // Extract unique Tingkat list from Kelas
+  const uniqueTingkat = Array.from(
+    new Set((kelasList ?? []).map((k) => k.tingkat).filter(Boolean)),
+  ) as string[]
+
   return (
     <div className="space-y-6">
-      {/* Header Title */}
+      {/* Header Title & Navigation Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight">e-Materi Pembelajaran</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Kelola modul, dokumen, video, dan bahan ajar digital siswa
+            Pilih mata pelajaran untuk menambahkan e-materi digital atau kelola bahan ajar
           </p>
         </div>
-        {canManage && (
-          <Button
-            onClick={() => {
-              setEditingItem(null)
-              setFormOpen(true)
-            }}
-            className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/10 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah e-Materi
-          </Button>
-        )}
+
+        <div className="flex items-center gap-3">
+          {/* View Tab Switcher */}
+          <div className="p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-1">
+            <button
+              onClick={() => setActiveTab("mapel_cards")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "mapel_cards"
+                  ? "bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Card Mapel</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("semua_materi")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "semua_materi"
+                  ? "bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              )}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Semua Materi ({totalMateri})</span>
+            </button>
+          </div>
+
+          {canManage && (
+            <Button
+              onClick={() => {
+                setEditingItem(null)
+                setFormOpen(true)
+              }}
+              className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/10 cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah e-Materi
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stat Cards Grid */}
@@ -212,204 +276,330 @@ export default function EMateriPage() {
         </div>
       </div>
 
-      {/* Filter Controls Bar */}
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari judul materi, bab..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-slate-700 dark:text-slate-300 font-medium"
-            />
-          </div>
-
-          {/* Mapel Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="shrink-0 font-medium">Mapel:</span>
-            <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "semua")}>
-              <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                <SelectValue placeholder="Semua Mapel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="semua">Semua Mapel</SelectItem>
-                {(mapelList ?? []).map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.namaMapel}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Kelas Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="shrink-0 font-medium">Kelas:</span>
-            <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "semua")}>
-              <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                <SelectValue placeholder="Semua Kelas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="semua">Semua Kelas</SelectItem>
-                {(kelasList ?? []).map((k) => (
-                  <SelectItem key={k.id} value={k.id}>
-                    {k.namaKelas}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Format / Tipe Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="shrink-0 font-medium">Format:</span>
-            <Select value={tipeFilter} onValueChange={(v) => setTipeFilter(v ?? "semua")}>
-              <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                <SelectValue placeholder="Semua Format" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="semua">Semua Format</SelectItem>
-                <SelectItem value="dokumen">Dokumen PDF/File</SelectItem>
-                <SelectItem value="video">Video Learning</SelectItem>
-                <SelectItem value="link_eksternal">Link Web</SelectItem>
-                <SelectItem value="teks_artikel">Catatan Teks</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Cards Grid */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="glass-card rounded-[24px] border border-slate-200 p-5 space-y-3">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-8 w-1/2" />
+      {/* ── TAB 1: KARTU MATA PELAJARAN (DESAIN PER MAPEL SEPERTI SCREENSHOT) ── */}
+      {activeTab === "mapel_cards" && (
+        <div className="space-y-5">
+          {/* Filter Bar for Mapel Cards */}
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Search Mapel */}
+              <div className="relative w-full sm:max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama atau kode mata pelajaran..."
+                  value={searchMapel}
+                  onChange={(e) => setSearchMapel(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-slate-700 dark:text-slate-300 font-medium"
+                />
               </div>
-            ))}
-          </div>
-        ) : !materiList || materiList.length === 0 ? (
-          <div className="glass-card rounded-[26px] border border-slate-200 dark:border-slate-800 p-12 text-center space-y-3">
-            <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
-              <BookOpen className="w-7 h-7" />
+
+              {/* Tingkat Filter Dropdown */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full sm:w-auto">
+                <span className="shrink-0 font-medium">Tingkat:</span>
+                <Select value={tingkatFilter} onValueChange={(v) => setTingkatFilter(v ?? "semua")}>
+                  <SelectTrigger className="w-full sm:w-48 !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <SelectValue placeholder="Semua Tingkat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Tingkat</SelectItem>
+                    {uniqueTingkat.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <h4 className="text-base font-extrabold text-slate-700 dark:text-slate-300">Belum Ada Materi Pembelajaran</h4>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Silakan klik tombol &quot;Tambah e-Materi&quot; untuk menambahkan dokumen, video, atau catatan pembelajaran baru.
-            </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {materiList.map((m) => (
-              <div
-                key={m.id}
-                className="glass-card rounded-[26px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900/40 relative group"
-              >
-                <div className="space-y-3">
-                  {/* Card Header Badges */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {getTipeBadge(m.tipeMateri)}
-                      {m.kelas?.namaKelas && (
-                        <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/50">
-                          {m.kelas.namaKelas}
+
+          {/* Mapel Cards Grid */}
+          {isLoadingMapel ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="glass-card rounded-[26px] border border-slate-200 p-5 space-y-4">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-8 w-3/4" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : !mapelList || mapelList.length === 0 ? (
+            <div className="glass-card rounded-[26px] border border-slate-200 dark:border-slate-800 p-12 text-center space-y-3">
+              <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                <BookOpen className="w-7 h-7" />
+              </div>
+              <h4 className="text-base font-extrabold text-slate-700 dark:text-slate-300">Mata Pelajaran Tidak Ditemukan</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Silakan periksa kata kunci pencarian atau buat mata pelajaran baru di menu Akademik.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {mapelList.map((m) => {
+                // Get teacher name from pengampu relations
+                const pengampuList = m.pengampu ?? []
+                const namaGuru = pengampuList.length > 0 && pengampuList[0]?.guru
+                  ? `${pengampuList[0].guru.namaLengkap}`
+                  : "Belum Ditunjuk"
+
+                const materiCount = countPerMapel[m.id] || 0
+
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => handleOpenAddForMapel(m.id)}
+                    className="glass-card rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 p-6 hover:shadow-xl hover:border-teal-500/50 dark:hover:border-teal-500/50 transition-all duration-300 flex flex-col justify-between space-y-5 bg-white dark:bg-slate-900/50 cursor-pointer group relative overflow-hidden"
+                  >
+                    {/* Top Soft Gradient Glow Header */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 dark:bg-teal-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
+
+                    <div className="space-y-4 relative z-10">
+                      {/* Row 1: Tingkat Badge (Left) & Kode Mapel (Right) */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-900/50">
+                          {tingkatFilter !== "semua" ? tingkatFilter.toUpperCase() : "SEMUA TINGKAT"}
                         </span>
-                      )}
+                        <span className="text-[11px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                          {m.kodeMapel || "MAPEL"}
+                        </span>
+                      </div>
+
+                      {/* Row 2: Nama Mapel Title */}
+                      <div>
+                        <h3 className="font-extrabold text-slate-850 dark:text-slate-100 text-lg leading-snug group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                          {m.namaMapel}
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 mt-1">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="truncate">{namaGuru}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 text-[8px] font-black uppercase rounded-full border",
-                        m.status === "terbit"
-                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100"
-                          : "bg-slate-100 text-slate-500 border-slate-200"
-                      )}
-                    >
-                      {m.status === "terbit" ? "Terbit" : "Draf"}
-                    </span>
+                    {/* Row 3: Bottom Status Bar matching screenshot */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-350">
+                        <Folder className="w-4 h-4 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                        <span>
+                          {materiCount === 0 ? "Belum Ada Materi" : `${materiCount} File Materi`}
+                        </span>
+                      </div>
+
+                      <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-500 group-hover:text-white text-slate-400 flex items-center justify-center transition-all shadow-sm">
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
                   </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                  {/* Title & Bab */}
-                  <div>
-                    {m.bab && (
-                      <span className="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest block mb-0.5">
-                        {m.bab}
-                      </span>
-                    )}
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-base leading-snug group-hover:text-teal-600 transition-colors">
-                      {m.judul}
-                    </h4>
-                  </div>
-
-                  {/* Deskripsi Singkat */}
-                  {m.deskripsi && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {m.deskripsi}
-                    </p>
-                  )}
-
-                  {/* Meta Info: Mapel & Pembuat */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]">
-                      {m.mataPelajaran?.namaMapel ?? "Mata Pelajaran"}
-                    </span>
-                    <span className="truncate max-w-[120px] text-[10px] font-medium text-slate-400">
-                      Oleh: {m.pembuatNama || "Pengajar"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Footer Action Buttons */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>{m.viewsCount}x Dilihat</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleOpenPreview(m)}
-                      className="px-3 py-1.5 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-extrabold rounded-xl text-xs tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Akses</span>
-                    </button>
-
-                    {canManage && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditingItem(m as any)
-                            setFormOpen(true)
-                          }}
-                          className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-600 hover:text-amber-600 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Edit Materi"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => setDeleteId(m.id)}
-                          className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Hapus Materi"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+      {/* ── TAB 2: DAFTAR SEMUA E-MATERI (LIST PENUH MATERI TER-UPLOAD) ── */}
+      {activeTab === "semua_materi" && (
+        <div className="space-y-5">
+          {/* Filter Bar */}
+          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari judul materi, bab..."
+                  value={searchMateri}
+                  onChange={(e) => setSearchMateri(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-slate-700 dark:text-slate-300 font-medium"
+                />
               </div>
-            ))}
+
+              {/* Mapel Filter */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="shrink-0 font-medium">Mapel:</span>
+                <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "semua")}>
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <SelectValue placeholder="Semua Mapel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Mapel</SelectItem>
+                    {(mapelList ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.namaMapel}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Kelas Filter */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="shrink-0 font-medium">Kelas:</span>
+                <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "semua")}>
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <SelectValue placeholder="Semua Kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Kelas</SelectItem>
+                    {(kelasList ?? []).map((k) => (
+                      <SelectItem key={k.id} value={k.id}>
+                        {k.namaKelas}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Format / Tipe Filter */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="shrink-0 font-medium">Format:</span>
+                <Select value={tipeFilter} onValueChange={(v) => setTipeFilter(v ?? "semua")}>
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <SelectValue placeholder="Semua Format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Format</SelectItem>
+                    <SelectItem value="dokumen">Dokumen PDF/File</SelectItem>
+                    <SelectItem value="video">Video Learning</SelectItem>
+                    <SelectItem value="link_eksternal">Link Web</SelectItem>
+                    <SelectItem value="teks_artikel">Catatan Teks</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Content Cards Grid */}
+          {isLoadingMateri ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="glass-card rounded-[24px] border border-slate-200 p-5 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-8 w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : !materiList || materiList.length === 0 ? (
+            <div className="glass-card rounded-[26px] border border-slate-200 dark:border-slate-800 p-12 text-center space-y-3">
+              <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                <BookOpen className="w-7 h-7" />
+              </div>
+              <h4 className="text-base font-extrabold text-slate-700 dark:text-slate-300">Belum Ada Materi Pembelajaran</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Silakan klik tombol &quot;Tambah e-Materi&quot; untuk menambahkan dokumen, video, atau catatan pembelajaran baru.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {materiList.map((m) => (
+                <div
+                  key={m.id}
+                  className="glass-card rounded-[26px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900/40 relative group"
+                >
+                  <div className="space-y-3">
+                    {/* Card Header Badges */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {getTipeBadge(m.tipeMateri)}
+                        {m.kelas?.namaKelas && (
+                          <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/50">
+                            {m.kelas.namaKelas}
+                          </span>
+                        )}
+                      </div>
+
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 text-[8px] font-black uppercase rounded-full border",
+                          m.status === "terbit"
+                            ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                        )}
+                      >
+                        {m.status === "terbit" ? "Terbit" : "Draf"}
+                      </span>
+                    </div>
+
+                    {/* Title & Bab */}
+                    <div>
+                      {m.bab && (
+                        <span className="text-[10px] font-mono font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest block mb-0.5">
+                          {m.bab}
+                        </span>
+                      )}
+                      <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-base leading-snug group-hover:text-teal-600 transition-colors">
+                        {m.judul}
+                      </h4>
+                    </div>
+
+                    {/* Deskripsi Singkat */}
+                    {m.deskripsi && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {m.deskripsi}
+                      </p>
+                    )}
+
+                    {/* Meta Info: Mapel & Pembuat */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]">
+                        {m.mataPelajaran?.namaMapel ?? "Mata Pelajaran"}
+                      </span>
+                      <span className="truncate max-w-[120px] text-[10px] font-medium text-slate-400">
+                        Oleh: {m.pembuatNama || "Pengajar"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Footer Action Buttons */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{m.viewsCount}x Dilihat</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenPreview(m)}
+                        className="px-3 py-1.5 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-extrabold rounded-xl text-xs tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Akses</span>
+                      </button>
+
+                      {canManage && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditingItem(m as any)
+                              setFormOpen(true)
+                            }}
+                            className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-600 hover:text-amber-600 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Edit Materi"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => setDeleteId(m.id)}
+                            className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Hapus Materi"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Form Dialog Modal */}
       <EMateriFormDialog

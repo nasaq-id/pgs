@@ -53,6 +53,7 @@ export const mapelRouter = router({
           pengampu: {
             with: {
               kelas: true,
+              guru: true,
             },
           },
         },
