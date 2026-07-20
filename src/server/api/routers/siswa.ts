@@ -13,8 +13,8 @@ const siswaCreateSchema = z.object({
   id: z.string().optional(),
   sekolahId: z.string().optional(),
   kelasId: z.string().nullable().optional(),
-  nisn: z.string().optional(),
-  nisLokal: z.string(),
+  nisn: z.string().min(1, "NISN wajib diisi"),
+  nisLokal: z.string().nullable().optional(),
   namaLengkap: z.string(),
   jenisKelamin: z.enum(["L", "P"]).nullable().optional(),
   tempatLahir: z.string().nullable().optional(),
@@ -181,7 +181,7 @@ export const siswaRouter = router({
         if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
         const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
         const result = await db.insert(siswa).values(data as any).returning()
-        const email = input.nisLokal || input.usernameSiswa || input.nisn || ""
+        const email = input.nisn || input.nisLokal || input.usernameSiswa || ""
         if (email) {
           const nameParts = (input.namaLengkap || "").split(" ")
           const firstName = nameParts[0] || ""

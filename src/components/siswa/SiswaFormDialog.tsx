@@ -472,8 +472,8 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       toast.error("Nama lengkap wajib diisi")
       return
     }
-    if (!form.nisLokal) {
-      toast.error("NIS wajib diisi")
+    if (!form.nisn) {
+      toast.error("NISN wajib diisi")
       return
     }
     if (!isEdit && !form.passwordSiswa) {
@@ -683,12 +683,17 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nisn">NISN</Label>
+                  <Label htmlFor="nisn">NISN *</Label>
                   <Input
                     id="nisn"
+                    required
                     maxLength={10}
                     value={form.nisn}
-                    onChange={(e) => handleChange("nisn", e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "")
+                      handleChange("nisn", val)
+                      if (!isEdit) handleChange("usernameSiswa", val)
+                    }}
                     className="font-mono tracking-widest text-sm"
                     placeholder="terdiri dari 10 angka"
                   />
@@ -697,19 +702,17 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nisLokal">NIS *</Label>
+                  <Label htmlFor="nisLokal">NIS Lokal</Label>
                   <Input
                     id="nisLokal"
-                    required
-                    maxLength={6}
+                    maxLength={10}
                     value={form.nisLokal}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "")
                       handleChange("nisLokal", val)
-                      if (!isEdit) handleChange("usernameSiswa", val)
                     }}
                     className="font-mono tracking-widest text-sm"
-                    placeholder="terdiri dari 6 digit angka"
+                    placeholder="opsional (nomor lokal sekolah)"
                   />
                 </div>
                 <div className="space-y-2">
@@ -730,9 +733,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   <Input
                     id="usernameSiswa"
                     readOnly
-                    value={form.usernameSiswa as string}
+                    value={(form.usernameSiswa || form.nisn) as string}
                     className="bg-muted text-muted-foreground cursor-not-allowed"
-                    placeholder="Otomatis dari NIS"
+                    placeholder="Otomatis dari NISN"
                   />
                 </div>
                 <div className="space-y-2">
