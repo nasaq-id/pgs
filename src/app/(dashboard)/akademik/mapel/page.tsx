@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical, BookOpen, Layers, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -230,8 +230,65 @@ export default function MapelPage() {
   const { data: session } = useSession()
   const sekolahId = session?.user?.sekolahId ?? ""
 
+  // Calculate Mapel Stats
+  const totalMapel = mapelList?.length ?? 0
+  const countWajib = (mapelList ?? []).filter((m) => m.kelompok === "A").length
+  const countPilihan = (mapelList ?? []).filter((m) => m.kelompok === "B" || m.kelompok === "C").length
+  const countMulok = (mapelList ?? []).filter((m) => m.kelompok === "muatan_lokal").length
+
+  const totalBebanJam = (mapelList ?? []).reduce((acc, m: any) => {
+    if (!m.pengampu) return acc
+    return acc + m.pengampu.reduce((sum: number, p: any) => sum + (p.jumlahJam || 0), 0)
+  }, 0)
+
   return (
     <div className="space-y-6">
+      {/* Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Stat 1: Total Mata Pelajaran */}
+        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent relative overflow-hidden flex items-center justify-between shadow-sm">
+          <div className="space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Mata Pelajaran</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalMapel} <span className="text-xs font-semibold text-slate-500">Mapel</span></h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <BookOpen className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Stat 2: Kategori Kurikulum */}
+        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent relative overflow-hidden space-y-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Kategori Kurikulum</p>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <Layers className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1 text-xs font-bold flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50">
+              Wajib: <strong className="font-extrabold">{countWajib}</strong>
+            </span>
+            <span className="px-2.5 py-0.5 rounded-xl bg-purple-100/70 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200/50">
+              Pilihan: <strong className="font-extrabold">{countPilihan}</strong>
+            </span>
+            <span className="px-2.5 py-0.5 rounded-xl bg-amber-100/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/50">
+              Mulok: <strong className="font-extrabold">{countMulok}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Stat 3: Total Beban Mengajar */}
+        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent relative overflow-hidden flex items-center justify-between shadow-sm">
+          <div className="space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Beban Mengajar</p>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalBebanJam} <span className="text-xs font-semibold text-slate-500">JP /Minggu</span></h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
       <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
