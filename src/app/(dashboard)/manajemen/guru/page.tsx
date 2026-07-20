@@ -648,7 +648,7 @@ export default function GuruPage() {
             className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95"
           >
             <Plus className="w-4 h-4 mr-2" />
-            <span>Tambah Guru</span>
+            <span>Tambah Guru / Tendik</span>
           </button>
         </div>
 
