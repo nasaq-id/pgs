@@ -64,7 +64,6 @@ const KELOMPOK_LABEL: Record<string, string> = {
 export default function MapelPage() {
   const [search, setSearch] = useState("")
   const [tingkatFilter, setTingkatFilter] = useState<string>("")
-  const [isReordering, setIsReordering] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -293,22 +292,6 @@ export default function MapelPage() {
       <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
-            {/* Button Drag & Drop Ubah Urutan (Pojok Kiri Atas) */}
-            <button
-              type="button"
-              onClick={() => setIsReordering(!isReordering)}
-              className={cn(
-                "px-3.5 py-2.5 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm",
-                isReordering
-                  ? "bg-amber-500 text-white border-amber-600 shadow-amber-500/20"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-              )}
-              title="Klik untuk mengaktifkan/menonaktifkan petunjuk drag & drop urutan mapel"
-            >
-              <GripVertical className={cn("w-4 h-4 mr-1.5", isReordering ? "text-white animate-pulse" : "text-slate-500")} />
-              <span>{isReordering ? "Selesai Urutkan" : "Ubah Urutan"}</span>
-            </button>
-
             <div className="relative w-full sm:max-w-xs lg:max-w-sm">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
               <input
@@ -353,22 +336,6 @@ export default function MapelPage() {
           </button>
         </div>
 
-        {/* Mode Ubah Urutan Banner Notice */}
-        {isReordering && (
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-900/50 rounded-2xl flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 font-medium animate-fade-in shadow-sm">
-            <div className="flex items-center gap-2">
-              <GripVertical className="h-4 w-4 text-amber-600 animate-pulse shrink-0" />
-              <span><strong>Mode Ubah Urutan Aktif:</strong> Tarik/geser baris tabel menggunakan ikon <strong>(⋮⋮)</strong> untuk mengubah urutan mata pelajaran.</span>
-            </div>
-            <button
-              onClick={() => setIsReordering(false)}
-              className="px-2.5 py-1 bg-amber-200/60 dark:bg-amber-900/60 hover:bg-amber-300 rounded-xl font-bold text-[10px] uppercase text-amber-900 dark:text-amber-100 transition-colors cursor-pointer shrink-0 ml-2"
-            >
-              Selesai
-            </button>
-          </div>
-        )}
-
         {/* Mobile View: Card List (Visible on mobile, hidden on desktop) */}
         <div className="md:hidden space-y-4">
           {isLoading ? (
@@ -386,11 +353,31 @@ export default function MapelPage() {
             localRecords.map((r, index) => {
               const isMenuOpen = activeMenuId === r.id
               return (
-                <div key={r.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
-                  <div className="flex justify-between items-start">
-                    <div className="min-w-0">
-                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">KODE: {r.kodeMapel ?? "—"}</span>
-                      <h4 className="font-bold text-slate-800 dark:text-slate-250 text-xs sm:text-sm leading-tight mt-0.5 truncate">{r.namaMapel}</h4>
+                <div
+                  key={r.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40 transition-all",
+                    dragIndex === index ? "opacity-50 border-dashed border-teal-500" : "cursor-grab active:cursor-grabbing"
+                  )}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Tombol Drag & Drop di Pojok Kiri Atas Card */}
+                      <button
+                        type="button"
+                        className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 cursor-grab active:cursor-grabbing shrink-0 border border-slate-200/60 dark:border-slate-700/60"
+                        title="Tarik/drag untuk mengubah urutan"
+                      >
+                        <GripVertical className="w-4 h-4 text-slate-500 shrink-0" />
+                      </button>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">KODE: {r.kodeMapel ?? "—"}</span>
+                        <h4 className="font-bold text-slate-800 dark:text-slate-250 text-xs sm:text-sm leading-tight mt-0.5 truncate">{r.namaMapel}</h4>
+                      </div>
                     </div>
                     <span
                       className={cn(
@@ -524,7 +511,13 @@ export default function MapelPage() {
                       )}
                     >
                       <TableCell className="w-10 text-slate-400 dark:text-slate-500 text-center">
-                        <GripVertical className={cn("h-4 w-4 shrink-0 mx-auto transition-colors", isReordering ? "text-amber-500 stroke-[2.5]" : "")} />
+                        <button
+                          type="button"
+                          className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 cursor-grab active:cursor-grabbing mx-auto border border-slate-200/60 dark:border-slate-700/60 transition-all"
+                          title="Tarik/drag untuk mengubah urutan"
+                        >
+                          <GripVertical className="h-4 w-4 shrink-0 text-slate-500" />
+                        </button>
                       </TableCell>
                       <TableCell className="font-bold text-xs tracking-wider text-slate-700 dark:text-slate-350 font-mono">
                         {r.kodeMapel ?? "—"}
