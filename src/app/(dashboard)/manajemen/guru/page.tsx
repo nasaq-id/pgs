@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -18,6 +18,8 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
+import jsPDF from "jspdf"
+import { autoTable } from "jspdf-autotable"
 import {
   Tooltip,
   TooltipTrigger,
@@ -84,6 +86,7 @@ export default function GuruPage() {
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importPreviewOpen, setImportPreviewOpen] = useState(false)
   const [importPreviewData, setImportPreviewData] = useState<any[] | null>(null)
@@ -256,6 +259,180 @@ export default function GuruPage() {
       toast.error("Gagal mengexport data")
     } finally {
       setExporting(false)
+    }
+  }
+
+  const toDdMmYyyy = (d: any) => {
+    if (!d) return ""
+    const date = new Date(d)
+    if (isNaN(date.getTime())) return ""
+    const day = String(date.getDate()).padStart(2, "0")
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(url)
+      const blob = await resp.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      return null
+    }
+  }
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true)
+    try {
+      const [res, sekolah, aktifTa] = await Promise.all([
+        utils.client.guru.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.lembaga.getSekolah.query(),
+        utils.client.lembaga.getActiveTahunAjaran.query(),
+      ])
+
+      let logoBase64: string | null = null
+      if (sekolah?.logo) {
+        logoBase64 = await urlToBase64(sekolah.logo)
+      }
+
+      const rows: (string | number)[][] = res.map((g: any, i: number) => [
+        i + 1,
+        g.nipnuptk || "-",
+        g.nik || "-",
+        g.namaLengkap || "-",
+        g.jenisKelamin === "L" ? "Laki-laki" : g.jenisKelamin === "P" ? "Perempuan" : "-",
+        g.tempatLahir || "-",
+        toDdMmYyyy(g.tanggalLahir),
+        g.statusKepegawaian || "-",
+        g.tugasUtama || "-",
+        g.noHp || "-",
+        g.email || "-",
+        g.active !== false ? "Aktif" : "Non-Aktif",
+      ])
+
+      const head = [["No", "NIP/NUPTK", "NIK", "Nama Lengkap", "JK", "Tempat Lahir", "Tgl Lahir", "Status Pegawai", "Tugas Utama", "No HP", "Email", "Status"]]
+
+      const doc = new jsPDF("landscape", "mm", "a4")
+      const pageW = doc.internal.pageSize.getWidth()
+
+      const kopH = 18
+      const logoSize = 12
+      const logoX = 10
+      const logoY = 3
+      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 0
+
+      doc.setFillColor(13, 148, 136)
+      doc.rect(0, 0, pageW, kopH, "F")
+
+      if (logoBase64) {
+        try {
+          doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
+        } catch {
+          try {
+            doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
+          } catch {}
+        }
+      }
+
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      const centerX = textLeftMargin > 0 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
+      doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 6.5, { align: "center" })
+      doc.setFontSize(7)
+      doc.text(sekolah?.alamat || "", centerX, 11, { align: "center" })
+      if (sekolah?.npsn || sekolah?.telepon) {
+        const infoParts = []
+        if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
+        if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
+        doc.text(infoParts.join(" | "), centerX, 14.5, { align: "center" })
+      }
+
+      const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
+      const titleText = `Data Guru & Tendik${taLabel}`
+
+      doc.setFillColor(15, 118, 110)
+      doc.rect(0, kopH, pageW, 8, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(8)
+      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
+
+      const infoY = kopH + 12
+      doc.setTextColor(100, 100, 100)
+      doc.setFontSize(7)
+      const now = new Date()
+      const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
+      const tglStr = `Diexport pada: ${hari}, ${toDdMmYyyy(now)}`
+      doc.text(tglStr, pageW - 14, infoY + 1, { align: "right" })
+      doc.text(`Total data: ${res.length} guru & tendik`, 14, infoY + 1)
+
+      autoTable(doc, {
+        startY: infoY + 5,
+        head,
+        body: rows,
+        styles: {
+          fontSize: 6,
+          cellPadding: 1.5,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.25,
+          textColor: [50, 50, 50],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [13, 148, 136],
+          textColor: [255, 255, 255],
+          fontSize: 6.5,
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+        },
+        alternateRowStyles: {
+          fillColor: [240, 253, 250],
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: "center" },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 24, halign: "center" },
+          3: { cellWidth: 42 },
+          4: { cellWidth: 14, halign: "center" },
+          5: { cellWidth: 26 },
+          6: { cellWidth: 20, halign: "center" },
+          7: { cellWidth: 26 },
+          8: { cellWidth: 30 },
+          9: { cellWidth: 24 },
+          10: { cellWidth: 35 },
+          11: { cellWidth: 16, halign: "center" },
+        },
+        margin: { top: 37, bottom: 15 },
+        pageBreak: "auto",
+        showFoot: "everyPage",
+        footStyles: {
+          fillColor: [245, 247, 250],
+          textColor: [100, 100, 100],
+          fontSize: 6,
+          fontStyle: "italic",
+          halign: "center",
+        },
+        didDrawPage: (data) => {
+          const str = `Halaman ${data.pageNumber} dari ${doc.getNumberOfPages()}`
+          doc.setFontSize(6)
+          doc.setTextColor(150, 150, 150)
+          doc.text(str, pageW / 2, doc.internal.pageSize.getHeight() - 6, { align: "center" })
+        },
+      })
+
+      doc.save(`data_guru_${new Date().toISOString().split("T")[0]}.pdf`)
+      toast.success(`Data berhasil diexport ke PDF (${res.length} guru & tendik)`)
+    } catch (e) {
+      console.error(e)
+      toast.error("Gagal mengexport PDF data guru & tendik")
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -889,23 +1066,37 @@ export default function GuruPage() {
       </Dialog>
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Export Data Guru</DialogTitle>
-            <DialogDescription>Pilih format file untuk mengexport data guru</DialogDescription>
+            <DialogTitle>Export Data Guru & Tendik</DialogTitle>
+            <DialogDescription>Pilih format file untuk mengexport data guru & tendik</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-2">
             <button
               onClick={() => { setExportModalOpen(false); handleExport() }}
-              disabled={exporting}
-              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              disabled={exporting || exportingPdf}
+              className="group flex flex-col items-center justify-center text-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 shrink-0">
-                <FileSpreadsheet className="size-5" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <FileSpreadsheet className="size-6" />
               </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-foreground">Excel</p>
-                <p className="text-xs text-muted-foreground mt-0.5">.xlsx — Semua data guru lengkap</p>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Excel (.xlsx)</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Semua data guru & tendik</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => { setExportModalOpen(false); handleExportPdf() }}
+              disabled={exporting || exportingPdf}
+              className="group flex flex-col items-center justify-center text-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-red-500/40 hover:bg-red-50/50 dark:hover:bg-red-950/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <div className="flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 transition-transform duration-200 group-hover:scale-110 shrink-0">
+                <FileText className="size-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">PDF (.pdf)</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Dokumen siap cetak</p>
               </div>
             </button>
           </div>
