@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Loader2, Camera, User, Eye, EyeOff } from "lucide-react"
+import { Loader2, Camera, User, Eye, EyeOff, Pencil, Lock } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -26,7 +26,7 @@ import { uploadToCloudinary } from "@/lib/cloudinary"
 interface SiswaFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  initialData: any | null
+  initialData?: any
   onSuccess: () => void
 }
 
@@ -132,6 +132,9 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const [fotoUrl, setFotoUrl] = useState("")
   const [uploading, setUploading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [editKodePosAyah, setEditKodePosAyah] = useState(false)
+  const [editKodePosIbu, setEditKodePosIbu] = useState(false)
+  const [editKodePosWali, setEditKodePosWali] = useState(false)
   const fotoInputRef = useRef<HTMLInputElement>(null)
 
   const createMutation = api.siswa.create.useMutation({
@@ -1423,8 +1426,27 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     <Input id="rwAyah" maxLength={3} value={form.rwAyah} onChange={(e) => handleChange("rwAyah", e.target.value.replace(/\D/g, ""))} placeholder="3 digit" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="kodePosAyah">Kode Pos</Label>
-                    <Input id="kodePosAyah" maxLength={5} value={form.kodePosAyah} onChange={(e) => handleChange("kodePosAyah", e.target.value.replace(/\D/g, ""))} placeholder="5 digit" />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="kodePosAyah">Kode Pos</Label>
+                      <button
+                        type="button"
+                        onClick={() => setEditKodePosAyah(!editKodePosAyah)}
+                        className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Klik untuk mengedit kode pos secara manual"
+                      >
+                        {editKodePosAyah ? <Lock className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                        {editKodePosAyah ? "Kunci" : "Ubah"}
+                      </button>
+                    </div>
+                    <Input
+                      id="kodePosAyah"
+                      maxLength={5}
+                      value={form.kodePosAyah}
+                      onChange={(e) => handleChange("kodePosAyah", e.target.value.replace(/\D/g, ""))}
+                      placeholder="5 digit"
+                      readOnly={!editKodePosAyah}
+                      className={!editKodePosAyah ? "bg-muted/50 cursor-not-allowed select-none" : ""}
+                    />
                   </div>
                 </div>
 
@@ -1531,8 +1553,27 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                         <Input id="rwIbu" maxLength={3} value={form.rwIbu} onChange={(e) => handleChange("rwIbu", e.target.value.replace(/\D/g, ""))} placeholder="3 digit" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kodePosIbu">Kode Pos</Label>
-                        <Input id="kodePosIbu" maxLength={5} value={form.kodePosIbu} onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))} placeholder="5 digit" />
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="kodePosIbu">Kode Pos</Label>
+                          <button
+                            type="button"
+                            onClick={() => setEditKodePosIbu(!editKodePosIbu)}
+                            className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Klik untuk mengedit kode pos secara manual"
+                          >
+                            {editKodePosIbu ? <Lock className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                            {editKodePosIbu ? "Kunci" : "Ubah"}
+                          </button>
+                        </div>
+                        <Input
+                          id="kodePosIbu"
+                          maxLength={5}
+                          value={form.kodePosIbu}
+                          onChange={(e) => handleChange("kodePosIbu", e.target.value.replace(/\D/g, ""))}
+                          placeholder="5 digit"
+                          readOnly={!editKodePosIbu}
+                          className={!editKodePosIbu ? "bg-muted/50 cursor-not-allowed select-none" : ""}
+                        />
                       </div>
                     </div>
 
@@ -1648,8 +1689,27 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                         <Input id="rwWali" maxLength={3} value={form.rwWali} onChange={(e) => handleChange("rwWali", e.target.value.replace(/\D/g, ""))} placeholder="3 digit" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kodePosWali">Kode Pos</Label>
-                        <Input id="kodePosWali" maxLength={5} value={form.kodePosWali} onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))} placeholder="5 digit" />
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="kodePosWali">Kode Pos</Label>
+                          <button
+                            type="button"
+                            onClick={() => setEditKodePosWali(!editKodePosWali)}
+                            className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Klik untuk mengedit kode pos secara manual"
+                          >
+                            {editKodePosWali ? <Lock className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                            {editKodePosWali ? "Kunci" : "Ubah"}
+                          </button>
+                        </div>
+                        <Input
+                          id="kodePosWali"
+                          maxLength={5}
+                          value={form.kodePosWali}
+                          onChange={(e) => handleChange("kodePosWali", e.target.value.replace(/\D/g, ""))}
+                          placeholder="5 digit"
+                          readOnly={!editKodePosWali}
+                          className={!editKodePosWali ? "bg-muted/50 cursor-not-allowed select-none" : ""}
+                        />
                       </div>
                     </div>
 
