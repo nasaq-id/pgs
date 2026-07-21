@@ -2,9 +2,16 @@
 
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
-
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+
+interface SelectContextType {
+  options?: { value: string; label: string }[]
+  registerItem?: (value: string, label: string) => void
+  itemLabelsMap?: Map<string, string>
+}
+
+const SelectContext = React.createContext<SelectContextType>({})
 
 function Select<Value extends string = string>({
   options,
@@ -15,10 +22,24 @@ function Select<Value extends string = string>({
   options?: { value: Value; label: string }[]
   onValueChange?: (value: Value | null) => void
 }) {
+  const [itemLabelsMap] = React.useState(() => new Map<string, string>())
+
+  const registerItem = React.useCallback((val: string, label: string) => {
+    if (val && label && itemLabelsMap.get(val) !== label) {
+      itemLabelsMap.set(val, label)
+    }
+  }, [itemLabelsMap])
+
   return (
-    <SelectPrimitive.Root<Value, false> {...props} onValueChange={onValueChange} items={options}>
-      {children}
-    </SelectPrimitive.Root>
+    <SelectContext.Provider value={{ options: options as any, registerItem, itemLabelsMap }}>
+      <SelectPrimitive.Root<Value, false>
+        {...props}
+        onValueChange={onValueChange}
+        items={options}
+      >
+        {children}
+      </SelectPrimitive.Root>
+    </SelectContext.Provider>
   )
 }
 
@@ -32,13 +53,41 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+  className,
+  placeholder,
+  children,
+  ...props
+}: SelectPrimitive.Value.Props & { placeholder?: string }) {
+  const { options, itemLabelsMap } = React.useContext(SelectContext)
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
       {...props}
-    />
+    >
+      {(value: any) => {
+        if (children && typeof children === "function") {
+          return (children as any)(value)
+        }
+        if (value === null || value === undefined || value === "") {
+          return placeholder || ""
+        }
+        if (typeof value === "object" && value !== null) {
+          if ("label" in value) return (value as any).label
+        }
+        const valStr = String(value)
+        if (options) {
+          const matched = options.find((o) => o.value === valStr)
+          if (matched) return matched.label
+        }
+        if (itemLabelsMap && itemLabelsMap.has(valStr)) {
+          return itemLabelsMap.get(valStr)
+        }
+        return valStr
+      }}
+    </SelectPrimitive.Value>
   )
 }
 
@@ -125,10 +174,25 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  value,
+  label,
   ...props
-}: SelectPrimitive.Item.Props) {
+}: SelectPrimitive.Item.Props & { label?: string }) {
+  const { registerItem } = React.useContext(SelectContext)
+
+  React.useEffect(() => {
+    if (value) {
+      const labelText = label || (typeof children === "string" ? children : undefined)
+      if (labelText) {
+        registerItem?.(String(value), labelText)
+      }
+    }
+  }, [value, label, children, registerItem])
+
   return (
     <SelectPrimitive.Item
+      value={value}
+      label={label}
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-pointer items-center gap-1.5 rounded-lg py-2.5 pr-8 pl-4 text-xs sm:text-[13px] outline-hidden select-none transition-colors duration-150 text-slate-700 dark:text-slate-350 focus:bg-slate-50 dark:focus:bg-slate-900/60 focus:text-slate-900 dark:focus:text-slate-100 data-[highlighted]:bg-slate-50 dark:data-[highlighted]:bg-slate-900/60 data-[selected]:bg-teal-50/50 dark:data-[selected]:bg-teal-950/20 data-[selected]:text-teal-600 dark:data-[selected]:text-teal-400 data-[selected]:font-bold data-[state=checked]:bg-teal-50/50 dark:data-[state=checked]:bg-teal-950/20 data-[state=checked]:text-teal-600 dark:data-[state=checked]:text-teal-400 data-[state=checked]:font-bold data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
@@ -176,8 +240,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <ChevronUpIcon
-      />
+      <ChevronUpIcon />
     </SelectPrimitive.ScrollUpArrow>
   )
 }
@@ -195,8 +258,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <ChevronDownIcon
-      />
+      <ChevronDownIcon />
     </SelectPrimitive.ScrollDownArrow>
   )
 }
