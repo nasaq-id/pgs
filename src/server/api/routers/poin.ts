@@ -44,12 +44,12 @@ const aturanCreateSchema = z.object({
 const aturanUpdateSchema = aturanCreateSchema.partial()
 
 const sikapCreateSchema = z.object({
-  siswaId: z.string(),
+  siswaId: z.string().optional(),
+  siswaIds: z.array(z.string()).optional(),
   kategoriId: z.string(),
   tindakLanjutId: z.string().nullable().optional(),
   deskripsi: z.string().nullable().optional(),
 })
-
 
 export const poinRouter = router({
   // ── Kategori ──
@@ -257,67 +257,91 @@ export const poinRouter = router({
       const sekolahId = getSekolahIdFilter(ctx as any)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
 
-      const studentRecord = await db.query.siswa.findFirst({
-        where: and(eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)),
-      })
-      if (!studentRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan di sekolah Anda" })
+      const targetSiswaIds = input.siswaIds && input.siswaIds.length > 0
+        ? input.siswaIds
+        : (input.siswaId ? [input.siswaId] : [])
+
+      if (targetSiswaIds.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pilih minimal 1 siswa" })
+      }
 
       const kategori = await db.query.poinKategori.findFirst({
         where: and(eq(poinKategori.id, input.kategoriId), eq(poinKategori.sekolahId, sekolahId)),
       })
-      if (!kategori) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
+      if (!kategori) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori sikap tidak ditemukan" })
 
+      // Safely resolve teacher ID in school
       const userEmail = ctx.session.user.email
       let guruId = ""
-      if (ctx.session.user.role === "guru" && userEmail) {
+      if (userEmail) {
         const guruRecord = await db.query.guru.findFirst({
-          where: or(
-            eq(guru.email, userEmail),
-            eq(guru.usernameGuru, userEmail),
+          where: and(
+            eq(guru.sekolahId, sekolahId),
+            or(
+              eq(guru.email, userEmail),
+              eq(guru.usernameGuru, userEmail),
+              eq(guru.nipnuptk, userEmail)
+            )
           ),
         })
-        if (!guruRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Data guru tidak ditemukan" })
-        guruId = guruRecord.id
-      } else {
+        if (guruRecord) {
+          guruId = guruRecord.id
+        }
+      }
+
+      if (!guruId && ctx.session.user.id) {
         const userRecord = await db.query.users.findFirst({
           where: eq(users.id, ctx.session.user.id),
         })
         if (userRecord?.firstName) {
           const guruRecord = await db.query.guru.findFirst({
-            where: or(
-              eq(guru.namaLengkap, `${userRecord.firstName} ${userRecord.lastName || ""}`.trim()),
+            where: and(
+              eq(guru.sekolahId, sekolahId),
+              eq(guru.namaLengkap, `${userRecord.firstName} ${userRecord.lastName || ""}`.trim())
             ),
           })
           if (guruRecord) {
             guruId = guruRecord.id
           }
         }
-        if (!guruId) {
-          guruId = ctx.session.user.id
+      }
+
+      if (!guruId) {
+        const anyGuru = await db.query.guru.findFirst({
+          where: eq(guru.sekolahId, sekolahId),
+        })
+        if (anyGuru) {
+          guruId = anyGuru.id
+        } else {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Belum ada data Guru terdaftar di sekolah ini. Silakan buat minimal 1 data Guru terlebih dahulu.",
+          })
         }
       }
 
-      const id = crypto.randomUUID()
-      const [result] = await db.insert(poinSikap).values({
-        id,
+      const valuesToInsert = targetSiswaIds.map((sId) => ({
+        id: crypto.randomUUID(),
         sekolahId,
-        siswaId: input.siswaId,
+        siswaId: sId,
         kategoriId: input.kategoriId,
         poin: kategori.poin,
         tindakLanjutId: input.tindakLanjutId ?? null,
         deskripsi: input.deskripsi ?? null,
         guruId,
-        status: "belum_diproses",
-      }).returning()
+        status: "belum_diproses" as const,
+      }))
+
+      const results = await db.insert(poinSikap).values(valuesToInsert).returning()
 
       await logAudit(ctx, {
         action: "create",
         entity: "poin_sikap",
-        entityId: id,
-        metadata: { siswaId: input.siswaId, poin: kategori.poin, jenis: kategori.jenis },
+        entityId: results[0]?.id || "",
+        metadata: { totalSiswa: targetSiswaIds.length, poin: kategori.poin, jenis: kategori.jenis },
       })
 
-      return result
+      return { success: true, count: results.length }
     }),
 
   // ── Monitoring ──
