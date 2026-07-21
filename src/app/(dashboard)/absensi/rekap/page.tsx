@@ -353,7 +353,7 @@ export default function RekapPresensiPage() {
             <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
               Tipe Periode
             </Label>
-            <Select value={periodeType} onValueChange={(v) => setPeriodeType(v as PeriodeType)}>
+            <Select value={periodeType} onValueChange={(v) => v && setPeriodeType(v as PeriodeType)}>
               <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                 <SelectValue placeholder="Pilih Periode" />
               </SelectTrigger>
@@ -371,7 +371,7 @@ export default function RekapPresensiPage() {
             <>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pilih Bulan</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <Select value={selectedMonth} onValueChange={(v) => v && setSelectedMonth(v)}>
                   <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                     <SelectValue placeholder="Pilih Bulan" />
                   </SelectTrigger>
@@ -401,7 +401,7 @@ export default function RekapPresensiPage() {
             <>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pilih Semester</Label>
-                <Select value={selectedSemester} onValueChange={(v) => setSelectedSemester(v as any)}>
+                <Select value={selectedSemester} onValueChange={(v) => v && setSelectedSemester(v as any)}>
                   <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                     <SelectValue placeholder="Pilih Semester" />
                   </SelectTrigger>
@@ -456,7 +456,7 @@ export default function RekapPresensiPage() {
                 <Select
                   value={kelasFilter}
                   onValueChange={(v) => {
-                    setKelasFilter(v)
+                    setKelasFilter(v ?? "all")
                     setSiswaFilter("all")
                   }}
                 >
@@ -476,7 +476,7 @@ export default function RekapPresensiPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Filter Siswa Specific</Label>
-                <Select value={siswaFilter} onValueChange={setSiswaFilter}>
+                <Select value={siswaFilter} onValueChange={(v) => setSiswaFilter(v ?? "all")}>
                   <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                     <SelectValue placeholder="Semua Siswa" />
                   </SelectTrigger>
@@ -494,7 +494,7 @@ export default function RekapPresensiPage() {
           ) : (
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Filter Guru Specific</Label>
-              <Select value={guruFilter} onValueChange={setGuruFilter}>
+              <Select value={guruFilter} onValueChange={(v) => setGuruFilter(v ?? "all")}>
                 <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
                   <SelectValue placeholder="Semua Guru" />
                 </SelectTrigger>
