@@ -162,10 +162,10 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
     setHadirSemua(true)
   }, [open, item, defaultGuruId])
 
-  // Auto-select schedule if there's exactly 1 and no selection has been made yet (in create mode)
+  // Auto-select schedule slot automatically if available for the day (in create mode)
   useEffect(() => {
     if (!item && guruJadwalList && guruJadwalList.length > 0 && !selectedJadwalId) {
-      if (guruJadwalList.length === 1 && guruJadwalList[0]) {
+      if (guruJadwalList[0]) {
         setSelectedJadwalId(guruJadwalList[0].id)
       }
     }
@@ -176,9 +176,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
     if (selectedJadwal) {
       setKelasId(selectedJadwal.kelasId)
       setMataPelajaranId(selectedJadwal.mataPelajaranId)
-      if (isAdmin) {
-        setGuruId(selectedJadwal.guruId)
-      }
+      setGuruId(selectedJadwal.guruId)
       if (selectedJadwal.jamMulai) {
         setJamMulai(new Date(selectedJadwal.jamMulai).toTimeString().slice(0, 5))
       }
@@ -186,7 +184,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
         setJamSelesai(new Date(selectedJadwal.jamSelesai).toTimeString().slice(0, 5))
       }
     }
-  }, [selectedJadwal, isAdmin])
+  }, [selectedJadwal])
 
   useEffect(() => {
     if (!open || !siswaList) return
@@ -316,15 +314,15 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 
         <div className="flex-1 overflow-y-auto px-6 pb-4">
           <div className="space-y-4">
-            {/* 1. Deteksi & Pemilihan Jadwal Hari Ini */}
-            {guruJadwalList && guruJadwalList.length > 0 && !item && (
-              <FieldWrap label="Pilih Jadwal Mengajar Hari Ini" required>
+            {/* 1. Pemilihan Slot Jadwal Mengajar (jika ada lebih dari 1 jadwal pada hari tsb) */}
+            {guruJadwalList && guruJadwalList.length > 1 && !item && (
+              <FieldWrap label="Pilih Slot Jadwal Mengajar Hari Ini" required>
                 <Select
                   value={selectedJadwalId}
                   onValueChange={(v) => setSelectedJadwalId(v ?? "")}
                 >
-                  <SelectTrigger className="border-teal-200 focus:border-teal-500 hover:border-teal-350 transition-colors">
-                    <SelectValue placeholder="-- Pilih Jadwal Mengajar --" />
+                  <SelectTrigger className="border-teal-200 focus:border-teal-500 hover:border-teal-350 transition-colors rounded-2xl h-10">
+                    <SelectValue placeholder="-- Pilih Slot Jadwal --" />
                   </SelectTrigger>
                   <SelectContent>
                     {guruJadwalList.map((j) => {
@@ -342,47 +340,41 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
               </FieldWrap>
             )}
 
-            {/* 2. Data Terkunci (Read-Only) Info Card if Schedule is chosen */}
+            {/* 2. Data Terisi Otomatis (Read-Only) dari Jadwal */}
             {selectedJadwal ? (
-              <div className="bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 space-y-3.5 shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <Activity className="h-4 w-4 text-teal-600" />
-                    <span>Data Jadwal Terkunci (Read-Only)</span>
+              <div className="bg-gradient-to-br from-teal-50/60 to-emerald-50/40 dark:from-teal-950/30 dark:to-emerald-950/20 border border-teal-200/80 dark:border-teal-900/50 rounded-2xl p-4 space-y-3.5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-teal-200/60 dark:border-teal-900/50 pb-2">
+                  <div className="flex items-center gap-2 text-xs font-black text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+                    <Activity className="h-4 w-4 text-teal-600 animate-pulse" />
+                    <span>Terisi Otomatis Dari Jadwal Mengajar</span>
                   </div>
-                  {!item && guruJadwalList && guruJadwalList.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedJadwalId("")}
-                      className="text-[10px] font-black uppercase text-rose-600 hover:underline cursor-pointer"
-                    >
-                      Ubah Jadwal
-                    </button>
-                  )}
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-600 text-white uppercase tracking-wider">
+                    Locked
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Guru Pengampu</span>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
-                      {guruList?.find((g) => g.id === targetGuruId)?.namaLengkap || session?.user?.name || "Guru"}
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Guru Pengampu</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      {guruList?.find((g) => g.id === targetGuruId)?.namaLengkap || currentGuru?.namaLengkap || session?.user?.name || "Guru"}
                     </span>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Mata Pelajaran</span>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Mata Pelajaran</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       {mapelList?.find((m) => m.id === selectedJadwal.mataPelajaranId)?.namaMapel || "Mata Pelajaran"}
                     </span>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Kelas</span>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kelas</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       {kelasList?.find((k) => k.id === selectedJadwal.kelasId)?.namaKelas || "Kelas"}
                     </span>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Jam Pelajaran (Jam ke-)</span>
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
-                      JP {selectedJadwal.jpMulai ?? 0} - {(selectedJadwal.jpMulai ?? 0) + (selectedJadwal.jpCount ?? 0) - 1} ({selectedJadwal.jpCount ?? 0} JP)
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Jam Pelajaran & Waktu</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      JP {selectedJadwal.jpMulai ?? 1} - {(selectedJadwal.jpMulai ?? 1) + (selectedJadwal.jpCount ?? 1) - 1} {jamMulai && jamSelesai ? `(${jamMulai} - ${jamSelesai})` : ""}
                     </span>
                   </div>
                 </div>
