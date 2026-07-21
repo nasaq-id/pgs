@@ -68,13 +68,15 @@ export const asesmenRouter = router({
       const orderBy = input.sortOrder === "asc" ? asc(asesmen[input.sortBy]) : desc(asesmen[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-      const data = await db
-        .select()
-        .from(asesmen)
-        .where(whereClause)
-        .orderBy(orderBy)
-        .limit(input.limit)
-        .offset(input.offset)
+      const data = await db.query.asesmen.findMany({
+        where: whereClause,
+        orderBy: orderBy,
+        limit: input.limit,
+        offset: input.offset,
+        with: {
+          siswaEntries: true,
+        },
+      })
 
       return data
     }),

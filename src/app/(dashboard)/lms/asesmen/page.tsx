@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
+import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,31 +12,58 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, ClipboardCheck, MoreVertical, Pencil, Trash2, Calendar, Clock, CheckCircle2, XCircle, BarChart3 } from "lucide-react"
+import {
+  Plus,
+  Search,
+  ClipboardCheck,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  BarChart3,
+  BookOpen,
+  HelpCircle,
+  Printer,
+  ChevronDown,
+  ChevronUp,
+  FileText
+} from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import AsesmenFormDialog from "@/components/asesmen/AsesmenFormDialog"
 import AsesmenDetailDialog from "@/components/asesmen/AsesmenDetailDialog"
 
 const KATEGORI_LABEL: Record<string, string> = {
-  formatif_awal: "Formatif Awal",
-  formatif_proses: "Formatif Proses",
-  sumatif: "Sumatif",
+  formatif_awal: "FORMATIF",
+  formatif_proses: "FORMATIF",
+  sumatif: "SUMATIF",
 }
 
-const KATEGORI_COLORS: Record<string, string> = {
-  formatif_awal: "bg-cyan-500/10 text-cyan-700 dark:bg-cyan-950/20 dark:text-cyan-400",
-  formatif_proses: "bg-blue-500/10 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400",
-  sumatif: "bg-purple-500/10 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400",
+const TEKNIK_LABEL: Record<string, string> = {
+  tes_tertulis: "Tes Tertulis",
+  tes_lisan: "Tes Lisan",
+  penugasan: "Penugasan",
+  praktik: "Praktik/Kinerja",
+  proyek: "Proyek",
+  portofolio: "Portofolio",
+}
+
+const TIPE_INPUT_LABEL: Record<string, string> = {
+  unggah_file: "Unggah Berkas/Foto",
+  teks: "Teks Tulis",
+  cbt: "Kuis CBT",
+  langsung: "Langsung",
 }
 
 export default function AsesmenPage() {
   const [tab, setTab] = useState("asesmen")
+  const [showGuide, setShowGuide] = useState(true)
 
   const [kelasFilter, setKelasFilter] = useState("all")
   const [mapelFilter, setMapelFilter] = useState("all")
-  const [kategoriFilter, setKategoriFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [search, setSearch] = useState("")
 
   const [formOpen, setFormOpen] = useState(false)
@@ -51,8 +79,6 @@ export default function AsesmenPage() {
   const { data: asesmenList, isLoading } = api.asesmen.getAll.useQuery({
     kelasId: kelasFilter !== "all" ? kelasFilter : undefined,
     mapelId: mapelFilter !== "all" ? mapelFilter : undefined,
-    kategori: kategoriFilter !== "all" ? (kategoriFilter as any) : undefined,
-    status: statusFilter !== "all" ? (statusFilter as "aktif" | "ditutup") : undefined,
   })
 
   const { data: rekapData } = api.asesmen.getRekapKelas.useQuery(
@@ -64,7 +90,6 @@ export default function AsesmenPage() {
   const mapelMap = useMemo(() => new Map((mapelList ?? []).map((m) => [m.id, m])), [mapelList])
 
   const removeMutation = api.asesmen.remove.useMutation()
-  const updateMutation = api.asesmen.update.useMutation()
   const utils = api.useUtils()
 
   const filtered = (asesmenList || []).filter((a) => {
@@ -85,134 +110,225 @@ export default function AsesmenPage() {
     }
   }
 
-  const handleStatusChange = async (item: any, status: "aktif" | "ditutup") => {
-    try {
-      await updateMutation.mutateAsync({ id: item.id, data: { status } })
-      toast.success(`Status diubah menjadi "${status === "aktif" ? "Aktif" : "Ditutup"}"`)
-      utils.asesmen.getAll.invalidate()
-    } catch {
-      toast.error("Gagal mengubah status")
-    }
-  }
-
-  const fmtDate = (d: Date | string | null | undefined) => {
+  const fmtDateTime = (d: Date | string | null | undefined) => {
     if (!d) return "-"
-    return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+    const dateObj = new Date(d)
+    const dateStr = dateObj.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" })
+    const timeStr = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+    return `${dateStr} ${timeStr}`
   }
-
-  const today = new Date().toISOString().split("T")[0]
 
   const selectedKelasLabel = useMemo(() => {
     if (kelasFilter === "all") return "Semua Kelas"
     const k = kelasMap.get(kelasFilter)
-    return k ? `${k.tingkat ?? ""} - ${k.namaKelas}` : "Semua Kelas"
+    return k ? `Kelas ${k.namaKelas}` : "Semua Kelas"
   }, [kelasFilter, kelasMap])
 
   return (
-    <div className="space-y-5 text-left">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 text-left pb-10">
+      {/* Top Header Row */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <ClipboardCheck className="w-5 h-5 text-teal-600" />
-            <span className="text-[10px] font-black uppercase tracking-wider">Modul Asesmen Pembelajaran</span>
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Asesmen Kurikulum Merdeka</h2>
-          <p className="text-muted-foreground text-xs mt-1">Kelola asesmen formatif & sumatif</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 block mb-1">
+            MODUL ASESMEN PEMBELAJARAN
+          </span>
+          <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100">
+            Asesmen Kurikulum Merdeka
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Penyusunan indikator ketercapaian, KKTP, pengumpulan tugas, kuis CBT, dan rekapitulasi ketuntasan.
+          </p>
         </div>
-        <button
-          className="gap-2 shrink-0 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-md shadow-teal-500/5 cursor-pointer transition-all flex items-center justify-center transform active:scale-95"
-          onClick={() => { setEditItem(null); setFormOpen(true) }}
-        >
-          <Plus className="h-4 w-4" />
-          <span>Buat Asesmen</span>
-        </button>
+
+        {/* Top Right Action Controls */}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {/* Pill Switcher */}
+          <div className="bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl flex items-center border border-slate-200/60 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setTab("asesmen")}
+              className={cn(
+                "px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                tab === "asesmen"
+                  ? "bg-[#1e293b] text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              )}
+            >
+              Daftar & Penugasan
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("laporan")}
+              className={cn(
+                "px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer",
+                tab === "laporan"
+                  ? "bg-[#1e293b] text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              )}
+            >
+              Laporan & Ketuntasan
+            </button>
+          </div>
+
+          {/* Print Icon Button */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer shadow-xs transition-all"
+            title="Cetak Laporan"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v ?? "asesmen")} className="space-y-5">
-        <TabsList className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-xs hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
-          <TabsTrigger
-            value="asesmen"
-            className="flex-1 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+      {/* Show/Hide Guide Toggle Button if Guide is Hidden */}
+      {!showGuide && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowGuide(true)}
+            className="px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900/50 text-xs font-extrabold flex items-center gap-2 hover:bg-teal-100 transition-all cursor-pointer"
           >
-            <ClipboardCheck className="h-4 w-4 mr-1.5" /> Asesmen
-          </TabsTrigger>
-          <TabsTrigger
-            value="laporan"
-            className="flex-1 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          >
-            <BarChart3 className="h-4 w-4 mr-1.5" /> Laporan
-          </TabsTrigger>
-        </TabsList>
+            <HelpCircle className="w-4 h-4" />
+            <span>Tampilkan Petunjuk Penggunaan</span>
+          </button>
+        </div>
+      )}
 
-        <TabsContent value="asesmen" className="space-y-5 mt-0">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
-              <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
-                <SelectTrigger className="w-full sm:w-[180px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
-                  <SelectValue placeholder="Semua Kelas">{selectedKelasLabel || "Semua Kelas"}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kelas</SelectItem>
-                  {kelasList?.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>{k.tingkat ?? ""} - {k.namaKelas}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "all")}>
-                <SelectTrigger className="w-full sm:w-[180px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
-                  <SelectValue placeholder="Semua Mapel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Mapel</SelectItem>
-                  {mapelList?.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.namaMapel}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={kategoriFilter} onValueChange={(v) => setKategoriFilter(v ?? "all")}>
-                <SelectTrigger className="w-full sm:w-[160px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
-                  <SelectValue placeholder="Semua Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  <SelectItem value="formatif_awal">Formatif Awal</SelectItem>
-                  <SelectItem value="formatif_proses">Formatif Proses</SelectItem>
-                  <SelectItem value="sumatif">Sumatif</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-                <SelectTrigger className="w-full sm:w-[140px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="aktif">Aktif</SelectItem>
-                  <SelectItem value="ditutup">Ditutup</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="relative sm:ml-auto w-full sm:w-[220px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari asesmen..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
-                />
+      {/* Guide Banner Card (Panduan Cepat Penilaian Kurikulum Merdeka) */}
+      {showGuide && (
+        <div className="bg-[#e6f9f3] dark:bg-emerald-950/20 border border-[#b8f2dd] dark:border-emerald-900/50 rounded-[28px] p-6 space-y-4 shadow-2xs transition-all duration-300">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#059669] flex items-center justify-center text-white font-bold shadow-xs">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-[#064e3b] dark:text-emerald-300">
+                  💡 Panduan Cepat Penilaian Kurikulum Merdeka
+                </h3>
+                <p className="text-xs text-[#047857] dark:text-emerald-400 font-medium mt-0.5">
+                  Sangat mudah digunakan baik yang mahir maupun yang baru belajar teknologi!
+                </p>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGuide(false)}
+              className="bg-white/80 dark:bg-slate-900/80 hover:bg-white text-[#047857] dark:text-emerald-300 font-extrabold text-xs px-4 py-2 rounded-xl border border-[#b8f2dd] dark:border-emerald-900/50 cursor-pointer transition-all shadow-2xs"
+            >
+              Sembunyikan
+            </button>
           </div>
 
+          {/* 3 Step Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            {/* Step 1 */}
+            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                  1
+                </span>
+                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                  Pilih / Buat Tugas
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                Pilih salah satu kartu penilaian di bawah dan klik <strong>&quot;Detail & Nilai&quot;</strong>, atau buat tugas baru menggunakan tombol hijau di sebelah kanan.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                  2
+                </span>
+                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                  Isi Nilai Siswa
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                Ketik nilai (0&ndash;100) siswa Anda. Agar praktis, Anda bisa mengeklik <strong>tombol angka instan</strong> (seperti 75 atau 90) tanpa perlu mengetik!
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                  3
+                </span>
+                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                  Klik Simpan
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                Klik tombol <strong>&quot;Simpan&quot;</strong> di ujung kanan baris siswa. Sistem akan otomatis menentukan ketuntasan (KKTP) dan pengayaan/remedial siswa!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "asesmen" ? (
+        <div className="space-y-6">
+          {/* Search & Filter Bar */}
+          <div className="glass-card rounded-[24px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-3 flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari judul asesmen atau materi..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none text-slate-700 dark:text-slate-300"
+              />
+            </div>
+
+            <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
+              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+                <SelectValue placeholder="Semua Kelas">{selectedKelasLabel || "Semua Kelas"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kelas</SelectItem>
+                {kelasList?.map((k) => (
+                  <SelectItem key={k.id} value={k.id}>Kelas {k.namaKelas}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "all")}>
+              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+                <SelectValue placeholder="Semua Mapel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Mapel</SelectItem>
+                {mapelList?.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.namaMapel}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <button
+              type="button"
+              onClick={() => { setEditItem(null); setFormOpen(true) }}
+              className="w-full sm:w-auto shrink-0 bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-emerald-600/10 cursor-pointer transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Buat Asesmen</span>
+            </button>
+          </div>
+
+          {/* Cards List */}
           {isLoading ? (
-            <div className="space-y-3.5">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-56 w-full rounded-[26px]" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[26px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
               <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
                 <ClipboardCheck className="h-7 w-7 text-muted-foreground/75" />
               </div>
@@ -221,95 +337,110 @@ export default function AsesmenPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filtered.map((a) => {
-                const deadlineStr = a.deadline ? new Date(a.deadline).toISOString().split("T")[0] : ""
-                const isOverdue = a.status === "aktif" && deadlineStr && deadlineStr < today
-
+              {filtered.map((a: any) => {
                 const cls = kelasMap.get(a.kelasId)
                 const mapel = mapelMap.get(a.mataPelajaranId)
-                const classLabel = cls ? `${cls.tingkat ?? ""} - ${cls.namaKelas}` : "-"
+                const classLabel = cls ? `Kelas ${cls.namaKelas}` : "-"
                 const mapelLabel = mapel ? mapel.namaMapel : "-"
 
+                const entries = a.siswaEntries || []
+                const dinilaiCount = entries.filter((e: any) => e.status === "sudah_dinilai").length
+                const butuhPenilaianCount = entries.filter((e: any) => e.status === "sudah_mengumpulkan").length
+
+                const isSumatif = a.kategori === "sumatif"
+
                 return (
-                  <div key={a.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-xl hover:border-teal-300 dark:hover:border-teal-850 hover:bg-white dark:hover:bg-slate-900/50 transition-all duration-300 cursor-pointer flex flex-col justify-between bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]" onClick={() => setDetailId(a.id)}>
+                  <div
+                    key={a.id}
+                    className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-white dark:bg-slate-900/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 text-left"
+                  >
                     <div className="space-y-3.5">
+                      {/* Top Badge & Deadline */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${KATEGORI_COLORS[a.kategori] || "bg-slate-50 text-slate-600"}`}>
-                          {KATEGORI_LABEL[a.kategori] || a.kategori}
+                        <span
+                          className={cn(
+                            "text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md",
+                            isSumatif
+                              ? "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400"
+                              : "bg-[#d1fae5] text-[#047857] dark:bg-emerald-950/40 dark:text-emerald-400"
+                          )}
+                        >
+                          {KATEGORI_LABEL[a.kategori] || "FORMATIF"}
                         </span>
-                        {isOverdue ? (
-                          <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
-                            Terlambat
-                          </span>
-                        ) : (
-                          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
-                            a.status === "aktif"
-                              ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-                              : "text-slate-500 bg-slate-50 border-slate-100"
-                          }`}>
-                            {a.status === "aktif" ? "Aktif" : "Ditutup"}
-                          </span>
-                        )}
+
+                        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {fmtDateTime(a.deadline || a.createdAt)}
+                        </span>
                       </div>
 
+                      {/* Title & Subtitle */}
                       <div>
-                        <h4 className="font-extrabold text-slate-850 dark:text-slate-200 text-sm leading-tight">{a.judul}</h4>
-                        <p className="text-[11px] text-slate-450 dark:text-slate-500 font-semibold mt-1.5">
-                          {classLabel} &middot; {mapelLabel}
+                        <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
+                          {a.judul}
+                        </h4>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+                          Mapel: <strong className="text-slate-700 dark:text-slate-300">{mapelLabel}</strong> | Kelas: <strong className="text-slate-700 dark:text-slate-300">{classLabel}</strong>
                         </p>
                       </div>
 
-                      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40 p-3 rounded-xl space-y-1 text-[10px] text-slate-550 dark:text-slate-400 font-bold">
-                        <p>Target KKTP: <span className="text-teal-600 dark:text-teal-400 font-bold">{a.kktp}</span></p>
-                        {a.deadline && (
-                          <p className={`font-bold ${isOverdue ? "text-rose-600" : ""}`}>
-                            Deadline: {fmtDate(a.deadline)}
-                          </p>
-                        )}
+                      {/* Detail Box */}
+                      <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 p-3.5 rounded-2xl space-y-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <div className="flex items-center gap-1.5">
+                          <span>🎯</span>
+                          <span>Target KKTP: <strong className="text-teal-600 dark:text-teal-400">{a.kktp}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span>🛠️</span>
+                          <span>Teknik: <strong className="text-slate-800 dark:text-slate-200">{TEKNIK_LABEL[a.teknik] || "Tes Tertulis"}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span>📦</span>
+                          <span>Tipe Input: <strong className="text-slate-800 dark:text-slate-200">{TIPE_INPUT_LABEL[a.jenisPengumpulan] || "Unggah Berkas/Foto"}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Status Counts Row */}
+                      <div className="flex items-center gap-4 text-xs pt-1">
+                        <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          Dinilai: {dinilaiCount}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold">
+                          <span className="w-2 h-2 rounded-full bg-amber-500" />
+                          Butuh Penilaian: {butuhPenilaianCount}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/60 gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-9 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); setDetailId(a.id) }}
+                    {/* Bottom Action Row */}
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setDetailId(a.id)}
+                        className="flex-1 bg-[#1e293b] hover:bg-[#0f172a] text-white font-extrabold text-xs rounded-xl h-11 flex items-center justify-center cursor-pointer shadow-sm transition-all active:scale-95"
                       >
                         Detail & Nilai
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer shadow-sm" onClick={(e) => e.stopPropagation()} />}>
-                          <MoreVertical className="h-4 w-4 text-slate-400" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditItem(a); setFormOpen(true) }} className="gap-2">
-                            <Pencil className="h-4 w-4 text-muted-foreground" /> Edit
-                          </DropdownMenuItem>
-                          {a.status === "aktif" && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(a, "ditutup") }} className="gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" /> Tutup Asesmen
-                            </DropdownMenuItem>
-                          )}
-                          {a.status === "ditutup" && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(a, "aktif") }} className="gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" /> Aktifkan Kembali
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDeleteId(a.id) }} className="text-destructive gap-2">
-                            <Trash2 className="h-4 w-4" /> Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeleteId(a.id)}
+                        className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 dark:text-rose-400 flex items-center justify-center cursor-pointer border border-rose-100 dark:border-rose-900/40 transition-all shrink-0 active:scale-95"
+                        title="Hapus Asesmen"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 )
               })}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="laporan" className="space-y-5 mt-0">
+        </div>
+      ) : (
+        /* Laporan & Ketuntasan Tab */
+        <div className="space-y-5">
           <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
               <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "all")}>
@@ -319,7 +450,7 @@ export default function AsesmenPage() {
                 <SelectContent>
                   <SelectItem value="all" disabled>Pilih Kelas</SelectItem>
                   {kelasList?.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>{k.tingkat ?? ""} - {k.namaKelas}</SelectItem>
+                    <SelectItem key={k.id} value={k.id}>Kelas {k.namaKelas}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -427,43 +558,15 @@ export default function AsesmenPage() {
                         </TableBody>
                       </Table>
                     </div>
-                    <div className="md:hidden space-y-2">
-                      {kelasEntries.map((entry) => (
-                        <div key={entry.id} className="glass-card rounded-2xl p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{(entry as any).siswa?.namaLengkap || "Unknown"}</span>
-                            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{entry.nilai !== null ? entry.nilai : "-"}</span>
-                          </div>
-                          <div className="space-y-1 text-xs text-slate-500">
-                            <div className="flex justify-between items-center"><span className="font-semibold">Status:</span>
-                              <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-bold ${
-                                entry.status === "sudah_dinilai" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20" :
-                                entry.status === "sudah_mengumpulkan" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20" :
-                                "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-900"
-                              }`}>
-                                {entry.status === "sudah_dinilai" ? "Dinilai" : entry.status === "sudah_mengumpulkan" ? "Dikumpulkan" : "Belum"}
-                              </Badge>
-                            </div>
-                            <div className="flex justify-between items-center"><span className="font-semibold">Ketuntasan:</span>
-                              {entry.statusKetuntasan ? (
-                                <span className={`font-bold uppercase tracking-wider ${entry.statusKetuntasan === "tuntas" ? "text-emerald-600" : "text-rose-600"}`}>
-                                  {entry.statusKetuntasan === "tuntas" ? "Tuntas" : "Belum Tuntas"}
-                                </span>
-                              ) : (<span className="text-slate-400 font-bold">-</span>)}
-                            </div>
-                            <div className="flex justify-between"><span className="font-semibold">Feedback:</span><span className="truncate max-w-[200px]">{entry.feedback || "-"}</span></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 )
               })}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
+      {/* Form & Detail Dialogs */}
       <AsesmenFormDialog
         open={formOpen}
         item={editItem}
@@ -477,6 +580,7 @@ export default function AsesmenPage() {
         onClose={() => setDetailId(null)}
       />
 
+      {/* Delete Confirmation Alert */}
       <AlertDialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -484,8 +588,12 @@ export default function AsesmenPage() {
             <AlertDialogDescription>Asesmen yang dihapus tidak dapat dikembalikan.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850">Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-rose-600 hover:bg-rose-700 text-white border-none">Hapus</AlertDialogAction>
+            <AlertDialogCancel className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-rose-600 hover:bg-rose-700 text-white border-none">
+              Hapus
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
