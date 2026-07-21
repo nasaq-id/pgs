@@ -46,7 +46,7 @@ export default function PresensiGuruPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
   const { data: staticQrData, isLoading: isLoadingStaticQr } = api.absensi.getStaticQrGuru.useQuery()
-  const { data: guruLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = api.absensi.getLogs.useQuery({
+  const { data: guruLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = api.absensi.getGuruAbsensi.useQuery({
     tanggal: new Date(),
   })
 

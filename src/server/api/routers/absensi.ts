@@ -525,7 +525,7 @@ export const absensiRouter = router({
       throw new TRPCError({ code: "NOT_FOUND", message: "Barcode/QR tidak valid atau tidak terdaftar" })
     }),
 
-  getGuruAbsensi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "yayasan"])
+  getGuruAbsensi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "yayasan", "guru"])
     .input(
       z.object({
         tanggal: z.coerce.date().optional(),
