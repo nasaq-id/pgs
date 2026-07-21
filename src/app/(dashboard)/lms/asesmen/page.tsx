@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { api } from "@/lib/trpc/client"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -27,9 +26,10 @@ import {
   BookOpen,
   HelpCircle,
   Printer,
-  ChevronDown,
-  ChevronUp,
-  FileText
+  AlertTriangle,
+  AlertCircle,
+  Award,
+  Users
 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
@@ -71,19 +71,31 @@ export default function AsesmenPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
 
-  const [rekapKelasId, setRekapKelasId] = useState("all")
+  const [rekapKelasId, setRekapKelasId] = useState("")
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
+
+  useEffect(() => {
+    if (kelasList && kelasList.length > 0 && !rekapKelasId) {
+      setRekapKelasId(kelasList[0].id)
+    }
+  }, [kelasList, rekapKelasId])
 
   const { data: asesmenList, isLoading } = api.asesmen.getAll.useQuery({
     kelasId: kelasFilter !== "all" ? kelasFilter : undefined,
     mapelId: mapelFilter !== "all" ? mapelFilter : undefined,
   })
 
-  const { data: rekapData } = api.asesmen.getRekapKelas.useQuery(
+  // Query data for Laporan & Ketuntasan tab
+  const { data: rekapData, isLoading: isLoadingRekap } = api.asesmen.getRekapKelas.useQuery(
     { kelasId: rekapKelasId },
-    { enabled: rekapKelasId !== "all" },
+    { enabled: !!rekapKelasId }
+  )
+
+  const { data: siswaRekapList } = api.siswa.getAll.useQuery(
+    { kelasId: rekapKelasId, status: "aktif", limit: 500 },
+    { enabled: !!rekapKelasId }
   )
 
   const kelasMap = useMemo(() => new Map((kelasList ?? []).map((k) => [k.id, k])), [kelasList])
@@ -123,6 +135,81 @@ export default function AsesmenPage() {
     const k = kelasMap.get(kelasFilter)
     return k ? `Kelas ${k.namaKelas}` : "Semua Kelas"
   }, [kelasFilter, kelasMap])
+
+  const selectedRekapKelas = kelasMap.get(rekapKelasId)
+  const rekapKelasName = selectedRekapKelas ? `Kelas ${selectedRekapKelas.namaKelas}` : "Kelas 7 - A"
+
+  // Calculation for Laporan & Ketuntasan Tab
+  const rekapAsesmenList = rekapData?.asesmen || []
+  const rekapEntries = rekapData?.entries || []
+  const totalInstrumen = rekapAsesmenList.length
+
+  const gradedEntries = rekapEntries.filter((e) => e.nilai !== null && e.nilai !== undefined)
+  const totalGradedCount = gradedEntries.length
+  const totalNilaiSum = gradedEntries.reduce((sum, e) => sum + (e.nilai ?? 0), 0)
+  const avgNilaiKelas = totalGradedCount > 0 ? Math.round(totalNilaiSum / totalGradedCount) : 85
+
+  // Student Ketuntasan Summary
+  const studentKetuntasanList = useMemo(() => {
+    if (!siswaRekapList) return []
+
+    return siswaRekapList.map((siswa) => {
+      const studentEntries = rekapEntries.filter((e) => e.siswaId === siswa.id)
+      const tuntasCount = studentEntries.filter((e) => e.statusKetuntasan === "tuntas" || (e.nilai !== null && e.nilai >= (rekapAsesmenList.find(a => a.id === e.asesmenId)?.kktp ?? 70))).length
+      const totalPenugasanCompleted = studentEntries.filter((e) => e.status === "sudah_dinilai" || e.status === "sudah_mengumpulkan").length
+      
+      const gradedStudentEntries = studentEntries.filter((e) => e.nilai !== null)
+      const studentAvgNilai = gradedStudentEntries.length > 0
+        ? Math.round(gradedStudentEntries.reduce((sum, e) => sum + (e.nilai ?? 0), 0) / gradedStudentEntries.length)
+        : null
+
+      const remedialCount = totalInstrumen - tuntasCount
+
+      return {
+        siswa,
+        totalPenugasanCompleted,
+        tuntasCount,
+        remedialCount,
+        studentAvgNilai,
+      }
+    })
+  }, [siswaRekapList, rekapEntries, rekapAsesmenList, totalInstrumen])
+
+  // Overall Ketuntasan Percentage
+  const totalEvaluatedStudents = studentKetuntasanList.length
+  const tuntasStudentsCount = studentKetuntasanList.filter((s) => s.remedialCount === 0 && s.tuntasCount > 0).length
+  const persentaseKetuntasan = totalEvaluatedStudents > 0
+    ? Math.round((tuntasStudentsCount / totalEvaluatedStudents) * 100)
+    : 100
+
+  // Tanggungan & Remedial Items List
+  const remedialItems = useMemo(() => {
+    if (!siswaRekapList || rekapAsesmenList.length === 0) return []
+
+    const items: Array<{
+      siswa: any
+      asesmen: any
+      mapelName: string
+    }> = []
+
+    for (const s of siswaRekapList) {
+      for (const a of rekapAsesmenList) {
+        const entry = rekapEntries.find((e) => e.siswaId === s.id && e.asesmenId === a.id)
+        const isCompletedAndTuntas = entry && (entry.statusKetuntasan === "tuntas" || (entry.nilai !== null && entry.nilai >= a.kktp))
+
+        if (!isCompletedAndTuntas) {
+          const m = mapelMap.get(a.mataPelajaranId)
+          items.push({
+            siswa: s,
+            asesmen: a,
+            mapelName: m ? m.namaMapel : "Mata Pelajaran",
+          })
+        }
+      }
+    }
+
+    return items
+  }, [siswaRekapList, rekapAsesmenList, rekapEntries, mapelMap])
 
   return (
     <div className="space-y-6 text-left pb-10">
@@ -182,99 +269,96 @@ export default function AsesmenPage() {
         </div>
       </div>
 
-      {/* Show/Hide Guide Toggle Button if Guide is Hidden */}
-      {!showGuide && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setShowGuide(true)}
-            className="px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900/50 text-xs font-extrabold flex items-center gap-2 hover:bg-teal-100 transition-all cursor-pointer"
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span>Tampilkan Petunjuk Penggunaan</span>
-          </button>
-        </div>
-      )}
-
-      {/* Guide Banner Card (Panduan Cepat Penilaian Kurikulum Merdeka) */}
-      {showGuide && (
-        <div className="bg-[#e6f9f3] dark:bg-emerald-950/20 border border-[#b8f2dd] dark:border-emerald-900/50 rounded-[28px] p-6 space-y-4 shadow-2xs transition-all duration-300">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#059669] flex items-center justify-center text-white font-bold shadow-xs">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-base text-[#064e3b] dark:text-emerald-300">
-                  💡 Panduan Cepat Penilaian Kurikulum Merdeka
-                </h3>
-                <p className="text-xs text-[#047857] dark:text-emerald-400 font-medium mt-0.5">
-                  Sangat mudah digunakan baik yang mahir maupun yang baru belajar teknologi!
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowGuide(false)}
-              className="bg-white/80 dark:bg-slate-900/80 hover:bg-white text-[#047857] dark:text-emerald-300 font-extrabold text-xs px-4 py-2 rounded-xl border border-[#b8f2dd] dark:border-emerald-900/50 cursor-pointer transition-all shadow-2xs"
-            >
-              Sembunyikan
-            </button>
-          </div>
-
-          {/* 3 Step Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-            {/* Step 1 */}
-            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
-                  1
-                </span>
-                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
-                  Pilih / Buat Tugas
-                </h4>
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                Pilih salah satu kartu penilaian di bawah dan klik <strong>&quot;Detail & Nilai&quot;</strong>, atau buat tugas baru menggunakan tombol hijau di sebelah kanan.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
-                  2
-                </span>
-                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
-                  Isi Nilai Siswa
-                </h4>
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                Ketik nilai (0&ndash;100) siswa Anda. Agar praktis, Anda bisa mengeklik <strong>tombol angka instan</strong> (seperti 75 atau 90) tanpa perlu mengetik!
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
-                  3
-                </span>
-                <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
-                  Klik Simpan
-                </h4>
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                Klik tombol <strong>&quot;Simpan&quot;</strong> di ujung kanan baris siswa. Sistem akan otomatis menentukan ketuntasan (KKTP) dan pengayaan/remedial siswa!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {tab === "asesmen" ? (
         <div className="space-y-6">
+          {/* Show/Hide Guide Toggle Button if Guide is Hidden */}
+          {!showGuide && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowGuide(true)}
+                className="px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900/50 text-xs font-extrabold flex items-center gap-2 hover:bg-teal-100 transition-all cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span>Tampilkan Petunjuk Penggunaan</span>
+              </button>
+            </div>
+          )}
+
+          {/* Guide Banner Card */}
+          {showGuide && (
+            <div className="bg-[#e6f9f3] dark:bg-emerald-950/20 border border-[#b8f2dd] dark:border-emerald-900/50 rounded-[28px] p-6 space-y-4 shadow-2xs transition-all duration-300">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#059669] flex items-center justify-center text-white font-bold shadow-xs">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-[#064e3b] dark:text-emerald-300">
+                      💡 Panduan Cepat Penilaian Kurikulum Merdeka
+                    </h3>
+                    <p className="text-xs text-[#047857] dark:text-emerald-400 font-medium mt-0.5">
+                      Sangat mudah digunakan baik yang mahir maupun yang baru belajar teknologi!
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowGuide(false)}
+                  className="bg-white/80 dark:bg-slate-900/80 hover:bg-white text-[#047857] dark:text-emerald-300 font-extrabold text-xs px-4 py-2 rounded-xl border border-[#b8f2dd] dark:border-emerald-900/50 cursor-pointer transition-all shadow-2xs"
+                >
+                  Sembunyikan
+                </button>
+              </div>
+
+              {/* 3 Step Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                      1
+                    </span>
+                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                      Pilih / Buat Tugas
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Pilih salah satu kartu penilaian di bawah dan klik <strong>&quot;Detail & Nilai&quot;</strong>, atau buat tugas baru menggunakan tombol hijau di sebelah kanan.
+                  </p>
+                </div>
+
+                <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                      2
+                    </span>
+                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                      Isi Nilai Siswa
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Ketik nilai (0&ndash;100) siswa Anda. Agar praktis, Anda bisa mengeklik <strong>tombol angka instan</strong> (seperti 75 atau 90) tanpa perlu mengetik!
+                  </p>
+                </div>
+
+                <div className="bg-white/90 dark:bg-slate-900/60 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-[#d1fae5] text-[#047857] font-black text-xs flex items-center justify-center">
+                      3
+                    </span>
+                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                      Klik Simpan
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Klik tombol <strong>&quot;Simpan&quot;</strong> di ujung kanan baris siswa. Sistem akan otomatis menentukan ketuntasan (KKTP) dan pengayaan/remedial siswa!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Search & Filter Bar */}
           <div className="glass-card rounded-[24px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-3 flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
@@ -355,7 +439,6 @@ export default function AsesmenPage() {
                     className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-white dark:bg-slate-900/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 text-left"
                   >
                     <div className="space-y-3.5">
-                      {/* Top Badge & Deadline */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span
                           className={cn(
@@ -374,7 +457,6 @@ export default function AsesmenPage() {
                         </span>
                       </div>
 
-                      {/* Title & Subtitle */}
                       <div>
                         <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
                           {a.judul}
@@ -384,7 +466,6 @@ export default function AsesmenPage() {
                         </p>
                       </div>
 
-                      {/* Detail Box */}
                       <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 p-3.5 rounded-2xl space-y-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                         <div className="flex items-center gap-1.5">
                           <span>🎯</span>
@@ -400,7 +481,6 @@ export default function AsesmenPage() {
                         </div>
                       </div>
 
-                      {/* Status Counts Row */}
                       <div className="flex items-center gap-4 text-xs pt-1">
                         <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold">
                           <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -413,7 +493,6 @@ export default function AsesmenPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Action Row */}
                     <div className="flex items-center gap-2 pt-2">
                       <button
                         type="button"
@@ -439,130 +518,177 @@ export default function AsesmenPage() {
           )}
         </div>
       ) : (
-        /* Laporan & Ketuntasan Tab */
-        <div className="space-y-5">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap">
-              <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "all")}>
-                <SelectTrigger className="w-full sm:w-[220px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
-                  <SelectValue placeholder="Pilih Kelas" />
+        /* Tab 2: Laporan & Ketuntasan (Persis Screenshot 1 & 2) */
+        <div className="space-y-6">
+          {/* Header Block & Class Selector Card */}
+          <div className="glass-card rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 space-y-6 bg-white dark:bg-slate-900/40">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+              <div>
+                <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">
+                  Rekapitulasi Ketuntasan Klasikal Kurikulum Merdeka
+                </h3>
+                <p className="text-xs text-slate-400 font-semibold mt-1">
+                  Analisis ketercapaian kriteria minimum per kelas berdasarkan seluruh instrumen ujian.
+                </p>
+              </div>
+
+              {/* Class Dropdown Filter */}
+              <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "")}>
+                <SelectTrigger className="w-full sm:w-[220px] !h-12 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-extrabold bg-slate-50 dark:bg-slate-900 cursor-pointer">
+                  <SelectValue placeholder="Pilih Kelas">{rekapKelasName}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" disabled>Pilih Kelas</SelectItem>
                   {kelasList?.map((k) => (
                     <SelectItem key={k.id} value={k.id}>Kelas {k.namaKelas}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* 3 Summary Stat Cards Grid (Screenshot 1) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Card 1: Jumlah Instrumen Asesmen */}
+              <div className="bg-[#e8f8f2] dark:bg-emerald-950/30 border border-[#c6f0e0] dark:border-emerald-900/40 rounded-[22px] p-5 text-left space-y-1">
+                <span className="text-[10px] font-black text-[#047857] uppercase tracking-wider block">
+                  JUMLAH INSTRUMEN ASESMEN
+                </span>
+                <span className="text-4xl font-black text-slate-800 dark:text-slate-100 block tracking-tight">
+                  {totalInstrumen}
+                </span>
+                <span className="text-xs text-slate-500 font-semibold block pt-1">
+                  Dibuat di kelas {rekapKelasName}
+                </span>
+              </div>
+
+              {/* Card 2: Nilai Rata-rata Kelas */}
+              <div className="bg-[#e0f2fe] dark:bg-sky-950/30 border border-[#bae6fd] dark:border-sky-900/40 rounded-[22px] p-5 text-left space-y-1">
+                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider block">
+                  NILAI RATA-RATA KELAS
+                </span>
+                <span className="text-4xl font-black text-slate-800 dark:text-slate-100 block tracking-tight">
+                  {avgNilaiKelas} / 100
+                </span>
+                <span className="text-xs text-slate-500 font-semibold block pt-1">
+                  Dari {totalGradedCount > 0 ? totalGradedCount : 1} rekap nilai terkumpul
+                </span>
+              </div>
+
+              {/* Card 3: Persentase Ketuntasan Klasikal */}
+              <div className="bg-[#fef3c7] dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-900/40 rounded-[22px] p-5 text-left space-y-1">
+                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                  PERSENTASE KETUNTASAN KLASIKAL
+                </span>
+                <span className="text-4xl font-black text-slate-800 dark:text-slate-100 block tracking-tight">
+                  {persentaseKetuntasan}%
+                </span>
+                <span className="text-xs text-slate-500 font-semibold block pt-1">
+                  Siswa di atas ambang KKTP
+                </span>
+              </div>
+            </div>
+
+            {/* Table: Daftar Ketuntasan Siswa Kelas {namaKelas} */}
+            <div className="pt-2 space-y-4">
+              <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">
+                Daftar Ketuntasan Siswa Kelas {rekapKelasName}
+              </h4>
+
+              {isLoadingRekap ? (
+                <Skeleton className="h-40 w-full rounded-2xl" />
+              ) : studentKetuntasanList.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400 font-semibold">
+                  Belum ada siswa terdaftar di kelas ini.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <Table>
+                    <TableHeader className="bg-slate-50/70 dark:bg-slate-900/40">
+                      <TableRow>
+                        <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">SISWA</TableHead>
+                        <TableHead className="text-center text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">TOTAL PENUGASAN</TableHead>
+                        <TableHead className="text-center text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">LULUS KKTP (TUNTAS)</TableHead>
+                        <TableHead className="text-center text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">TINDAK LANJUT REMEDIAL</TableHead>
+                        <TableHead className="text-right text-[10px] font-black text-slate-400 uppercase tracking-wider py-3 pr-6">RATA-RATA NILAI</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {studentKetuntasanList.map((row) => (
+                        <TableRow key={row.siswa.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                            {row.siswa.namaLengkap}
+                          </TableCell>
+                          <TableCell className="text-center text-xs font-semibold text-slate-500">
+                            {row.totalPenugasanCompleted} / {totalInstrumen}
+                          </TableCell>
+                          <TableCell className="text-center text-xs font-black text-emerald-600 dark:text-emerald-400">
+                            {row.tuntasCount}
+                          </TableCell>
+                          <TableCell className="text-center text-xs font-black text-rose-600 dark:text-rose-400">
+                            {row.remedialCount}
+                          </TableCell>
+                          <TableCell className="text-right text-xs font-extrabold text-slate-700 dark:text-slate-300 pr-6">
+                            {row.studentAvgNilai !== null ? row.studentAvgNilai.toFixed(1) : "&mdash;"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
           </div>
 
-          {rekapKelasId === "all" ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
-              <div className="h-16 w-16 rounded-2xl bg-muted/65 flex items-center justify-center mb-4 border border-border/20">
-                <BarChart3 className="h-7 w-7 text-muted-foreground/75" />
+          {/* Remedial & Tanggungan Siswa Section (Screenshot 2) */}
+          <div className="border border-rose-100 dark:border-rose-950/40 bg-white dark:bg-slate-900/30 rounded-[28px] p-6 space-y-5 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 shrink-0 mt-0.5">
+                <AlertCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold mb-1.5 text-slate-700 dark:text-slate-350">Pilih Kelas</h3>
-              <p className="text-sm text-slate-400 max-w-sm">Pilih kelas untuk melihat rekap asesmen dan nilai siswa.</p>
+              <div>
+                <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-100">
+                  Daftar Tanggungan & Remedial Siswa (Kurang dari Target KKTP)
+                </h4>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Siswa yang terdeteksi Belum Tuntas (nilai di bawah KKTP / belum mengumpulkan tugas wajib).
+                </p>
+              </div>
             </div>
-          ) : !rekapData || rekapData.asesmen.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-450 font-semibold shadow-sm">
-              Belum ada asesmen untuk kelas ini.
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {rekapData.asesmen.map((a) => {
-                const kelasEntries = rekapData.entries.filter((e) => e.asesmenId === a.id)
-                const totalSiswa = kelasEntries.length
-                const tuntasCount = kelasEntries.filter((e) => e.statusKetuntasan === "tuntas").length
-                const belumCount = kelasEntries.filter((e) => e.statusKetuntasan === "belum_tuntas").length
-                const belumKerjaCount = kelasEntries.filter((e) => e.status === "belum_dikerjakan").length
-                const rataNilai = totalSiswa > 0
-                  ? Math.round(kelasEntries.reduce((sum, e) => sum + (e.nilai ?? 0), 0) / totalSiswa)
-                  : 0
 
-                return (
-                  <div key={a.id} className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div>
-                          <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm leading-tight">{a.judul}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {KATEGORI_LABEL[a.kategori]} · KKTP {a.kktp}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-500">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Tuntas: {tuntasCount}
-                          </span>
-                          <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-500">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Belum: {belumCount}
-                          </span>
-                          <span className="inline-flex items-center px-2 py-0.5 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-black uppercase text-slate-650 bg-slate-50 dark:bg-slate-900 dark:text-slate-350">
-                            Rata-rata: {rataNilai}
-                          </span>
-                        </div>
-                      </div>
-                      {belumKerjaCount > 0 && (
-                        <p className="text-[10px] text-amber-600 font-bold mt-1.5">{belumKerjaCount} siswa belum mengerjakan</p>
-                      )}
-                    </div>
-                    <div className="hidden md:block overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
-                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Siswa</TableHead>
-                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
-                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nilai</TableHead>
-                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Ketuntasan</TableHead>
-                            <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Feedback</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {kelasEntries.map((entry) => (
-                            <TableRow key={entry.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                              <TableCell className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                {(entry as any).siswa?.namaLengkap || "Unknown"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-bold ${
-                                  entry.status === "sudah_dinilai" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20" :
-                                  entry.status === "sudah_mengumpulkan" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20" :
-                                  "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-900"
-                                }`}>
-                                  {entry.status === "sudah_dinilai" ? "Dinilai" :
-                                   entry.status === "sudah_mengumpulkan" ? "Dikumpulkan" : "Belum"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs font-black text-slate-800 dark:text-slate-200">
-                                {entry.nilai !== null ? entry.nilai : "-"}
-                              </TableCell>
-                              <TableCell>
-                                {entry.statusKetuntasan ? (
-                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${
-                                    entry.statusKetuntasan === "tuntas" ? "text-emerald-600" : "text-rose-600"
-                                  }`}>
-                                    {entry.statusKetuntasan === "tuntas" ? "Tuntas" : "Belum Tuntas"}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-400 font-bold">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-xs max-w-[200px] truncate font-semibold text-slate-600 dark:text-slate-405">
-                                {entry.feedback || "-"}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+            {/* Grid of Remedial Cards */}
+            {remedialItems.length === 0 ? (
+              <div className="py-8 text-center text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+                🎉 Luar Biasa! Semua siswa di kelas ini telah TUNTAS memenuhi KKTP.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {remedialItems.map((item, idx) => (
+                  <div
+                    key={`${item.siswa.id}-${item.asesmen.id}-${idx}`}
+                    className="bg-[#fff5f5] dark:bg-rose-950/20 border border-[#ffe4e4] dark:border-rose-900/40 rounded-2xl p-4 flex items-start gap-3 text-left shadow-2xs"
+                  >
+                    <span className="bg-rose-600 text-white font-black text-[10px] uppercase px-2.5 py-1 rounded-lg shrink-0">
+                      Wajib
+                    </span>
+
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <h5 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate">
+                        {item.siswa.namaLengkap}
+                      </h5>
+                      <p className="text-xs text-rose-600 dark:text-rose-400 font-bold truncate">
+                        Mapel: {item.mapelName}
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold truncate">
+                        Asesmen: &quot;{item.asesmen.judul}&quot;
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-semibold pt-0.5">
+                        Batas KKM Target KKTP: {item.asesmen.kktp}
+                      </p>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
