@@ -23,22 +23,24 @@ const jadwalUpdateSchema = jadwalCreateSchema.partial()
 
 const autoGenerateInputSchema = z.object({
   kelasId: z.string().optional(),
+  hariLibur: z.array(z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"])).optional().default([]),
   allocations: z.array(
     z.object({
       kelasId: z.string(),
       mataPelajaranId: z.string(),
       guruId: z.string(),
-      jpCount: z.number().min(1).max(10),
+      jpCount: z.number().min(1).max(20),
     })
-  ),
+  ).optional(),
   constraints: z.array(
     z.object({
       guruId: z.string(),
       hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
       jpMulai: z.number().min(1),
       jpSelesai: z.number().min(1),
+      isFullDay: z.boolean().optional(),
     })
-  ),
+  ).optional().default([]),
 })
 
 
@@ -516,9 +518,41 @@ export const jadwalRouter = router({
         ))
         .groupBy(timelineItem.hari)
 
-      const activeDays = hariRows.map(r => r.hari)
+      const hariLiburSet = new Set(input.hariLibur || [])
+      const activeDays = hariRows
+        .map(r => r.hari)
+        .filter(h => !hariLiburSet.has(h as any))
+
       if (activeDays.length === 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif. Silakan atur timeline terlebih dahulu." })
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif yang tersisa. Silakan sesuaikan pilihan hari libur sekolah." })
+      }
+
+      // 1. Get allocations from input or automatically from DB plotting pengajar (pengampu)
+      let allocations = input.allocations || []
+      if (allocations.length === 0) {
+        const pengampuConditions = [eq(pengampu.sekolahId, sekolahId)]
+        if (input.kelasId && input.kelasId !== "all") {
+          pengampuConditions.push(eq(pengampu.kelasId, input.kelasId))
+        }
+        const pengampuRows = await db.query.pengampu.findMany({
+          where: and(...pengampuConditions),
+        })
+
+        allocations = pengampuRows
+          .filter((p) => p.jumlahJam > 0)
+          .map((p) => ({
+            kelasId: p.kelasId,
+            mataPelajaranId: p.mataPelajaranId,
+            guruId: p.guruId,
+            jpCount: p.jumlahJam,
+          }))
+      }
+
+      if (allocations.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Belum ada data Plotting Pengajar (Pengampu) di database. Silakan isi Plotting Pengajar terlebih dahulu di menu Akademik.",
+        })
       }
 
       // Get all timeline items for slot mapping
@@ -548,9 +582,12 @@ export const jadwalRouter = router({
 
       // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
       const teacherExclusions = new Set<string>()
-      for (const c of input.constraints) {
+      for (const c of (input.constraints || [])) {
         const slotsForDay = academicSlotsPerDay.get(c.hari) || []
-        for (let jp = c.jpMulai; jp <= Math.min(c.jpSelesai, slotsForDay.length); jp++) {
+        const maxSlotCount = slotsForDay.length || 10
+        const endJp = c.isFullDay ? maxSlotCount : c.jpSelesai
+
+        for (let jp = c.jpMulai; jp <= Math.min(endJp, maxSlotCount); jp++) {
           const academicJp = slotsForDay[jp - 1]
           if (academicJp !== undefined) {
             teacherExclusions.add(`${c.guruId}|${c.hari}|${academicJp}`)
@@ -560,7 +597,7 @@ export const jadwalRouter = router({
 
       // Split large blocks to max 2 or 3 JP per day
       const blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
-      for (const alloc of input.allocations) {
+      for (const alloc of allocations) {
         let remaining = alloc.jpCount
         let part = 1
         while (remaining > 0) {
@@ -602,7 +639,7 @@ export const jadwalRouter = router({
       }
 
       // Delete existing schedules for the classes we generated
-      const targetKelasIds = Array.from(new Set(input.allocations.map((a) => a.kelasId)))
+      const targetKelasIds = Array.from(new Set(allocations.map((a) => a.kelasId)))
       if (targetKelasIds.length > 0) {
         await db.delete(jadwalPelajaran).where(inArray(jadwalPelajaran.kelasId, targetKelasIds))
       }

@@ -8,6 +8,22 @@ import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const pengampuRouter = router({
+  getAll: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+
+      const data = await db.query.pengampu.findMany({
+        where: eq(pengampu.sekolahId, sekolahId),
+        with: {
+          guru: true,
+          kelas: true,
+          mataPelajaran: true,
+        },
+      })
+      return data
+    }),
+
   getByMapel: protectedProcedure
     .input(z.object({ mataPelajaranId: z.string() }))
     .query(async ({ ctx, input }) => {
