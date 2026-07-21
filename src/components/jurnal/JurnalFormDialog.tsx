@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, BookOpen, Activity, AlertTriangle, Users } from "lucide-react"
+import { Loader2, BookOpen, Activity, AlertTriangle, Users, CheckCircle2, FileText, Check } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import { cn } from "@/lib/utils"
@@ -46,30 +45,38 @@ interface Props {
   onClose: () => void
   onSaved: () => void
   defaultGuruId?: string
+  initialJadwalSlot?: any | null
 }
 
-const ATT_STATUS: Record<AttStatus, string> = { H: "Hadir", I: "Izin", S: "Sakit", A: "Alpa" }
+const ATT_STATUS: Record<AttStatus, string> = { H: "Hadir (H)", I: "Izin (I)", S: "Sakit (S)", A: "Alpha (A)" }
 
 const ATT_BTN: Record<AttStatus, { inactive: string; active: string }> = {
   H: {
-    inactive: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-450 dark:border-emerald-900/30",
-    active: "bg-emerald-600 text-white font-extrabold shadow-sm border border-emerald-600"
+    inactive: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30 font-bold",
+    active: "bg-emerald-600 text-white font-black shadow-sm border border-emerald-600"
   },
   I: {
-    inactive: "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-450 dark:border-amber-900/30",
-    active: "bg-amber-500 text-white font-extrabold shadow-sm border border-amber-500"
+    inactive: "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30 font-bold",
+    active: "bg-amber-500 text-white font-black shadow-sm border border-amber-500"
   },
   S: {
-    inactive: "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200/50 dark:bg-orange-950/20 dark:text-orange-450 dark:border-orange-900/30",
-    active: "bg-orange-500 text-white font-extrabold shadow-sm border border-orange-500"
+    inactive: "bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200/50 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30 font-bold",
+    active: "bg-sky-600 text-white font-black shadow-sm border border-sky-600"
   },
   A: {
-    inactive: "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200/50 dark:bg-red-950/20 dark:text-red-450 dark:border-red-900/30",
-    active: "bg-red-600 text-white font-extrabold shadow-sm border border-red-600"
+    inactive: "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30 font-bold",
+    active: "bg-rose-600 text-white font-black shadow-sm border border-rose-600"
   },
 }
 
-export default function JurnalFormDialog({ item, open, onClose, onSaved, defaultGuruId }: Props) {
+export default function JurnalFormDialog({
+  item,
+  open,
+  onClose,
+  onSaved,
+  defaultGuruId,
+  initialJadwalSlot,
+}: Props) {
   const [judulJurnal, setJudulJurnal] = useState("")
   const [kelasId, setKelasId] = useState("")
   const [mataPelajaranId, setMataPelajaranId] = useState("")
@@ -80,10 +87,9 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   const [materiKonten, setMateriKonten] = useState("")
   const [kegiatanPembelajaran, setKegiatanPembelajaran] = useState("")
   const [catatan, setCatatan] = useState("")
-  const [status, setStatus] = useState<"draft" | "selesai">("draft")
+  const [status, setStatus] = useState<"draft" | "selesai">("selesai")
   const [guruId, setGuruId] = useState("")
   const [saving, setSaving] = useState(false)
-  const [hadirSemua, setHadirSemua] = useState(true)
   const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
   const [selectedJadwalId, setSelectedJadwalId] = useState("")
 
@@ -95,32 +101,14 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
     enabled: open && isGuru,
   })
   const currentGuruId = currentGuru?.id
-  const targetGuruId = isAdmin ? guruId : currentGuruId
-
-  const DAYS_EN = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
-  const selectedDateObj = tanggal ? new Date(tanggal + "T00:00:00") : new Date()
-  const queryHari = DAYS_EN[selectedDateObj.getDay()]
-
-  const { data: guruJadwalList } = api.jadwal.getAll.useQuery(
-    {
-      guruId: targetGuruId || undefined,
-      hari: queryHari as any,
-    },
-    {
-      enabled: open && !!targetGuruId,
-    }
-  )
-
-  const selectedJadwal = useMemo(() => {
-    return (guruJadwalList ?? []).find((j) => j.id === selectedJadwalId)
-  }, [guruJadwalList, selectedJadwalId])
+  const targetGuruId = isAdmin ? (guruId || defaultGuruId) : currentGuruId
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 }, { enabled: isAdmin })
 
   const { data: siswaList } = api.siswa.getAll.useQuery(
-    { kelasId, status: "aktif", limit: 100 },
+    { kelasId, status: "aktif", limit: 500 },
     { enabled: !!kelasId },
   )
 
@@ -140,9 +128,23 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
       setMateriKonten(item.materiKonten || "")
       setKegiatanPembelajaran(item.kegiatanPembelajaran || "")
       setCatatan(item.catatan || "")
-      setStatus(item.status || "draft")
+      setStatus(item.status || "selesai")
       setGuruId(item.guruId)
       setSelectedJadwalId(item.jadwalPelajaranId || "")
+    } else if (initialJadwalSlot) {
+      setJudulJurnal("")
+      setKelasId(initialJadwalSlot.kelasId)
+      setMataPelajaranId(initialJadwalSlot.mataPelajaranId)
+      setGuruId(initialJadwalSlot.guruId)
+      setSelectedJadwalId(initialJadwalSlot.id)
+      setTanggal(new Date().toISOString().split("T")[0])
+      setJamMulai(initialJadwalSlot.jamMulai ? new Date(initialJadwalSlot.jamMulai).toTimeString().slice(0, 5) : "")
+      setJamSelesai(initialJadwalSlot.jamSelesai ? new Date(initialJadwalSlot.jamSelesai).toTimeString().slice(0, 5) : "")
+      setTujuanPembelajaran("")
+      setMateriKonten("")
+      setKegiatanPembelajaran("")
+      setCatatan("")
+      setStatus("selesai")
     } else {
       setJudulJurnal("")
       setKelasId("")
@@ -154,37 +156,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
       setMateriKonten("")
       setKegiatanPembelajaran("")
       setCatatan("")
-      setStatus("draft")
+      setStatus("selesai")
       setGuruId(defaultGuruId || "")
       setSelectedJadwalId("")
     }
     setAttendance({})
-    setHadirSemua(true)
-  }, [open, item, defaultGuruId])
-
-  // Auto-select schedule slot automatically if available for the day (in create mode)
-  useEffect(() => {
-    if (!item && guruJadwalList && guruJadwalList.length > 0 && !selectedJadwalId) {
-      if (guruJadwalList[0]) {
-        setSelectedJadwalId(guruJadwalList[0].id)
-      }
-    }
-  }, [guruJadwalList, item, selectedJadwalId])
-
-  // Sync details from selected schedule
-  useEffect(() => {
-    if (selectedJadwal) {
-      setKelasId(selectedJadwal.kelasId)
-      setMataPelajaranId(selectedJadwal.mataPelajaranId)
-      setGuruId(selectedJadwal.guruId)
-      if (selectedJadwal.jamMulai) {
-        setJamMulai(new Date(selectedJadwal.jamMulai).toTimeString().slice(0, 5))
-      }
-      if (selectedJadwal.jamSelesai) {
-        setJamSelesai(new Date(selectedJadwal.jamSelesai).toTimeString().slice(0, 5))
-      }
-    }
-  }, [selectedJadwal])
+  }, [open, item, initialJadwalSlot, defaultGuruId])
 
   useEffect(() => {
     if (!open || !siswaList) return
@@ -193,13 +170,10 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
       try {
         const parsed: AttendanceItem[] = JSON.parse(item.detailKehadiran)
         const attMap: Record<string, AttStatus> = {}
-        let allHadir = true
         for (const a of parsed) {
           attMap[a.siswaId] = a.status
-          if (a.status !== "H") allHadir = false
         }
         setAttendance(attMap)
-        setHadirSemua(allHadir)
         return
       } catch {}
     }
@@ -209,13 +183,12 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
       defaultAtt[s.id] = "H"
     }
     setAttendance(defaultAtt)
-    setHadirSemua(true)
   }, [siswaList, open, item?.detailKehadiran])
 
   const computeStatusKehadiran = () => {
     const counts = { H: 0, I: 0, S: 0, A: 0 }
     for (const s of Object.values(attendance)) {
-      counts[s]++
+      if (counts[s] !== undefined) counts[s]++
     }
     return `Hadir: ${counts.H}, Izin: ${counts.I}, Sakit: ${counts.S}, Alpa: ${counts.A}`
   }
@@ -223,12 +196,11 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
   const handleSave = async () => {
     if (!kelasId) { toast.error("Kelas wajib dipilih"); return }
     if (!mataPelajaranId) { toast.error("Mata pelajaran wajib dipilih"); return }
-    if (!tanggal) { toast.error("Tanggal wajib diisi"); return }
     if (!tujuanPembelajaran.trim()) { toast.error("Tujuan pembelajaran wajib diisi"); return }
-    if (!materiKonten.trim()) { toast.error("Materi/konten wajib diisi"); return }
+    if (!materiKonten.trim()) { toast.error("Materi pokok wajib diisi"); return }
 
-    const targetGuruId = guruId || defaultGuruId || ""
-    if (!targetGuruId) { toast.error("Guru pengampu wajib dipilih"); return }
+    const targetGuruIdFinal = guruId || defaultGuruId || currentGuruId || ""
+    if (!targetGuruIdFinal) { toast.error("Guru pengampu wajib dipilih"); return }
 
     let finalJudul = judulJurnal.trim()
     if (!finalJudul) {
@@ -242,7 +214,7 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
 
     setSaving(true)
     try {
-      const tanggalDate = new Date(tanggal + "T00:00:00")
+      const tanggalDate = tanggal ? new Date(tanggal + "T00:00:00") : new Date()
       const jamMulaiDate = jamMulai ? new Date(`${tanggal}T${jamMulai}:00`) : null
       const jamSelesaiDate = jamSelesai ? new Date(`${tanggal}T${jamSelesai}:00`) : null
 
@@ -268,225 +240,219 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
             catatan: catatan || null,
             statusKehadiran,
             detailKehadiran,
-            status,
+            status: "selesai",
           },
         })
-        toast.success("Jurnal berhasil diperbarui")
+        toast.success("Jurnal & Presensi berhasil disimpan")
       } else {
         await createJurnal.mutateAsync({
-          guruId: targetGuruId,
+          guruId: targetGuruIdFinal,
           kelasId,
           mataPelajaranId,
           jadwalPelajaranId: selectedJadwalId || null,
           tanggal: tanggalDate,
-          judulJurnal: finalJudul,
           jamMulai: jamMulaiDate,
           jamSelesai: jamSelesaiDate,
+          judulJurnal: finalJudul,
           tujuanPembelajaran,
           materiKonten,
           kegiatanPembelajaran: kegiatanPembelajaran || null,
           catatan: catatan || null,
           statusKehadiran,
           detailKehadiran,
-          status,
+          status: "selesai",
         })
-        toast.success("Jurnal berhasil dibuat")
+        toast.success("Jurnal & Presensi berhasil disimpan")
       }
       onSaved()
       onClose()
-    } catch {
-      toast.error("Gagal menyimpan jurnal")
+    } catch (err: any) {
+      toast.error(err?.message || "Gagal menyimpan jurnal")
     }
     setSaving(false)
   }
 
+  // Display details for Summary Header Cards
+  const selectedKelasObj = kelasList?.find((k) => k.id === kelasId)
+  const selectedMapelObj = mapelList?.find((m) => m.id === mataPelajaranId)
+  const selectedGuruObj = guruList?.find((g) => g.id === targetGuruId) || currentGuru
+
+  const jpMulaiNum = initialJadwalSlot?.jpMulai ?? 1
+  const jpCountNum = initialJadwalSlot?.jpCount ?? 2
+  const jpRangeStr = `Jam Ke-${jpMulaiNum}-${jpMulaiNum + jpCountNum - 1}`
+  const timeRangeStr = jamMulai && jamSelesai ? `(${jamMulai} - ${jamSelesai})` : "(07:30 - 09:00)"
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0 text-left border-b border-slate-100">
-          <DialogTitle className="flex items-center gap-2 text-lg font-black text-slate-800 tracking-tight uppercase">
-            <div className="h-8 w-8 rounded-lg bg-teal-550/10 flex items-center justify-center text-teal-650">
-              <BookOpen className="h-4 w-4" />
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !saving) onClose() }}>
+      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden rounded-3xl">
+        <DialogHeader className="px-6 py-4 flex-shrink-0 text-left border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight">
+            <div className="h-9 w-9 rounded-2xl bg-teal-100 dark:bg-teal-950/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
+              <BookOpen className="h-5 w-5" />
             </div>
-            <span>{item ? "Edit Jurnal" : "Buat Jurnal Baru"}</span>
+            <span>Formulir Jurnal Mengajar</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-4">
-          <div className="space-y-4">
-            {/* 1. Pemilihan Slot Jadwal Mengajar (jika ada lebih dari 1 jadwal pada hari tsb) */}
-            {guruJadwalList && guruJadwalList.length > 1 && !item && (
-              <FieldWrap label="Pilih Slot Jadwal Mengajar Hari Ini" required>
-                <Select
-                  value={selectedJadwalId}
-                  onValueChange={(v) => setSelectedJadwalId(v ?? "")}
-                >
-                  <SelectTrigger className="border-teal-200 focus:border-teal-500 hover:border-teal-350 transition-colors rounded-2xl h-10">
-                    <SelectValue placeholder="-- Pilih Slot Jadwal --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {guruJadwalList.map((j) => {
-                      const mapelName = mapelList?.find((m) => m.id === j.mataPelajaranId)?.namaMapel || "Mapel"
-                      const jpStart = j.jpMulai ?? 0
-                      const jpCount = j.jpCount ?? 0
-                      return (
-                        <SelectItem key={j.id} value={j.id}>
-                          {mapelName} - {j.kelas?.namaKelas || "Kelas"} (JP {jpStart} s.d {jpStart + jpCount - 1})
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </FieldWrap>
-            )}
-
-            {/* 2. Data Terisi Otomatis (Read-Only) dari Jadwal */}
-            {selectedJadwal ? (
-              <div className="bg-gradient-to-br from-teal-50/60 to-emerald-50/40 dark:from-teal-950/30 dark:to-emerald-950/20 border border-teal-200/80 dark:border-teal-900/50 rounded-2xl p-4 space-y-3.5 shadow-sm">
-                <div className="flex items-center justify-between border-b border-teal-200/60 dark:border-teal-900/50 pb-2">
-                  <div className="flex items-center gap-2 text-xs font-black text-teal-800 dark:text-teal-300 uppercase tracking-wider">
-                    <Activity className="h-4 w-4 text-teal-600 animate-pulse" />
-                    <span>Terisi Otomatis Dari Jadwal Mengajar</span>
-                  </div>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-600 text-white uppercase tracking-wider">
-                    Locked
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Guru Pengampu</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      {guruList?.find((g) => g.id === targetGuruId)?.namaLengkap || currentGuru?.namaLengkap || session?.user?.name || "Guru"}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Mata Pelajaran</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      {mapelList?.find((m) => m.id === selectedJadwal.mataPelajaranId)?.namaMapel || "Mata Pelajaran"}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kelas</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      {kelasList?.find((k) => k.id === selectedJadwal.kelasId)?.namaKelas || "Kelas"}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Jam Pelajaran & Waktu</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      JP {selectedJadwal.jpMulai ?? 1} - {(selectedJadwal.jpMulai ?? 1) + (selectedJadwal.jpCount ?? 1) - 1} {jamMulai && jamSelesai ? `(${jamMulai} - ${jamSelesai})` : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* 3. Manual Inputs when no schedule is selected */
-              <>
-                {isAdmin && (
-                  <FieldWrap label="Guru Pengampu" required>
-                    <Select value={guruId} onValueChange={(v) => setGuruId(v ?? "")} options={guruList?.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
-                      <SelectTrigger><SelectValue placeholder="Pilih guru pengampu" /></SelectTrigger>
-                      <SelectContent>
-                        {guruList?.map((g) => <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FieldWrap>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FieldWrap label="Kelas" required>
-                    <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")} options={kelasList?.map((k) => ({ value: k.id, label: k.namaKelas }))}>
-                      <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
-                      <SelectContent>
-                        {kelasList?.map((k) => <SelectItem key={k.id} value={k.id}>{k.namaKelas}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FieldWrap>
-                  <FieldWrap label="Mata Pelajaran" required>
-                    <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")} options={mapelList?.map((m) => ({ value: m.id, label: m.namaMapel }))}>
-                      <SelectTrigger><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
-                      <SelectContent>
-                        {mapelList?.map((m) => <SelectItem key={m.id} value={m.id}>{m.namaMapel}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FieldWrap>
-                </div>
-              </>
-            )}
-
-            <FieldWrap label="Judul Jurnal" optional>
-              <Input value={judulJurnal} onChange={(e) => setJudulJurnal(e.target.value)} placeholder="Contoh: Bab 1 Bilangan (Kosongkan untuk isi otomatis)" />
-            </FieldWrap>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FieldWrap label="Tanggal" required>
-                <Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
-              </FieldWrap>
-              {!selectedJadwal && (
-                <>
-                  <FieldWrap label="Jam Mulai">
-                    <Input type="time" value={jamMulai} onChange={(e) => setJamMulai(e.target.value)} />
-                  </FieldWrap>
-                  <FieldWrap label="Jam Selesai">
-                    <Input type="time" value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} />
-                  </FieldWrap>
-                </>
-              )}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Summary Read-Only Card Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-900/40 text-xs">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black text-teal-700/70 dark:text-teal-400/70 uppercase tracking-wider block">
+                Mata Pelajaran
+              </span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
+                {selectedMapelObj ? `${selectedMapelObj.kodeMapel ? `${selectedMapelObj.kodeMapel} ` : ""}${selectedMapelObj.namaMapel}` : "Mapel Wajib"}
+              </span>
             </div>
 
-            <FieldWrap label="Tujuan Pembelajaran" required>
-              <Textarea value={tujuanPembelajaran} onChange={(e) => setTujuanPembelajaran(e.target.value)} placeholder="Tuliskan tujuan pembelajaran..." rows={3} className="resize-none" />
-            </FieldWrap>
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black text-teal-700/70 dark:text-teal-400/70 uppercase tracking-wider block">
+                Kelas Rombel
+              </span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
+                {selectedKelasObj ? `Kelas ${selectedKelasObj.namaKelas}` : "Rombel"}
+              </span>
+            </div>
 
-            <FieldWrap label="Materi / Topik Pembelajaran" required>
-              <Textarea value={materiKonten} onChange={(e) => setMateriKonten(e.target.value)} placeholder="Tuliskan materi atau topik yang diajarkan..." rows={3} className="resize-none" />
-            </FieldWrap>
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black text-teal-700/70 dark:text-teal-400/70 uppercase tracking-wider block">
+                Waktu / Jam Pelajaran
+              </span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
+                {jpRangeStr} {timeRangeStr}
+              </span>
+            </div>
 
-            <FieldWrap label="Kegiatan Pembelajaran" optional>
-              <Textarea value={kegiatanPembelajaran} onChange={(e) => setKegiatanPembelajaran(e.target.value)} placeholder="Tuliskan gambaran ringkas kegiatan pembelajaran (opsional)..." rows={3} className="resize-none" />
-            </FieldWrap>
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black text-teal-700/70 dark:text-teal-400/70 uppercase tracking-wider block">
+                Guru Pengampu
+              </span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
+                {selectedGuruObj?.namaLengkap || "Guru Pengampu"}
+              </span>
+            </div>
+          </div>
 
-            <FieldWrap label="Catatan" optional>
-              <Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Tuliskan kejadian khusus di kelas, misal siswa berkebutuhan khusus atau pelanggaran tata tertib (opsional)..." rows={3} className="resize-none" />
-            </FieldWrap>
+          {/* Input Form Fields */}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Tujuan Pembelajaran <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                required
+                rows={2}
+                value={tujuanPembelajaran}
+                onChange={(e) => setTujuanPembelajaran(e.target.value)}
+                placeholder="Tuliskan tujuan pembelajaran yang ingin dicapai..."
+                className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-900"
+              />
+            </div>
 
-            {kelasId && (
-              <div className="border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 space-y-3.5 bg-slate-50/20 dark:bg-slate-900/10">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-teal-605" />
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Presensi Siswa</h3>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Materi Pokok <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                required
+                rows={2}
+                value={materiKonten}
+                onChange={(e) => setMateriKonten(e.target.value)}
+                placeholder="Tuliskan judul atau materi pokok pembahasan hari ini..."
+                className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-900"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Kegiatan Pembelajaran <span className="font-normal text-slate-400">(Opsional)</span>
+              </Label>
+              <Textarea
+                rows={2}
+                value={kegiatanPembelajaran}
+                onChange={(e) => setKegiatanPembelajaran(e.target.value)}
+                placeholder="Gambaran singkat jalannya kegiatan pembelajaran / diskusi kelas..."
+                className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-900"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Catatan Kejadian Penting / Hambatan <span className="font-normal text-slate-400">(Opsional)</span>
+              </Label>
+              <Textarea
+                rows={2}
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+                placeholder="Catatan hambatan, siswa berprestasi, atau kejadian penting..."
+                className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-900"
+              />
+            </div>
+
+            {/* Presensi & Absensi Siswa Section */}
+            <div className="pt-2">
+              <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/50 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 flex-wrap gap-2">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                      Presensi & Absensi Siswa Kelas ({siswaList?.length ?? 0} Siswa)
+                    </h4>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      Default status: Hadir (H)
+                    </span>
                   </div>
-                  <span className="text-xs font-black text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg uppercase tracking-wider">
-                    {siswaList?.length ?? 0} siswa
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allH: Record<string, AttStatus> = {}
+                        siswaList?.forEach((s) => { allH[s.id] = "H" })
+                        setAttendance(allH)
+                      }}
+                      className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer"
+                    >
+                      Semua Hadir
+                    </button>
+                  </div>
                 </div>
 
-                {siswaList && siswaList.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                    {siswaList.map((siswa) => {
-                      const s = attendance[siswa.id] || "H"
+                {!siswaList ? (
+                  <p className="text-center text-xs text-muted-foreground py-4">Memuat daftar siswa...</p>
+                ) : siswaList.length === 0 ? (
+                  <p className="text-center text-xs text-muted-foreground py-4">Belum ada data siswa di kelas ini</p>
+                ) : (
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    {siswaList.map((siswa, idx) => {
+                      const currentStatus = attendance[siswa.id] || "H"
+                      const shortId = siswa.id.slice(0, 8)
+
                       return (
                         <div
                           key={siswa.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900/60 px-3.5 py-2.5 text-sm hover:border-slate-200 dark:hover:border-slate-800 transition-colors shadow-xs"
+                          className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-xs flex-wrap gap-2"
                         >
-                          <span className="truncate min-w-0 flex-1 font-semibold text-slate-700 dark:text-slate-300">{siswa.namaLengkap}</span>
-                          <div className="flex gap-1.5 shrink-0">
-                            {(Object.keys(ATT_STATUS) as AttStatus[]).map((key) => {
-                              const isActive = s === key
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-400">{idx + 1}.</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{siswa.namaLengkap}</span>
+                            <span className="text-[10px] font-mono text-slate-400">ID: {shortId}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {(["H", "I", "S", "A"] as AttStatus[]).map((stKey) => {
+                              const isSelected = currentStatus === stKey
                               return (
                                 <button
-                                  key={key}
+                                  key={stKey}
                                   type="button"
-                                  onClick={() => setAttendance((prev) => ({ ...prev, [siswa.id]: key }))}
+                                  onClick={() => setAttendance({ ...attendance, [siswa.id]: stKey })}
                                   className={cn(
-                                    "h-8 w-8 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center justify-center shadow-xs",
-                                    isActive ? ATT_BTN[key].active : ATT_BTN[key].inactive
+                                    "px-2.5 py-1 rounded-lg text-[10px] transition-all cursor-pointer",
+                                    isSelected ? ATT_BTN[stKey].active : ATT_BTN[stKey].inactive
                                   )}
-                                  title={ATT_STATUS[key]}
                                 >
-                                  {key}
+                                  {ATT_STATUS[stKey]}
                                 </button>
                               )
                             })}
@@ -495,60 +461,40 @@ export default function JurnalFormDialog({ item, open, onClose, onSaved, default
                       )
                     })}
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic text-center py-4">Tidak ada siswa aktif di kelas ini.</p>
                 )}
               </div>
-            )}
-
-            <FieldWrap label="Status">
-              <Select value={status} onValueChange={(v) => setStatus(v as "draft" | "selesai")} options={[{value:"draft", label:"Draft"}, {value:"selesai", label:"Selesai"}]}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="selesai">Selesai</SelectItem>
-                </SelectContent>
-              </Select>
-            </FieldWrap>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-100 flex-shrink-0">
-          <button
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-end gap-3">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+            className="rounded-xl h-10 text-xs font-bold cursor-pointer"
           >
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 text-xs font-extrabold uppercase tracking-wider gap-2 cursor-pointer shadow-md shadow-emerald-500/10"
           >
             {saving ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
             ) : (
-              <span>{item ? "Simpan Perubahan" : "Buat Jurnal"}</span>
+              <span>Simpan Jurnal & Presensi</span>
             )}
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function FieldWrap({ label, required, optional, children }: { label: string; required?: boolean; optional?: boolean; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">
-        {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
-        {optional && <span className="text-muted-foreground text-[8px] ml-1">(opsional)</span>}
-      </Label>
-      {children}
-    </div>
   )
 }
