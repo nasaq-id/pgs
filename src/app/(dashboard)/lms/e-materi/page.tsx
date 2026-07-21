@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import {
   Plus,
@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
-import EMateriFormDialog, { type EMateriFormData } from "@/components/lms/EMateriFormDialog"
+import EMateriFormDialog, { type EMateriFormData, formatTingkatLabel } from "@/components/lms/EMateriFormDialog"
 
 export default function EMateriPage() {
   const { data: session } = useSession()
@@ -61,7 +61,6 @@ export default function EMateriPage() {
   // tRPC Queries
   const { data: mapelList, isLoading: isLoadingMapel } = api.mapel.getAll.useQuery({
     search: searchMapel || undefined,
-    tingkat: tingkatFilter !== "semua" ? tingkatFilter : undefined,
     limit: 100,
   })
 
@@ -75,6 +74,45 @@ export default function EMateriPage() {
   })
 
   const utils = api.useUtils()
+
+  const uniqueTingkat = useMemo(() => {
+    if (!kelasList) return []
+    const setT = new Set<string>()
+    kelasList.forEach((k) => {
+      if (k.tingkat) setT.add(k.tingkat)
+    })
+    return Array.from(setT).sort()
+  }, [kelasList])
+
+  const uniqueTingkatOptions = useMemo(() => {
+    return [
+      { value: "semua", label: "Semua Tingkat" },
+      ...uniqueTingkat.map((t) => ({
+        value: t,
+        label: formatTingkatLabel(t),
+      })),
+    ]
+  }, [uniqueTingkat])
+
+  const mapelFilterOptions = useMemo(() => {
+    return [
+      { value: "semua", label: "Semua Mapel" },
+      ...(mapelList ?? []).map((m) => ({
+        value: m.id,
+        label: m.namaMapel,
+      })),
+    ]
+  }, [mapelList])
+
+  const kelasFilterOptions = useMemo(() => {
+    return [
+      { value: "semua", label: "Semua Kelas" },
+      ...(kelasList ?? []).map((k) => ({
+        value: k.id,
+        label: `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`,
+      })),
+    ]
+  }, [kelasList])
 
   const createMutation = api.eMateri.create.useMutation({
     onSuccess: () => {
@@ -172,11 +210,6 @@ export default function EMateriPage() {
   }
 
   const canManage = ["super_admin", "admin_sekolah", "tu", "guru"].includes(userRole)
-
-  // Extract unique Tingkat list from Kelas
-  const uniqueTingkat = Array.from(
-    new Set((kelasList ?? []).map((k) => k.tingkat).filter(Boolean)),
-  ) as string[]
 
   return (
     <div className="space-y-6">
@@ -297,15 +330,19 @@ export default function EMateriPage() {
               {/* Tingkat Filter Dropdown */}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full sm:w-auto">
                 <span className="shrink-0 font-medium">Tingkat:</span>
-                <Select value={tingkatFilter} onValueChange={(v) => setTingkatFilter(v ?? "semua")}>
+                <Select
+                  value={tingkatFilter}
+                  onValueChange={(v) => setTingkatFilter(v ?? "semua")}
+                  options={uniqueTingkatOptions}
+                >
                   <SelectTrigger className="w-full sm:w-48 !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     <SelectValue placeholder="Semua Tingkat" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="semua">Semua Tingkat</SelectItem>
+                    <SelectItem value="semua" label="Semua Tingkat">Semua Tingkat</SelectItem>
                     {uniqueTingkat.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
+                      <SelectItem key={t} value={t} label={formatTingkatLabel(t)}>
+                        {formatTingkatLabel(t)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -420,14 +457,18 @@ export default function EMateriPage() {
               {/* Mapel Filter */}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="shrink-0 font-medium">Mapel:</span>
-                <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "semua")}>
+                <Select
+                  value={mapelFilter}
+                  onValueChange={(v) => setMapelFilter(v ?? "semua")}
+                  options={mapelFilterOptions}
+                >
                   <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     <SelectValue placeholder="Semua Mapel" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="semua">Semua Mapel</SelectItem>
+                    <SelectItem value="semua" label="Semua Mapel">Semua Mapel</SelectItem>
                     {(mapelList ?? []).map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
+                      <SelectItem key={m.id} value={m.id} label={m.namaMapel}>
                         {m.namaMapel}
                       </SelectItem>
                     ))}
@@ -438,17 +479,24 @@ export default function EMateriPage() {
               {/* Kelas Filter */}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="shrink-0 font-medium">Kelas:</span>
-                <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "semua")}>
+                <Select
+                  value={kelasFilter}
+                  onValueChange={(v) => setKelasFilter(v ?? "semua")}
+                  options={kelasFilterOptions}
+                >
                   <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     <SelectValue placeholder="Semua Kelas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="semua">Semua Kelas</SelectItem>
-                    {(kelasList ?? []).map((k) => (
-                      <SelectItem key={k.id} value={k.id}>
-                        {k.namaKelas}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="semua" label="Semua Kelas">Semua Kelas</SelectItem>
+                    {(kelasList ?? []).map((k) => {
+                      const labelStr = `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`
+                      return (
+                        <SelectItem key={k.id} value={k.id} label={labelStr}>
+                          {labelStr}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>

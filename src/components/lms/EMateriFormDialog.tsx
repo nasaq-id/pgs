@@ -37,6 +37,14 @@ interface Props {
   saving?: boolean
 }
 
+export function formatTingkatLabel(tingkat?: string | null): string {
+  if (!tingkat || tingkat === "semua" || tingkat === "all") return "Semua Tingkat"
+  const clean = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+  if (!clean) return "Umum"
+  if (/^(kelas|sd|smp|sma|smk|madrasah)/i.test(clean)) return clean
+  return `Kelas ${clean}`
+}
+
 export default function EMateriFormDialog({ open, onClose, onSubmit, initial, saving }: Props) {
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [kelasId, setKelasId] = useState("")
@@ -55,11 +63,24 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 100 }, { enabled: open })
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 }, { enabled: open })
 
+  const mapelOptions = (mapelList ?? []).map((m) => ({
+    value: m.id,
+    label: `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`,
+  }))
+
+  const kelasOptions = [
+    { value: "all", label: "Semua Kelas (Umum)" },
+    ...(kelasList ?? []).map((k) => ({
+      value: k.id,
+      label: `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`,
+    })),
+  ]
+
   useEffect(() => {
     if (!open) return
     if (initial) {
       setMataPelajaranId(initial.mataPelajaranId ?? "")
-      setKelasId(initial.kelasId ?? "")
+      setKelasId(initial.kelasId || "all")
       setJudul(initial.judul ?? "")
       setBab(initial.bab ?? "")
       setDeskripsi(initial.deskripsi ?? "")
@@ -72,7 +93,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
       setStatus(initial.status ?? "terbit")
     } else {
       setMataPelajaranId("")
-      setKelasId("")
+      setKelasId("all")
       setJudul("")
       setBab("")
       setDeskripsi("")
@@ -98,7 +119,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
       await onSubmit({
         id: initial?.id,
         mataPelajaranId,
-        kelasId: kelasId || null,
+        kelasId: kelasId === "all" ? null : (kelasId || null),
         tingkat,
         judul,
         bab: bab || null,
@@ -147,13 +168,21 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
               <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Mata Pelajaran <span className="text-rose-500">*</span>
               </Label>
-              <Select value={mataPelajaranId} onValueChange={(v) => setMataPelajaranId(v ?? "")}>
+              <Select
+                value={mataPelajaranId}
+                onValueChange={(v) => setMataPelajaranId(v ?? "")}
+                options={mapelOptions}
+              >
                 <SelectTrigger className="rounded-2xl h-10 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                   <SelectValue placeholder="Pilih Mata Pelajaran" />
                 </SelectTrigger>
                 <SelectContent>
                   {(mapelList ?? []).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
+                    <SelectItem
+                      key={m.id}
+                      value={m.id}
+                      label={`${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`}
+                    >
                       {m.namaMapel} {m.kodeMapel ? `(${m.kodeMapel})` : ""}
                     </SelectItem>
                   ))}
@@ -165,17 +194,24 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
               <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Target Kelas / Tingkat <span className="text-slate-400 font-normal">(Opsional)</span>
               </Label>
-              <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
+              <Select
+                value={kelasId}
+                onValueChange={(v) => setKelasId(v ?? "all")}
+                options={kelasOptions}
+              >
                 <SelectTrigger className="rounded-2xl h-10 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                   <SelectValue placeholder="Semua Kelas (Umum)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Kelas (Umum)</SelectItem>
-                  {(kelasList ?? []).map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
-                      {k.namaKelas} {k.tingkat ? `(${k.tingkat})` : ""}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all" label="Semua Kelas (Umum)">Semua Kelas (Umum)</SelectItem>
+                  {(kelasList ?? []).map((k) => {
+                    const labelStr = `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`
+                    return (
+                      <SelectItem key={k.id} value={k.id} label={labelStr}>
+                        {labelStr}
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
