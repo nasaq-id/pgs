@@ -43,6 +43,7 @@ const pageTitles: Record<string, string> = {
   "/evaluasi/buku-nilai": "Buku Nilai",
   "/pengaturan": "Pengaturan",
   "/absensi": "Absensi Harian",
+  "/absensi/guru": "Presensi Guru",
   "/absensi/izin": "Pengajuan Izin",
   "/absensi/rekap": "Rekap Presensi",
   "/kesiswaan/ekstrakurikuler": "Ekstrakurikuler",

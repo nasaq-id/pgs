@@ -97,6 +97,7 @@ const menuItems: MenuItem[] = [
     label: "Presensi", 
     children: [
       { label: "Presensi Harian", path: "/absensi" },
+      { label: "Presensi Guru", path: "/absensi/guru", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
       { label: "Pengajuan Izin", path: "/absensi/izin" },
       { label: "Rekap Presensi", path: "/absensi/rekap" },
     ]

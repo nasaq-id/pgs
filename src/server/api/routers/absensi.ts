@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, between, or, asc, lte, gte } from "drizzle-orm"
 import { db } from "@/server/db"
-import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin } from "@/server/db/schema"
+import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
@@ -859,6 +859,162 @@ export const absensiRouter = router({
       return {
         summary: summaryList,
         logs: attendanceLogs,
+      }
+    }),
+
+  getStaticQrGuru: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any) || ctx.session.user.sekolahId
+      if (!sekolahId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
+      }
+
+      const schoolRecord = await db.query.sekolah.findFirst({
+        where: eq(sekolah.id, sekolahId),
+      })
+      const settings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+
+      const qrCodeValue = `PGS-PRESENSI-GURU-${sekolahId}`
+
+      return {
+        qrCodeValue,
+        sekolahNama: schoolRecord?.namaSekolah || "Sekolah",
+        jamMasuk: settings?.jamMasuk || "07:00",
+        jamPulang: settings?.jamPulang || "14:00",
+        toleransi: settings?.toleransi || 15,
+      }
+    }),
+
+  scanSingleQrGuru: protectedProcedure
+    .input(
+      z.object({
+        qrCode: z.string(),
+        targetGuruId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any) || ctx.session.user.sekolahId
+      if (!sekolahId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
+      }
+
+      if (!input.qrCode.startsWith("PGS-PRESENSI-GURU-")) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "QR Code tidak valid untuk Presensi Guru Sekolah." })
+      }
+
+      const qrSekolahId = input.qrCode.replace("PGS-PRESENSI-GURU-", "")
+      if (qrSekolahId !== sekolahId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "QR Code ini milik sekolah lain." })
+      }
+
+      let teacherId = input.targetGuruId
+      if (!teacherId) {
+        const userEmail = ctx.session.user.email
+        if (userEmail) {
+          const gRecord = await db.query.guru.findFirst({
+            where: and(
+              eq(guru.sekolahId, sekolahId),
+              or(
+                eq(guru.email, userEmail),
+                eq(guru.usernameGuru, userEmail),
+                eq(guru.nipnuptk, userEmail),
+                eq(guru.id, userEmail)
+              )
+            ),
+          })
+          if (gRecord) teacherId = gRecord.id
+        }
+      }
+
+      if (!teacherId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Data akun Guru Anda tidak ditemukan di sistem sekolah ini." })
+      }
+
+      const teacherRecord = await db.query.guru.findFirst({
+        where: eq(guru.id, teacherId),
+      })
+      if (!teacherRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan." })
+      }
+
+      const now = new Date()
+      const startOfToday = new Date(now)
+      startOfToday.setHours(0, 0, 0, 0)
+      const endOfToday = new Date(now)
+      endOfToday.setHours(23, 59, 59, 999)
+
+      const existingAbsen = await db.query.absensiGuru.findFirst({
+        where: and(eq(absensiGuru.guruId, teacherId), between(absensiGuru.tanggal, startOfToday, endOfToday)),
+      })
+
+      const settings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+
+      const jamMasukStr = settings?.jamMasuk || "07:00"
+      const toleransiMin = settings?.toleransi || 15
+
+      const [mHour, mMin] = jamMasukStr.split(":").map(Number)
+      const limitTime = new Date(now)
+      limitTime.setHours(mHour, mMin + toleransiMin, 0, 0)
+
+      if (!existingAbsen) {
+        const status = now > limitTime ? "terlambat" : "hadir"
+        const [created] = await db
+          .insert(absensiGuru)
+          .values({
+            id: crypto.randomUUID(),
+            sekolahId,
+            guruId: teacherId,
+            tanggal: now,
+            status,
+            jamMasuk: now,
+          })
+          .returning()
+
+        await logAudit(ctx, {
+          action: "scan_single_qr_guru_masuk",
+          entity: "absensi_guru",
+          entityId: created.id,
+          metadata: { name: teacherRecord.namaLengkap, status },
+        })
+
+        return {
+          success: true,
+          action: "masuk",
+          name: teacherRecord.namaLengkap,
+          status,
+          time: now,
+        }
+      } else {
+        if (existingAbsen.jamPulang) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Guru ${teacherRecord.namaLengkap} sudah melakukan presensi masuk dan pulang hari ini.`,
+          })
+        }
+
+        await db
+          .update(absensiGuru)
+          .set({ jamPulang: now })
+          .where(eq(absensiGuru.id, existingAbsen.id))
+
+        await logAudit(ctx, {
+          action: "scan_single_qr_guru_pulang",
+          entity: "absensi_guru",
+          entityId: existingAbsen.id,
+          metadata: { name: teacherRecord.namaLengkap },
+        })
+
+        return {
+          success: true,
+          action: "pulang",
+          name: teacherRecord.namaLengkap,
+          status: existingAbsen.status,
+          time: now,
+        }
       }
     }),
 })
