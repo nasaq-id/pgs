@@ -98,6 +98,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Presensi Harian", path: "/absensi" },
       { label: "Pengajuan Izin", path: "/absensi/izin" },
+      { label: "Rekap Presensi", path: "/absensi/rekap" },
     ]
   },
   { 

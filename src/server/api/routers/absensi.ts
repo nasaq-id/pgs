@@ -657,4 +657,208 @@ export const absensiRouter = router({
         return result
       }
     }),
+
+  getRekapSiswa: protectedProcedure
+    .input(
+      z.object({
+        kelasId: z.string().optional(),
+        siswaId: z.string().optional(),
+        tanggalMulai: z.coerce.date(),
+        tanggalSelesai: z.coerce.date(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
+
+      const start = new Date(input.tanggalMulai)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(input.tanggalSelesai)
+      end.setHours(23, 59, 59, 999)
+
+      const siswaConditions = [eq(siswa.sekolahId, sekolahId)]
+      if (input.kelasId && input.kelasId !== "all") {
+        siswaConditions.push(eq(siswa.kelasId, input.kelasId))
+      }
+      if (input.siswaId && input.siswaId !== "all") {
+        siswaConditions.push(eq(siswa.id, input.siswaId))
+      }
+
+      const students = await db.query.siswa.findMany({
+        where: and(...siswaConditions),
+        with: {
+          kelas: true,
+        },
+        orderBy: [asc(siswa.namaLengkap)],
+      })
+
+      const attendanceConditions = [
+        eq(absensiSiswa.sekolahId, sekolahId),
+        between(absensiSiswa.tanggal, start, end),
+      ]
+      if (input.kelasId && input.kelasId !== "all") {
+        attendanceConditions.push(eq(absensiSiswa.kelasId, input.kelasId))
+      }
+      if (input.siswaId && input.siswaId !== "all") {
+        attendanceConditions.push(eq(absensiSiswa.siswaId, input.siswaId))
+      }
+
+      const attendanceLogs = await db.query.absensiSiswa.findMany({
+        where: and(...attendanceConditions),
+        orderBy: [desc(absensiSiswa.tanggal)],
+      })
+
+      const studentMap = new Map<string, {
+        siswaId: string
+        namaLengkap: string
+        nisn: string | null
+        nisLokal: string | null
+        kelasNama: string
+        totalHari: number
+        hadirCount: number
+        terlambatCount: number
+        izinCount: number
+        sakitCount: number
+        alphaCount: number
+        persentaseHadir: number
+      }>()
+
+      for (const s of students) {
+        studentMap.set(s.id, {
+          siswaId: s.id,
+          namaLengkap: s.namaLengkap,
+          nisn: s.nisn,
+          nisLokal: s.nisLokal,
+          kelasNama: s.kelas?.namaKelas || "-",
+          totalHari: 0,
+          hadirCount: 0,
+          terlambatCount: 0,
+          izinCount: 0,
+          sakitCount: 0,
+          alphaCount: 0,
+          persentaseHadir: 0,
+        })
+      }
+
+      for (const log of attendanceLogs) {
+        const item = studentMap.get(log.siswaId)
+        if (item) {
+          item.totalHari++
+          if (log.status === "hadir") item.hadirCount++
+          else if (log.status === "terlambat") item.terlambatCount++
+          else if (log.status === "izin") item.izinCount++
+          else if (log.status === "sakit") item.sakitCount++
+          else if (log.status === "alpha") item.alphaCount++
+        }
+      }
+
+      const summaryList = Array.from(studentMap.values()).map((item) => {
+        const effectiveHadir = item.hadirCount + item.terlambatCount
+        const persentase = item.totalHari > 0 ? Math.round((effectiveHadir / item.totalHari) * 100) : 0
+        return {
+          ...item,
+          persentaseHadir: persentase,
+        }
+      })
+
+      return {
+        summary: summaryList,
+        logs: attendanceLogs,
+      }
+    }),
+
+  getRekapGuru: protectedProcedure
+    .input(
+      z.object({
+        guruId: z.string().optional(),
+        tanggalMulai: z.coerce.date(),
+        tanggalSelesai: z.coerce.date(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
+
+      const start = new Date(input.tanggalMulai)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(input.tanggalSelesai)
+      end.setHours(23, 59, 59, 999)
+
+      const guruConditions = [eq(guru.sekolahId, sekolahId)]
+      if (input.guruId && input.guruId !== "all") {
+        guruConditions.push(eq(guru.id, input.guruId))
+      }
+
+      const teachers = await db.query.guru.findMany({
+        where: and(...guruConditions),
+        orderBy: [asc(guru.namaLengkap)],
+      })
+
+      const attendanceConditions = [
+        eq(absensiGuru.sekolahId, sekolahId),
+        between(absensiGuru.tanggal, start, end),
+      ]
+      if (input.guruId && input.guruId !== "all") {
+        attendanceConditions.push(eq(absensiGuru.guruId, input.guruId))
+      }
+
+      const attendanceLogs = await db.query.absensiGuru.findMany({
+        where: and(...attendanceConditions),
+        orderBy: [desc(absensiGuru.tanggal)],
+      })
+
+      const teacherMap = new Map<string, {
+        guruId: string
+        namaLengkap: string
+        nipnuptk: string | null
+        totalHari: number
+        hadirCount: number
+        terlambatCount: number
+        izinCount: number
+        sakitCount: number
+        alphaCount: number
+        persentaseHadir: number
+      }>()
+
+      for (const g of teachers) {
+        teacherMap.set(g.id, {
+          guruId: g.id,
+          namaLengkap: g.namaLengkap,
+          nipnuptk: g.nipnuptk,
+          totalHari: 0,
+          hadirCount: 0,
+          terlambatCount: 0,
+          izinCount: 0,
+          sakitCount: 0,
+          alphaCount: 0,
+          persentaseHadir: 0,
+        })
+      }
+
+      for (const log of attendanceLogs) {
+        const item = teacherMap.get(log.guruId)
+        if (item) {
+          item.totalHari++
+          if (log.status === "hadir") item.hadirCount++
+          else if (log.status === "terlambat") item.terlambatCount++
+          else if (log.status === "izin") item.izinCount++
+          else if (log.status === "sakit") item.sakitCount++
+          else if (log.status === "alpha") item.alphaCount++
+        }
+      }
+
+      const summaryList = Array.from(teacherMap.values()).map((item) => {
+        const effectiveHadir = item.hadirCount + item.terlambatCount
+        const persentase = item.totalHari > 0 ? Math.round((effectiveHadir / item.totalHari) * 100) : 0
+        return {
+          ...item,
+          persentaseHadir: persentase,
+        }
+      })
+
+      return {
+        summary: summaryList,
+        logs: attendanceLogs,
+      }
+    }),
 })
