@@ -41,7 +41,7 @@ import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
 import CetakJadwal from "@/components/jadwal/CetakJadwal"
 import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
 import AiGenerateDialog from "@/components/jadwal/AiGenerateDialog"
-import { DAYS, DAY_LABEL, toTimeInputValue, timeToMinutes } from "@/components/jadwal/constants"
+import { DAYS, DAY_LABEL, toTimeInputValue, timeToMinutes, formatKelasLabel } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
   id: string
@@ -106,7 +106,7 @@ export default function JadwalPage() {
 
   const selectedKelasMain = useMemo(() => {
     const cls = kelasRecords.find((k) => k.id === kelasId)
-    return cls ? `${cls.tingkat ?? ""} - ${cls.namaKelas}` : ""
+    return cls ? formatKelasLabel(cls) : ""
   }, [kelasId, kelasRecords])
 
   useEffect(() => {
@@ -327,7 +327,7 @@ export default function JadwalPage() {
               <SelectContent>
                 {kelasRecords.map((k) => (
                   <SelectItem key={k.id} value={k.id}>
-                    {k.tingkat ?? ""} - {k.namaKelas}
+                    {formatKelasLabel(k)}
                   </SelectItem>
                 ))}
               </SelectContent>

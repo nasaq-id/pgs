@@ -19,6 +19,26 @@ export const DAY_OPTIONS = [
   { value: "sabtu", label: "Sabtu" },
 ]
 
+export function formatKelasLabel(k?: { namaKelas: string; tingkat?: string | null } | null): string {
+  if (!k) return ""
+  const namaKelasStr = (k.namaKelas || "").trim()
+  const rawTingkat = (k.tingkat || "").trim()
+  const cleanTingkat = rawTingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+
+  if (namaKelasStr.toLowerCase().startsWith("kelas ")) {
+    return namaKelasStr
+  }
+
+  if (cleanTingkat) {
+    if (namaKelasStr.startsWith(cleanTingkat)) {
+      return `Kelas ${namaKelasStr}`
+    }
+    return `Kelas ${cleanTingkat} - ${namaKelasStr}`
+  }
+
+  return `Kelas ${namaKelasStr}`
+}
+
 export function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number)
   return h * 60 + m

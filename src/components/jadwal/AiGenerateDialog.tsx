@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { Loader2, Sparkles, Plus, Trash2, CalendarOff, UserX, Clock, CheckCircle2, AlertCircle, Info } from "lucide-react"
+import { formatKelasLabel } from "./constants"
 import { cn } from "@/lib/utils"
 
 interface KelasRecord {
@@ -239,7 +240,7 @@ export default function AiGenerateDialog({
                 <option value="all">Semua Kelas ({kelasRecords.length} Rombel)</option>
                 {kelasRecords.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.tingkat ? `Kelas ${k.tingkat} - ` : ""}{k.namaKelas}
+                    {formatKelasLabel(k)}
                   </option>
                 ))}
               </select>

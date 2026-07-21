@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Printer, BookOpen, LayoutGrid } from "lucide-react"
 import { api } from "@/lib/trpc/client"
-import { DAY_LABEL, timeToMinutes, minutesToTime } from "./constants"
+import { DAY_LABEL, timeToMinutes, minutesToTime, formatKelasLabel } from "./constants"
 import { DAYS } from "./constants"
 
 interface MapelRecord {
@@ -318,7 +318,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
 
   const renderPerKelas = () => {
     const kelas = sortedKelas.find((k) => k.id === selectedKelasId)
-    const kelasLabel = kelas ? (kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas) : ""
+    const kelasLabel = kelas ? formatKelasLabel(kelas) : ""
 
     return (
       <>
@@ -332,7 +332,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
               <SelectContent>
                 {sortedKelas.map((k) => (
                   <SelectItem key={k.id} value={k.id}>
-                    {k.tingkat ? `${k.tingkat}-${k.namaKelas}` : k.namaKelas}
+                    {formatKelasLabel(k)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -485,7 +485,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
               {aktifDays.map((day) =>
                 sortedKelas.map((kelas) => (
                   <th key={`${day}-${kelas.id}`} style={{ border: "1px solid #000", padding: "2px 3px", background: "#f5f5f5", fontSize: 7 }}>
-                    {kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas}
+                    {formatKelasLabel(kelas)}
                   </th>
                 ))
               )}

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { FileSpreadsheet, Loader2 } from "lucide-react"
 import { api } from "@/lib/trpc/client"
-import { DAY_LABEL, timeToMinutes, minutesToTime } from "./constants"
+import { DAY_LABEL, timeToMinutes, minutesToTime, formatKelasLabel } from "./constants"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { DAYS } from "./constants"
@@ -316,7 +316,7 @@ export default function ExportExcelJadwal() {
           const cellAddr = XLSX.utils.encode_cell({ r: 6, c: col })
           ws[cellAddr] = {
             t: "s",
-            v: kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas,
+            v: formatKelasLabel(kelas),
             s: {
               font: { bold: true, sz: 8 },
               alignment: { horizontal: "center", vertical: "center", wrapText: true },
@@ -580,7 +580,7 @@ export default function ExportExcelJadwal() {
         }
         const kelasIdx = (c - 1) % classCount
         const kelas = sortedKelas[kelasIdx]
-        const label = kelas.tingkat ? `${kelas.tingkat}-${kelas.namaKelas}` : kelas.namaKelas
+        const label = formatKelasLabel(kelas)
         colWidths.push(Math.max(label.length + 2, 8))
       }
 
