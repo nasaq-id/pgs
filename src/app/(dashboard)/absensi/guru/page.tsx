@@ -491,6 +491,90 @@ export default function PresensiGuruPage() {
           )}
         </Card>
       )}
+
+      {/* Printable QR Code Card - only visible when printing */}
+      <div
+        id="printable-qr-area"
+        className="hidden print:flex flex-col items-center justify-center text-center p-10 bg-white text-black border-4 border-double border-teal-600 rounded-[32px] max-w-xl mx-auto my-auto min-h-[85vh] space-y-6"
+      >
+        <div className="space-y-2">
+          <span className="text-xs font-black tracking-widest text-teal-600 uppercase">
+            KARTU PRESENSI DIGITAL
+          </span>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">
+            {staticQrData?.sekolahNama || "SEKOLAH"}
+          </h1>
+          <div className="h-1 w-24 bg-teal-500 mx-auto rounded-full" />
+        </div>
+
+        <div className="p-6 border-4 border-slate-900 rounded-3xl bg-white shadow-md">
+          {qrImageUrl && (
+            <img
+              src={qrImageUrl}
+              alt="QR Presensi Guru"
+              className="w-72 h-72 mx-auto object-contain"
+            />
+          )}
+        </div>
+
+        <span className="font-mono text-xs font-bold text-slate-500">
+          {staticQrData?.qrCodeValue}
+        </span>
+
+        <div className="border-t border-slate-200 pt-5 w-full max-w-sm space-y-3 text-left text-xs text-slate-700">
+          <p className="font-black text-center text-slate-800 mb-1 uppercase tracking-wider">
+            Petunjuk Scan Presensi Guru:
+          </p>
+          <div className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center shrink-0">
+              1
+            </span>
+            <span>Buka aplikasi <strong>PGS</strong> di HP Anda dan masuk ke menu <strong>Presensi Guru</strong>.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center shrink-0">
+              2
+            </span>
+            <span>Klik tombol <strong>"Scan QR Sekolah"</strong> dan arahkan kamera HP ke QR Code ini.</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center shrink-0">
+              3
+            </span>
+            <span>Sistem akan mencatat jam presensi Masuk / Pulang Anda secara real-time.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Global CSS for Print Media */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-qr-area, #printable-qr-area * {
+            visibility: visible !important;
+          }
+          #printable-qr-area {
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 100% !important;
+            max-width: 550px !important;
+            height: auto !important;
+            background: white !important;
+            color: black !important;
+            border: 4px double #0d9488 !important;
+            border-radius: 24px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 40px !important;
+          }
+        }
+      `}} />
     </div>
   )
 }
