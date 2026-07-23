@@ -386,7 +386,14 @@ export default function EMateriPage() {
                 return (
                   <div
                     key={m.id}
-                    onClick={() => handleOpenAddForMapel(m.id)}
+                    onClick={() => {
+                      if (materiCount > 0) {
+                        setActiveTab("semua_materi")
+                        setMapelFilter(m.id)
+                      } else {
+                        handleOpenAddForMapel(m.id)
+                      }
+                    }}
                     className="glass-card rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 p-6 hover:shadow-xl hover:border-teal-500/50 dark:hover:border-teal-500/50 transition-all duration-300 flex flex-col justify-between space-y-5 bg-white dark:bg-slate-900/50 cursor-pointer group relative overflow-hidden"
                   >
                     {/* Top Soft Gradient Glow Header */}
