@@ -18,11 +18,18 @@ export default function PengaturanPage() {
   const [useCustomKop, setUseCustomKop] = useState(false)
   const [customKopGambar, setCustomKopGambar] = useState<string | null>(null)
   const [customKopTinggi, setCustomKopTinggi] = useState(35)
+  const [logoKiriKop, setLogoKiriKop] = useState<string | null>(null)
+  const [kopBaris1, setKopBaris1] = useState("")
+  const [kopBaris2, setKopBaris2] = useState("")
+  const [kopBaris3, setKopBaris3] = useState("")
+  const [kopBaris4, setKopBaris4] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingLogoKiri, setIsUploadingLogoKiri] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const logoKiriFileInputRef = useRef<HTMLInputElement>(null)
 
   // Initialize values
   useEffect(() => {
@@ -30,6 +37,11 @@ export default function PengaturanPage() {
       setUseCustomKop(sekolah.useCustomKop ?? false)
       setCustomKopGambar(sekolah.customKopGambar ?? null)
       setCustomKopTinggi(sekolah.customKopTinggi ?? 35)
+      setLogoKiriKop((sekolah as any).logoKiriKop ?? null)
+      setKopBaris1((sekolah as any).kopBaris1 ?? "")
+      setKopBaris2((sekolah as any).kopBaris2 ?? "")
+      setKopBaris3((sekolah as any).kopBaris3 ?? "")
+      setKopBaris4((sekolah as any).kopBaris4 ?? "")
     }
   }, [sekolah])
 
@@ -59,6 +71,31 @@ export default function PengaturanPage() {
     setIsUploading(false)
   }
 
+  const handleLogoKiriUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    let uploadFile = file
+    if (file.size > 500 * 1024) {
+      try {
+        const compressed = await compressImage(file, 500 * 1024, 800)
+        uploadFile = new File([compressed], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" })
+      } catch (err) {
+        console.error("Gagal mengompres gambar:", err)
+      }
+    }
+
+    setIsUploadingLogoKiri(true)
+    try {
+      const sekolahId = sekolah?.id || "default"
+      const url = await uploadToCloudinary(uploadFile, "logo-kiri-kop", { sekolahId })
+      setLogoKiriKop(url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Upload gagal")
+    }
+    setIsUploadingLogoKiri(false)
+  }
+
   const handleSaveSettings = async () => {
     setIsSaving(true)
     try {
@@ -66,6 +103,11 @@ export default function PengaturanPage() {
         useCustomKop,
         customKopGambar,
         customKopTinggi,
+        logoKiriKop,
+        kopBaris1,
+        kopBaris2,
+        kopBaris3,
+        kopBaris4,
       })
       await utils.lembaga.getSekolah.invalidate()
       setSaveSuccess(true)
@@ -217,27 +259,107 @@ export default function PengaturanPage() {
                       </p>
                     </div>
                   </motion.div>
-                ) : (
-                  <motion.div
+                ) : (                  <motion.div
                     key="text-kop"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="space-y-4 text-left bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4"
+                    className="space-y-4 text-left"
                   >
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
-                      💡 <strong>Mode Teks Otomatis</strong> menyusun Kop Surat dinamis dari database sekolah:
-                    </p>
-                    <ul className="text-[11px] text-muted-foreground space-y-1.5 list-disc pl-4">
-                      <li>Logo Instansi Sekolah (sisi kiri)</li>
-                      <li>Nama Sekolah / Lembaga Resmi (Bold besar)</li>
-                      <li>Alamat Sekolah Lengkap & Kontak</li>
-                      <li>Nomor NPSN Lembaga Resmi</li>
-                    </ul>
-                    <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold leading-normal pt-1.5 border-t border-slate-200/40 dark:border-slate-800/40">
-                      Seluruh dokumen yang diexport otomatis memiliki kop surat legal resmi dengan batas garis ganda di bawahnya.
-                    </p>
+                    {/* Logos configuration */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Logo Kiri Custom Upload */}
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Logo Kiri (Dinas/Kemenag)</Label>
+                        <div
+                          onClick={() => logoKiriFileInputRef.current?.click()}
+                          className="group flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950/20 hover:border-teal-500/50 hover:bg-teal-500/5 transition-all duration-300 cursor-pointer text-center min-h-[90px]"
+                        >
+                          <input
+                            type="file"
+                            ref={logoKiriFileInputRef}
+                            onChange={handleLogoKiriUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          {isUploadingLogoKiri ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-teal-600" />
+                          ) : logoKiriKop ? (
+                            <div className="relative size-12 rounded-lg overflow-hidden bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-200/60 dark:border-slate-800/60">
+                              <img src={logoKiriKop} alt="Logo Kiri" className="object-contain size-full p-1" />
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="size-4 text-slate-400 group-hover:scale-110 transition-transform mb-1" />
+                              <span className="text-[9px] font-extrabold text-slate-600 dark:text-slate-400">Upload Logo</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Logo Kanan Auto-fetch */}
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Logo Kanan (Lembaga)</Label>
+                        <div className="flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3 bg-slate-50/20 dark:bg-slate-950/10 min-h-[90px] text-center">
+                          {sekolah?.logo ? (
+                            <div className="relative size-12 rounded-lg overflow-hidden bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-250/60 dark:border-slate-800/60">
+                              <img src={sekolah.logo} alt="Logo Lembaga" className="object-contain size-full p-1" />
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground italic">Logo Kosong</span>
+                          )}
+                          <span className="text-[8px] font-bold text-teal-600 dark:text-teal-400 mt-1 uppercase">Autofetch Profil</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Text Inputs */}
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                      <div className="space-y-1">
+                        <Label htmlFor="baris1" className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kop Baris 1 (Pemerintah/Yayasan)</Label>
+                        <Input
+                          id="baris1"
+                          placeholder="e.g. PEMERINTAH KABUPATEN BOGOR"
+                          value={kopBaris1}
+                          onChange={(e) => setKopBaris1(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="baris2" className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kop Baris 2 (Dinas/Cabang Dinas)</Label>
+                        <Input
+                          id="baris2"
+                          placeholder="e.g. DINAS PENDIDIKAN"
+                          value={kopBaris2}
+                          onChange={(e) => setKopBaris2(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="baris3" className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kop Baris 3 (Nama Sekolah/Instansi)</Label>
+                        <Input
+                          id="baris3"
+                          placeholder={sekolah?.namaSekolah || "e.g. SMP NEGERI 1 BOGOR"}
+                          value={kopBaris3}
+                          onChange={(e) => setKopBaris3(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="baris4" className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Kop Baris 4 (Alamat & Kontak)</Label>
+                        <Input
+                          id="baris4"
+                          placeholder={sekolah?.alamat || "e.g. Jl. Raya Pajajaran No. 1, Telp: ..."}
+                          value={kopBaris4}
+                          onChange={(e) => setKopBaris4(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -247,7 +369,7 @@ export default function PengaturanPage() {
             <div className="flex justify-end pt-5 mt-6 border-t border-slate-100 dark:border-slate-800 gap-2">
               <Button
                 onClick={handleSaveSettings}
-                disabled={isSaving || isUploading}
+                disabled={isSaving || isUploading || isUploadingLogoKiri}
                 className="rounded-xl text-xs font-black uppercase tracking-wider px-5 bg-teal-600 hover:bg-teal-700 text-white shadow-md cursor-pointer flex items-center gap-1.5"
               >
                 {isSaving ? (
@@ -283,30 +405,49 @@ export default function PengaturanPage() {
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none p-1"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-slate-100 dark:bg-slate-950/60 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 m-2 rounded-lg text-center p-4">
+                    <div className="absolute inset-0 bg-slate-100 dark:bg-slate-955/60 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 m-2 rounded-lg text-center p-4">
                       <p className="text-xs text-muted-foreground font-semibold">Silakan upload gambar banner kop surat kustom Anda</p>
                     </div>
                   )
                 ) : (
-                  <div className="w-full flex items-center gap-4 py-2">
-                    {sekolah?.logo ? (
-                      <img src={sekolah.logo} alt="Logo" className="w-14 h-14 object-contain shrink-0 border border-slate-100 dark:border-slate-805 rounded-lg p-1" />
+                  <div className="w-full flex items-center justify-between gap-3 py-2 px-2">
+                    {/* Logo Kiri (Dinas/Kemenag) */}
+                    {logoKiriKop ? (
+                      <img src={logoKiriKop} alt="Logo Dinas" className="w-12 h-12 object-contain shrink-0" />
                     ) : (
-                      <div className="w-14 h-14 bg-slate-100 dark:bg-slate-955 flex items-center justify-center rounded-lg text-slate-450 border border-slate-200/40 dark:border-slate-800 shrink-0">
-                        <School className="size-6" />
+                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-lg text-[8px] text-muted-foreground font-bold leading-tight text-center p-1 shrink-0 select-none">
+                        Logo Kiri
                       </div>
                     )}
-                    <div className="flex-1 text-center pr-14">
-                      <h4 className="text-xs font-black uppercase text-slate-850 dark:text-slate-200 tracking-tight leading-tight">
-                        {sekolah?.namaSekolah || "SEKOLAH CONTOH"}
+
+                    {/* Kop Center Text */}
+                    <div className="flex-1 text-center font-serif text-slate-800 dark:text-slate-200">
+                      {kopBaris1 && (
+                        <h5 className="text-[8px] font-black uppercase leading-tight tracking-wide">
+                          {kopBaris1}
+                        </h5>
+                      )}
+                      {kopBaris2 && (
+                        <h5 className="text-[8px] font-black uppercase leading-tight tracking-wide">
+                          {kopBaris2}
+                        </h5>
+                      )}
+                      <h4 className="text-[10px] font-extrabold uppercase leading-tight tracking-normal mt-0.5">
+                        {kopBaris3 || sekolah?.namaSekolah || "SEKOLAH CONTOH"}
                       </h4>
-                      <p className="text-[9px] text-slate-500 mt-1 leading-normal font-semibold">
-                        {sekolah?.alamat || "Alamat lengkap sekolah, no. telp, dan email preferensi resmi sekolah akan dicetak di sini."}
-                      </p>
-                      <p className="text-[8px] font-bold text-slate-400 mt-0.5">
-                        {sekolah?.npsn ? `NPSN: ${sekolah.npsn}` : "NPSN: —"} {sekolah?.telepon ? ` | Telp: ${sekolah.telepon}` : ""}
+                      <p className="text-[7px] text-slate-500 mt-1 leading-snug">
+                        {kopBaris4 || sekolah?.alamat || "Alamat lengkap sekolah, nomor telepon, email, dan situs web resmi."}
                       </p>
                     </div>
+
+                    {/* Logo Lembaga (Kanan) */}
+                    {sekolah?.logo ? (
+                      <img src={sekolah.logo} alt="Logo Sekolah" className="w-12 h-12 object-contain shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-lg text-[8px] text-muted-foreground font-bold leading-tight text-center p-1 shrink-0 select-none">
+                        Logo Kanan
+                      </div>
+                    )}
                   </div>
                 )}
                 

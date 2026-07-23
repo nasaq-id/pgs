@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner"
 import jsPDF from "jspdf"
 import { autoTable } from "jspdf-autotable"
+import { drawGlobalKop } from "@/lib/pdf-helper"
 import * as XLSX from "xlsx"
 
 // Helper function to map class level to Fase
@@ -331,30 +332,7 @@ export default function BukuNilaiPage() {
     const pageH = doc.internal.pageSize.getHeight()
 
     // 1. Kop Surat
-    const isKemenag = ["mi", "mts", "ma"].includes(sekolahData?.jenjang || "")
-    if (isKemenag) {
-      drawKemenagLogo(doc, 14, 10, 18)
-    } else {
-      drawTutWuriLogo(doc, 14, 10, 18)
-    }
-
-    if (sekolahData?.logo) {
-      try {
-        doc.addImage(sekolahData.logo, "PNG", pageW - 32, 10, 18, 18)
-      } catch (e) {
-        console.error("Failed to render school logo in PDF", e)
-      }
-    }
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(12)
-    doc.text((sekolahData?.namaSekolah || "SEKOLAH").toUpperCase(), pageW / 2, 14, { align: "center" })
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.text(sekolahData?.alamat || "Alamat Sekolah", pageW / 2, 19, { align: "center" })
-    doc.setFontSize(8)
-    doc.text(`NPSN: ${sekolahData?.npsn || "-"} | Telp: ${sekolahData?.telepon || "-"}`, pageW / 2, 23, { align: "center" })
-    doc.line(14, 30, pageW - 14, 30)
+    drawGlobalKop(doc, sekolahData)
 
     // 2. Blok Identitas (Double Column)
     doc.setFont("helvetica", "normal")
@@ -432,28 +410,11 @@ export default function BukuNilaiPage() {
     const pageH = doc.internal.pageSize.getHeight()
 
     // Kop Surat
-    const isKemenag = ["mi", "mts", "ma"].includes(sekolahData?.jenjang || "")
-    if (isKemenag) {
-      drawKemenagLogo(doc, 14, 10, 18)
-    } else {
-      drawTutWuriLogo(doc, 14, 10, 18)
-    }
-
-    if (sekolahData?.logo) {
-      try {
-        doc.addImage(sekolahData.logo, "PNG", pageW - 32, 10, 18, 18)
-      } catch (e) {
-        console.error("Failed to render logo in PDF", e)
-      }
-    }
+    drawGlobalKop(doc, sekolahData)
 
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(12)
-    doc.text(`LEGER NILAI KELAS - ${selectedClass?.namaKelas || ""}`.toUpperCase(), pageW / 2, 14, { align: "center" })
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.text(sekolahData?.namaSekolah || "SEKOLAH DEMO", pageW / 2, 19, { align: "center" })
-    doc.line(14, 30, pageW - 14, 30)
+    doc.setFontSize(11)
+    doc.text(`LEGER NILAI KELAS - ${selectedClass?.namaKelas || ""}`.toUpperCase(), pageW / 2, 36, { align: "center" })
 
     // Build Leger Table Headers & Body
     const mapelHeaders = subjects.map((m) => m.namaMapel)
@@ -485,7 +446,7 @@ export default function BukuNilaiPage() {
     })
 
     autoTable(doc, {
-      startY: 36,
+      startY: 42,
       head: [tableHeaders],
       body: tableBody,
       theme: "grid",
@@ -606,30 +567,7 @@ export default function BukuNilaiPage() {
     const pageH = doc.internal.pageSize.getHeight()
 
     // Kop Surat
-    const isKemenag = ["mi", "mts", "ma"].includes(sch?.jenjang || "")
-    if (isKemenag) {
-      drawKemenagLogo(doc, 14, 10, 18)
-    } else {
-      drawTutWuriLogo(doc, 14, 10, 18)
-    }
-
-    if (sch?.logo) {
-      try {
-        doc.addImage(sch.logo, "PNG", pageW - 32, 10, 18, 18)
-      } catch (e) {
-        console.error("Failed to render school logo in PDF", e)
-      }
-    }
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(12)
-    doc.text((sch?.namaSekolah || "SEKOLAH").toUpperCase(), pageW / 2, 14, { align: "center" })
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.text(sch?.alamat || "Alamat Sekolah", pageW / 2, 19, { align: "center" })
-    doc.setFontSize(8)
-    doc.text(`NPSN: ${sch?.npsn || "-"} | Telp: ${sch?.telepon || "-"}`, pageW / 2, 23, { align: "center" })
-    doc.line(14, 30, pageW - 14, 30)
+    drawGlobalKop(doc, sch as any)
 
     // Identitas
     doc.setFont("helvetica", "normal")

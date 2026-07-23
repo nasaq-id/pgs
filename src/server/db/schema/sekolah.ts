@@ -33,6 +33,11 @@ export const sekolah = pgTable("sekolah", {
   useCustomKop: boolean("use_custom_kop").notNull().default(false),
   customKopGambar: text("custom_kop_gambar"),
   customKopTinggi: integer("custom_kop_tinggi").notNull().default(35),
+  logoKiriKop: text("logo_kiri_kop"),
+  kopBaris1: text("kop_baris_1"),
+  kopBaris2: text("kop_baris_2"),
+  kopBaris3: text("kop_baris_3"),
+  kopBaris4: text("kop_baris_4"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })

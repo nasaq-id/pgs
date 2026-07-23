@@ -49,6 +49,11 @@ export const lembagaRouter = router({
       useCustomKop: z.boolean().optional(),
       customKopGambar: z.string().nullable().optional(),
       customKopTinggi: z.number().optional(),
+      logoKiriKop: z.string().nullable().optional(),
+      kopBaris1: z.string().nullable().optional(),
+      kopBaris2: z.string().nullable().optional(),
+      kopBaris3: z.string().nullable().optional(),
+      kopBaris4: z.string().nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
