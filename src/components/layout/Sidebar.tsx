@@ -278,7 +278,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
     return init
   })
 
-  const toggle = (label: string) => setExpanded(prev => ({ ...prev, [label]: !prev[label] }))
+  const toggle = (label: string) => {
+    setExpanded(prev => {
+      const next: Record<string, boolean> = {}
+      if (!prev[label]) {
+        next[label] = true
+      }
+      return next
+    })
+  }
 
   const isActive = (path: string) =>
     pathname === path || (path !== "/" && pathname.startsWith(path))
@@ -395,7 +403,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       )}
 
       {/* Navigation Section */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin">
         {visibleMenuItems.map((item) => {
           const Icon = item.icon
           const hasChildren = !!item.children
@@ -412,7 +420,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     href={firstChildPath || "#"}
                     onClick={onClose}
                     className={cn(
-                      "relative flex items-center px-0 py-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
+                      "relative flex items-center px-0 py-2 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
                       isGroupActive
                         ? "text-teal-655 dark:text-teal-405 border-0 font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
@@ -426,7 +434,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                       />
                     )}
                     {isGroupActive && (
-                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full z-10" />
+                      <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full z-10" />
                     )}
                     <div className={cn(
                       "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
@@ -476,7 +484,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 <button
                   onClick={() => toggle(item.label)}
                   className={cn(
-                    "w-full relative flex items-center gap-2.5 px-4 py-3 mx-3 rounded-xl text-sm cursor-pointer border transition-all duration-200",
+                    "w-full relative flex items-center gap-2.5 px-4 py-2 mx-3 rounded-xl text-[13px] cursor-pointer border transition-all duration-200",
                     isGroupActive
                       ? "text-teal-650 dark:text-teal-400 border-transparent font-bold"
                       : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
@@ -490,7 +498,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     />
                   )}
                   {isGroupActive && (
-                    <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full z-10" />
+                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-teal-500 rounded-r-full z-10" />
                   )}
                   <div className={cn(
                     "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
@@ -514,14 +522,14 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   )}
                 </button>
                 {isOpen && (
-                  <div className="mx-7 pl-4 mt-1 mb-1.5 space-y-1 border-l border-slate-100 dark:border-slate-800">
+                  <div className="mx-7 pl-4 mt-0.5 mb-1 space-y-0.5 border-l border-slate-100 dark:border-slate-800">
                     {item.children!.map(child => (
                       <Link
                         key={child.path}
                         href={child.path}
                         onClick={onClose}
                         className={cn(
-                          "relative flex items-center px-3 py-1.5 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
+                          "relative flex items-center px-3 py-1 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
                           isActive(child.path)
                             ? "text-teal-650 dark:text-teal-400 font-bold"
                             : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
@@ -555,7 +563,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               href={item.path!}
               onClick={onClose}
               className={cn(
-                "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-sm",
+                "relative flex items-center px-4 py-2 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-[13px]",
                 isMinimized ? "lg:justify-center lg:px-0 lg:mx-0" : "justify-start",
                 isItemActive
                   ? "text-teal-650 dark:text-teal-400 border-transparent font-bold"
@@ -570,7 +578,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 />
               )}
               {isItemActive && !isMinimized && (
-                <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full z-10" />
+                <div className="absolute left-0 top-2 bottom-2 w-1 bg-teal-500 rounded-r-full z-10" />
               )}
               <div className={cn(
                 "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
