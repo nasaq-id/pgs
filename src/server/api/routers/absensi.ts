@@ -949,16 +949,58 @@ export const absensiRouter = router({
         where: and(eq(absensiGuru.guruId, teacherId), between(absensiGuru.tanggal, startOfToday, endOfToday)),
       })
 
+      // Get teacher schedule for today to determine jamMasuk and jamPulang bounds
+      const daysOfWeek = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+      const todayDay = daysOfWeek[now.getDay()]
+
+      const schedules = await db.query.jadwalPelajaran.findMany({
+        where: and(
+          eq(jadwalPelajaran.guruId, teacherId),
+          eq(jadwalPelajaran.hari, todayDay as any)
+        ),
+      })
+
       const settings = await db.query.pengaturanAbsensi.findFirst({
         where: eq(pengaturanAbsensi.sekolahId, sekolahId),
       })
 
       const jamMasukStr = settings?.jamMasuk || "07:00"
+      const jamPulangStr = settings?.jamPulang || "14:00"
       const toleransiMin = settings?.toleransi || 15
 
-      const [mHour, mMin] = jamMasukStr.split(":").map(Number)
+      let earliestMasuk: Date | null = null
+      let latestPulang: Date | null = null
+
+      for (const s of schedules) {
+        if (s.jamMulai) {
+          const sStart = new Date(s.jamMulai)
+          if (!earliestMasuk || sStart.getHours() < earliestMasuk.getHours() || (sStart.getHours() === earliestMasuk.getHours() && sStart.getMinutes() < earliestMasuk.getMinutes())) {
+            earliestMasuk = sStart
+          }
+        }
+        if (s.jamSelesai) {
+          const sEnd = new Date(s.jamSelesai)
+          if (!latestPulang || sEnd.getHours() > latestPulang.getHours() || (sEnd.getHours() === latestPulang.getHours() && sEnd.getMinutes() > latestPulang.getMinutes())) {
+            latestPulang = sEnd
+          }
+        }
+      }
+
       const limitTime = new Date(now)
-      limitTime.setHours(mHour, mMin + toleransiMin, 0, 0)
+      if (earliestMasuk) {
+        limitTime.setHours(earliestMasuk.getHours(), earliestMasuk.getMinutes() + toleransiMin, 0, 0)
+      } else {
+        const [mHour, mMin] = jamMasukStr.split(":").map(Number)
+        limitTime.setHours(mHour, mMin + toleransiMin, 0, 0)
+      }
+
+      const checkoutLimit = new Date(now)
+      if (latestPulang) {
+        checkoutLimit.setHours(latestPulang.getHours(), latestPulang.getMinutes(), 0, 0)
+      } else {
+        const [pHour, pMin] = jamPulangStr.split(":").map(Number)
+        checkoutLimit.setHours(pHour, pMin, 0, 0)
+      }
 
       if (!existingAbsen) {
         const status = now > limitTime ? "terlambat" : "hadir"
@@ -993,6 +1035,14 @@ export const absensiRouter = router({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: `Guru ${teacherRecord.namaLengkap} sudah melakukan presensi masuk dan pulang hari ini.`,
+          })
+        }
+
+        if (now < checkoutLimit) {
+          const targetTimeStr = checkoutLimit.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Presensi pulang dikunci hingga jam mengajar terakhir selesai pada pukul ${targetTimeStr} WIB.`,
           })
         }
 
