@@ -608,72 +608,55 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       </nav>
 
       {/* Footer Info & Admin Card */}
-      <div className="border-t border-border/50 p-4 bg-slate-50/50 dark:bg-slate-900/20">
+      <div className="border-t border-border/50 px-4 py-3">
         {!isMinimized ? (
-          <div className="sidebar-text-container">
-            <div className="flex items-center space-x-3 bg-card border border-border p-2.5 rounded-xl shadow-sm">
+          <div className="flex items-center justify-between">
+            <Link
+              href="/profil"
+              className="block"
+              title={displayName}
+            >
               {userPhoto ? (
-                <div className="w-8.5 h-8.5 rounded-xl overflow-hidden border border-border flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl overflow-hidden border border-border hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
                   <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
                   {initials}
                 </div>
               )}
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-bold text-foreground truncate leading-none">{displayName}</p>
-                <p className="text-[8px] text-muted-foreground font-semibold leading-none mt-1.5 uppercase tracking-wide">
-                  {userRoleLabel}
-                </p>
-              </div>
-              <button
-                onClick={() => setLogoutOpen(true)}
-                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer ml-auto flex-shrink-0"
-                title="Keluar dari Akun"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center justify-between mt-2.5 px-1">
-              <span className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase">Sistem Portal</span>
-              <span className="text-[8px] text-teal-600 dark:text-teal-400 font-black bg-teal-50/80 dark:bg-teal-950/50 px-2 py-0.5 rounded-full border border-teal-100/30">v1.0.5</span>
-            </div>
+            </Link>
+            <button
+              onClick={() => setLogoutOpen(true)}
+              className="p-2 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              title="Keluar dari Akun"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         ) : (
-          <div className="hidden lg:flex flex-col items-center justify-center gap-1.5 relative group" title={`${displayName} - ${userRoleLabel}`}>
-            {userPhoto ? (
-              <div className="w-8.5 h-8.5 rounded-xl overflow-hidden border border-border flex-shrink-0">
-                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm flex-shrink-0">
-                {initials}
-              </div>
-            )}
-            <span className="text-[8px] text-teal-600 dark:text-teal-400 font-bold">v1.0.5</span>
-
-            {/* Hover tooltip profile menu when minimized */}
-            <div className="absolute left-full bottom-0 ml-2 py-2 w-48 bg-card border border-border shadow-xl rounded-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-200 z-50 text-left">
-              <div className="px-3 py-1.5 border-b border-border/50 mb-1.5">
-                <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
-                <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">{userRoleLabel}</p>
-              </div>
-              <div className="space-y-0.5 px-1.5">
-                <Link
-                  href="/profil"
-                  className="flex items-center px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
-                >
-                  Profil Saya
-                </Link>
-                <button
-                  onClick={() => setLogoutOpen(true)}
-                  className="w-full flex items-center px-3 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-left cursor-pointer"
-                >
-                  Keluar
-                </button>
-              </div>
-            </div>
+          <div className="flex flex-col items-center gap-2">
+            <Link
+              href="/profil"
+              title={`${displayName} - ${userRoleLabel}`}
+            >
+              {userPhoto ? (
+                <div className="w-8 h-8 rounded-xl overflow-hidden border border-border hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
+                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
+                  {initials}
+                </div>
+              )}
+            </Link>
+            <button
+              onClick={() => setLogoutOpen(true)}
+              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+              title="Keluar dari Akun"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
