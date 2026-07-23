@@ -19,6 +19,34 @@ export const DAY_OPTIONS = [
   { value: "sabtu", label: "Sabtu" },
 ]
 
+export const TINGKAT_OPTIONS = [
+  { value: "Kelas 1", label: "I" },
+  { value: "Kelas 2", label: "II" },
+  { value: "Kelas 3", label: "III" },
+  { value: "Kelas 4", label: "IV" },
+  { value: "Kelas 5", label: "V" },
+  { value: "Kelas 6", label: "VI" },
+  { value: "Kelas 7", label: "VII" },
+  { value: "Kelas 8", label: "VIII" },
+  { value: "Kelas 9", label: "IX" },
+  { value: "Kelas 10", label: "X" },
+  { value: "Kelas 11", label: "XI" },
+  { value: "Kelas 12", label: "XII" },
+]
+
+export const TINGKAT_VALUE_TO_LABEL: Record<string, string> = Object.fromEntries(
+  TINGKAT_OPTIONS.map((t) => [t.value, t.label])
+)
+
+export function formatTingkatLabel(tingkat?: string | null): string {
+  if (!tingkat || tingkat === "semua" || tingkat === "all") return "Semua Tingkat"
+  const label = TINGKAT_VALUE_TO_LABEL[tingkat]
+  if (label) return label
+  const clean = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+  if (!clean) return "Umum"
+  return `Kelas ${clean}`
+}
+
 export function formatKelasLabel(k?: { namaKelas: string; tingkat?: string | null } | null): string {
   if (!k) return ""
   const namaKelasStr = (k.namaKelas || "").trim()

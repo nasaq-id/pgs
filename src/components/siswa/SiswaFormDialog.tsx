@@ -124,6 +124,7 @@ const defaultForm = {
   sekolahAsal: "",
   diterimaPadaTanggal: "",
   tingkat: "",
+  kelasId: "",
 }
 
 function formatTingkatLabel(tingkat?: string | null): string {
@@ -182,6 +183,13 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
     return Array.from(setT).sort()
   }, [kelasList])
 
+  const filteredKelas = useMemo(() => {
+    if (!kelasList || !form.tingkat) return []
+    return kelasList
+      .filter((k) => k.tingkat === form.tingkat)
+      .sort((a, b) => a.namaKelas.localeCompare(b.namaKelas))
+  }, [kelasList, form.tingkat])
+
   const { data: provinsiOptions = [], isLoading: loadingProvinsi } = useProvinsi()
   const { data: kabupatenAyahOptions = [], isLoading: loadingKabAyah } = useKabupatenKota(form.provinsiAyah)
   const { data: kabupatenIbuOptions = [], isLoading: loadingKabIbu } = useKabupatenKota(form.provinsiIbu)
@@ -227,8 +235,14 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   useEffect(() => {
     if (open) {
       if (initialData) {
+        let resolvedTingkat = initialData.tingkat || ""
+        if (!resolvedTingkat && initialData.kelasId && kelasList) {
+          const match = (kelasList as any[]).find((k) => k.id === initialData.kelasId)
+          if (match?.tingkat) resolvedTingkat = match.tingkat
+        }
         setForm({
-          tingkat: initialData.tingkat || "",
+          tingkat: resolvedTingkat,
+          kelasId: initialData.kelasId || "",
           nisn: initialData.nisn || "",
           nisLokal: initialData.nisLokal || "",
           namaLengkap: initialData.namaLengkap || "",
@@ -337,12 +351,16 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       }
       setActiveTab("siswa")
     }
-  }, [open, initialData])
+  }, [open, initialData, kelasList])
 
   const handleChange = (key: string, value: string | null) => {
     if (value === null) return
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
+
+      if (key === "tingkat") {
+        updated.kelasId = ""
+      }
 
       if (key === "alamatIbuSamaDenganAyah" && value === "true") {
         updated.provinsiIbu = updated.provinsiAyah
@@ -489,8 +507,8 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.tingkat) {
-      toast.error("Tingkat wajib dipilih")
+    if (!form.kelasId) {
+      toast.error("Pilih kelas terlebih dahulu")
       return
     }
     if (!form.namaLengkap) {
@@ -538,6 +556,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       emailSiswa: form.emailSiswa || undefined,
       status: form.status,
       kewarganegaraan: form.kewarganegaraan || undefined,
+      kelasId: form.kelasId || undefined,
       hobi: finalHobi || undefined,
       citacita: finalCitacita || undefined,
       jumlahSaudara: form.jumlahSaudara ? Number(form.jumlahSaudara) : undefined,
@@ -771,6 +790,28 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Kelas <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={form.kelasId}
+                    onValueChange={(v) => handleChange("kelasId", v)}
+                    disabled={!form.tingkat || filteredKelas.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!form.tingkat ? "Pilih tingkat dulu" : "Pilih Kelas"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredKelas.map((k) => (
+                        <SelectItem key={k.id} value={k.id}>
+                          {k.namaKelas}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="usernameSiswa">Username Siswa</Label>
                   <Input

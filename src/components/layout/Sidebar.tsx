@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, DoorOpen, QrCode, Bell, Wallet, Compass, X, CalendarDays, Shield
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, CalendarDays, Shield
 } from "lucide-react"
 import {
   Dialog,

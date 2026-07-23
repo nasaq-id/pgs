@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
+import { formatKelasLabel, formatTingkatLabel } from "@/components/jadwal/constants"
 import { toast } from "sonner"
 
 interface KelasRecord {
@@ -186,8 +187,8 @@ export default function KelasPage() {
               <TableBody>
                 {records.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.namaKelas}</TableCell>
-                    <TableCell>{r.tingkat ?? "-"}</TableCell>
+                    <TableCell className="font-medium">{formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}</TableCell>
+                    <TableCell>{formatTingkatLabel(r.tingkat)}</TableCell>
                     <TableCell>
                       {r.waliKelasId ? (
                         <Badge variant="outline">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>
@@ -259,8 +260,8 @@ export default function KelasPage() {
               <div key={r.id} className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.namaKelas}</span>
-                    <p className="text-xs text-slate-500">{r.tingkat ?? "-"}</p>
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}</span>
+                    <p className="text-xs text-slate-500">{formatTingkatLabel(r.tingkat)}</p>
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => { setEditData({ id: r.id, namaKelas: r.namaKelas, tingkat: r.tingkat ?? "", waliKelasId: r.waliKelasId ?? "", kapasitas: r.kapasitas ?? undefined, siswaIds: [] }); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
