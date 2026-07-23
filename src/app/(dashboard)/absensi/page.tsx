@@ -77,6 +77,8 @@ export default function AbsensiPage() {
   const [bulkFilterClassId, setBulkFilterClassId] = useState<string>("semua")
   const [bulkDownloading, setBulkDownloading] = useState(false)
   const [bulkProgress, setBulkProgress] = useState("")
+  const [qrPerPage, setQrPerPage] = useState<string>("6")
+  const [bulkPrinting, setBulkPrinting] = useState(false)
 
   useEffect(() => {
     setTanggal(new Date().toISOString().split("T")[0])
@@ -610,6 +612,278 @@ export default function AbsensiPage() {
       toast.error(err.message || "Gagal membuat berkas ZIP barcode.")
     } finally {
       setBulkDownloading(false)
+      setBulkProgress("")
+    }
+  }
+
+  const handleBulkPrintQR = async () => {
+    if (!siswaAll || siswaAll.length === 0) {
+      toast.error("Data siswa tidak tersedia atau belum dimuat.")
+      return
+    }
+
+    let filteredSiswa = siswaAll
+    if (bulkFilterClassId !== "semua") {
+      filteredSiswa = siswaAll.filter((s) => s.kelasId === bulkFilterClassId)
+    }
+
+    if (filteredSiswa.length === 0) {
+      toast.error("Tidak ada siswa ditemukan untuk filter terpilih.")
+      return
+    }
+
+    setBulkPrinting(true)
+    setBulkProgress("Mempersiapkan Cetak QR...")
+
+    try {
+      const siswaWithQr: { name: string; class: string; identifier: string; qrDataUrl: string }[] = []
+      let count = 0
+
+      for (const std of filteredSiswa) {
+        count++
+        setBulkProgress(`Membuat QR (${count}/${filteredSiswa.length}): ${std.namaLengkap}`)
+
+        const qrText = std.nisn || std.nisLokal || std.id
+        const qrDataUrl = await QRCode.toDataURL(qrText, {
+          width: 300,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        })
+
+        const classObj = classes?.find((c) => c.id === std.kelasId)
+        const className = classObj ? classObj.namaKelas : "Tanpa Kelas"
+
+        siswaWithQr.push({
+          name: std.namaLengkap,
+          class: className,
+          identifier: std.nisn || std.nisLokal || "-",
+          qrDataUrl,
+        })
+      }
+
+      const limitPerPage = parseInt(qrPerPage) || 6
+      const pages: typeof siswaWithQr[] = []
+      for (let i = 0; i < siswaWithQr.length; i += limitPerPage) {
+        pages.push(siswaWithQr.slice(i, i + limitPerPage))
+      }
+
+      const printWindow = window.open("", "_blank")
+      if (!printWindow) {
+        toast.error("Gagal membuka jendela cetak. Pastikan pop-up tidak diblokir.")
+        return
+      }
+
+      let gridCols = 2
+      let gridRows = 3
+      let gapSize = "15px"
+      let cardHeight = "80mm"
+      let logoFontSize = "0.75rem"
+      let titleFontSize = "0.7rem"
+      let nameFontSize = "1rem"
+      let descFontSize = "0.8rem"
+
+      if (limitPerPage === 4) {
+        gridCols = 2
+        gridRows = 2
+        gapSize = "20px"
+        cardHeight = "115mm"
+        logoFontSize = "0.9rem"
+        titleFontSize = "0.8rem"
+        nameFontSize = "1.2rem"
+        descFontSize = "0.9rem"
+      } else if (limitPerPage === 6) {
+        gridCols = 2
+        gridRows = 3
+        gapSize = "15px"
+        cardHeight = "78mm"
+        logoFontSize = "0.75rem"
+        titleFontSize = "0.7rem"
+        nameFontSize = "1rem"
+        descFontSize = "0.8rem"
+      } else if (limitPerPage === 8) {
+        gridCols = 2
+        gridRows = 4
+        gapSize = "10px"
+        cardHeight = "58mm"
+        logoFontSize = "0.7rem"
+        titleFontSize = "0.65rem"
+        nameFontSize = "0.9rem"
+        descFontSize = "0.75rem"
+      } else if (limitPerPage === 9) {
+        gridCols = 3
+        gridRows = 3
+        gapSize = "12px"
+        cardHeight = "78mm"
+        logoFontSize = "0.75rem"
+        titleFontSize = "0.7rem"
+        nameFontSize = "1rem"
+        descFontSize = "0.8rem"
+      } else if (limitPerPage === 12) {
+        gridCols = 3
+        gridRows = 4
+        gapSize = "10px"
+        cardHeight = "58mm"
+        logoFontSize = "0.7rem"
+        titleFontSize = "0.65rem"
+        nameFontSize = "0.9rem"
+        descFontSize = "0.75rem"
+      } else if (limitPerPage === 16) {
+        gridCols = 4
+        gridRows = 4
+        gapSize = "8px"
+        cardHeight = "58mm"
+        logoFontSize = "0.6rem"
+        titleFontSize = "0.55rem"
+        nameFontSize = "0.75rem"
+        descFontSize = "0.65rem"
+      }
+
+      const schoolName = sekolah?.nama || "PORTAL GARDA SEKOLAH"
+
+      let htmlContent = `
+        <html>
+          <head>
+            <title>Cetak Massal QR Code Presensi Siswa</title>
+            <style>
+              @page {
+                size: A4;
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background-color: #ffffff;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .page {
+                width: 210mm;
+                height: 297mm;
+                padding: 12mm;
+                box-sizing: border-box;
+                display: grid;
+                grid-template-columns: repeat(${gridCols}, 1fr);
+                grid-template-rows: repeat(${gridRows}, 1fr);
+                gap: ${gapSize};
+                page-break-after: always;
+              }
+              .page:last-child {
+                page-break-after: avoid;
+              }
+              .card {
+                border: 1.5px solid #e2e8f0;
+                border-radius: 16px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: space-between;
+                box-sizing: border-box;
+                height: ${cardHeight};
+                text-align: center;
+                background-color: #fff;
+                position: relative;
+                overflow: hidden;
+              }
+              .card-accent {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #14b8a6, #10b981);
+              }
+              .logo {
+                font-weight: 800;
+                font-size: ${logoFontSize};
+                color: #0f766e;
+                margin-top: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.02em;
+                line-height: 1.2;
+              }
+              .card-title {
+                font-weight: 700;
+                text-transform: uppercase;
+                font-size: ${titleFontSize};
+                letter-spacing: 0.05em;
+                color: #10b981;
+                margin: 2px 0;
+              }
+              .qr-img {
+                max-width: 85%;
+                max-height: 55%;
+                object-fit: contain;
+                margin: 4px 0;
+              }
+              .student-name {
+                font-weight: 800;
+                font-size: ${nameFontSize};
+                color: #1e293b;
+                margin: 2px 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+              }
+              .student-info {
+                font-size: ${descFontSize};
+                color: #64748b;
+                font-weight: 600;
+                margin-bottom: 4px;
+              }
+              .identifier-badge {
+                font-family: monospace;
+                background: #f1f5f9;
+                padding: 2px 8px;
+                border-radius: 6px;
+                font-size: calc(${descFontSize} - 0.08rem);
+                font-weight: 700;
+                color: #475569;
+                display: inline-block;
+              }
+            </style>
+          </head>
+          <body>
+      `;
+
+      for (const pageSiswa of pages) {
+        htmlContent += `<div class="page">`;
+        for (const s of pageSiswa) {
+          htmlContent += `
+            <div class="card">
+              <div class="card-accent"></div>
+              <div class="logo">${s.class} &middot; ${schoolName}</div>
+              <div class="card-title">Kartu Presensi Siswa</div>
+              <img class="qr-img" src="${s.qrDataUrl}" alt="QR Code" />
+              <div>
+                <div class="student-name">${s.name}</div>
+                <span class="identifier-badge">NIS/NISN: ${s.identifier}</span>
+              </div>
+            </div>
+          `;
+        }
+        htmlContent += `</div>`;
+      }
+
+      htmlContent += `
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent)
+      printWindow.document.close()
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Gagal menyiapkan cetak massal.")
+    } finally {
+      setBulkPrinting(false)
       setBulkProgress("")
     }
   }
@@ -1489,11 +1763,11 @@ export default function AbsensiPage() {
             <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
-                  <Download className="h-5 w-5" />
+                  <Printer className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-tight">Unduh Barcode Siswa</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Cetak & bagikan QR Code presensi massal</p>
+                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-tight">Cetak & Unduh QR Siswa</h3>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Cetak massal QR Code presensi untuk mading/kartu</p>
                 </div>
               </div>
 
@@ -1524,24 +1798,75 @@ export default function AbsensiPage() {
                   </Select>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleBulkDownloadBarcodes}
-                  disabled={bulkDownloading || !siswaAll || siswaAll.length === 0}
-                  className="w-full h-10 rounded-xl bg-gradient-to-r from-teal-650 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {bulkDownloading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                      <span className="truncate max-w-[180px]">{bulkProgress || "Mengunduh..."}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 shrink-0" />
-                      <span>Unduh Barcode ZIP</span>
-                    </>
-                  )}
-                </button>
+                <div className="space-y-1">
+                  <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                    Jumlah QR per Halaman
+                  </Label>
+                  <Select
+                    value={qrPerPage}
+                    onValueChange={(v) => setQrPerPage(v ?? "6")}
+                    options={[
+                      { value: "4", label: "4 QR / Halaman (2x2)" },
+                      { value: "6", label: "6 QR / Halaman (2x3)" },
+                      { value: "8", label: "8 QR / Halaman (2x4)" },
+                      { value: "9", label: "9 QR / Halaman (3x3)" },
+                      { value: "12", label: "12 QR / Halaman (3x4)" },
+                      { value: "16", label: "16 QR / Halaman (4x4)" }
+                    ]}
+                  >
+                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                      <SelectValue placeholder="6 QR / Halaman" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
+                      <SelectItem value="4" className="text-xs font-semibold">4 QR / Halaman (2x2)</SelectItem>
+                      <SelectItem value="6" className="text-xs font-semibold">6 QR / Halaman (2x3)</SelectItem>
+                      <SelectItem value="8" className="text-xs font-semibold">8 QR / Halaman (2x4)</SelectItem>
+                      <SelectItem value="9" className="text-xs font-semibold">9 QR / Halaman (3x3)</SelectItem>
+                      <SelectItem value="12" className="text-xs font-semibold">12 QR / Halaman (3x4)</SelectItem>
+                      <SelectItem value="16" className="text-xs font-semibold">16 QR / Halaman (4x4)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleBulkPrintQR}
+                    disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
+                    className="flex-1 h-10 rounded-xl bg-gradient-to-r from-teal-650 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+                  >
+                    {bulkPrinting ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                        <span className="truncate max-w-[90px]">{bulkProgress || "Membuat..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Printer className="h-3.5 w-3.5 shrink-0" />
+                        <span>Cetak Massal</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleBulkDownloadBarcodes}
+                    disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
+                    className="flex-1 h-10 rounded-xl border border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+                  >
+                    {bulkDownloading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                        <span className="truncate max-w-[90px]">{bulkProgress || "ZIP..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-3.5 w-3.5 shrink-0" />
+                        <span>Unduh ZIP</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
