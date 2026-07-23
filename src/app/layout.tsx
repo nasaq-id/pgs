@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`h-full antialiased ${fontSans.variable} ${fontMono.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-full flex flex-col">
         {children}
