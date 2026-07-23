@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, X, Search, UserPlus } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Loader2, X, Search, UserPlus, Plus } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { TINGKAT_OPTIONS } from "@/components/jadwal/constants"
 
@@ -55,7 +56,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   const [siswaSearch, setSiswaSearch] = useState("")
   const [loadingSiswa, setLoadingSiswa] = useState(false)
 
-  const { data: allSiswa } = api.siswa.getAll.useQuery({})
+  const { data: allSiswa } = api.siswa.getAll.useQuery({ status: "aktif_tanpa_rombel", limit: 1000, sortBy: "namaLengkap" })
   const { data: sekolah } = api.lembaga.getSekolah.useQuery()
 
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Ruang Kelas" : "Tambah Ruang Kelas"}</DialogTitle>
         </DialogHeader>
@@ -164,39 +165,43 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Kapasitas</Label>
-              <Input
-                type="number"
-                min={0}
-                placeholder="Contoh: 30"
-                value={kapasitas ?? ""}
-                onChange={(e) => setKapasitas(e.target.value ? Number(e.target.value) : undefined)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Kapasitas</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="Contoh: 30"
+                  value={kapasitas ?? ""}
+                  onChange={(e) => setKapasitas(e.target.value ? Number(e.target.value) : undefined)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Wali Kelas</Label>
+                <Select value={waliKelasId} onValueChange={(v) => v && setWaliKelasId(v)} options={guruList.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
+                  <SelectTrigger><SelectValue placeholder="Pilih wali kelas" /></SelectTrigger>
+                  <SelectContent>
+                    {guruList.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Wali Kelas</Label>
-              <Select value={waliKelasId} onValueChange={(v) => v && setWaliKelasId(v)} options={guruList.map((g) => ({ value: g.id, label: g.namaLengkap }))}>
-                <SelectTrigger><SelectValue placeholder="Pilih wali kelas" /></SelectTrigger>
-                <SelectContent>
-                  {guruList.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>{g.namaLengkap}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 <UserPlus className="h-3.5 w-3.5" />
                 Tambah Siswa
+                {selectedSiswa.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">({selectedSiswa.length} dipilih)</span>
+                )}
               </Label>
 
               {selectedSiswa.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-muted/50 border border-border">
                   {selectedSiswa.map((s) => (
-                    <Badge key={s.id} variant="secondary" className="gap-1 pr-1">
+                    <Badge key={s.id} variant="secondary" className="gap-1 pr-1 text-xs">
                       {s.namaLengkap}
                       <button onClick={() => removeSiswa(s)} className="ml-0.5 rounded-full hover:bg-foreground/10 p-0.5 cursor-pointer">
                         <X className="h-3 w-3" />
@@ -209,7 +214,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Cari siswa yang belum punya kelas..."
+                  placeholder="Cari siswa..."
                   className="pl-8"
                   value={siswaSearch}
                   onChange={(e) => setSiswaSearch(e.target.value)}
@@ -217,23 +222,50 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
               </div>
 
               {filteredSiswa.length > 0 ? (
-                <div className="max-h-40 overflow-y-auto border border-border rounded-lg divide-y divide-border">
-                  {filteredSiswa.slice(0, 50).map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => addSiswa(s)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex justify-between items-center cursor-pointer"
-                    >
-                      <span className="font-medium">{s.namaLengkap}</span>
-                      <span className="text-xs text-muted-foreground">{s.nisn}</span>
-                    </button>
-                  ))}
+                <div className="max-h-52 overflow-y-auto border border-border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10">#</TableHead>
+                        <TableHead>NISN</TableHead>
+                        <TableHead>Nama Lengkap</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSiswa.slice(0, 100).map((s, i) => (
+                        <TableRow key={s.id} className="hover:bg-muted/50">
+                          <TableCell className="text-xs text-muted-foreground py-2">{i + 1}</TableCell>
+                          <TableCell className="font-mono text-xs py-2">{s.nisn}</TableCell>
+                          <TableCell className="py-2">{s.namaLengkap}</TableCell>
+                          <TableCell className="py-2">
+                            <button
+                              onClick={() => addSiswa(s)}
+                              className="w-7 h-7 rounded-md border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary flex items-center justify-center transition-colors cursor-pointer"
+                              title="Tambah siswa"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  {availableSiswa.length === 0 ? "Semua siswa sudah memiliki kelas" : "Tidak ditemukan"}
-                </p>
+                <div className="text-center py-8 border border-dashed border-border rounded-lg">
+                  <UserPlus className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {availableSiswa.length === 0
+                      ? "Semua siswa sudah memiliki kelas"
+                      : "Tidak ditemukan"}
+                  </p>
+                </div>
               )}
+
+              <p className="text-xs text-muted-foreground">
+                Menampilkan {filteredSiswa.length} siswa yang belum memiliki rombongan belajar
+              </p>
             </div>
           </div>
         )}
