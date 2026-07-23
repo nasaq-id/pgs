@@ -608,7 +608,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       </nav>
 
       {/* Footer Info & Admin Card */}
-      <div className="border-t border-border/50 p-4">
+      <div className="border-t border-border/50 px-4 py-2.5">
         {!isMinimized ? (
           <div className="flex items-center justify-between bg-card border border-border p-2.5 rounded-xl">
             <Link
