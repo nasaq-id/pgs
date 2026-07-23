@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -1048,33 +1048,59 @@ export default function GuruPage() {
       )}
 
       <Dialog open={importModalOpen} onOpenChange={(open) => { if (!open) setImportModalOpen(false) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Import Data Guru</DialogTitle>
-            <DialogDescription>Import data guru dari file Excel</DialogDescription>
+        <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
+          <DialogHeader className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
+              IMPORT GURU
+            </span>
+            <DialogTitle className="text-xl font-black text-slate-800 dark:text-slate-100">
+              Import Data Guru
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Unggah file Excel (.xlsx) untuk menambahkan data guru & tendik baru
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 pt-2">
+
+          <div className="grid grid-cols-1 pt-3">
             <button
               onClick={() => { setImportModalOpen(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
-              className="group flex items-center gap-3 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 cursor-pointer"
+              className="group flex items-center gap-4 rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-4 transition-all duration-300 hover:shadow-md hover:border-emerald-400/40 hover:bg-emerald-500/5 cursor-pointer text-left"
             >
-              <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110 shrink-0">
-                <Upload className="size-5" />
+              <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-transform duration-300 group-hover:scale-110 shrink-0 border border-emerald-500/20 shadow-sm">
+                <Upload className="size-6" />
               </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-foreground">Import Excel</p>
-                <p className="text-xs text-muted-foreground mt-0.5">File .xlsx atau .xls — preview data sebelum import</p>
+              <div>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Unggah Berkas Excel</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Mendukung format file .xlsx atau .xls dengan pratinjau data lengkap.
+                </p>
               </div>
             </button>
           </div>
-          <div className="flex flex-col gap-2 pt-1">
+
+          <div className="flex flex-col gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-4">
             <div className="flex justify-end">
-              <Button variant="ghost" size="sm" onClick={() => setImportModalOpen(false)}>Batal</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImportModalOpen(false)}
+                className="rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Batal
+              </Button>
             </div>
-            <div className="border-t border-border pt-3">
-              <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleDownloadTemplate}>
-                <Download className="h-3.5 w-3.5" />
-                Download Template Excel
+            <div className="bg-slate-50 dark:bg-slate-950/60 rounded-2xl p-3 border border-slate-200/60 dark:border-slate-800/60 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center">
+                Unduh File Template Excel:
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-xl gap-1.5 text-xs font-extrabold cursor-pointer hover:bg-slate-100"
+                onClick={handleDownloadTemplate}
+              >
+                <Download className="h-3.5 w-3.5 text-slate-500" />
+                <span>Unduh Template Excel Guru</span>
               </Button>
             </div>
           </div>
@@ -1082,90 +1108,169 @@ export default function GuruPage() {
       </Dialog>
 
       <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null) } }}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Preview Data Import</DialogTitle>
-            <DialogDescription>
-              {importPreviewData ? `${importPreviewData.length} data guru akan diimport. Pastikan data sudah sesuai.` : ""}
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] rounded-[32px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left flex flex-col">
+          <DialogHeader className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+              IMPORT GURU PREVIEW
+            </span>
+            <DialogTitle className="text-xl font-black text-slate-800 dark:text-slate-100">
+              Review Lembar Data Guru
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Berikut pratinjau data guru hasil parsing Excel. Pastikan data sudah sesuai.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-auto -mx-5 px-5">
+
+          {/* Stats Cards */}
+          {importPreviewData && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+              <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">TOTAL GURU</span>
+                <span className="text-lg font-black text-slate-850 dark:text-slate-150 block">
+                  {importPreviewData.length} Baris
+                </span>
+              </div>
+              <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">LAKI-LAKI (L)</span>
+                <span className="text-lg font-black text-blue-600 block">
+                  {importPreviewData.filter((d: any) => d.jenisKelamin === "L").length} Orang
+                </span>
+              </div>
+              <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">PEREMPUAN (P)</span>
+                <span className="text-lg font-black text-rose-600 block">
+                  {importPreviewData.filter((d: any) => d.jenisKelamin === "P").length} Orang
+                </span>
+              </div>
+              <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">STATUS DATA</span>
+                <span className="text-lg font-black text-emerald-600 block">
+                  Siap diimport
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="flex-1 overflow-auto rounded-2xl border border-slate-200/80 dark:border-slate-800/80 mt-4 bg-slate-50/30">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="w-8">No</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Jenis Kelamin</TableHead>
-                  <TableHead>Password</TableHead>
+                  <TableHead className="w-10 text-[10px] font-black text-slate-450 uppercase py-3">NO</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NAMA LENGKAP</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">USERNAME</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">L/P</TableHead>
+                  <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NIP / NUPTK</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {importPreviewData?.slice(0, 50).map((d: any, i: number) => (
-                  <TableRow key={i}>
-                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell className="font-medium">{d.namaLengkap}</TableCell>
-                    <TableCell>{d.usernameGuru || "-"}</TableCell>
-                    <TableCell>{d.jenisKelamin === "L" ? "Laki-laki" : d.jenisKelamin === "P" ? "Perempuan" : "-"}</TableCell>
-                    <TableCell>••••••</TableCell>
+                {importPreviewData?.slice(0, 100).map((d: any, i: number) => (
+                  <TableRow key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                    <TableCell className="text-muted-foreground font-semibold text-xs py-2.5">{i + 1}</TableCell>
+                    <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200 py-2.5">{d.namaLengkap}</TableCell>
+                    <TableCell className="font-mono text-xs py-2.5">{d.usernameGuru || "-"}</TableCell>
+                    <TableCell className="py-2.5">
+                      <Badge className={cn(
+                        "text-[10px] font-black px-2 py-0.5 rounded-md",
+                        d.jenisKelamin === "L" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                      )}>
+                        {d.jenisKelamin === "L" ? "L" : d.jenisKelamin === "P" ? "P" : "-"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs py-2.5">{d.nipnuptk || "-"}</TableCell>
                   </TableRow>
                 ))}
-                {importPreviewData && importPreviewData.length > 50 && (
+                {importPreviewData && importPreviewData.length > 100 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-4">
-                      ... dan {importPreviewData.length - 50} data lainnya
+                    <TableCell colSpan={5} className="text-center text-slate-450 text-xs py-4 font-bold">
+                      ... dan {importPreviewData.length - 100} data guru lainnya tidak ditampilkan di preview
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4">
-            <Button variant="outline" onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null) }}>Batal</Button>
-            <Button onClick={handleImportConfirm} disabled={importing}>
-              {importing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengimport...</> : `Import ${importPreviewData?.length || 0} Data`}
+
+          <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4 flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null) }}
+              className="rounded-xl text-xs font-bold px-4 cursor-pointer"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleImportConfirm}
+              disabled={importing}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider px-5 shadow-md cursor-pointer"
+            >
+              {importing ? (
+                <><RefreshCw className="mr-1.5 h-4 w-4 animate-spin" /> Menyimpan...</>
+              ) : (
+                <span>Import {importPreviewData?.length || 0} Guru</span>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Export Data Guru & Tendik</DialogTitle>
-            <DialogDescription>Pilih format file untuk mengexport data guru & tendik</DialogDescription>
+        <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
+          <DialogHeader className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
+              EXPORT DATA
+            </span>
+            <DialogTitle className="text-xl font-black text-slate-800 dark:text-slate-100">
+              Export Data Guru & Tendik
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Pilih format dokumen untuk mengekspor data seluruh guru dan tenaga kependidikan
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
             <button
               onClick={() => { setExportModalOpen(false); handleExport() }}
               disabled={exporting || exportingPdf}
-              className="group flex flex-col items-center justify-center text-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="group flex flex-col items-center justify-center text-center gap-3 rounded-3xl border border-slate-200 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-emerald-400/40 hover:bg-emerald-500/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
             >
-              <div className="flex size-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 transition-transform duration-200 group-hover:scale-110 shrink-0">
-                <FileSpreadsheet className="size-6" />
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-transform duration-300 group-hover:scale-110 shadow-sm border border-emerald-500/20">
+                <FileSpreadsheet className="size-7" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Excel (.xlsx)</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Semua data guru & tendik</p>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Unduh Excel (.xlsx)</p>
+                <p className="text-[10px] text-muted-foreground mt-1 max-w-[150px] mx-auto">
+                  Semua data lengkap profil guru & tendik
+                </p>
               </div>
             </button>
 
             <button
               onClick={() => { setExportModalOpen(false); handleExportPdf() }}
               disabled={exporting || exportingPdf}
-              className="group flex flex-col items-center justify-center text-center gap-2 rounded-xl border-2 border-dashed border-border p-4 transition-all duration-200 hover:border-red-500/40 hover:bg-red-50/50 dark:hover:bg-red-950/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="group flex flex-col items-center justify-center text-center gap-3 rounded-3xl border border-slate-200 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-rose-400/40 hover:bg-rose-500/5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-xs"
             >
-              <div className="flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 transition-transform duration-200 group-hover:scale-110 shrink-0">
-                <FileText className="size-6" />
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-transform duration-300 group-hover:scale-110 shadow-sm border border-rose-500/20">
+                <FileText className="size-7" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">PDF (.pdf)</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Dokumen siap cetak</p>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Unduh PDF (.pdf)</p>
+                <p className="text-[10px] text-muted-foreground mt-1 max-w-[150px] mx-auto">
+                  Laporan rekap cetak ringkas berformat tabel rapi
+                </p>
               </div>
             </button>
           </div>
-          <div className="flex justify-end pt-1">
-            <Button variant="ghost" size="sm" onClick={() => setExportModalOpen(false)}>Batal</Button>
+
+          <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportModalOpen(false)}
+              className="rounded-xl text-xs font-bold px-4 hover:bg-slate-50 dark:hover:bg-slate-850 cursor-pointer"
+            >
+              Batal
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
