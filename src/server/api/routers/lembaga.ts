@@ -1,13 +1,23 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, ne } from "drizzle-orm"
-import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
+import { router, protectedProcedure, roleProtectedProcedure, publicProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const lembagaRouter = router({
+  getPublicSekolahByDomain: publicProcedure
+    .input(z.object({ domain: z.string().optional() }))
+    .query(async ({ input }) => {
+      // For now, since custom domain is not yet applied, we query the first active school as default.
+      // In the future, we can query based on hostname/domain match.
+      const match = await db.query.sekolah.findFirst({
+        where: eq(sekolah.active, true),
+      })
+      return match || null
+    }),
   getSekolah: protectedProcedure.query(async ({ ctx }) => {
     const sekolahId = ctx.session.user.sekolahId
     if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
