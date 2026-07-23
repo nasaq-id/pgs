@@ -17,7 +17,10 @@ const fontMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "EduManage - PGS",
+  title: {
+    default: "EduManage - Sistem Manajemen Lembaga",
+    template: "%s | EduManage",
+  },
   description: "Sistem Informasi Manajemen Sekolah",
   manifest: "/manifest",
   appleWebApp: {

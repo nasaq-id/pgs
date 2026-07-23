@@ -11,6 +11,65 @@ import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { ShieldAlert, LogOut } from "lucide-react"
 
+const routeTitles: Record<string, string> = {
+  "/": "Dashboard",
+  "/notifikasi": "Notifikasi",
+  "/lembaga": "Profil Lembaga",
+  "/lembaga/tahun-ajaran": "Tahun Ajaran",
+  "/manajemen/siswa": "Manajemen Siswa",
+  "/manajemen/guru": "Manajemen Guru & Tendik",
+  "/manajemen/id-card": "Cetak Kartu ID",
+  "/sarpras": "Sarana & Prasarana",
+  "/akademik": "Akademik",
+  "/akademik/jadwal": "Jadwal Pelajaran",
+  "/akademik/mapel": "Mata Pelajaran",
+  "/lms/e-materi": "e-Materi LMS",
+  "/lms/jurnal": "Jurnal Mengajar",
+  "/lms/asesmen": "Asesmen LMS",
+  "/absensi": "Presensi Harian",
+  "/absensi/guru": "Presensi Guru",
+  "/absensi/izin": "Pengajuan Izin",
+  "/absensi/rekap": "Rekap Presensi",
+  "/evaluasi/buku-nilai": "Buku Nilai",
+  "/kesiswaan/ekstrakurikuler": "Ekstrakurikuler",
+  "/kesiswaan/prestasi": "Prestasi Siswa",
+  "/kesiswaan/poin-siswa": "Poin Siswa",
+  "/kesiswaan/monitoring-poin": "Monitoring Poin",
+  "/kesiswaan/laporan-poin": "Laporan Poin",
+  "/sarana/ruang-kelas": "Ruang Kelas",
+  "/konten/pengumuman": "Pengumuman",
+  "/keuangan": "Dashboard Keuangan",
+  "/keuangan/tagihan": "Tagihan Keuangan",
+  "/keuangan/tagihan/generate": "Generate Tagihan",
+  "/keuangan/verifikasi": "Verifikasi Keuangan",
+  "/keuangan/diskon": "Diskon & Beasiswa",
+  "/keuangan/laporan": "Laporan Keuangan",
+  "/keuangan/pengaturan": "Pengaturan Keuangan",
+  "/pengaturan": "Pengaturan Umum",
+  "/pengaturan/kalender": "Kalender Akademik",
+  "/pengaturan/poin": "Pengaturan Poin",
+  "/profil": "Profil Saya",
+  "/super-admin": "Super Admin",
+}
+
+const getPageTitle = (pathname: string): string => {
+  if (routeTitles[pathname]) return routeTitles[pathname]
+  
+  if (pathname.startsWith("/keuangan/tagihan/")) {
+    return "Detail Tagihan Siswa"
+  }
+  
+  const parts = pathname.split("/").filter(Boolean)
+  if (parts.length > 0) {
+    const lastPart = parts[parts.length - 1]
+    return lastPart
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, c => c.toUpperCase())
+  }
+  
+  return "Dashboard"
+}
+
 interface MainLayoutProps {
   children: React.ReactNode
 }
@@ -22,6 +81,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const { data: session } = useSession()
   const [impersonatedId, setImpersonatedId] = useState<string | null>(null)
+  const pageTitle = getPageTitle(pathname)
 
   useEffect(() => {
     const getImpersonationCookie = () => {
@@ -44,6 +104,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className={cn("min-h-screen relative", isImpersonating && "pt-11")}>
+      <title>{pageTitle}</title>
       {isImpersonating && (
         <div className="fixed top-0 left-0 right-0 h-11 bg-amber-500 dark:bg-amber-600 text-white z-[100] flex items-center justify-between px-4 sm:px-6 shadow-md select-none animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-2">
