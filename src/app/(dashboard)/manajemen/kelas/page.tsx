@@ -285,8 +285,8 @@ export default function KelasPage() {
             <Table>
               <TableHeader className="bg-slate-50/50 dark:bg-slate-900/30">
                 <TableRow>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Nama Kelas</TableHead>
                   <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Tingkat</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Nama Kelas</TableHead>
                   <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Wali Kelas</TableHead>
                   <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Kapasitas Kelas</TableHead>
                   <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3 text-right">Actions</TableHead>
@@ -297,14 +297,6 @@ export default function KelasPage() {
                   const theme = getTingkatTheme(r.tingkat)
                   return (
                     <TableRow key={r.id} className={`transition-colors ${theme.rowClass}`}>
-                      <TableCell className="font-semibold py-3.5">
-                        <div className="flex items-center gap-2">
-                          {!r.tingkat && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
-                          <span className="text-slate-800 dark:text-slate-200">
-                            {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
-                          </span>
-                        </div>
-                      </TableCell>
                       <TableCell className="py-3.5">
                         {!r.tingkat ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${theme.badgeClass}`}>Perlu diatur</span>
@@ -313,6 +305,14 @@ export default function KelasPage() {
                             {formatTingkatLabel(r.tingkat)}
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="font-semibold py-3.5">
+                        <div className="flex items-center gap-2">
+                          {!r.tingkat && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
+                          <span className="text-slate-800 dark:text-slate-200">
+                            {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="py-3.5">
                         {r.waliKelasId ? (
