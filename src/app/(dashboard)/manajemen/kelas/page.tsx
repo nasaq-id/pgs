@@ -45,6 +45,7 @@ interface KelasRecord {
   waliKelasId: string | null
   kapasitas: number | null
   tahunAjaranId: string | null
+  siswaCount: number
 }
 
 export default function KelasPage() {
@@ -55,7 +56,6 @@ export default function KelasPage() {
 
   const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
   const { data: guruList } = api.guru.getAll.useQuery({})
-  const { data: siswaList } = api.siswa.getAll.useQuery({})
   const utils = api.useUtils()
 
   const createMutation = api.kelas.create.useMutation({
@@ -117,16 +117,6 @@ export default function KelasPage() {
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
   }
-
-  const siswaCountByKelas = new Map<string, number>()
-  if (siswaList) {
-    for (const s of siswaList as any[]) {
-      if (s.kelasId) {
-        siswaCountByKelas.set(s.kelasId, (siswaCountByKelas.get(s.kelasId) ?? 0) + 1)
-      }
-    }
-  }
-
   const records = (kelasList ?? []) as KelasRecord[]
   const recordsWithoutTingkat = records.filter((r) => !r.tingkat)
 
@@ -222,7 +212,7 @@ export default function KelasPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}
+                      {r.kapasitas ? `${r.siswaCount ?? 0} / ${r.kapasitas}` : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -301,7 +291,7 @@ export default function KelasPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                   {r.waliKelasId && <Badge variant="outline" className="text-[10px]">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>}
-                  <span className="font-semibold">{r.kapasitas ? `${siswaCountByKelas.get(r.id) ?? 0} / ${r.kapasitas}` : "-"}</span>
+                  <span className="font-semibold">{r.kapasitas ? `${r.siswaCount ?? 0} / ${r.kapasitas}` : "-"}</span>
                 </div>
               </div>
             ))}

@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, desc, asc, inArray } from "drizzle-orm"
+import { eq, and, like, desc, asc, inArray, sql } from "drizzle-orm"
 import { db } from "@/server/db"
 import { kelas, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
@@ -30,7 +30,7 @@ export const kelasRouter = router({
         tahunAjaranId: z.string().optional(),
         sortBy: z.enum(["namaKelas", "tingkat"]).optional().default("namaKelas"),
         sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
-        limit: z.number().optional().default(50),
+        limit: z.number().optional().default(200), // increased default limit to prevent list truncation
         offset: z.number().optional().default(0),
       }),
     )
@@ -46,9 +46,20 @@ export const kelasRouter = router({
       const orderBy = input.sortOrder === "asc" ? asc(kelas[input.sortBy]) : desc(kelas[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
       const data = await db
-        .select()
+        .select({
+          id: kelas.id,
+          sekolahId: kelas.sekolahId,
+          tahunAjaranId: kelas.tahunAjaranId,
+          namaKelas: kelas.namaKelas,
+          tingkat: kelas.tingkat,
+          waliKelasId: kelas.waliKelasId,
+          kapasitas: kelas.kapasitas,
+          siswaCount: sql<number>`count(${siswa.id})::int`,
+        })
         .from(kelas)
+        .leftJoin(siswa, eq(siswa.kelasId, kelas.id))
         .where(whereClause)
+        .groupBy(kelas.id)
         .orderBy(orderBy)
         .limit(input.limit)
         .offset(input.offset)
