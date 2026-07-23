@@ -639,6 +639,7 @@ export const jadwalRouter = router({
           }
         }
 
+        const solverState = { steps: 0, maxSteps: 2000 }
         success = runBacktrackingSolver(
           shuffledBlocks,
           0,
@@ -647,7 +648,8 @@ export const jadwalRouter = router({
           [...activeDays],
           academicSlotsPerDay,
           teacherExclusions,
-          kelasDaysMap
+          kelasDaysMap,
+          solverState
         )
         if (success) {
           blocks.length = 0
@@ -673,6 +675,7 @@ export const jadwalRouter = router({
             }
           }
 
+          const solverState = { steps: 0, maxSteps: 2000 }
           success = runBacktrackingSolver(
             shuffledBlocks,
             0,
@@ -681,7 +684,8 @@ export const jadwalRouter = router({
             [...activeDays],
             academicSlotsPerDay,
             new Set(), // Rileksasikan pengecualian guru
-            kelasDaysMap
+            kelasDaysMap,
+            solverState
           )
           if (success) {
             blocks.length = 0
@@ -878,7 +882,13 @@ function runBacktrackingSolver(
   academicSlotsPerDay: Map<string, number[]>,
   teacherExclusions: Set<string>,
   kelasDaysMap: Map<string, Set<string>>,
+  state?: { steps: number; maxSteps: number }
 ): boolean {
+  if (state) {
+    state.steps++
+    if (state.steps > state.maxSteps) return false
+  }
+
   if (index >= blocks.length) return true
 
   const block = blocks[index]
@@ -943,7 +953,7 @@ function runBacktrackingSolver(
       kelasDays.add(day)
       kelasDaysMap.set(block.kelasId, kelasDays)
 
-      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap)) {
+      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state)) {
         return true
       }
 
