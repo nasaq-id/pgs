@@ -24,17 +24,17 @@ export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
 
-  const [hostname, setHostname] = useState("")
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHostname(window.location.hostname)
-    }
-  }, [])
-
-  const { data: publicSekolah } = api.lembaga.getPublicSekolahByDomain.useQuery(
-    { domain: hostname },
-    { enabled: hostname !== "" }
-  )
+  // Persiapan untuk Custom Domain di masa depan:
+  // const [hostname, setHostname] = useState("")
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     setHostname(window.location.hostname)
+  //   }
+  // }, [])
+  // const { data: publicSekolah } = api.lembaga.getPublicSekolahByDomain.useQuery(
+  //   { domain: hostname },
+  //   { enabled: hostname !== "" }
+  // )
 
   type RoleKey = "siswa" | "guru" | "admin"
 
@@ -116,19 +116,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
-      <title>Masuk Sistem | {publicSekolah?.namaSekolah || "Portal Garda Sekolah"}</title>
+      <title>Masuk Sistem | Portal Garda Sekolah</title>
       {/* ── Brand Nav ── */}
       <nav className="glass py-4 px-6 md:px-12 flex items-center justify-between sticky top-2 z-50 mx-4 rounded-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-            <img src={publicSekolah?.logo || "/pgs-icon.png"} alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/pgs-icon.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
             <h1 className="text-sm md:text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-none">
-              {publicSekolah?.namaSekolah || "Portal Garda Sekolah"}
+              Portal Garda Sekolah
             </h1>
             <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5 block">
-              {publicSekolah?.namaSekolah ? "Portal Layanan Informasi Sekolah" : "Sistem Informasi Manajemen Sekolah"}
+              Sistem Informasi Manajemen
             </span>
           </div>
         </div>
