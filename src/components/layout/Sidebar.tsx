@@ -608,12 +608,11 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       </nav>
 
       {/* Footer Info & Admin Card */}
-      <div className="border-t border-border/50 px-4 py-3">
+      <div className="border-t border-border/50 p-4">
         {!isMinimized ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-card border border-border p-2.5 rounded-xl">
             <Link
               href="/profil"
-              className="block"
               title={displayName}
             >
               {userPhoto ? (
@@ -626,9 +625,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 </div>
               )}
             </Link>
+            <div className="flex-1 min-w-0 text-left px-2.5">
+              <p className="text-xs font-bold text-foreground truncate leading-none">{displayName}</p>
+              <p className="text-[8px] text-muted-foreground font-semibold leading-none mt-1 uppercase tracking-wide">
+                {userRoleLabel}
+              </p>
+            </div>
             <button
               onClick={() => setLogoutOpen(true)}
-              className="p-2 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer flex-shrink-0"
               title="Keluar dari Akun"
             >
               <LogOut className="w-4 h-4" />
