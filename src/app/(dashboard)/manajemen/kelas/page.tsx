@@ -83,6 +83,52 @@ function CapacityIndicator({ count, max }: { count: number; max: number | null }
   )
 }
 
+function getTingkatTheme(tingkat: string | null) {
+  if (!tingkat) {
+    return {
+      rowClass: "border-l-4 border-l-amber-500 bg-amber-500/[0.03] dark:bg-amber-500/[0.01] hover:bg-amber-500/[0.07] dark:hover:bg-amber-500/[0.03]",
+      badgeClass: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50"
+    }
+  }
+  
+  const num = parseInt(tingkat.replace(/\D/g, ""))
+  const code = isNaN(num) ? 1 : ((num - 1) % 6) + 1
+  
+  switch (code) {
+    case 1: // Teal theme (e.g. 1, 7, 10)
+      return {
+        rowClass: "border-l-4 border-l-teal-500 bg-teal-500/[0.02] dark:bg-teal-500/[0.01] hover:bg-teal-500/[0.05] dark:hover:bg-teal-500/[0.03]",
+        badgeClass: "bg-teal-50/80 text-teal-700 border border-teal-500/10 dark:bg-teal-950/30 dark:text-teal-400"
+      }
+    case 2: // Indigo theme (e.g. 2, 8, 11)
+      return {
+        rowClass: "border-l-4 border-l-indigo-500 bg-indigo-500/[0.02] dark:bg-indigo-500/[0.01] hover:bg-indigo-500/[0.05] dark:hover:bg-indigo-500/[0.03]",
+        badgeClass: "bg-indigo-50/80 text-indigo-700 border border-indigo-500/10 dark:bg-indigo-950/30 dark:text-indigo-400"
+      }
+    case 3: // Purple theme (e.g. 3, 9, 12)
+      return {
+        rowClass: "border-l-4 border-l-purple-500 bg-purple-500/[0.02] dark:bg-purple-500/[0.01] hover:bg-purple-500/[0.05] dark:hover:bg-purple-500/[0.03]",
+        badgeClass: "bg-purple-50/80 text-purple-700 border border-purple-500/10 dark:bg-purple-950/30 dark:text-purple-400"
+      }
+    case 4: // Rose theme (e.g. 4)
+      return {
+        rowClass: "border-l-4 border-l-rose-500 bg-rose-500/[0.02] dark:bg-rose-500/[0.01] hover:bg-rose-500/[0.05] dark:hover:bg-rose-500/[0.03]",
+        badgeClass: "bg-rose-50/80 text-rose-700 border border-rose-500/10 dark:bg-rose-950/30 dark:text-rose-400"
+      }
+    case 5: // Amber theme (e.g. 5)
+      return {
+        rowClass: "border-l-4 border-l-amber-500 bg-amber-500/[0.02] dark:bg-amber-500/[0.01] hover:bg-amber-500/[0.05] dark:hover:bg-amber-500/[0.03]",
+        badgeClass: "bg-amber-50/80 text-amber-700 border border-amber-500/10 dark:bg-amber-950/30 dark:text-amber-400"
+      }
+    case 6: // Sky theme (e.g. 6)
+    default:
+      return {
+        rowClass: "border-l-4 border-l-sky-500 bg-sky-500/[0.02] dark:bg-sky-500/[0.01] hover:bg-sky-500/[0.05] dark:hover:bg-sky-500/[0.03]",
+        badgeClass: "bg-sky-50/80 text-sky-700 border border-sky-500/10 dark:bg-sky-950/30 dark:text-sky-400"
+      }
+  }
+}
+
 export default function KelasPage() {
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
@@ -244,115 +290,120 @@ export default function KelasPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records.map((r) => (
-                  <TableRow key={r.id} className={`hover:bg-slate-50/40 dark:hover:bg-slate-900/10 transition-colors ${!r.tingkat ? "border-l-2 border-l-amber-400 bg-amber-50/20 dark:bg-amber-950/5" : ""}`}>
-                    <TableCell className="font-semibold py-3.5">
-                      <div className="flex items-center gap-2">
-                        {!r.tingkat && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
-                        <span className="text-slate-800 dark:text-slate-200">
-                          {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      {!r.tingkat ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50">Perlu diatur</span>
-                      ) : (
-                        <Badge variant="secondary" className="px-2.5 py-1 bg-teal-50/80 text-teal-700 border border-teal-500/10 dark:bg-teal-950/30 dark:text-teal-400 hover:bg-teal-100 transition-colors font-bold text-xs">
-                          {formatTingkatLabel(r.tingkat)}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      {r.waliKelasId ? (
-                        <Badge variant="outline" className="px-2.5 py-1 flex items-center gap-1.5 w-fit bg-slate-50/50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300 font-semibold border-border">
-                          <UserCheck className="h-3 w-3 text-teal-500 dark:text-teal-400" />
-                          {guruMap.get(r.waliKelasId) ?? "-"}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs italic">Belum ditentukan</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      <CapacityIndicator count={r.siswaCount ?? 0} max={r.kapasitas} />
-                    </TableCell>
-                    <TableCell className="py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                onClick={() => {
-                                  setEditData({
-                                    id: r.id,
-                                    namaKelas: r.namaKelas,
-                                    tingkat: r.tingkat ?? "",
-                                    waliKelasId: r.waliKelasId ?? "",
-                                    kapasitas: r.kapasitas ?? undefined,
-                                    siswaIds: [],
-                                  })
-                                  setFormOpen(true)
-                                }}
-                              />
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </TooltipTrigger>
-                          <TooltipPortal>
-                            <TooltipPositioner>
-                              <TooltipPopup>Edit Rombel</TooltipPopup>
-                            </TooltipPositioner>
-                          </TooltipPortal>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                                onClick={() => setDeleteId(r.id)}
-                              />
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </TooltipTrigger>
-                          <TooltipPortal>
-                            <TooltipPositioner>
-                              <TooltipPopup>Hapus Rombel</TooltipPopup>
-                            </TooltipPositioner>
-                          </TooltipPortal>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {records.map((r) => {
+                  const theme = getTingkatTheme(r.tingkat)
+                  return (
+                    <TableRow key={r.id} className={`transition-colors ${theme.rowClass}`}>
+                      <TableCell className="font-semibold py-3.5">
+                        <div className="flex items-center gap-2">
+                          {!r.tingkat && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
+                          <span className="text-slate-800 dark:text-slate-200">
+                            {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        {!r.tingkat ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${theme.badgeClass}`}>Perlu diatur</span>
+                        ) : (
+                          <Badge variant="secondary" className={`px-2.5 py-1 border transition-colors font-bold text-xs ${theme.badgeClass}`}>
+                            {formatTingkatLabel(r.tingkat)}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        {r.waliKelasId ? (
+                          <Badge variant="outline" className="px-2.5 py-1 flex items-center gap-1.5 w-fit bg-slate-50/50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300 font-semibold border-border">
+                            <UserCheck className="h-3 w-3 text-teal-500 dark:text-teal-400" />
+                            {guruMap.get(r.waliKelasId) ?? "-"}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs italic">Belum ditentukan</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        <CapacityIndicator count={r.siswaCount ?? 0} max={r.kapasitas} />
+                      </TableCell>
+                      <TableCell className="py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  onClick={() => {
+                                    setEditData({
+                                      id: r.id,
+                                      namaKelas: r.namaKelas,
+                                      tingkat: r.tingkat ?? "",
+                                      waliKelasId: r.waliKelasId ?? "",
+                                      kapasitas: r.kapasitas ?? undefined,
+                                      siswaIds: [],
+                                    })
+                                    setFormOpen(true)
+                                  }}
+                                />
+                              }
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipPortal>
+                              <TooltipPositioner>
+                                <TooltipPopup>Edit Rombel</TooltipPopup>
+                              </TooltipPositioner>
+                            </TooltipPortal>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                                  onClick={() => setDeleteId(r.id)}
+                                />
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipPortal>
+                              <TooltipPositioner>
+                                <TooltipPopup>Hapus Rombel</TooltipPopup>
+                              </TooltipPositioner>
+                            </TooltipPortal>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
 
           <div className="md:hidden space-y-3">
-            {records.map((r) => (
-              <div key={r.id} className={`glass-card rounded-2xl p-4 border border-border/50 relative overflow-hidden ${!r.tingkat ? "border-l-4 border-l-amber-500 bg-amber-50/10 dark:bg-amber-950/5" : "hover:border-slate-300 dark:hover:border-slate-700 transition-colors"}`}>
-                <div className="flex items-start justify-between mb-3.5">
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                      {!r.tingkat && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
-                      {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
-                    </h4>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {!r.tingkat ? (
-                        <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Tingkat Perlu diatur</span>
-                      ) : (
-                        <Badge variant="secondary" className="px-2 py-0.2 bg-teal-50/80 text-teal-700 border border-teal-500/10 dark:bg-teal-950/30 dark:text-teal-400 font-extrabold text-[10px]">
-                          {formatTingkatLabel(r.tingkat)}
-                        </Badge>
-                      )}
+            {records.map((r) => {
+              const theme = getTingkatTheme(r.tingkat)
+              return (
+                <div key={r.id} className={`glass-card rounded-2xl p-4 border border-border/50 relative overflow-hidden transition-all ${theme.rowClass}`}>
+                  <div className="flex items-start justify-between mb-3.5">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        {!r.tingkat && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                        {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                      </h4>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        {!r.tingkat ? (
+                          <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Tingkat Perlu diatur</span>
+                        ) : (
+                          <Badge variant="secondary" className={`px-2 py-0.2 font-extrabold text-[10px] ${theme.badgeClass}`}>
+                            {formatTingkatLabel(r.tingkat)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   <div className="flex gap-1">
                     <button 
                       onClick={() => { 
@@ -390,9 +441,10 @@ export default function KelasPage() {
                     <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Kapasitas</span>
                     <CapacityIndicator count={r.siswaCount ?? 0} max={r.kapasitas} />
                   </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           </>
         )}
