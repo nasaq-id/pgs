@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -123,6 +123,15 @@ const defaultForm = {
   passwordSiswa: "",
   sekolahAsal: "",
   diterimaPadaTanggal: "",
+  tingkat: "",
+}
+
+function formatTingkatLabel(tingkat?: string | null): string {
+  if (!tingkat || tingkat === "semua" || tingkat === "all") return "Semua Tingkat"
+  const clean = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+  if (!clean) return "Umum"
+  if (/^(kelas|sd|smp|sma|smk|madrasah)/i.test(clean)) return clean
+  return `Kelas ${clean}`
 }
 
 export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuccess }: SiswaFormDialogProps) {
@@ -161,6 +170,17 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   const isSaving = createMutation.isPending || updateMutation.isPending
   const isEdit = !!initialData
+
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
+
+  const uniqueTingkat = useMemo(() => {
+    if (!kelasList) return []
+    const setT = new Set<string>()
+    kelasList.forEach((k) => {
+      if (k.tingkat) setT.add(k.tingkat)
+    })
+    return Array.from(setT).sort()
+  }, [kelasList])
 
   const { data: provinsiOptions = [], isLoading: loadingProvinsi } = useProvinsi()
   const { data: kabupatenAyahOptions = [], isLoading: loadingKabAyah } = useKabupatenKota(form.provinsiAyah)
@@ -468,6 +488,10 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.tingkat) {
+      toast.error("Tingkat wajib dipilih")
+      return
+    }
     if (!form.namaLengkap) {
       toast.error("Nama lengkap wajib diisi")
       return
@@ -728,6 +752,24 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tingkat <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={form.tingkat}
+                    onValueChange={(v) => handleChange("tingkat", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Tingkat" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueTingkat.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {formatTingkatLabel(t)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="usernameSiswa">Username Siswa</Label>
                   <Input
