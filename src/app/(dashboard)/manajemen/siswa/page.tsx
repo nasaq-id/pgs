@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { api } from "@/lib/trpc/client"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -80,6 +80,28 @@ export default function SiswaPage() {
   const [limit, setLimit] = useState(25)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
+
+  const uniqueTingkat = useMemo(() => {
+    if (!kelasList) return []
+    const setT = new Set<string>()
+    kelasList.forEach((k) => {
+      if (k.tingkat) setT.add(k.tingkat)
+    })
+    return Array.from(setT).sort()
+  }, [kelasList])
+
+  const tingkatHint = uniqueTingkat.length > 0 ? `Tingkatan terdaftar: ${uniqueTingkat.join(", ")}` : ""
+
+  const resolveTingkatToKelasId = useCallback((tingkat: string): string | null => {
+    if (!kelasList || !tingkat) return null
+    const normalized = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+    const match = kelasList.find((k) => {
+      if (!k.tingkat) return false
+      const kn = k.tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+      return kn === normalized
+    })
+    return match?.id || null
+  }, [kelasList])
 
   const queryStatus = activeTab === "aktif" ? subStatus : activeTab
 
@@ -510,6 +532,11 @@ export default function SiswaPage() {
       if (!row.namaLengkap) errors.push(`Baris ${line}: Nama Lengkap wajib diisi`)
       if (!row.nisLokal) errors.push(`Baris ${line}: NIS Lokal wajib diisi`)
       if (!row.jenisKelamin) errors.push(`Baris ${line}: Jenis Kelamin wajib diisi (Laki-laki/Perempuan)`)
+      if (!row.tingkat) {
+        errors.push(`Baris ${line}: Tingkat wajib diisi${tingkatHint ? `. ${tingkatHint}` : ""}`)
+      } else if (!resolveTingkatToKelasId(row.tingkat)) {
+        errors.push(`Baris ${line}: Tingkat "${row.tingkat}" tidak dikenal di sistem${tingkatHint ? `. ${tingkatHint}` : ""}`)
+      }
       if (mode === "regular") {
         if (!row.nik) errors.push(`Baris ${line}: NIK wajib diisi untuk Regular Import`)
         if (!row.tempatLahir) errors.push(`Baris ${line}: Tempat Lahir wajib diisi untuk Regular Import`)
@@ -535,7 +562,12 @@ export default function SiswaPage() {
         }
       }
 
+      const rawTingkat = String(row["Tingkat"] || row.tingkat || row.Tingkat || "").trim()
+      const kelasId = resolveTingkatToKelasId(rawTingkat)
+
       return {
+        tingkat: rawTingkat || undefined,
+        kelasId,
         nisn: String(row.NISN || row.nisn || "").trim(),
         nisLokal: String(row["NIS Lokal"] || row.NISLokal || row.NIS || row.nis || "").trim(),
         namaLengkap: String(row["Nama Lengkap"] || row.NamaLengkap || row.Nama || row.nama || "").trim(),
@@ -639,23 +671,34 @@ export default function SiswaPage() {
 
   const handleDownloadQuickTemplate = () => {
     const headers = [
-      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Username", "Password"
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Username", "Password"
     ]
+    const sampleTingkat = uniqueTingkat[0] || "Kelas 7"
 
-    const ws = XLSX.utils.aoa_to_sheet([
-      headers,
-      [
-        "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", "siswa123", "password123"
-      ],
+    const aoa: any[][] = []
+    if (tingkatHint) {
+      aoa.push([tingkatHint])
+    }
+    aoa.push(headers)
+    aoa.push([
+      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "siswa123", "password123"
     ])
 
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
+
     ws["!cols"] = [
-      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 16 }
+      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }
     ]
 
-    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:F1")
-    for (let r = colRange.s.r; r <= colRange.e.r; r++) {
-      for (let c = colRange.s.c; c <= colRange.e.c; c++) {
+    if (tingkatHint) {
+      const mergeEnd = { r: 0, c: headers.length - 1 }
+      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: mergeEnd }]
+    }
+
+    // Apply text format to all cells
+    const ref = XLSX.utils.decode_range(ws["!ref"] || "A1:G2")
+    for (let r = ref.s.r; r <= ref.e.r; r++) {
+      for (let c = ref.s.c; c <= ref.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c })
         if (ws[addr]) {
           ws[addr].t = "s"
@@ -672,7 +715,7 @@ export default function SiswaPage() {
 
   const handleDownloadTemplate = () => {
     const headers = [
-      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tempat Lahir",
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Tempat Lahir",
       "Tanggal Lahir", "NIK", "Agama", "Alamat", "No HP/WA", "Email", "Status",
       "Hobi", "Cita-cita", "Pembiayaan Sekolah", "No KK", "Nama Kepala Keluarga",
       "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
@@ -683,20 +726,26 @@ export default function SiswaPage() {
       "Provinsi Ibu", "Kabupaten/Kota Ibu", "Kecamatan Ibu", "Desa/Kelurahan Ibu", "RT Ibu", "RW Ibu", "Alamat Ibu", "Kode Pos Ibu",
     ]
 
-    const ws = XLSX.utils.aoa_to_sheet([
-      headers,
-      [
-        "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", "Jakarta",
-        "01/01/2010", "3171234567890123", "Islam", "Jl. Contoh No. 1", "08123456789",
-        "siswa@sekolah.sch.id", "aktif", "Membaca", "Dokter", "Swasta",
-        "1234567890123456", "Ayah Contoh", "Masih Hidup", "3171234567890123", "Jakarta",
-        "SMA", "Karyawan Swasta", "Rp 3.000.000 - Rp 5.000.000", "08123456788",
-        "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ayah No. 5", "12345",
-        "Ibu Contoh", "Masih Hidup", "3171234567890124", "Jakarta",
-        "SMA", "Ibu Rumah Tangga", "Kurang dari Rp 1.000.000", "08123456787",
-        "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ibu No. 5", "12345",
-      ],
+    const sampleTingkat = uniqueTingkat[0] || "Kelas 7"
+
+    const aoa: any[][] = []
+    if (tingkatHint) {
+      aoa.push([tingkatHint])
+    }
+    aoa.push(headers)
+    aoa.push([
+      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "Jakarta",
+      "01/01/2010", "3171234567890123", "Islam", "Jl. Contoh No. 1", "08123456789",
+      "siswa@sekolah.sch.id", "aktif", "Membaca", "Dokter", "Swasta",
+      "1234567890123456", "Ayah Contoh", "Masih Hidup", "3171234567890123", "Jakarta",
+      "SMA", "Karyawan Swasta", "Rp 3.000.000 - Rp 5.000.000", "08123456788",
+      "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ayah No. 5", "12345",
+      "Ibu Contoh", "Masih Hidup", "3171234567890124", "Jakarta",
+      "SMA", "Ibu Rumah Tangga", "Kurang dari Rp 1.000.000", "08123456787",
+      "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ibu No. 5", "12345",
     ])
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
 
     ws["!cols"] = [
       { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 },
@@ -707,10 +756,17 @@ export default function SiswaPage() {
       { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 28 }, { wch: 12 },
       { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 14 },
       { wch: 20 }, { wch: 22 }, { wch: 16 },
-      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 28 }, { wch: 12 },
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 },
+      { wch: 10 }, { wch: 28 }, { wch: 12 },
     ]
 
-    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:AW1")
+    if (tingkatHint) {
+      const totalCols = headers.length
+      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }]
+    }
+
+    const dataStartRow = tingkatHint ? 2 : 1
+    const colRange = XLSX.utils.decode_range(ws["!ref"] || `A1:AW${dataStartRow + 1}`)
     for (let r = colRange.s.r; r <= colRange.e.r; r++) {
       for (let c = colRange.s.c; c <= colRange.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c })
@@ -1475,17 +1531,26 @@ export default function SiswaPage() {
                     </div>
 
                     <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-3 max-h-52 overflow-y-auto space-y-2">
-                      {importPreviewData.slice(0, 10).map((d, i) => (
+                      {importPreviewData.slice(0, 10).map((d, i) => {
+                        const kls = kelasList?.find((k) => k.id === d.kelasId)
+                        return (
                         <div key={i} className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850">
                           <div className="flex items-center gap-2 truncate">
                             <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{i + 1}.</span>
                             <span className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{d.namaLengkap}</span>
                           </div>
-                          <span className="font-mono text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md shrink-0">
-                            NISN: {d.nisn || "-"}
-                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {kls && (
+                              <span className="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md">
+                                {kls.namaKelas}
+                              </span>
+                            )}
+                            <span className="font-mono text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              NISN: {d.nisn || "-"}
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                      )})}
                       {importPreviewData.length > 10 && (
                         <p className="text-[11px] text-muted-foreground text-center pt-1 font-semibold">
                           + {importPreviewData.length - 10} data siswa lainnya
@@ -1570,11 +1635,14 @@ export default function SiswaPage() {
                         <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NIS LOKAL</TableHead>
                         <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NAMA LENGKAP</TableHead>
                         <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">L/P</TableHead>
+                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">KELAS</TableHead>
                         <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">ALAMAT</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {importPreviewData?.slice(0, 100).map((d, i) => (
+                      {importPreviewData?.slice(0, 100).map((d, i) => {
+                        const kls = kelasList?.find((k) => k.id === d.kelasId)
+                        return (
                         <TableRow key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                           <TableCell className="text-muted-foreground font-semibold text-xs py-2.5">{i + 1}</TableCell>
                           <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 py-2.5">{d.nisn || "-"}</TableCell>
@@ -1590,12 +1658,15 @@ export default function SiswaPage() {
                               {d.jenisKelamin || "-"}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-xs font-bold text-teal-600 dark:text-teal-400 py-2.5">
+                            {kls ? kls.namaKelas : "-"}
+                          </TableCell>
                           <TableCell className="text-xs text-slate-500 max-w-[200px] truncate py-2.5">{d.alamat || "-"}</TableCell>
                         </TableRow>
-                      ))}
+                      )})}
                       {importPreviewData && importPreviewData.length > 100 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-slate-450 text-xs py-4 font-bold">
+                          <TableCell colSpan={7} className="text-center text-slate-450 text-xs py-4 font-bold">
                             ... dan {importPreviewData.length - 100} data siswa lainnya tidak ditampilkan di preview
                           </TableCell>
                         </TableRow>
