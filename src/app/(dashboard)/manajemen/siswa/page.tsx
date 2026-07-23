@@ -91,15 +91,19 @@ export default function SiswaPage() {
     return Array.from(setT).sort()
   }, [kelasList])
 
-  const tingkatHint = uniqueTingkat.length > 0 ? `Tingkatan terdaftar: ${uniqueTingkat.join(", ")}` : ""
+  const tingkatHint = uniqueTingkat.length > 0 ? `Tingkat Terdaftar: ${uniqueTingkat.join(", ")}` : ""
+  const importInstructionHeader = "PANDUAN IMPOR: (1) Kolom 'Tingkat' diisi dengan angka tingkat (contoh: 7, 8, 9 atau 1, 2, 3). (2) Kolom 'Kelas' diisi dengan nama rombel saja (contoh: A, B, C) atau nama kelas lengkap (contoh: 7A, 7B). Pastikan Rombel sudah didaftarkan terlebih dahulu di menu Rombel."
 
-  const resolveTingkatToKelasId = useCallback((tingkat: string): string | null => {
-    if (!kelasList || !tingkat) return null
-    const normalized = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+  const resolveTingkatDanKelasToKelasId = useCallback((tingkat: string, kelasInput: string): string | null => {
+    if (!kelasList || !tingkat || !kelasInput) return null
+    const normTingkat = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+    const normKelas = kelasInput.trim().toUpperCase()
     const match = kelasList.find((k) => {
       if (!k.tingkat) return false
-      const kn = k.tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
-      return kn === normalized
+      const kt = k.tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+      if (kt !== normTingkat) return false
+      const kn = k.namaKelas.trim().toUpperCase()
+      return kn === normKelas || kn === `${normTingkat}${normKelas}`
     })
     return match?.id || null
   }, [kelasList])
@@ -554,9 +558,16 @@ export default function SiswaPage() {
       if (!row.nisLokal) errors.push(`Baris ${line}: NIS Lokal wajib diisi`)
       if (!row.jenisKelamin) errors.push(`Baris ${line}: Jenis Kelamin wajib diisi (Laki-laki/Perempuan)`)
       if (!row.tingkat) {
-        errors.push(`Baris ${line}: Tingkat wajib diisi${tingkatHint ? `. ${tingkatHint}` : ""}`)
-      } else if (!resolveTingkatToKelasId(row.tingkat)) {
-        errors.push(`Baris ${line}: Tingkat "${row.tingkat}" tidak dikenal di sistem${tingkatHint ? `. ${tingkatHint}` : ""}`)
+        errors.push(`Baris ${line}: Tingkat wajib diisi (contoh: 7 atau Kelas 7)`)
+      }
+      if (!row.kelasNameInput) {
+        errors.push(`Baris ${line}: Kelas wajib diisi (contoh: A, B, atau 7A)`)
+      }
+      if (row.tingkat && row.kelasNameInput) {
+        const resolvedId = resolveTingkatDanKelasToKelasId(row.tingkat, row.kelasNameInput)
+        if (!resolvedId) {
+          errors.push(`Baris ${line}: Rombel dengan Tingkat "${row.tingkat}" dan Kelas "${row.kelasNameInput}" tidak terdaftar di sistem. Silakan daftarkan Rombel tersebut terlebih dahulu di menu Rombel.`)
+        }
       }
       if (mode === "regular") {
         if (!row.nik) errors.push(`Baris ${line}: NIK wajib diisi untuk Regular Import`)
@@ -584,10 +595,12 @@ export default function SiswaPage() {
       }
 
       const rawTingkat = String(row["Tingkat"] || row.tingkat || row.Tingkat || "").trim()
-      const kelasId = resolveTingkatToKelasId(rawTingkat)
+      const rawKelas = String(row["Kelas"] || row.kelas || row.Kelas || "").trim()
+      const kelasId = resolveTingkatDanKelasToKelasId(rawTingkat, rawKelas)
 
       return {
         tingkat: rawTingkat || undefined,
+        kelasNameInput: rawKelas || undefined,
         kelasId,
         nisn: String(row.NISN || row.nisn || "").trim(),
         nisLokal: String(row["NIS Lokal"] || row.NISLokal || row.NIS || row.nis || "").trim(),
@@ -692,32 +705,28 @@ export default function SiswaPage() {
 
   const handleDownloadQuickTemplate = () => {
     const headers = [
-      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Username", "Password"
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Kelas", "Username", "Password"
     ]
-    const sampleTingkat = uniqueTingkat[0] || "Kelas 7"
+    const sampleTingkat = uniqueTingkat[0] || "7"
 
     const aoa: any[][] = []
-    if (tingkatHint) {
-      aoa.push([tingkatHint])
-    }
+    aoa.push([importInstructionHeader])
     aoa.push(headers)
     aoa.push([
-      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "siswa123", "password123"
+      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "A", "siswa123", "password123"
     ])
 
     const ws = XLSX.utils.aoa_to_sheet(aoa)
 
     ws["!cols"] = [
-      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }
+      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 16 }
     ]
 
-    if (tingkatHint) {
-      const mergeEnd = { r: 0, c: headers.length - 1 }
-      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: mergeEnd }]
-    }
+    const mergeEnd = { r: 0, c: headers.length - 1 }
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: mergeEnd }]
 
     // Apply text format to all cells
-    const ref = XLSX.utils.decode_range(ws["!ref"] || "A1:G2")
+    const ref = XLSX.utils.decode_range(ws["!ref"] || "A1:H3")
     for (let r = ref.s.r; r <= ref.e.r; r++) {
       for (let c = ref.s.c; c <= ref.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c })
@@ -736,7 +745,7 @@ export default function SiswaPage() {
 
   const handleDownloadTemplate = () => {
     const headers = [
-      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Tempat Lahir",
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Kelas", "Tempat Lahir",
       "Tanggal Lahir", "NIK", "Agama", "Alamat", "No HP/WA", "Email", "Status",
       "Hobi", "Cita-cita", "Pembiayaan Sekolah", "No KK", "Nama Kepala Keluarga",
       "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
@@ -747,15 +756,13 @@ export default function SiswaPage() {
       "Provinsi Ibu", "Kabupaten/Kota Ibu", "Kecamatan Ibu", "Desa/Kelurahan Ibu", "RT Ibu", "RW Ibu", "Alamat Ibu", "Kode Pos Ibu",
     ]
 
-    const sampleTingkat = uniqueTingkat[0] || "Kelas 7"
+    const sampleTingkat = uniqueTingkat[0] || "7"
 
     const aoa: any[][] = []
-    if (tingkatHint) {
-      aoa.push([tingkatHint])
-    }
+    aoa.push([importInstructionHeader])
     aoa.push(headers)
     aoa.push([
-      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "Jakarta",
+      "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", sampleTingkat, "A", "Jakarta",
       "01/01/2010", "3171234567890123", "Islam", "Jl. Contoh No. 1", "08123456789",
       "siswa@sekolah.sch.id", "aktif", "Membaca", "Dokter", "Swasta",
       "1234567890123456", "Ayah Contoh", "Masih Hidup", "3171234567890123", "Jakarta",
@@ -769,7 +776,7 @@ export default function SiswaPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa)
 
     ws["!cols"] = [
-      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 },
+      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 10 },
       { wch: 16 }, { wch: 20 }, { wch: 10 }, { wch: 28 }, { wch: 16 },
       { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 18 },
       { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 14 }, { wch: 20 },
@@ -781,13 +788,10 @@ export default function SiswaPage() {
       { wch: 10 }, { wch: 28 }, { wch: 12 },
     ]
 
-    if (tingkatHint) {
-      const totalCols = headers.length
-      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }]
-    }
+    const totalCols = headers.length
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }]
 
-    const dataStartRow = tingkatHint ? 2 : 1
-    const colRange = XLSX.utils.decode_range(ws["!ref"] || `A1:AW${dataStartRow + 1}`)
+    const colRange = XLSX.utils.decode_range(ws["!ref"] || `A1:AX3`)
     for (let r = colRange.s.r; r <= colRange.e.r; r++) {
       for (let c = colRange.s.c; c <= colRange.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c })
@@ -1460,7 +1464,7 @@ export default function SiswaPage() {
                 <div>
                   <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Mode Quick Import</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Import dengan kolom wajib saja (NISN, NIS, Nama, JK, User, Pass). Cepat & instan.
+                    Import dengan kolom wajib (NISN, NIS Lokal, Nama, JK, Tingkat, Kelas, User, Pass). Cepat & instan.
                   </p>
                 </div>
               </button>
@@ -1479,6 +1483,18 @@ export default function SiswaPage() {
                   </p>
                 </div>
               </button>
+            </div>
+
+            <div className="rounded-2xl p-3 bg-amber-500/10 border border-amber-500/20 text-slate-800 dark:text-slate-200 text-xs">
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block mb-1 uppercase tracking-wider">💡 PANDUAN PENTING TINGKAT & KELAS</span>
+              <p className="text-[10px] leading-relaxed text-slate-600 dark:text-slate-400">
+                Untuk mencegah error impor, harap pastikan data di Excel ditulis sesuai format berikut:
+              </p>
+              <ul className="list-disc pl-4 text-[10px] text-slate-600 dark:text-slate-400 mt-1 space-y-0.5">
+                <li><strong>Kolom Tingkat</strong>: Isikan angka tingkat saja (contoh: <code>7</code>, <code>8</code>, <code>9</code>).</li>
+                <li><strong>Kolom Kelas</strong>: Isikan nama rombel (contoh: <code>A</code>, <code>B</code>) atau kelas lengkap (contoh: <code>7A</code>, <code>7B</code>).</li>
+                <li>Pastikan Rombel/Kelas tujuan sudah dibuat di menu <strong>Manajemen Rombel / Kelas</strong> sebelum melakukan impor.</li>
+              </ul>
             </div>
 
             <div className="flex flex-col gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2">
