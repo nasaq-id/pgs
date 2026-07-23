@@ -475,10 +475,10 @@ export default function SiswaPage() {
       }
 
       return {
-        nisn: String(row.NISN || "").trim(),
-        nisLokal: String(row["NIS Lokal"] || row.NISLokal || "").trim(),
-        namaLengkap: String(row["Nama Lengkap"] || row.NamaLengkap || "").trim(),
-        jenisKelamin: (String(row["Jenis Kelamin"] || "").trim() === "Laki-laki" ? "L" : String(row["Jenis Kelamin"] || "").trim() === "Perempuan" ? "P" : undefined) as "L" | "P" | undefined,
+        nisn: String(row.NISN || row.nisn || "").trim(),
+        nisLokal: String(row["NIS Lokal"] || row.NISLokal || row.NIS || row.nis || "").trim(),
+        namaLengkap: String(row["Nama Lengkap"] || row.NamaLengkap || row.Nama || row.nama || "").trim(),
+        jenisKelamin: (String(row["Jenis Kelamin"] || row.JenisKelamin || row["jenis kelamin"] || "").trim() === "Laki-laki" || String(row["Jenis Kelamin"] || row.JenisKelamin || row["jenis kelamin"] || "").trim() === "L" ? "L" : String(row["Jenis Kelamin"] || row.JenisKelamin || row["jenis kelamin"] || "").trim() === "Perempuan" || String(row["Jenis Kelamin"] || row.JenisKelamin || row["jenis kelamin"] || "").trim() === "P" ? "P" : undefined) as "L" | "P" | undefined,
         tempatLahir: String(row["Tempat Lahir"] || "").trim() || undefined,
         tanggalLahir: tglLahir || undefined,
         nik: String(row.NIK || "").trim() || undefined,
@@ -508,6 +508,8 @@ export default function SiswaPage() {
         pekerjaanIbu: String(row["Pekerjaan Ibu"] || "").trim() || undefined,
         penghasilanIbu: String(row["Penghasilan Ibu"] || "").trim() || undefined,
         noHpIbu: String(row["No HP Ibu"] || "").trim() || undefined,
+        usernameSiswa: row.Username || row.username || row.UsernameSiswa || row.usernameSiswa ? String(row.Username || row.username || row.UsernameSiswa || row.usernameSiswa).trim() : undefined,
+        passwordSiswa: row.Password || row.password || row.PasswordSiswa || row.passwordSiswa ? String(row.Password || row.password || row.PasswordSiswa || row.passwordSiswa).trim() : undefined,
       }
     }).filter((r) => r.namaLengkap && r.nisLokal)
 
@@ -554,6 +556,39 @@ export default function SiswaPage() {
     } finally {
       setImporting(false)
     }
+  }
+
+  const handleDownloadQuickTemplate = () => {
+    const headers = [
+      "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Username", "Password"
+    ]
+
+    const ws = XLSX.utils.aoa_to_sheet([
+      headers,
+      [
+        "1234567890", "12345", "Contoh Nama Siswa", "Laki-laki", "siswa123", "password123"
+      ],
+    ])
+
+    ws["!cols"] = [
+      { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 16 }, { wch: 16 }
+    ]
+
+    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:F1")
+    for (let r = colRange.s.r; r <= colRange.e.r; r++) {
+      for (let c = colRange.s.c; c <= colRange.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c })
+        if (ws[addr]) {
+          ws[addr].t = "s"
+          ws[addr].z = "@"
+        }
+      }
+    }
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Template Quick")
+    XLSX.writeFile(wb, "template_quick_impor_siswa.xlsx")
+    toast.success("Template Quick Import berhasil didownload")
   }
 
   const handleDownloadTemplate = () => {
@@ -1188,10 +1223,24 @@ export default function SiswaPage() {
             <div className="flex justify-end">
               <Button variant="ghost" size="sm" onClick={() => { setImportModalOpen(false); setImportMode(null) }}>Batal</Button>
             </div>
-            <div className="border-t border-border pt-3">
-              <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleDownloadTemplate}>
+            <div className="border-t border-border pt-3 space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-xs text-emerald-650 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/60 font-bold"
+                onClick={handleDownloadQuickTemplate}
+              >
                 <Download className="h-3.5 w-3.5" />
-                Download Template Excel
+                Download Template Quick Import
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-xs font-bold"
+                onClick={handleDownloadTemplate}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download Template Regular Import
               </Button>
             </div>
           </div>
