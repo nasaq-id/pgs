@@ -19,6 +19,7 @@ const routeTitles: Record<string, string> = {
   "/manajemen/siswa": "Manajemen Siswa",
   "/manajemen/guru": "Manajemen Guru & Tendik",
   "/manajemen/id-card": "Cetak Kartu ID",
+  "/manajemen/kelas": "Rombongan Belajar",
   "/sarpras": "Sarana & Prasarana",
   "/akademik": "Akademik",
   "/akademik/jadwal": "Jadwal Pelajaran",

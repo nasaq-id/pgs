@@ -72,9 +72,9 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["super_admin", "admin_sekolah", "tu"]
   },
   { 
-    icon: School, 
-    label: "Sarpras", 
-    path: "/sarpras",
+    icon: GraduationCap, 
+    label: "Rombongan Belajar", 
+    path: "/manajemen/kelas",
     allowedRoles: ["super_admin", "admin_sekolah", "tu"]
   },
   { 
@@ -122,10 +122,11 @@ const menuItems: MenuItem[] = [
     ]
   },
   { 
-    icon: DoorOpen, 
-    label: "Sarana", 
+    icon: School, 
+    label: "Sarana & Prasarana", 
     allowedRoles: ["super_admin", "admin_sekolah", "tu"],
     children: [
+      { label: "Dashboard", path: "/sarpras" },
       { label: "Ruang Kelas", path: "/sarana/ruang-kelas" },
     ]
   },
