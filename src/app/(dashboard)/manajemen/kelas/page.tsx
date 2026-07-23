@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle, GraduationCap, UserCheck, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -46,6 +46,41 @@ interface KelasRecord {
   kapasitas: number | null
   tahunAjaranId: string | null
   siswaCount: number
+}
+
+function CapacityIndicator({ count, max }: { count: number; max: number | null }) {
+  if (!max) return <span className="text-muted-foreground text-xs italic">Belum diatur</span>
+
+  const percent = Math.min(100, Math.round((count / max) * 100))
+  
+  let barColorClass = "from-teal-500 to-emerald-400"
+  let textColorClass = "text-emerald-600 dark:text-emerald-400"
+  let bgColorClass = "bg-emerald-500/10"
+  
+  if (percent >= 100) {
+    barColorClass = "from-rose-500 to-red-400"
+    textColorClass = "text-rose-600 dark:text-rose-400 font-extrabold"
+    bgColorClass = "bg-rose-500/10"
+  } else if (percent >= 85) {
+    barColorClass = "from-amber-500 to-yellow-400"
+    textColorClass = "text-amber-600 dark:text-amber-400 font-bold"
+    bgColorClass = "bg-amber-500/10"
+  }
+
+  return (
+    <div className="flex flex-col gap-1 w-full max-w-[150px] group/cap">
+      <div className="flex items-center justify-between text-[11px] font-bold">
+        <span className={textColorClass}>{count} <span className="text-muted-foreground/75 font-normal">/ {max}</span></span>
+        <span className={`text-[9px] px-1.5 py-0.2 rounded-md ${bgColorClass} ${textColorClass} scale-95 origin-right transition-transform group-hover/cap:scale-100`}>{percent}%</span>
+      </div>
+      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/10">
+        <div 
+          className={`h-full rounded-full bg-gradient-to-r ${barColorClass} transition-all duration-500`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export default function KelasPage() {
@@ -164,57 +199,84 @@ export default function KelasPage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              <Skeleton key={i} className="h-16 w-full rounded-2xl bg-slate-100/60 dark:bg-slate-800/40" />
             ))}
           </div>
         ) : records.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">
-              {search ? "Tidak ditemukan" : "Belum ada data kelas"}
+          <div className="flex flex-col items-center justify-center py-16 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-teal-500/10 to-emerald-500/10 dark:from-teal-500/5 dark:to-emerald-500/5 flex items-center justify-center text-teal-500 dark:text-teal-400 mb-4 shadow-sm border border-teal-500/10">
+              <GraduationCap className="h-8 w-8 stroke-[1.5]" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
+              {search ? "Pencarian Tidak Ditemukan" : "Belum Ada Data Rombel"}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              {search
+                ? `Tidak ditemukan hasil untuk kata kunci "${search}". Coba cari kata kunci kelas atau tingkatan lain.`
+                : "Rombongan belajar digunakan untuk mengelompokkan siswa berdasarkan tingkat dan kelas akademik. Mulai dengan membuat rombel baru."}
             </p>
+            {!search && (
+              <Button
+                style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                onClick={() => {
+                  setEditData(null)
+                  setFormOpen(true)
+                }}
+                className="gap-2 shadow-md shadow-emerald-500/10 hover:brightness-105 active:scale-95 transition-all text-white font-semibold"
+              >
+                <Plus className="h-4 w-4" /> Tambah Rombel Baru
+              </Button>
+            )}
           </div>
         ) : (
           <>
-          <div className="hidden md:block">
+          <div className="hidden md:block overflow-hidden rounded-xl border border-border/50">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-slate-50/50 dark:bg-slate-900/30">
                 <TableRow>
-                  <TableHead>Nama Kelas</TableHead>
-                  <TableHead>Tingkat</TableHead>
-                  <TableHead>Wali Kelas</TableHead>
-                  <TableHead>Kapasitas</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Nama Kelas</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Tingkat</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Wali Kelas</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3">Kapasitas Kelas</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-3 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.map((r) => (
-                  <TableRow key={r.id} className={!r.tingkat ? "border-l-2 border-l-amber-400 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
-                    <TableCell className="font-medium">
+                  <TableRow key={r.id} className={`hover:bg-slate-50/40 dark:hover:bg-slate-900/10 transition-colors ${!r.tingkat ? "border-l-2 border-l-amber-400 bg-amber-50/20 dark:bg-amber-950/5" : ""}`}>
+                    <TableCell className="font-semibold py-3.5">
                       <div className="flex items-center gap-2">
-                        {!r.tingkat && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
-                        {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                        {!r.tingkat && <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
+                        <span className="text-slate-800 dark:text-slate-200">
+                          {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3.5">
                       {!r.tingkat ? (
-                        <span className="text-amber-600 text-xs font-medium">Belum diatur</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50">Perlu diatur</span>
                       ) : (
-                        formatTingkatLabel(r.tingkat)
+                        <Badge variant="secondary" className="px-2.5 py-1 bg-teal-50/80 text-teal-700 border border-teal-500/10 dark:bg-teal-950/30 dark:text-teal-400 hover:bg-teal-100 transition-colors font-bold text-xs">
+                          {formatTingkatLabel(r.tingkat)}
+                        </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3.5">
                       {r.waliKelasId ? (
-                        <Badge variant="outline">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>
+                        <Badge variant="outline" className="px-2.5 py-1 flex items-center gap-1.5 w-fit bg-slate-50/50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300 font-semibold border-border">
+                          <UserCheck className="h-3 w-3 text-teal-500 dark:text-teal-400" />
+                          {guruMap.get(r.waliKelasId) ?? "-"}
+                        </Badge>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground text-xs italic">Belum ditentukan</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {r.kapasitas ? `${r.siswaCount ?? 0} / ${r.kapasitas}` : "-"}
+                    <TableCell className="py-3.5">
+                      <CapacityIndicator count={r.siswaCount ?? 0} max={r.kapasitas} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger
@@ -222,6 +284,7 @@ export default function KelasPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 onClick={() => {
                                   setEditData({
                                     id: r.id,
@@ -240,58 +303,93 @@ export default function KelasPage() {
                           </TooltipTrigger>
                           <TooltipPortal>
                             <TooltipPositioner>
-                              <TooltipPopup>Edit</TooltipPopup>
+                              <TooltipPopup>Edit Rombel</TooltipPopup>
                             </TooltipPositioner>
                           </TooltipPortal>
                         </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive"
-                              onClick={() => setDeleteId(r.id)}
-                            />
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipPositioner>
-                            <TooltipPopup>Hapus</TooltipPopup>
-                          </TooltipPositioner>
-                        </TooltipPortal>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                                onClick={() => setDeleteId(r.id)}
+                              />
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipPositioner>
+                              <TooltipPopup>Hapus Rombel</TooltipPopup>
+                            </TooltipPositioner>
+                          </TooltipPortal>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-          <div className="md:hidden space-y-2">
-              {records.map((r) => (
-                <div key={r.id} className={`glass-card rounded-2xl p-4 ${!r.tingkat ? "border-l-2 border-l-amber-400" : ""}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}</span>
-                      <p className="text-xs text-slate-500">
-                        {!r.tingkat ? (
-                          <span className="text-amber-600 font-medium">Perlu diperbaiki</span>
-                        ) : (
-                          formatTingkatLabel(r.tingkat)
-                        )}
-                      </p>
+
+          <div className="md:hidden space-y-3">
+            {records.map((r) => (
+              <div key={r.id} className={`glass-card rounded-2xl p-4 border border-border/50 relative overflow-hidden ${!r.tingkat ? "border-l-4 border-l-amber-500 bg-amber-50/10 dark:bg-amber-950/5" : "hover:border-slate-300 dark:hover:border-slate-700 transition-colors"}`}>
+                <div className="flex items-start justify-between mb-3.5">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                      {!r.tingkat && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                      {formatKelasLabel({ namaKelas: r.namaKelas, tingkat: r.tingkat })}
+                    </h4>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {!r.tingkat ? (
+                        <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Tingkat Perlu diatur</span>
+                      ) : (
+                        <Badge variant="secondary" className="px-2 py-0.2 bg-teal-50/80 text-teal-700 border border-teal-500/10 dark:bg-teal-950/30 dark:text-teal-400 font-extrabold text-[10px]">
+                          {formatTingkatLabel(r.tingkat)}
+                        </Badge>
+                      )}
                     </div>
+                  </div>
                   <div className="flex gap-1">
-                    <button onClick={() => { setEditData({ id: r.id, namaKelas: r.namaKelas, tingkat: r.tingkat ?? "", waliKelasId: r.waliKelasId ?? "", kapasitas: r.kapasitas ?? undefined, siswaIds: [] }); setFormOpen(true) }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                    {deleteId !== r.id && <button onClick={() => setDeleteId(r.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-500 hover:text-rose-700 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>}
+                    <button 
+                      onClick={() => { 
+                        setEditData({ id: r.id, namaKelas: r.namaKelas, tingkat: r.tingkat ?? "", waliKelasId: r.waliKelasId ?? "", kapasitas: r.kapasitas ?? undefined, siswaIds: [] }); 
+                        setFormOpen(true) 
+                      }} 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => setDeleteId(r.id)} 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50/50 dark:bg-rose-950/20 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                  {r.waliKelasId && <Badge variant="outline" className="text-[10px]">{guruMap.get(r.waliKelasId) ?? "-"}</Badge>}
-                  <span className="font-semibold">{r.kapasitas ? `${r.siswaCount ?? 0} / ${r.kapasitas}` : "-"}</span>
+
+                <div className="space-y-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-1">
+                  {r.waliKelasId ? (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                      <UserCheck className="h-3.5 w-3.5 text-teal-500" />
+                      <span className="font-semibold">{guruMap.get(r.waliKelasId) ?? "-"}</span>
+                      <span className="text-[10px] text-muted-foreground">(Wali Kelas)</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic flex items-center gap-1.5">
+                      <UserCheck className="h-3.5 w-3.5 text-slate-400" />
+                      Belum ada Wali Kelas
+                    </div>
+                  )}
+
+                  <div className="pt-1 flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Kapasitas</span>
+                    <CapacityIndicator count={r.siswaCount ?? 0} max={r.kapasitas} />
+                  </div>
                 </div>
               </div>
             ))}
