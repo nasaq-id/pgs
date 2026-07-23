@@ -17,6 +17,7 @@ import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
 import MutasiFormDialog from "@/components/siswa/MutasiFormDialog"
 import SiswaDetailDialog from "@/components/siswa/SiswaDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
+import { formatKelasLabel } from "@/components/jadwal/constants"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
@@ -126,6 +127,8 @@ export default function SiswaPage() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkSetKelasOpen, setBulkSetKelasOpen] = useState(false)
+  const [targetKelasId, setTargetKelasId] = useState<string | null>(null)
 
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -182,6 +185,17 @@ export default function SiswaPage() {
       utils.siswa.getAll.invalidate()
     },
     onError: () => toast.error("Gagal menghapus data siswa"),
+  })
+
+  const bulkSetKelasMutation = api.siswa.bulkSetKelas.useMutation({
+    onSuccess: () => {
+      toast.success("Siswa berhasil dipindahkan ke kelas")
+      setBulkSetKelasOpen(false)
+      setSelectedIds([])
+      utils.siswa.getAll.invalidate()
+      utils.kelas.getAll.invalidate() // Invalidate Rombel view count too
+    },
+    onError: (err) => toast.error(err.message || "Gagal mengatur kelas siswa"),
   })
 
   const bulkCreateMutation = api.siswa.bulkCreate.useMutation({
@@ -250,6 +264,13 @@ export default function SiswaPage() {
 
   const handleBulkDelete = async () => {
     await bulkRemoveMutation.mutateAsync({ ids: selectedIds })
+  }
+
+  const handleBulkSetKelas = async () => {
+    await bulkSetKelasMutation.mutateAsync({
+      ids: selectedIds,
+      kelasId: targetKelasId === "unassigned" ? null : targetKelasId,
+    })
   }
 
   const handleExport = async () => {
@@ -931,19 +952,31 @@ export default function SiswaPage() {
           </button>
         </div>
 
-        {/* Bulk Delete Bar */}
+        {/* Bulk Actions Bar */}
         {selectedIds.length > 0 && (
-          <div className="flex items-center justify-between bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-2xl p-3 px-5">
-            <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
-              {selectedIds.length} siswa terpilih
+          <div className="flex items-center justify-between bg-teal-500/[0.04] dark:bg-teal-500/[0.02] border border-teal-500/20 dark:border-teal-500/10 rounded-2xl p-3 px-5 flex-wrap gap-3">
+            <span className="text-xs font-bold text-teal-700 dark:text-teal-400">
+              ⚡ {selectedIds.length} siswa terpilih
             </span>
-            <button
-              onClick={() => setBulkDeleteOpen(true)}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-              Hapus {selectedIds.length} Data
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setTargetKelasId("unassigned")
+                  setBulkSetKelasOpen(true)
+                }}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-105 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Atur Rombel / Kelas
+              </button>
+              <button
+                onClick={() => setBulkDeleteOpen(true)}
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer hover:brightness-105 active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus {selectedIds.length} Data
+              </button>
+            </div>
           </div>
         )}
 
@@ -1730,6 +1763,59 @@ export default function SiswaPage() {
         onConfirm={handleBulkDelete}
         loading={bulkRemoveMutation.isPending}
       />
+
+      <Dialog open={bulkSetKelasOpen} onOpenChange={setBulkSetKelasOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atur Rombel / Kelas Sekaligus</DialogTitle>
+            <DialogDescription>
+              Pilih rombongan belajar (kelas) baru untuk {selectedIds.length} siswa terpilih.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Pilih Rombel / Kelas Tujuan
+              </label>
+              <Select
+                value={targetKelasId ?? ""}
+                onValueChange={(val) => setTargetKelasId(val || null)}
+              >
+                <SelectTrigger className="w-full h-11 rounded-xl">
+                  <SelectValue placeholder="Pilih kelas..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">-- Keluarkan dari Kelas (Kosongkan Rombel) --</SelectItem>
+                  {kelasList?.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {formatKelasLabel(k)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkSetKelasOpen(false)}
+              disabled={bulkSetKelasMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleBulkSetKelas}
+              disabled={bulkSetKelasMutation.isPending || !targetKelasId}
+            >
+              {bulkSetKelasMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!deleteId}

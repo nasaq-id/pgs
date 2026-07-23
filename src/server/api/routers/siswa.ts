@@ -372,6 +372,32 @@ export const siswaRouter = router({
       return { success: true }
     }),
 
+  bulkSetKelas: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      ids: z.array(z.string()),
+      kelasId: z.string().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [inArray(siswa.id, input.ids)]
+      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      
+      await db
+        .update(siswa)
+        .set({
+          kelasId: input.kelasId,
+          updatedAt: new Date()
+        })
+        .where(and(...conditions))
+        
+      await logAudit(ctx, { 
+        action: "bulk_update", 
+        entity: "siswa", 
+        metadata: { ids: input.ids, kelasId: input.kelasId } 
+      })
+      return { success: true }
+    }),
+
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
