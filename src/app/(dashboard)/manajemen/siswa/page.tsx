@@ -510,6 +510,24 @@ export default function SiswaPage() {
         noHpIbu: String(row["No HP Ibu"] || "").trim() || undefined,
         usernameSiswa: row.Username || row.username || row.UsernameSiswa || row.usernameSiswa ? String(row.Username || row.username || row.UsernameSiswa || row.usernameSiswa).trim() : undefined,
         passwordSiswa: row.Password || row.password || row.PasswordSiswa || row.passwordSiswa ? String(row.Password || row.password || row.PasswordSiswa || row.passwordSiswa).trim() : undefined,
+        
+        provinsiAyah: row["Provinsi Ayah"] ? String(row["Provinsi Ayah"]).trim() : undefined,
+        kabupatenKotaAyah: row["Kabupaten/Kota Ayah"] ? String(row["Kabupaten/Kota Ayah"]).trim() : undefined,
+        kecamatanAyah: row["Kecamatan Ayah"] ? String(row["Kecamatan Ayah"]).trim() : undefined,
+        kelurahanDesaAyah: row["Desa/Kelurahan Ayah"] ? String(row["Desa/Kelurahan Ayah"]).trim() : undefined,
+        rtAyah: row["RT Ayah"] ? String(row["RT Ayah"]).trim() : undefined,
+        rwAyah: row["RW Ayah"] ? String(row["RW Ayah"]).trim() : undefined,
+        alamatLengkapAyah: row["Alamat Ayah"] ? String(row["Alamat Ayah"]).trim() : undefined,
+        kodePosAyah: row["Kode Pos Ayah"] ? String(row["Kode Pos Ayah"]).trim() : undefined,
+
+        provinsiIbu: row["Provinsi Ibu"] ? String(row["Provinsi Ibu"]).trim() : undefined,
+        kabupatenKotaIbu: row["Kabupaten/Kota Ibu"] ? String(row["Kabupaten/Kota Ibu"]).trim() : undefined,
+        kecamatanIbu: row["Kecamatan Ibu"] ? String(row["Kecamatan Ibu"]).trim() : undefined,
+        kelurahanDesaIbu: row["Desa/Kelurahan Ibu"] ? String(row["Desa/Kelurahan Ibu"]).trim() : undefined,
+        rtIbu: row["RT Ibu"] ? String(row["RT Ibu"]).trim() : undefined,
+        rwIbu: row["RW Ibu"] ? String(row["RW Ibu"]).trim() : undefined,
+        alamatLengkapIbu: row["Alamat Ibu"] ? String(row["Alamat Ibu"]).trim() : undefined,
+        kodePosIbu: row["Kode Pos Ibu"] ? String(row["Kode Pos Ibu"]).trim() : undefined,
       }
     }).filter((r) => r.namaLengkap && r.nisLokal)
 
@@ -598,8 +616,10 @@ export default function SiswaPage() {
       "Hobi", "Cita-cita", "Pembiayaan Sekolah", "No KK", "Nama Kepala Keluarga",
       "Nama Ayah", "Status Ayah", "NIK Ayah", "Tempat Lahir Ayah",
       "Pendidikan Ayah", "Pekerjaan Ayah", "Penghasilan Ayah", "No HP Ayah",
+      "Provinsi Ayah", "Kabupaten/Kota Ayah", "Kecamatan Ayah", "Desa/Kelurahan Ayah", "RT Ayah", "RW Ayah", "Alamat Ayah", "Kode Pos Ayah",
       "Nama Ibu", "Status Ibu", "NIK Ibu", "Tempat Lahir Ibu",
       "Pendidikan Ibu", "Pekerjaan Ibu", "Penghasilan Ibu", "No HP Ibu",
+      "Provinsi Ibu", "Kabupaten/Kota Ibu", "Kecamatan Ibu", "Desa/Kelurahan Ibu", "RT Ibu", "RW Ibu", "Alamat Ibu", "Kode Pos Ibu",
     ]
 
     const ws = XLSX.utils.aoa_to_sheet([
@@ -610,8 +630,10 @@ export default function SiswaPage() {
         "siswa@sekolah.sch.id", "aktif", "Membaca", "Dokter", "Swasta",
         "1234567890123456", "Ayah Contoh", "Masih Hidup", "3171234567890123", "Jakarta",
         "SMA", "Karyawan Swasta", "Rp 3.000.000 - Rp 5.000.000", "08123456788",
+        "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ayah No. 5", "12345",
         "Ibu Contoh", "Masih Hidup", "3171234567890124", "Jakarta",
         "SMA", "Ibu Rumah Tangga", "Kurang dari Rp 1.000.000", "08123456787",
+        "Provinsi Contoh", "Kabupaten Contoh", "Kecamatan Contoh", "Desa Contoh", "01", "02", "Jl. Ibu No. 5", "12345",
       ],
     ])
 
@@ -621,11 +643,13 @@ export default function SiswaPage() {
       { wch: 28 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 18 },
       { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 14 }, { wch: 20 },
       { wch: 18 }, { wch: 14 }, { wch: 20 }, { wch: 22 }, { wch: 16 },
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 28 }, { wch: 12 },
       { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 14 },
       { wch: 20 }, { wch: 22 }, { wch: 16 },
+      { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 28 }, { wch: 12 },
     ]
 
-    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:AG1")
+    const colRange = XLSX.utils.decode_range(ws["!ref"] || "A1:AW1")
     for (let r = colRange.s.r; r <= colRange.e.r; r++) {
       for (let c = colRange.s.c; c <= colRange.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c })
