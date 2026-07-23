@@ -62,7 +62,16 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   useEffect(() => {
     if (!open) return
     setTingkat(initial?.tingkat || "")
-    setNamaKelas(initial?.namaKelas || "")
+    
+    // Auto-strip tingkat prefix if it matches
+    const rawNamaKelas = initial?.namaKelas || ""
+    const cleanTingkat = (initial?.tingkat || "").replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+    if (cleanTingkat && rawNamaKelas.toLowerCase().startsWith(cleanTingkat.toLowerCase())) {
+      setNamaKelas(rawNamaKelas.slice(cleanTingkat.length))
+    } else {
+      setNamaKelas(rawNamaKelas)
+    }
+
     setWaliKelasId(initial?.waliKelasId || "")
     setKapasitas(initial?.kapasitas ?? undefined)
     setSelectedSiswa([])
@@ -111,9 +120,17 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   const handleSubmit = async () => {
     if (!tingkat || !namaKelas.trim()) return
     try {
+      const cleanTingkat = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim()
+      let finalNamaKelas = namaKelas.trim()
+      
+      // Auto-prefix with cleanTingkat if user only typed the suffix (e.g., "A" -> "7A")
+      if (cleanTingkat && !finalNamaKelas.toLowerCase().startsWith(cleanTingkat.toLowerCase())) {
+        finalNamaKelas = `${cleanTingkat}${finalNamaKelas}`
+      }
+
       await onSubmit({
         id: initial?.id,
-        namaKelas: namaKelas.trim(),
+        namaKelas: finalNamaKelas,
         tingkat,
         waliKelasId: waliKelasId || undefined,
         kapasitas: kapasitas,
