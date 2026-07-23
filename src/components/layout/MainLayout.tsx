@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import MobileBottomNav from "./MobileBottomNav"
@@ -14,6 +16,7 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   
@@ -89,7 +92,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}>
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pb-20 lg:pb-6">
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="w-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

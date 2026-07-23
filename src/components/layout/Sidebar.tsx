@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
@@ -413,15 +414,22 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     className={cn(
                       "relative flex items-center px-0 py-3 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
                       isGroupActive
-                        ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-0 font-bold"
+                        ? "text-teal-655 dark:text-teal-405 border-0 font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
                     )}
                   >
                     {isGroupActive && (
-                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full" />
+                      <motion.div
+                        layoutId="activeSidebarIndicator"
+                        className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    {isGroupActive && (
+                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-teal-500 rounded-r-full z-10" />
                     )}
                     <div className={cn(
-                      "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                      "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
                       isGroupActive
                         ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
                         : "bg-muted/50 text-muted-foreground"
@@ -470,22 +478,29 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   className={cn(
                     "w-full relative flex items-center gap-2.5 px-4 py-3 mx-3 rounded-xl text-sm cursor-pointer border transition-all duration-200",
                     isGroupActive
-                      ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-transparent font-bold"
+                      ? "text-teal-650 dark:text-teal-400 border-transparent font-bold"
                       : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
                   )}
                 >
                   {isGroupActive && (
-                    <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full" />
+                    <motion.div
+                      layoutId="activeSidebarIndicator"
+                      className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  {isGroupActive && (
+                    <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full z-10" />
                   )}
                   <div className={cn(
-                    "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                    "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
                     isGroupActive
                       ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
                       : "bg-muted/50 text-muted-foreground"
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className="flex-1 text-left truncate ml-1">{item.label}</span>
+                  <span className="flex-1 text-left truncate ml-1 z-10">{item.label}</span>
                   {isOpen ? (
                     <ChevronUp className={cn(
                       "h-4 w-4 transition-transform duration-200",
@@ -506,19 +521,26 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                         href={child.path}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center px-3 py-1.5 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
+                          "relative flex items-center px-3 py-1.5 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
                           isActive(child.path)
-                            ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 font-bold border-0"
+                            ? "text-teal-650 dark:text-teal-400 font-bold"
                             : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]"
                         )}
                       >
+                        {isActive(child.path) && (
+                          <motion.div
+                            layoutId="activeSubSidebarIndicator"
+                            className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-lg"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
                         <span className={cn(
-                          "w-1.5 h-1.5 rounded-full mr-2 transition-all",
+                          "w-1.5 h-1.5 rounded-full mr-2 transition-all z-10",
                           isActive(child.path)
                             ? "bg-teal-500 scale-125 shadow-[0_0_8px_rgba(20,184,166,0.6)]"
                             : "bg-muted-foreground/40"
                         )} />
-                        {child.label}
+                        <span className="z-10">{child.label}</span>
                       </Link>
                     ))}
                   </div>
@@ -536,15 +558,22 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 "relative flex items-center px-4 py-3 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-sm",
                 isMinimized ? "lg:justify-center lg:px-0 lg:mx-0" : "justify-start",
                 isItemActive
-                  ? "neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] text-teal-650 dark:text-teal-400 border-transparent font-bold"
+                  ? "text-teal-650 dark:text-teal-400 border-transparent font-bold"
                   : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border-transparent"
               )}
             >
+              {isItemActive && (
+                <motion.div
+                  layoutId="activeSidebarIndicator"
+                  className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
               {isItemActive && !isMinimized && (
-                <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full" />
+                <div className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-teal-500 rounded-r-full z-10" />
               )}
               <div className={cn(
-                "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+                "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 z-10",
                 isItemActive
                   ? "bg-teal-100/60 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400"
                   : "bg-muted/50 text-muted-foreground"
@@ -552,7 +581,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 <Icon className="h-4 w-4" />
               </div>
               <span className={cn(
-                "transition-all duration-300 overflow-hidden truncate",
+                "transition-all duration-300 overflow-hidden truncate z-10",
                 isMinimized ? "max-w-0 opacity-0 ml-0" : "max-w-xs opacity-100 ml-1.5"
               )}>
                 {item.label}
