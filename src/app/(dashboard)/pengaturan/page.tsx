@@ -415,9 +415,25 @@ export default function PengaturanPage() {
                     {logoKiriKop ? (
                       <img src={logoKiriKop} alt="Logo Dinas" className="w-12 h-12 object-contain shrink-0" />
                     ) : (
-                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-lg text-[8px] text-muted-foreground font-bold leading-tight text-center p-1 shrink-0 select-none">
-                        Logo Kiri
-                      </div>
+                      (() => {
+                        const isKemenag = ["mi", "mts", "ma"].includes(sekolah?.jenjang || "")
+                        if (isKemenag) {
+                          return (
+                            <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex flex-col items-center justify-center shrink-0 border border-emerald-500 shadow-sm p-1 select-none">
+                              <span className="text-[6px] font-black uppercase leading-tight scale-90">Kemenag</span>
+                              <span className="text-[5px] leading-none opacity-85 mt-0.5 scale-75">Ikhlas</span>
+                              <span className="text-[5px] leading-none opacity-85 scale-75">Beramal</span>
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex flex-col items-center justify-center shrink-0 border border-blue-500 shadow-sm p-1 select-none">
+                              <span className="text-[6px] font-black uppercase leading-tight scale-90">Tut Wuri</span>
+                              <span className="text-[5px] leading-none opacity-85 mt-0.5 scale-75">Handayani</span>
+                            </div>
+                          )
+                        }
+                      })()
                     )}
 
                     {/* Kop Center Text */}
@@ -444,8 +460,8 @@ export default function PengaturanPage() {
                     {sekolah?.logo ? (
                       <img src={sekolah.logo} alt="Logo Sekolah" className="w-12 h-12 object-contain shrink-0" />
                     ) : (
-                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-lg text-[8px] text-muted-foreground font-bold leading-tight text-center p-1 shrink-0 select-none">
-                        Logo Kanan
+                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-xl text-slate-400 shrink-0 select-none">
+                        <School className="size-5" />
                       </div>
                     )}
                   </div>
