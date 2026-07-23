@@ -144,7 +144,7 @@ export default function KelasPage() {
             <p className="font-semibold">{recordsWithoutTingkat.length} kelas belum memiliki tingkat</p>
             <p className="mt-1">
               Data kelas yang sudah ada sebelumnya harus diperbarui agar sesuai dengan struktur baru.
-              Klik ikon <strong>Edit</strong> pada baris yang ditandai untuk memilih tingkat dan menyesuaikan nama kelas (misal: "7a" → tingkat "VII", nama kelas "A").
+              Klik ikon <strong>Edit</strong> pada baris yang ditandai untuk memilih tingkat dan menyesuaikan nama kelas (misal: "7a" → tingkat <strong>7</strong>, nama kelas <strong>A</strong>).
             </p>
           </div>
         </div>

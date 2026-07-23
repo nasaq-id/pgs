@@ -159,6 +159,9 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
                 value={namaKelas}
                 onChange={(e) => setNamaKelas(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Tulis nama kelas saja tanpa angka tingkat. Contoh: <strong>A</strong>, <strong>B</strong>, <strong>Unggulan</strong>
+              </p>
             </div>
 
             <div className="space-y-1.5">
