@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 import {
-  LayoutDashboard, Users, GraduationCap, Building2, Settings, LogOut,
+  LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
   Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, CalendarDays, Shield
 } from "lucide-react"
@@ -606,65 +606,6 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           )
         })}
       </nav>
-
-      {/* Footer Info & Admin Card */}
-      <div className="border-t border-border/50 px-4 py-2.5">
-        {!isMinimized ? (
-          <div className="flex items-center justify-between bg-card border border-border p-2.5 rounded-xl">
-            <Link
-              href="/profil"
-              title={displayName}
-            >
-              {userPhoto ? (
-                <div className="w-8 h-8 rounded-xl overflow-hidden border border-border hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
-                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
-                  {initials}
-                </div>
-              )}
-            </Link>
-            <div className="flex-1 min-w-0 text-left px-2.5">
-              <p className="text-xs font-bold text-foreground truncate leading-none">{displayName}</p>
-              <p className="text-[8px] text-muted-foreground font-semibold leading-none mt-1 uppercase tracking-wide">
-                {userRoleLabel}
-              </p>
-            </div>
-            <button
-              onClick={() => setLogoutOpen(true)}
-              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer flex-shrink-0"
-              title="Keluar dari Akun"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Link
-              href="/profil"
-              title={`${displayName} - ${userRoleLabel}`}
-            >
-              {userPhoto ? (
-                <div className="w-8 h-8 rounded-xl overflow-hidden border border-border hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
-                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm hover:ring-2 hover:ring-teal-500/30 transition-all flex-shrink-0">
-                  {initials}
-                </div>
-              )}
-            </Link>
-            <button
-              onClick={() => setLogoutOpen(true)}
-              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-muted-foreground hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-              title="Keluar dari Akun"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Dialog Konfirmasi Keluar */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
