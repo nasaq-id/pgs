@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, ChevronRight } from "lucide-react"
+import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, ChevronRight, Edit3, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,6 +10,18 @@ import { api } from "@/lib/trpc/client"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { uploadToCloudinary } from "@/lib/cloudinary"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 
 const roleLabels: Record<string, string> = {
   super_admin: "Super Admin",
@@ -59,6 +71,45 @@ export default function ProfilPage() {
   const p = profile as any
   const role = user?.role || ""
   const roleData = p?.roleData as Record<string, unknown> | undefined
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [emailInput, setEmailInput] = useState("")
+  const [phoneInput, setPhoneInput] = useState("")
+  const [alamatInput, setAlamatInput] = useState("")
+  const [noHpOrtuInput, setNoHpOrtuInput] = useState("")
+  const [pendidikanInput, setPendidikanInput] = useState("")
+
+  const handleOpenEdit = () => {
+    setEmailInput(p?.email || p?.emailSiswa || "")
+    setPhoneInput(p?.phone || p?.noHp || p?.noHpWhatsapp || "")
+    setAlamatInput(p?.alamat || "")
+    setNoHpOrtuInput(p?.noHpOrtu || "")
+    setPendidikanInput(p?.pendidikanTerakhir || "")
+    setEditOpen(true)
+  }
+
+  const updateProfileMutation = api.profil.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Profil berhasil diperbarui!")
+      utils.profil.getProfile.invalidate()
+      updateSession()
+      setEditOpen(false)
+    },
+    onError: (err) => {
+      toast.error(err.message || "Gagal memperbarui profil.")
+    }
+  })
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await updateProfileMutation.mutateAsync({
+      email: emailInput || undefined,
+      phone: phoneInput || undefined,
+      alamat: alamatInput || undefined,
+      noHpOrtu: role === "siswa" ? noHpOrtuInput || undefined : undefined,
+      pendidikanTerakhir: role === "guru" ? pendidikanInput || undefined : undefined,
+    })
+  }
 
   const updatePhoto = api.profil.updateProfilePhoto.useMutation({
     onSuccess: (res) => {
@@ -111,9 +162,15 @@ export default function ProfilPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Profil Saya</h2>
-        <p className="text-muted-foreground">Informasi biodata Anda (hanya dapat diubah oleh admin)</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Profil Saya</h2>
+          <p className="text-muted-foreground">Informasi biodata Anda</p>
+        </div>
+        <Button onClick={handleOpenEdit} className="rounded-2xl gap-2 font-semibold shadow-md">
+          <Edit3 className="size-4" />
+          Edit Profil
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
@@ -215,6 +272,89 @@ export default function ProfilPage() {
           )}
         </div>
       </div>
+
+      {/* Dialog Edit Profil */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-slate-800 dark:text-slate-100">Edit Profil Saya</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-semibold mt-1">
+              Perbarui informasi kontak dan biodata Anda secara mandiri di bawah ini.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Alamat email Anda"
+                className="rounded-xl border-border bg-slate-50/50 dark:bg-slate-950/30"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="font-semibold text-slate-700 dark:text-slate-300 text-xs">No. Handphone</Label>
+              <Input
+                id="phone"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="Nomor handphone aktif"
+                className="rounded-xl border-border bg-slate-50/50 dark:bg-slate-950/30"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="alamat" className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Alamat Tempat Tinggal</Label>
+              <Textarea
+                id="alamat"
+                value={alamatInput}
+                onChange={(e) => setAlamatInput(e.target.value)}
+                placeholder="Alamat lengkap tempat tinggal saat ini"
+                className="rounded-xl border-border bg-slate-50/50 dark:bg-slate-950/30 min-h-[80px]"
+              />
+            </div>
+
+            {role === "siswa" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="noHpOrtu" className="font-semibold text-slate-700 dark:text-slate-300 text-xs">No. HP Orang Tua / Wali</Label>
+                <Input
+                  id="noHpOrtu"
+                  value={noHpOrtuInput}
+                  onChange={(e) => setNoHpOrtuInput(e.target.value)}
+                  placeholder="Nomor handphone orang tua/wali"
+                  className="rounded-xl border-border bg-slate-50/50 dark:bg-slate-950/30"
+                />
+              </div>
+            )}
+
+            {role === "guru" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="pendidikan" className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Pendidikan Terakhir</Label>
+                <Input
+                  id="pendidikan"
+                  value={pendidikanInput}
+                  onChange={(e) => setPendidikanInput(e.target.value)}
+                  placeholder="Pendidikan terakhir (misal: S1 Pendidikan)"
+                  className="rounded-xl border-border bg-slate-50/50 dark:bg-slate-950/30"
+                />
+              </div>
+            )}
+
+            <DialogFooter className="pt-4 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl font-semibold text-xs py-2 h-9">
+                Batal
+              </Button>
+              <Button type="submit" disabled={updateProfileMutation.isPending} className="rounded-xl font-semibold text-xs gap-1.5 py-2 h-9 shadow-sm shadow-primary/20">
+                {updateProfileMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
