@@ -303,6 +303,11 @@ export default function SiswaPage() {
         logoBase64 = await urlToBase64(sekolah.logo)
       }
 
+      let customKopBase64: string | null = null
+      if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
+        customKopBase64 = await urlToBase64(sekolah.customKopGambar)
+      }
+
       const rows: (string | number)[][] = res.map((s: any, i: number) => [
         i + 1,
         s.nisn || "-",
@@ -323,58 +328,83 @@ export default function SiswaPage() {
       const doc = new jsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
 
-      const kopH = 18
-      const logoSize = 12
-      const logoX = 10
-      const logoY = 3
-      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 0
+      const useCustomKop = sekolah?.useCustomKop && customKopBase64
+      const kopH = useCustomKop ? (sekolah?.customKopTinggi || 35) : 24
+      const logoSize = 16
+      const logoX = 14
+      const logoY = 4
+      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 14
 
-      doc.setFillColor(59, 130, 246)
-      doc.rect(0, 0, pageW, kopH, "F")
-
-      if (logoBase64) {
+      if (useCustomKop && customKopBase64) {
         try {
-          doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
+          doc.addImage(customKopBase64, "JPEG", 0, 0, pageW, kopH)
         } catch {
           try {
-            doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
+            doc.addImage(customKopBase64, "PNG", 0, 0, pageW, kopH)
           } catch {}
         }
-      }
+      } else {
+        // Render Standard Double-Line White Header
+        if (logoBase64) {
+          try {
+            doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
+          } catch {
+            try {
+              doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
+            } catch {}
+          }
+        }
 
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      const centerX = textLeftMargin > 0 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
-      doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 6.5, { align: "center" })
-      doc.setFontSize(7)
-      doc.text(sekolah?.alamat || "", centerX, 11, { align: "center" })
-      if (sekolah?.npsn || sekolah?.telepon) {
-        const infoParts = []
-        if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
-        if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
-        doc.text(infoParts.join(" | "), centerX, 14.5, { align: "center" })
+        doc.setTextColor(30, 41, 59) // slate-800
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        const centerX = logoBase64 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
+        doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 9, { align: "center" })
+
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.setTextColor(71, 85, 105) // slate-600
+        doc.text(sekolah?.alamat || "", centerX, 14, { align: "center" })
+
+        if (sekolah?.npsn || sekolah?.telepon) {
+          const infoParts = []
+          if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
+          if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
+          doc.text(infoParts.join(" | "), centerX, 18, { align: "center" })
+        }
+
+        // Double lines at the bottom of the kop
+        doc.setLineWidth(0.8)
+        doc.setDrawColor(30, 41, 59)
+        doc.line(14, kopH - 2, pageW - 14, kopH - 2)
+        doc.setLineWidth(0.2)
+        doc.line(14, kopH - 1, pageW - 14, kopH - 1)
       }
 
       const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
       const titleText = `Data Siswa${taLabel}`
 
-      doc.setFillColor(37, 99, 235)
-      doc.rect(0, kopH, pageW, 8, "F")
+      // Teal Theme for Sub-header Bar
+      const subHeaderH = 8
+      doc.setFillColor(13, 148, 136) // teal-600
+      doc.rect(0, kopH, pageW, subHeaderH, "F")
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(8)
+      doc.setFontSize(8.5)
+      doc.setFont("helvetica", "bold")
       doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
 
-      const infoY = kopH + 12
+      const infoY = kopH + subHeaderH + 4
       doc.setTextColor(100, 100, 100)
-      doc.setFontSize(7)
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
       const now = new Date()
       const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
       const tglStr = `Diexport pada: ${hari}, ${toDdMmYyyy(now)}`
-      doc.text(tglStr, pageW - 14, infoY + 1, { align: "right" })
-      doc.text(`Total data: ${res.length} siswa`, 14, infoY + 1)
+      doc.text(tglStr, pageW - 14, infoY, { align: "right" })
+      doc.text(`Total data: ${res.length} siswa`, 14, infoY)
 
       autoTable(doc, {
-        startY: infoY + 5,
+        startY: infoY + 4,
         head,
         body: rows,
         styles: {
@@ -386,7 +416,7 @@ export default function SiswaPage() {
           valign: "middle",
         },
         headStyles: {
-          fillColor: [59, 130, 246],
+          fillColor: [13, 148, 136], // Teal-600 instead of Blue
           textColor: [255, 255, 255],
           fontSize: 6.5,
           fontStyle: "bold",
@@ -410,7 +440,7 @@ export default function SiswaPage() {
           10: { cellWidth: 42 },
           11: { cellWidth: 26 },
         },
-        margin: { top: 37, bottom: 15 },
+        margin: { top: 15, bottom: 15 },
         pageBreak: "auto",
         showFoot: "everyPage",
         footStyles: {

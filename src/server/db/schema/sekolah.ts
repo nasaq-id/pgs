@@ -30,6 +30,9 @@ export const sekolah = pgTable("sekolah", {
   akreditasi: text("akreditasi"),
   bobotSumatif: integer("bobot_sumatif").notNull().default(60),
   bobotSas: integer("bobot_sas").notNull().default(40),
+  useCustomKop: boolean("use_custom_kop").notNull().default(false),
+  customKopGambar: text("custom_kop_gambar"),
+  customKopTinggi: integer("custom_kop_tinggi").notNull().default(35),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
