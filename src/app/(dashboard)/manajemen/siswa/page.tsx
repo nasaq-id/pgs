@@ -102,6 +102,9 @@ export default function SiswaPage() {
   const [newPassword, setNewPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
@@ -147,6 +150,16 @@ export default function SiswaPage() {
       setShowPassword(false)
     },
     onError: () => toast.error("Gagal mereset password siswa"),
+  })
+
+  const bulkRemoveMutation = api.siswa.bulkRemove.useMutation({
+    onSuccess: () => {
+      toast.success("Data siswa berhasil dihapus")
+      setBulkDeleteOpen(false)
+      setSelectedIds([])
+      utils.siswa.getAll.invalidate()
+    },
+    onError: () => toast.error("Gagal menghapus data siswa"),
   })
 
   const bulkCreateMutation = api.siswa.bulkCreate.useMutation({
@@ -198,6 +211,23 @@ export default function SiswaPage() {
   const handleFormSuccess = () => {
     setFormOpen(false)
     utils.siswa.getAll.invalidate()
+  }
+
+  const handleSelectAll = () => {
+    if (!siswaList) return
+    if (selectedIds.length === siswaList.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(siswaList.map((s) => s.id))
+    }
+  }
+
+  const handleSelectItem = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const handleBulkDelete = async () => {
+    await bulkRemoveMutation.mutateAsync({ ids: selectedIds })
   }
 
   const handleExport = async () => {
@@ -845,6 +875,22 @@ export default function SiswaPage() {
           </button>
         </div>
 
+        {/* Bulk Delete Bar */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center justify-between bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-2xl p-3 px-5">
+            <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
+              {selectedIds.length} siswa terpilih
+            </span>
+            <button
+              onClick={() => setBulkDeleteOpen(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              Hapus {selectedIds.length} Data
+            </button>
+          </div>
+        )}
+
         {/* Mobile Card List View (Visible on mobile, hidden on desktop) */}
         <div className="md:hidden space-y-4">
           {isLoading ? (
@@ -863,7 +909,14 @@ export default function SiswaPage() {
               const currentKelas = kelasList?.find(k => k.id === s.kelasId)?.namaKelas
               return (
                 <div key={s.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
-                  <div className="flex justify-between items-start">
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(s.id)}
+                      onChange={() => handleSelectItem(s.id)}
+                      className="accent-teal-600 cursor-pointer mt-2 shrink-0"
+                    />
+                    <div className="flex justify-between items-start flex-1 min-w-0">
                     <div className="flex items-center space-x-2.5 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
                         {s.foto ? (
@@ -954,6 +1007,7 @@ export default function SiswaPage() {
                       </DropdownMenu>
                     </div>
                   </div>
+                  </div>
                 </div>
               )
             })
@@ -965,6 +1019,14 @@ export default function SiswaPage() {
           <Table>
             <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
+                <TableHead className="w-10 text-center py-3">
+                  <input
+                    type="checkbox"
+                    checked={!!siswaList && siswaList.length > 0 && selectedIds.length === siswaList.length}
+                    onChange={handleSelectAll}
+                    className="accent-teal-600 cursor-pointer"
+                  />
+                </TableHead>
                 <TableHead className="w-12 text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">NISN</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">NIS</TableHead>
@@ -982,14 +1044,14 @@ export default function SiswaPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 11 }).map((_, j) => (
+                    {Array.from({ length: 12 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : !siswaList || siswaList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
+                  <TableCell colSpan={12} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
                     Tidak ada data siswa ditemukan
                   </TableCell>
                 </TableRow>
@@ -998,6 +1060,14 @@ export default function SiswaPage() {
                   const currentKelas = kelasList?.find(k => k.id === s.kelasId)?.namaKelas
                   return (
                     <TableRow key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(s.id)}
+                          onChange={() => handleSelectItem(s.id)}
+                          className="accent-teal-600 cursor-pointer"
+                        />
+                      </TableCell>
                       <TableCell className="text-center font-bold text-slate-400 dark:text-slate-500 text-[11px]">
                         {page * limit + index + 1}
                       </TableCell>
@@ -1580,6 +1650,15 @@ export default function SiswaPage() {
           siswaId={detailId}
         />
       )}
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Hapus Data Siswa Terpilih"
+        description={`Apakah Anda yakin ingin menghapus ${selectedIds.length} data siswa yang terpilih? Tindakan ini tidak dapat dibatalkan.`}
+        onConfirm={handleBulkDelete}
+        loading={bulkRemoveMutation.isPending}
+      />
 
       <ConfirmDialog
         open={!!deleteId}

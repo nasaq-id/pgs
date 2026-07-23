@@ -362,6 +362,16 @@ export const siswaRouter = router({
       return { success: true }
     }),
 
+  bulkRemove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({ ids: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const conditions = [inArray(siswa.id, input.ids)]
+      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      await db.delete(siswa).where(and(...conditions))
+      return { success: true }
+    }),
+
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
