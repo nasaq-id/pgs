@@ -133,7 +133,7 @@ export default function NotifikasiPage() {
   return (
     <div className="space-y-6">
       {/* Meta tags / SEO */}
-      <title>Notifikasi & Pemberitahuan - EduManage</title>
+      <title>Notifikasi & Pemberitahuan - Sistem Manajemen Lembaga</title>
       <meta name="description" content="Halaman informasi dan pengumuman untuk guru, siswa, dan staf sekolah." />
       
       <div className="bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 -mt-6 sm:-mt-8 min-h-[calc(100vh-4rem)] transition-colors duration-300">

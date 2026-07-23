@@ -357,7 +357,7 @@ export default function LoginPage() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-slate-200/50 bg-white py-6 text-center text-slate-400 text-xs font-semibold">
-        <p>&copy; {new Date().getFullYear()} EduManage. Sistem Informasi Manajemen Sekolah.</p>
+        <p>&copy; {new Date().getFullYear()} Sistem Manajemen Lembaga. Sistem Informasi Manajemen Sekolah.</p>
       </footer>
     </div>
   )

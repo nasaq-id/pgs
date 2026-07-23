@@ -18,15 +18,15 @@ const fontMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "EduManage - Sistem Manajemen Lembaga",
-    template: "%s | EduManage",
+    default: "Sistem Manajemen Lembaga",
+    template: "%s | Sistem Manajemen Lembaga",
   },
   description: "Sistem Informasi Manajemen Sekolah",
   manifest: "/manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "EduManage",
+    title: "Sistem Manajemen Lembaga",
   },
 }
 
