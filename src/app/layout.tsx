@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { Toaster } from "sonner"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
+import { TRPCProvider } from "@/lib/trpc/provider"
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -49,7 +50,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
+        <TRPCProvider>
+          {children}
+        </TRPCProvider>
         <Toaster richColors position="top-right" />
         <SpeedInsights />
       </body>

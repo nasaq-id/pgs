@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/auth"
 import { SessionProvider } from "@/components/providers/SessionProvider"
-import { TRPCProvider } from "@/lib/trpc/provider"
 import MainLayout from "@/components/layout/MainLayout"
 import { PushRegister } from "@/components/providers/PushRegister"
 
@@ -20,10 +19,8 @@ export default async function DashboardLayout({
 
   return (
     <SessionProvider session={session}>
-      <TRPCProvider>
-        <MainLayout>{children}</MainLayout>
-        <PushRegister />
-      </TRPCProvider>
+      <MainLayout>{children}</MainLayout>
+      <PushRegister />
     </SessionProvider>
   )
 }
