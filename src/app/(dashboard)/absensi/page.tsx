@@ -738,7 +738,7 @@ export default function AbsensiPage() {
         descFontSize = "0.65rem"
       }
 
-      const schoolName = sekolah?.nama || "PORTAL GARDA SEKOLAH"
+      const schoolName = sekolah?.namaSekolah || "PORTAL GARDA SEKOLAH"
 
       let htmlContent = `
         <html>
