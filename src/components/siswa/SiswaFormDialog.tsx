@@ -228,6 +228,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
     if (open) {
       if (initialData) {
         setForm({
+          tingkat: initialData.tingkat || "",
           nisn: initialData.nisn || "",
           nisLokal: initialData.nisLokal || "",
           namaLengkap: initialData.namaLengkap || "",
