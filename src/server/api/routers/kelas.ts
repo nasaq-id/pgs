@@ -77,7 +77,16 @@ export const kelasRouter = router({
         with: { sekolah: true, tahunAjaran: true, waliKelas: true },
       })
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
-      return result
+      
+      const students = await db.query.siswa.findMany({
+        where: eq(siswa.kelasId, result.id),
+        orderBy: asc(siswa.namaLengkap),
+      })
+      
+      return {
+        ...result,
+        students,
+      }
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])

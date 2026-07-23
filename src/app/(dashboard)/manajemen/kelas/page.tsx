@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle, GraduationCap, UserCheck, Users } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle, GraduationCap, UserCheck, Users, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
+import KelasDetailDialog from "@/components/kelas/KelasDetailDialog"
 import { formatKelasLabel, formatTingkatLabel } from "@/components/jadwal/constants"
 import { toast } from "sonner"
 
@@ -134,6 +135,8 @@ export default function KelasPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<KelasFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
   const { data: guruList } = api.guru.getAll.useQuery({})
@@ -334,6 +337,28 @@ export default function KelasPage() {
                                   size="icon"
                                   className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                                   onClick={() => {
+                                    setDetailId(r.id)
+                                    setDetailOpen(true)
+                                  }}
+                                />
+                              }
+                            >
+                              <Eye className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipPortal>
+                              <TooltipPositioner>
+                                <TooltipPopup>Lihat Rombel</TooltipPopup>
+                              </TooltipPositioner>
+                            </TooltipPortal>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  onClick={() => {
                                     setEditData({
                                       id: r.id,
                                       namaKelas: r.namaKelas,
@@ -407,16 +432,28 @@ export default function KelasPage() {
                   <div className="flex gap-1">
                     <button 
                       onClick={() => { 
+                        setDetailId(r.id)
+                        setDetailOpen(true)
+                      }} 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Lihat Detail"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => { 
                         setEditData({ id: r.id, namaKelas: r.namaKelas, tingkat: r.tingkat ?? "", waliKelasId: r.waliKelasId ?? "", kapasitas: r.kapasitas ?? undefined, siswaIds: [] }); 
                         setFormOpen(true) 
                       }} 
                       className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Edit"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button 
                       onClick={() => setDeleteId(r.id)} 
                       className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50/50 dark:bg-rose-950/20 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+                      title="Hapus"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -460,6 +497,12 @@ export default function KelasPage() {
         initial={editData}
         guruList={guruList ?? []}
         saving={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <KelasDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        kelasId={detailId ?? ""}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
