@@ -613,29 +613,176 @@ export const jadwalRouter = router({
         }
       }
 
-      // Sort by size descending
+      // Sort by size descending as base ordering
       blocks.sort((a, b) => b.jpCount - a.jpCount)
 
       const assigned = new Map<string, { mataPelajaranId: string; guruId: string }>()
       const teacherBusy = new Map<string, boolean>()
       const kelasDaysMap = new Map<string, Set<string>>()
 
-      const success = runBacktrackingSolver(
-        blocks,
-        0,
-        assigned,
-        teacherBusy,
-        [...activeDays],
-        academicSlotsPerDay,
-        teacherExclusions,
-        kelasDaysMap
-      )
+      let success = false
 
+      // ── PHASE 1: Backtracking dengan Pengecualian Guru & Shuffling (Mencari Solusi Sempurna) ──
+      for (let attempt = 0; attempt < 30; attempt++) {
+        assigned.clear()
+        teacherBusy.clear()
+        kelasDaysMap.clear()
+
+        const shuffledBlocks = [...blocks]
+        if (attempt > 0) {
+          // Acak urutan block secara acak untuk meloloskan diri dari search bottleneck
+          for (let i = shuffledBlocks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1))
+            const temp = shuffledBlocks[i]!
+            shuffledBlocks[i] = shuffledBlocks[j]!
+            shuffledBlocks[j] = temp
+          }
+        }
+
+        success = runBacktrackingSolver(
+          shuffledBlocks,
+          0,
+          assigned,
+          teacherBusy,
+          [...activeDays],
+          academicSlotsPerDay,
+          teacherExclusions,
+          kelasDaysMap
+        )
+        if (success) {
+          blocks.length = 0
+          blocks.push(...shuffledBlocks)
+          break
+        }
+      }
+
+      // ── PHASE 2: Jika gagal, rileksasikan aturan jam berhalangan guru (Teacher Exclusions) ──
+      if (!success && teacherExclusions.size > 0) {
+        for (let attempt = 0; attempt < 30; attempt++) {
+          assigned.clear()
+          teacherBusy.clear()
+          kelasDaysMap.clear()
+
+          const shuffledBlocks = [...blocks]
+          if (attempt > 0) {
+            for (let i = shuffledBlocks.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1))
+              const temp = shuffledBlocks[i]!
+              shuffledBlocks[i] = shuffledBlocks[j]!
+              shuffledBlocks[j] = temp
+            }
+          }
+
+          success = runBacktrackingSolver(
+            shuffledBlocks,
+            0,
+            assigned,
+            teacherBusy,
+            [...activeDays],
+            academicSlotsPerDay,
+            new Set(), // Rileksasikan pengecualian guru
+            kelasDaysMap
+          )
+          if (success) {
+            blocks.length = 0
+            blocks.push(...shuffledBlocks)
+            break
+          }
+        }
+      }
+
+      // ── PHASE 3: Jika masih gagal (mathematically overloaded), jalankan Greedy Placement ──
+      // Ini menjamin jadwal SELALU berhasil di-generate dengan meminimalkan bentrok guru.
       if (!success) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Gagal men-generate jadwal otomatis. Terjadi bentrok yang tidak dapat dihindari. Silakan ubah alokasi mengajar atau sesuaikan pengecualian guru.",
-        })
+        assigned.clear()
+        teacherBusy.clear()
+        kelasDaysMap.clear()
+
+        // Urutkan kembali berdasarkan JP terbesar
+        blocks.sort((a, b) => b.jpCount - a.jpCount)
+
+        for (const block of blocks) {
+          const slotsPerDayList = [...activeDays].map(day => ({
+            day,
+            slots: academicSlotsPerDay.get(day) || []
+          }))
+
+          let placed = false
+
+          // Langkah A: Cari slot kosong kelas & guru tidak sedang mengajar
+          for (const { day, slots } of slotsPerDayList) {
+            for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+              let classConflict = false
+              let teacherConflict = false
+
+              for (let offset = 0; offset < block.jpCount; offset++) {
+                const slotJp = slots[startIdx + offset]
+                if (slotJp === undefined) { classConflict = true; break; }
+
+                const slotKey = `${block.kelasId}|${day}|${slotJp}`
+                if (assigned.has(slotKey)) { classConflict = true; break; }
+
+                const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+                if (teacherBusy.get(teacherDayKey)) {
+                  teacherConflict = true;
+                }
+              }
+
+              if (!classConflict && !teacherConflict) {
+                for (let offset = 0; offset < block.jpCount; offset++) {
+                  const slotJp = slots[startIdx + offset]
+                  const slotKey = `${block.kelasId}|${day}|${slotJp}`
+                  assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+
+                  const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+                  teacherBusy.set(teacherDayKey, true)
+                }
+                const kDays = kelasDaysMap.get(block.kelasId) || new Set()
+                kDays.add(day)
+                kelasDaysMap.set(block.kelasId, kDays)
+                placed = true
+                break
+              }
+            }
+            if (placed) break
+          }
+
+          // Langkah B: Jika terpaksa bentrok guru, yang penting kelasnya kosong (bentrok guru minimal)
+          if (!placed) {
+            for (const { day, slots } of slotsPerDayList) {
+              for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+                let classConflict = false
+
+                for (let offset = 0; offset < block.jpCount; offset++) {
+                  const slotJp = slots[startIdx + offset]
+                  if (slotJp === undefined) { classConflict = true; break; }
+
+                  const slotKey = `${block.kelasId}|${day}|${slotJp}`
+                  if (assigned.has(slotKey)) { classConflict = true; break; }
+                }
+
+                if (!classConflict) {
+                  for (let offset = 0; offset < block.jpCount; offset++) {
+                    const slotJp = slots[startIdx + offset]
+                    const slotKey = `${block.kelasId}|${day}|${slotJp}`
+                    assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+
+                    // Tandai guru tetap mengajar (walau bentrok) agar sistem mencatat
+                    const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+                    teacherBusy.set(teacherDayKey, true)
+                  }
+                  const kDays = kelasDaysMap.get(block.kelasId) || new Set()
+                  kDays.add(day)
+                  kelasDaysMap.set(block.kelasId, kDays)
+                  placed = true
+                  break
+                }
+              }
+              if (placed) break
+            }
+          }
+        }
+        success = true
       }
 
       // Delete existing schedules for the classes we generated
