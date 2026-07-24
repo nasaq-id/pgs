@@ -77,14 +77,14 @@ export default function SopEpoinPage() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleSync}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <RefreshCw size={14} />
               <span>Sync {lastSyncTime && `(${lastSyncTime})`}</span>
             </button>
             <button
               onClick={handlePrint}
-              className="px-5 py-2.5 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Printer size={14} />
               <span>Cetak SOP</span>
@@ -271,14 +271,14 @@ export default function SopEpoinPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2.5 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
                 >
                   <Printer size={14} />
                   Cetak PDF
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  className="p-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>

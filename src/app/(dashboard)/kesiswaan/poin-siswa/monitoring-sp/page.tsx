@@ -206,41 +206,41 @@ export default function MonitoringSpApresiasiPage() {
       <div className="flex items-center gap-1 border-b border-slate-100">
         <button
           onClick={() => setActiveTab("rekap")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
-            activeTab === "rekap"
-              ? "border-teal-500 text-teal-650"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
+className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
+	             activeTab === "rekap"
+	               ? "border-teal-500 text-teal-650"
+	               : "border-transparent text-slate-450 hover:text-slate-700"
+	           }`}
         >
           <span>Rekap Poin Siswa</span>
         </button>
         <button
           onClick={() => setActiveTab("monitoring")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
-            activeTab === "monitoring"
-              ? "border-teal-500 text-teal-650"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
+className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
+	               activeTab === "monitoring"
+	                 ? "border-teal-500 text-teal-650"
+	                 : "border-transparent text-slate-450 hover:text-slate-700"
+	             }`}
         >
           <span>Monitoring Tindak Lanjut</span>
         </button>
         <button
           onClick={() => setActiveTab("sp")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
-            activeTab === "sp"
-              ? "border-teal-500 text-teal-650"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
+className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
+	               activeTab === "sp"
+	                 ? "border-teal-500 text-teal-650"
+	                 : "border-transparent text-slate-450 hover:text-slate-700"
+	             }`}
         >
           <span>Surat Peringatan (SP)</span>
         </button>
         <button
           onClick={() => setActiveTab("apresiasi")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
-            activeTab === "apresiasi"
-              ? "border-teal-500 text-teal-650"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
+className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
+	               activeTab === "apresiasi"
+	                 ? "border-teal-500 text-teal-650"
+	                 : "border-transparent text-slate-450 hover:text-slate-700"
+	             }`}
         >
           <span>Surat & Piagam Apresiasi</span>
         </button>
@@ -337,7 +337,7 @@ export default function MonitoringSpApresiasiPage() {
             </div>
             <button
               onClick={() => toast.info("Fitur pembuatan kasus kustom sedang disiapkan.")}
-              className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-teal-655 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 cursor-pointer"
             >
               + Tambah Kasus Baru
             </button>
@@ -403,10 +403,10 @@ export default function MonitoringSpApresiasiPage() {
                             {item.status === "belum_diproses" && "Belum Diproses"}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-center">
+<td className="py-4 px-4 text-center">
                           <button
                             onClick={() => handleOpenUpdateStatus(item)}
-                            className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/5 cursor-pointer transition-all duration-300"
                           >
                             Update Status
                           </button>
@@ -428,9 +428,9 @@ export default function MonitoringSpApresiasiPage() {
             <div className="flex items-center gap-1.5 self-start">
               <button
                 onClick={() => setSpSubTab("daftar")}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   spSubTab === "daftar"
-                    ? "bg-slate-100 text-slate-800 border-0"
+                    ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/5 border-0"
                     : "text-slate-400 hover:text-slate-700"
                 }`}
               >
@@ -438,9 +438,9 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => setSpSubTab("template")}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   spSubTab === "template"
-                    ? "bg-slate-100 text-slate-800 border-0"
+                    ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/5 border-0"
                     : "text-slate-400 hover:text-slate-700"
                 }`}
               >
@@ -457,7 +457,7 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => toast.info("Fitur pembuatan SP Manual sedang disiapkan.")}
-                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-655 hover:bg-teal-700 text-white transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-600 hover:bg-teal-700 text-white transition-all cursor-pointer"
               >
                 + Buat SP Manual
               </button>
@@ -507,12 +507,12 @@ export default function MonitoringSpApresiasiPage() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => toast.info(`Membuka berkas: ${sp.noSurat}`)}
-                            className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                            title="Lihat"
-                          >
-                            <Eye size={12} />
+<button
+                           onClick={() => toast.info(`Membuka berkas: ${sp.noSurat}`)}
+                           className="p-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/10 cursor-pointer transition-all"
+                           title="Lihat"
+                         >
+                           <Eye size={12} />
                           </button>
                           <button
                             onClick={() => toast.success(`Mendownload berkas: ${sp.noSurat}`)}
@@ -544,7 +544,7 @@ export default function MonitoringSpApresiasiPage() {
               </div>
               <button
                 onClick={() => toast.success("Template SP berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-655 text-white hover:bg-teal-700 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-600 text-white hover:bg-teal-700 transition-all cursor-pointer"
               >
                 Simpan Template
               </button>
@@ -560,9 +560,9 @@ export default function MonitoringSpApresiasiPage() {
             <div className="flex items-center gap-1.5 self-start">
               <button
                 onClick={() => setApresiasiSubTab("daftar")}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   apresiasiSubTab === "daftar"
-                    ? "bg-slate-100 text-slate-800 border-0"
+                    ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/5 border-0"
                     : "text-slate-400 hover:text-slate-700"
                 }`}
               >
@@ -570,9 +570,9 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => setApresiasiSubTab("template")}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   apresiasiSubTab === "template"
-                    ? "bg-slate-100 text-slate-800 border-0"
+                    ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-500/5 border-0"
                     : "text-slate-400 hover:text-slate-700"
                 }`}
               >
@@ -589,7 +589,7 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => toast.info("Fitur pembuatan Apresiasi Manual sedang disiapkan.")}
-                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-655 hover:bg-teal-700 text-white transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-600 hover:bg-teal-700 text-white transition-all cursor-pointer"
               >
                 + Terbitkan Apresiasi Manual
               </button>
@@ -641,12 +641,12 @@ export default function MonitoringSpApresiasiPage() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => toast.info(`Membuka piagam: ${piagam.noSurat}`)}
-                            className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                            title="Lihat"
-                          >
-                            <Eye size={12} />
+<button
+                             onClick={() => toast.info(`Membuka piagam: ${piagam.noSurat}`)}
+                             className="p-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/10 cursor-pointer transition-all"
+                             title="Lihat"
+                           >
+                             <Eye size={12} />
                           </button>
                           <button
                             onClick={() => toast.success(`Mendownload piagam: ${piagam.noSurat}`)}
@@ -678,7 +678,7 @@ export default function MonitoringSpApresiasiPage() {
               </div>
               <button
                 onClick={() => toast.success("Template Piagam berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-655 text-white hover:bg-teal-700 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-600 text-white hover:bg-teal-700 transition-all cursor-pointer"
               >
                 Simpan Template
               </button>
@@ -736,7 +736,7 @@ export default function MonitoringSpApresiasiPage() {
                 type="button"
                 onClick={handleSaveStatus}
                 disabled={updateStatusMutation.isPending}
-                className="flex-1 py-2.5 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {updateStatusMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

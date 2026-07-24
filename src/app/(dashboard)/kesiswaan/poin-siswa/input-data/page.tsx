@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { Shield, Users, Calendar, User, FileText, Upload, Plus, Search, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
@@ -27,6 +27,7 @@ export default function InputDataPoinPage() {
   const [kronologi, setKronologi] = useState("")
   const [siswaSearchInput, setSiswaSearchInput] = useState("")
   const [showSiswaDropdown, setShowSiswaDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // ── Tab 2: Rekap State ──
   const [searchRekapQuery, setSearchRekapQuery] = useState("")
@@ -36,7 +37,19 @@ export default function InputDataPoinPage() {
   const { data: siswaList } = api.siswa.getAll.useQuery({ limit: 1000 })
   const { data: kategoriList, isLoading: isLoadingKategori } = api.poin.getAllKategori.useQuery({ aktifOnly: true })
   const { data: aturanList } = api.poin.getAllAturan.useQuery()
+  const { data: daftarKelas } = api.kelas.getAll.useQuery({})
   const { data: riwayatSikap, isLoading: isLoadingRiwayat } = api.poin.getAllSikap.useQuery({ limit: 150 })
+
+  // Click outside to close student dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowSiswaDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const createSikapMutation = api.poin.createSikap.useMutation({
     onSuccess: (res) => {
@@ -64,6 +77,26 @@ export default function InputDataPoinPage() {
       return sub.toLowerCase() === subKategori.toLowerCase()
     })
   }, [kategoriList, jenisPoin, subKategori])
+
+  const siswaKelasMap = useMemo(() => {
+    if (!siswaList || !daftarKelas) return new Map<string, string>()
+    const map = new Map<string, string>()
+    siswaList.forEach((s: any) => { if (s.kelasId) map.set(s.id, s.kelasId) })
+    return map
+  }, [siswaList, daftarKelas])
+
+  const kelasNameMap = useMemo(() => {
+    if (!daftarKelas) return new Map<string, string>()
+    const map = new Map<string, string>()
+    daftarKelas.forEach((k: any) => { map.set(k.id, k.namaKelas) })
+    return map
+  }, [daftarKelas])
+
+  const getKelasNama = (siswaId: string) => {
+    const kelasId = siswaKelasMap.get(siswaId)
+    if (!kelasId) return "-"
+    return kelasNameMap.get(kelasId) || kelasId
+  }
 
   // Get active category object
   const activeKategori = useMemo(() => {
@@ -174,7 +207,7 @@ export default function InputDataPoinPage() {
       <div className="flex items-center gap-1 border-b border-slate-100">
         <button
           onClick={() => setActiveTab("input")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
             activeTab === "input"
               ? "border-teal-500 text-teal-650"
               : "border-transparent text-slate-450 hover:text-slate-700"
@@ -187,7 +220,7 @@ export default function InputDataPoinPage() {
         </button>
         <button
           onClick={() => setActiveTab("rekap")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
             activeTab === "rekap"
               ? "border-teal-500 text-teal-650"
               : "border-transparent text-slate-450 hover:text-slate-700"
@@ -201,7 +234,7 @@ export default function InputDataPoinPage() {
         {wajibValidasiBk && (
           <button
             onClick={() => setActiveTab("menunggu")}
-            className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+            className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
               activeTab === "menunggu"
                 ? "border-amber-500 text-amber-600"
                 : "border-transparent text-slate-450 hover:text-slate-700"
@@ -244,7 +277,7 @@ export default function InputDataPoinPage() {
                       setSubKategori("Ringan")
                       setSelectedKategoriId("")
                     }}
-                    className={`py-3 rounded-xl border text-xs font-black uppercase tracking-wider transition-all ${
+                    className={`py-3 rounded-xl border text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                       jenisPoin === "negatif"
                         ? "bg-rose-50 border-rose-200 text-rose-600 shadow-sm"
                         : "bg-slate-50 border-slate-200/50 text-slate-550 hover:bg-slate-100"
@@ -259,7 +292,7 @@ export default function InputDataPoinPage() {
                       setSubKategori("Akademik")
                       setSelectedKategoriId("")
                     }}
-                    className={`py-3 rounded-xl border text-xs font-black uppercase tracking-wider transition-all ${
+                    className={`py-3 rounded-xl border text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                       jenisPoin === "positif"
                         ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
                         : "bg-slate-50 border-slate-200/50 text-slate-550 hover:bg-slate-100"
@@ -282,7 +315,7 @@ export default function InputDataPoinPage() {
                         key={sk}
                         type="button"
                         onClick={() => { setSubKategori(sk); setSelectedKategoriId("") }}
-                        className={`px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                        className={`px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                           subKategori === sk
                             ? "bg-rose-50/50 border-rose-200 text-rose-600 shadow-xs"
                             : "bg-slate-50/30 border-slate-200/30 text-slate-550 hover:bg-slate-50"
@@ -297,7 +330,7 @@ export default function InputDataPoinPage() {
                         key={sk}
                         type="button"
                         onClick={() => { setSubKategori(sk); setSelectedKategoriId("") }}
-                        className={`px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                        className={`px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                           subKategori === sk
                             ? "bg-emerald-50/50 border-emerald-200 text-emerald-600 shadow-xs"
                             : "bg-slate-50/30 border-slate-200/30 text-slate-550 hover:bg-slate-50"
@@ -370,37 +403,50 @@ export default function InputDataPoinPage() {
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700"
                   />
                   {showSiswaDropdown && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-background border border-slate-100 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto p-1.5">
-                      <div className="flex justify-between items-center px-3 py-1.5 border-b border-slate-50 mb-1">
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Hasil Pencarian</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowSiswaDropdown(false)}
-                          className="text-slate-400 hover:text-slate-655 font-bold text-xs"
-                        >
-                          Tutup
-                        </button>
-                      </div>
-                      {filteredSiswaSearch.length === 0 ? (
-                        <p className="text-center py-4 text-xs text-slate-400 font-bold">Tidak ada siswa ditemukan</p>
-                      ) : (
-                        filteredSiswaSearch.map((s) => {
-                          const isSelected = selectedSiswaIds.includes(s.id)
-                          return (
-                            <button
-                              key={s.id}
-                              type="button"
-                              onClick={() => handleToggleSiswa(s.id)}
-                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between hover:bg-slate-50 ${
-                                isSelected ? "bg-teal-50/30 text-teal-650" : "text-slate-700"
-                              }`}
-                            >
-                              <span>{s.namaLengkap} ({s.kelasId || "Tanpa Kelas"})</span>
-                              {isSelected && <Check size={14} className="text-teal-600 stroke-[3]" />}
-                            </button>
-                          )
-                        })
-                      )}
+                    <div ref={dropdownRef} className="absolute left-0 right-0 top-full mt-1 bg-background border border-slate-100 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            <th className="py-3 px-3 w-10 text-center">Pilih</th>
+                            <th className="py-3 px-3">Nama Siswa</th>
+                            <th className="py-3 px-3">NISN</th>
+                            <th className="py-3 px-3">Kelas</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {filteredSiswaSearch.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="py-8 text-center text-xs text-slate-400 font-bold">
+                                Tidak ada siswa ditemukan
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredSiswaSearch.map((s) => {
+                              const isSelected = selectedSiswaIds.includes(s.id)
+                              return (
+                                <tr
+                                  key={s.id}
+                                  onClick={() => handleToggleSiswa(s.id)}
+                                  className={`cursor-pointer transition-all ${
+                                    isSelected ? "bg-teal-50/40" : "hover:bg-slate-50/60"
+                                  }`}
+                                >
+                                  <td className="py-2.5 px-3 text-center">
+                                    {isSelected ? (
+                                      <Check size={14} className="text-teal-600 stroke-[3] mx-auto" />
+                                    ) : (
+                                      <span className="w-4 h-4 rounded-full border border-slate-200 block mx-auto" />
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-700 text-xs">{s.namaLengkap}</td>
+                                  <td className="py-2.5 px-3 text-slate-500 text-xs font-bold">{s.nisn || "-"}</td>
+                                  <td className="py-2.5 px-3 text-slate-500 text-xs font-bold">{getKelasNama(s.id)}</td>
+                                </tr>
+                              )
+                            })
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
@@ -514,7 +560,7 @@ export default function InputDataPoinPage() {
                 <button
                   type="submit"
                   disabled={createSikapMutation.isPending}
-                  className="px-6 py-3 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50"
                 >
                   {createSikapMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

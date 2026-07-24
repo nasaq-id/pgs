@@ -258,7 +258,7 @@ export default function PengaturanEpoinPage() {
       <div className="flex items-center gap-1 border-b border-slate-100">
         <button
           onClick={() => setActiveTab("aturan-validasi")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
             activeTab === "aturan-validasi"
               ? "border-teal-500 text-teal-650"
               : "border-transparent text-slate-450 hover:text-slate-700"
@@ -268,7 +268,7 @@ export default function PengaturanEpoinPage() {
         </button>
         <button
           onClick={() => setActiveTab("kategori")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
             activeTab === "kategori"
               ? "border-teal-500 text-teal-650"
               : "border-transparent text-slate-450 hover:text-slate-700"
@@ -278,7 +278,7 @@ export default function PengaturanEpoinPage() {
         </button>
         <button
           onClick={() => setActiveTab("threshold")}
-          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative cursor-pointer ${
             activeTab === "threshold"
               ? "border-teal-500 text-teal-650"
               : "border-transparent text-slate-450 hover:text-slate-700"
@@ -361,7 +361,7 @@ export default function PengaturanEpoinPage() {
             <div className="pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => toast.success("Aturan akumulasi berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-900 text-white transition-all flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/5 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Save size={14} /> Simpan Aturan
               </button>
@@ -414,7 +414,7 @@ export default function PengaturanEpoinPage() {
             <div className="pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => toast.success("Pengaturan validasi berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-900 text-white transition-all flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/5 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Save size={14} /> Simpan Pengaturan Validasi
               </button>
@@ -438,7 +438,7 @@ export default function PengaturanEpoinPage() {
                 type="button"
                 disabled={seeding}
                 onClick={handleSeedDefaultCategories}
-                className="px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-slate-50 border border-slate-200 text-slate-655 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/5 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 {seeding ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -449,7 +449,7 @@ export default function PengaturanEpoinPage() {
               </button>
               <button
                 onClick={() => { resetKategoriForm(); setKatModalOpen(true) }}
-                className="px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-teal-650 hover:bg-teal-700 text-white cursor-pointer"
+                className="px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-teal-600 hover:bg-teal-700 text-white cursor-pointer"
               >
                 + Tambah Kategori
               </button>
@@ -503,12 +503,12 @@ export default function PengaturanEpoinPage() {
                           {kat.poin > 0 ? `+${kat.poin}` : kat.poin}
                         </td>
                         <td className="py-3 px-3 text-center flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => handleEditKategori(kat)}
-                            className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-655 hover:bg-slate-100 cursor-pointer"
-                            title="Edit"
-                          >
-                            <Pencil size={11} />
+<button
+                             onClick={() => handleEditKategori(kat)}
+                             className="p-1.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/10 cursor-pointer transition-all"
+                             title="Edit"
+                           >
+                             <Pencil size={11} />
                           </button>
                           <button
                             onClick={() => {
@@ -561,13 +561,13 @@ export default function PengaturanEpoinPage() {
                   toast.success("Threshold standar berhasil ditambahkan!")
                   utils.poin.getAllAturan.invalidate()
                 }}
-                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-slate-50 border border-slate-200 text-slate-655 hover:bg-slate-100 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/5 cursor-pointer"
               >
                 Generate Standar
               </button>
               <button
                 onClick={() => { resetRuleForm(); setRuleModalOpen(true) }}
-                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-teal-650 hover:bg-teal-700 text-white cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-teal-600 hover:bg-teal-700 text-white cursor-pointer"
               >
                 + Tambah Threshold
               </button>
@@ -606,12 +606,12 @@ export default function PengaturanEpoinPage() {
                         </span>
                       </td>
                       <td className="py-3 px-3 text-center flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => handleEditAturan(rule)}
-                          className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-655 hover:bg-slate-100 cursor-pointer"
-                          title="Edit"
-                        >
-                          <Pencil size={11} />
+<button
+                           onClick={() => handleEditAturan(rule)}
+                           className="p-1.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-md shadow-teal-500/10 cursor-pointer transition-all"
+                           title="Edit"
+                         >
+                           <Pencil size={11} />
                         </button>
                         <button
                           onClick={() => {
@@ -731,7 +731,7 @@ export default function PengaturanEpoinPage() {
                 <button
                   type="submit"
                   disabled={createKategori.isPending || updateKategori.isPending}
-                  className="flex-1 py-2.5 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {(createKategori.isPending || updateKategori.isPending) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -823,7 +823,7 @@ export default function PengaturanEpoinPage() {
                 <button
                   type="submit"
                   disabled={createAturan.isPending || updateAturan.isPending}
-                  className="flex-1 py-2.5 rounded-xl bg-teal-650 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {(createAturan.isPending || updateAturan.isPending) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
