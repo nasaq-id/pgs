@@ -626,7 +626,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
       jarakTempatTinggalKeSekolah: form.jarakTempatTinggalKeSekolah || undefined,
       transportasiKeSekolah: form.transportasiKeSekolah || undefined,
       waktuTempuhKeSekolah: form.waktuTempuhKeSekolah || undefined,
-      usernameSiswa: form.usernameSiswa || undefined,
+      usernameSiswa: form.nisn || undefined,
       passwordSiswa: form.passwordSiswa || undefined,
       sekolahAsal: form.sekolahAsal || undefined,
       diterimaPadaTanggal: form.diterimaPadaTanggal ? new Date(form.diterimaPadaTanggal) : undefined,
@@ -736,7 +736,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "")
                       handleChange("nisn", val)
-                      if (!isEdit) handleChange("usernameSiswa", val)
+                      handleChange("usernameSiswa", val)
                     }}
                     className="font-mono tracking-widest text-sm"
                     placeholder="terdiri dari 10 angka"
@@ -777,6 +777,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   <Select
                     value={form.tingkat}
                     onValueChange={(v) => handleChange("tingkat", v)}
+                    options={uniqueTingkat.map((t) => ({ value: t, label: formatTingkatLabel(t) }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Tingkat" />
@@ -796,6 +797,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                     value={form.kelasId}
                     onValueChange={(v) => handleChange("kelasId", v)}
                     disabled={!form.tingkat || filteredKelas.length === 0}
+                    options={filteredKelas.map((k) => ({ value: k.id, label: k.namaKelas }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={!form.tingkat ? "Pilih tingkat dulu" : "Pilih Kelas"} />
@@ -817,7 +819,7 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
                   <Input
                     id="usernameSiswa"
                     readOnly
-                    value={(form.usernameSiswa || form.nisn) as string}
+                    value={form.nisn as string}
                     className="bg-muted text-muted-foreground cursor-not-allowed"
                     placeholder="Otomatis dari NISN"
                   />

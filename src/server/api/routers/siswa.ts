@@ -243,7 +243,7 @@ export const siswaRouter = router({
         let passwordHash = d.passwordSiswa || null
         if (passwordHash) passwordHash = bcrypt.hashSync(passwordHash, 12)
         if (passwordHash) {
-          const email = d.nisLokal || d.usernameSiswa || d.nisn
+          const email = d.nisn || d.usernameSiswa || d.nisLokal
           const nameParts = (d.namaLengkap || "").split(" ")
           usersToCreate.push({
             id: crypto.randomUUID(),
@@ -306,14 +306,19 @@ export const siswaRouter = router({
         .set(updateData)
         .where(and(...conditions))
         .returning()
-      const email = input.data.nisLokal || existing.nisLokal || input.data.usernameSiswa || existing.nisn || existing.usernameSiswa || ""
-      if (email) {
-        const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
+      const oldEmail = existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
+      const newEmail = input.data.nisn || input.data.usernameSiswa || input.data.nisLokal || existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
+      if (newEmail) {
+        let userRecord = await db.query.users.findFirst({ where: eq(users.email, newEmail) })
+        if (!userRecord && oldEmail && oldEmail !== newEmail) {
+          userRecord = await db.query.users.findFirst({ where: eq(users.email, oldEmail) })
+        }
         const firstName = rest.namaLengkap?.split(" ")[0] || existing.namaLengkap?.split(" ")[0] || ""
         const lastName = rest.namaLengkap?.split(" ").slice(1).join(" ") || existing.namaLengkap?.split(" ").slice(1).join(" ") || ""
         const photo = rest.foto !== undefined ? rest.foto : existing.foto
 
         const dataToUpdate: Record<string, any> = {
+          email: newEmail,
           firstName,
           lastName,
           photo,
@@ -326,14 +331,14 @@ export const siswaRouter = router({
           await db
             .update(users)
             .set(dataToUpdate)
-            .where(eq(users.email, email))
+            .where(eq(users.id, userRecord.id))
             .execute()
         } else {
           await db
             .insert(users)
             .values({
               id: crypto.randomUUID(),
-              email,
+              email: newEmail,
               firstName,
               lastName,
               password: passwordHash || "$2b$12$kBIO9Jl5ilOB/vjpf.1NjOzwXIyAiqIkcPs2CN31YZI9/9wF3GIk6",
@@ -408,7 +413,7 @@ export const siswaRouter = router({
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)
       await db.update(siswa).set({ passwordSiswa: passwordHash, updatedAt: new Date() }).where(and(...conditions))
-      const email = existing.nisLokal || existing.usernameSiswa || existing.nisn || ""
+      const email = existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
       if (email) {
         const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
         if (userRecord) {
