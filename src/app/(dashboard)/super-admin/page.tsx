@@ -696,6 +696,27 @@ export default function SuperAdminPage() {
                 ))
               )}
             </div>
+
+            {/* Legend untuk Status Health */}
+            <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100/50 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              <span className="text-slate-400 font-black">Status Health:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span>Hijau (Aktif, Memiliki Guru & Siswa)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span>Kuning (Aktif, Belum Memiliki Guru)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                <span>Merah (Aktif, Belum Memiliki Siswa)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                <span>Abu-abu (Suspended)</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
