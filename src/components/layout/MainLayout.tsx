@@ -96,6 +96,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pageTitle = getPageTitle(pathname)
 
   useEffect(() => {
+    if (pageTitle) {
+      document.title = `${pageTitle} | MTs At-Turmudzi`
+    } else {
+      document.title = "MTs At-Turmudzi"
+    }
+  }, [pageTitle])
+
+  useEffect(() => {
     const getImpersonationCookie = () => {
       const match = document.cookie.match(/(?:^|; )impersonated_sekolah_id=([^;]*)/)
       return match ? match[1] : null
