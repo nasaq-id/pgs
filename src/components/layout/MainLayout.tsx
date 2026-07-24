@@ -152,7 +152,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
         "transition-all duration-300 ease-in-out",
         isMinimized ? "lg:pl-20" : "lg:pl-[298px]"
       )}>
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        <Topbar
+          onMenuClick={() => setSidebarOpen(true)}
+          isMinimized={isMinimized}
+          setIsMinimized={setIsMinimized}
+        />
         <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pb-20 lg:pb-6">
           <AnimatePresence mode="wait">
             <motion.div

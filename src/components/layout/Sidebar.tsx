@@ -375,22 +375,6 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
         )}
       </div>
 
-      {/* Dynamic Desktop Expander Toggler */}
-      {setIsMinimized && (
-        <div className={cn(
-          "hidden lg:flex border-b border-border/50 py-3.5 transition-all duration-300",
-          isMinimized ? "justify-center" : "justify-between items-center px-4"
-        )}>
-          {!isMinimized && (
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sembunyikan Menu</span>
-          )}
-          <IosSwitch
-            checked={!isMinimized}
-            onChange={() => setIsMinimized(!isMinimized)}
-            title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
-          />
-        </div>
-      )}
 
       {/* Navigation Section */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin">

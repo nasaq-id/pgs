@@ -54,9 +54,34 @@ const pageTitles: Record<string, string> = {
   "/kesiswaan/laporan-poin": "Laporan Poin",
 }
 
-interface TopbarProps { onMenuClick: () => void }
+interface TopbarProps {
+  onMenuClick: () => void
+  isMinimized?: boolean
+  setIsMinimized?: (val: boolean) => void
+}
 
-export default function Topbar({ onMenuClick }: TopbarProps) {
+function IosSwitch({ checked, onChange, title }: { checked: boolean; onChange: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={cn(
+        "w-9 h-5 rounded-full relative transition-colors duration-300 outline-none cursor-pointer flex-shrink-0 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]",
+        checked ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-800"
+      )}
+      title={title}
+    >
+      <span
+        className={cn(
+          "w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform duration-300",
+          checked ? "translate-x-4" : "translate-x-0"
+        )}
+      />
+    </button>
+  )
+}
+
+export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimized }: TopbarProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const user = session?.user
@@ -79,6 +104,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     : rawPageTitle
   const userPhoto = (profile?.photo as string) || user?.photo
 
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [whatsappNumber, setWhatsappNumber] = useState("")
@@ -367,6 +393,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Tooltip>
         )}
 
+        {setIsMinimized && (
+          <div className="hidden lg:flex items-center gap-2 mr-1">
+            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Expand Menu</span>
+            <IosSwitch
+              checked={!isMinimized}
+              onChange={() => setIsMinimized(!isMinimized)}
+              title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+            />
+          </div>
+        )}
+
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
         <DropdownMenu>
@@ -396,28 +433,31 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </TooltipPositioner>
             </TooltipPortal>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl border bg-card shadow-lg">
-            <div className="px-2 py-1.5 border-b mb-1">
-              <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-              <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded bg-primary/10 text-primary mt-1">
+          <DropdownMenuContent align="end" className="w-60 p-2.5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border border-white/40 dark:border-slate-800/40 neumo-card shadow-xl z-50 text-left">
+            <div className="px-3 py-2.5 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] mb-2.5 text-left">
+              <p className="text-xs font-black text-slate-700 dark:text-slate-200 truncate">{displayName}</p>
+              <p className="text-[10px] text-muted-foreground font-semibold truncate mt-0.5">{user?.email}</p>
+              <span className="inline-block px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/10 mt-1.5">
                 {user?.role?.replace("_", " ")}
               </span>
             </div>
+            
             <DropdownMenuItem
-              className="hover:bg-primary/10 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-bold"
+              className="focus:bg-[oklch(0.94_0.01_250)] dark:focus:bg-[oklch(0.14_0.01_250)] focus:neumo-inset rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-xs transition-all text-slate-700 dark:text-slate-355 outline-none"
               onClick={() => window.location.href = "/profil"}
             >
-              <User className="h-4 w-4" />
-              Profil
+              <User className="h-4 w-4 text-slate-400" />
+              <span>Profil Saya</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
+            
+            <DropdownMenuSeparator className="my-1.5 bg-slate-200/50 dark:bg-slate-800/50" />
+            
             <DropdownMenuItem
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl px-2 py-2 flex items-center gap-2 cursor-pointer font-bold"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-red-650 hover:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/20 focus:neumo-inset rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-xs transition-all outline-none"
+              onClick={() => setLogoutDialogOpen(true)}
             >
               <LogOut className="h-4 w-4" />
-              Keluar
+              <span>Keluar</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -509,7 +549,33 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </div>
       )}
 
-
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-[2rem] bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card border-0 p-6 z-[110]">
+          <DialogHeader className="text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-red-500 mx-auto">
+              <LogOut className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <DialogTitle className="text-base font-black text-slate-800 dark:text-slate-100">Konfirmasi Keluar</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-semibold">
+              Apakah Anda yakin ingin keluar dari sistem presensi dan manajemen PGS ini?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-3.5 mt-6">
+            <button
+              onClick={() => setLogoutDialogOpen(false)}
+              className="flex-1 py-3 px-4 rounded-xl neumo bg-white dark:bg-slate-900 text-slate-650 dark:text-slate-300 font-black text-xs transition-all active:scale-95 cursor-pointer text-center"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex-1 py-3 px-4 rounded-xl bg-red-650 text-white font-black text-xs transition-all active:scale-95 cursor-pointer text-center shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:brightness-105"
+            >
+              Keluar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
