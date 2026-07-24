@@ -388,7 +388,7 @@ export default function JadwalPage() {
             <>
               <Button
                 onClick={() => setPengaturanOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-650 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Pengaturan Jadwal</span>
@@ -837,7 +837,7 @@ export default function JadwalPage() {
                                     <button
                                       onClick={() => openAdd(day, academicJp)}
                                       disabled={mapelRecords.length === 0}
-                                      className="p-1.5 bg-background hover:bg-teal-650 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer text-[10px] font-bold"
+                                      className="p-1.5 bg-background hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer text-[10px] font-bold"
                                       title="Isi Jadwal"
                                     >
                                       <Plus className="w-3.5 h-3.5" />
