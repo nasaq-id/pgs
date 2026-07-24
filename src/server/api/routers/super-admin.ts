@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, sql } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
-import { sekolah, users, pengaturanAbsensi, pengaturanJadwal } from "@/server/db/schema"
+import { sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs } from "@/server/db/schema"
 import { router, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -141,5 +141,91 @@ export const superAdminRouter = router({
       })
 
       return updated
+    }),
+
+  updateSekolah: roleProtectedProcedure(["super_admin"])
+    .input(z.object({
+      id: z.string(),
+      namaSekolah: z.string().min(1, "Nama sekolah wajib diisi"),
+      namaSingkat: z.string().nullable().optional(),
+      npsn: z.string().nullable().optional(),
+      jenjang: z.enum(["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await db.query.sekolah.findFirst({
+        where: eq(sekolah.id, input.id),
+      })
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sekolah tidak ditemukan",
+        })
+      }
+
+      const [updated] = await db
+        .update(sekolah)
+        .set({
+          namaSekolah: input.namaSekolah,
+          namaSingkat: input.namaSingkat || null,
+          npsn: input.npsn || null,
+          jenjang: input.jenjang,
+        })
+        .where(eq(sekolah.id, input.id))
+        .returning()
+
+      await logAudit(ctx, {
+        action: "update",
+        entity: "sekolah",
+        entityId: input.id,
+        metadata: { namaSekolah: input.namaSekolah, npsn: input.npsn },
+      })
+
+      return updated
+    }),
+
+  getPlatformMetrics: roleProtectedProcedure(["super_admin"])
+    .query(async () => {
+      const [sekolahCount] = await db.select({ count: sql<number>`count(*)` }).from(sekolah)
+      const [usersCount] = await db.select({ count: sql<number>`count(*)` }).from(users)
+      const [auditCount] = await db.select({ count: sql<number>`count(*)` }).from(auditLogs)
+      
+      const activeSekolah = await db.select({ count: sql<number>`count(*)` }).from(sekolah).where(eq(sekolah.active, true))
+      const suspendedSekolah = await db.select({ count: sql<number>`count(*)` }).from(sekolah).where(eq(sekolah.active, false))
+
+      return {
+        totalSchools: sekolahCount?.count ?? 0,
+        activeSchools: activeSekolah[0]?.count ?? 0,
+        suspendedSchools: suspendedSekolah[0]?.count ?? 0,
+        totalUsers: usersCount?.count ?? 0,
+        totalAuditLogs: auditCount?.count ?? 0,
+      }
+    }),
+
+  listGlobalAuditLogs: roleProtectedProcedure(["super_admin"])
+    .input(z.object({
+      limit: z.number().min(1).max(100).default(50),
+      offset: z.number().default(0),
+    }))
+    .query(async ({ input }) => {
+      const logs = await db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          entity: auditLogs.entity,
+          entityId: auditLogs.entityId,
+          metadata: auditLogs.metadata,
+          createdAt: auditLogs.createdAt,
+          userEmail: users.email,
+          userFirstName: users.firstName,
+          sekolahNama: sekolah.namaSekolah,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.userId, users.id))
+        .leftJoin(sekolah, eq(auditLogs.sekolahId, sekolah.id))
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(input.limit)
+        .offset(input.offset)
+
+      return logs
     }),
 })

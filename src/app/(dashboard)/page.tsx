@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   Users, GraduationCap, BookOpen, Hand, Wallet,
   ClipboardCheck, TrendingUp, Building2, Star, AlertTriangle,
   Megaphone, Trophy, Sparkles, ArrowRight, Award, TrendingDown,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Loader2,
 } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -86,6 +87,21 @@ export default function Dashboard() {
   const user = session?.user
   const displayName = user?.name || user?.email?.split("@")[0] || "Admin"
   const role = user?.role
+  const router = useRouter()
+
+  useEffect(() => {
+    if (role === "super_admin") {
+      router.push("/super-admin")
+    }
+  }, [role, router])
+
+  if (role === "super_admin") {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    )
+  }
 
   const studentSummary = api.dashboard.getStudentSummary.useQuery(undefined, { staleTime: 30000 })
   const staffSummary = api.dashboard.getStaffSummary.useQuery(undefined, { staleTime: 30000 })

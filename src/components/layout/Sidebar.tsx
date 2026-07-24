@@ -169,6 +169,19 @@ const menuItems: MenuItem[] = [
   },
 ]
 
+const SUPER_ADMIN_MENU_ITEMS: MenuItem[] = [
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard Platform",
+    path: "/super-admin"
+  },
+  {
+    icon: Bell,
+    label: "Notifikasi Sistem",
+    path: "/notifikasi"
+  }
+]
+
 interface SidebarProps {
   onClose?: () => void
   isMinimized?: boolean
@@ -221,10 +234,11 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const initials = (displayName[0] || "A").toUpperCase()
   const userPhoto = (profile?.photo as string) || session?.user?.photo
 
-  const schoolName = sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
+  const isSuperAdmin = role === "super_admin"
+  const schoolName = isSuperAdmin ? "SaaS Platform" : (sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
     .replace(/SMP Negeri/gi, "SMPN")
     .replace(/SMA Negeri/gi, "SMAN")
-    .replace(/SMK Negeri/gi, "SMKN")
+    .replace(/SMK Negeri/gi, "SMKN"))
   const nameParts = schoolName.split(" ")
   const prefix = nameParts[0] || "SIM"
   const mainName = nameParts.slice(1).join(" ") || "Sekolah"
@@ -239,8 +253,10 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
     role === 'yayasan' ? 'Yayasan' : 'User'
   );
 
+  const activeItemsList = isSuperAdmin ? SUPER_ADMIN_MENU_ITEMS : menuItems
+
   // Filter menu items based on role
-  const visibleMenuItems = menuItems.filter(item => {
+  const visibleMenuItems = activeItemsList.filter(item => {
     if (item.allowedRoles && !item.allowedRoles.includes(role as any)) {
       return false
     }
@@ -304,11 +320,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           {/* Glowing Logo Icon */}
           <div className={cn(
             "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transform group-hover:scale-105 transition-transform duration-300 overflow-hidden",
-            sekolahData?.logo 
-              ? "bg-transparent" 
-              : "bg-gradient-to-tr from-teal-500 to-emerald-400 shadow-md shadow-teal-500/20 text-white"
+            isSuperAdmin
+              ? "bg-gradient-to-tr from-teal-600 to-emerald-500 shadow-md shadow-teal-500/20 text-white"
+              : sekolahData?.logo 
+                ? "bg-transparent" 
+                : "bg-gradient-to-tr from-teal-500 to-emerald-400 shadow-md shadow-teal-500/20 text-white"
           )}>
-            {sekolahData?.logo ? (
+            {isSuperAdmin ? (
+              <Shield className="w-5 h-5 text-white stroke-[2.2]" />
+            ) : sekolahData?.logo ? (
               <img 
                 src={sekolahData.logo} 
                 alt="Logo" 
@@ -325,7 +345,9 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               <span className="text-foreground font-extrabold text-[15px] leading-none tracking-tight flex items-center gap-1">
                 {prefix} <span className="text-teal-600 dark:text-teal-400 font-extrabold">{mainName}</span>
               </span>
-              <span className="text-muted-foreground text-[8px] font-bold tracking-[0.2em] mt-1 uppercase">MANAGEMENT SYSTEM</span>
+              <span className="text-muted-foreground text-[8px] font-bold tracking-[0.2em] mt-1 uppercase">
+                {isSuperAdmin ? "SUPER ADMIN PORTAL" : "MANAGEMENT SYSTEM"}
+              </span>
             </div>
           )}
         </div>
