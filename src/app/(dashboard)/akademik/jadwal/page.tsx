@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { toast } from "sonner"
 import {
   Pencil,
   Trash2,
@@ -9,6 +10,15 @@ import {
   Printer,
   Sparkles,
   Plus,
+  Clock,
+  BookOpen,
+  Flag,
+  Coffee,
+  Grid,
+  List,
+  Calendar,
+  X,
+  FileSpreadsheet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -96,10 +106,15 @@ export default function JadwalPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<JadwalFormData | null>(null)
   const [addForHari, setAddForHari] = useState<string | null>(null)
+  const [addJpMulai, setAddJpMulai] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [pengaturanOpen, setPengaturanOpen] = useState(false)
   const [cetakOpen, setCetakOpen] = useState(false)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
+
+  // New Filters & Modes states (Matching AkademikView.tsx ref)
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
+  const [scheduleViewMode, setScheduleViewMode] = useState<'mingguan' | 'harian'>('mingguan')
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
@@ -185,18 +200,26 @@ export default function JadwalPage() {
           mataPelajaranId: data.mataPelajaranId,
           guruId: data.guruId,
           hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
+          jpMulai: data.jpMulai,
           jpCount: data.jpCount,
         },
       })
+      toast.success(`JP berhasil diperbarui untuk ${DAY_LABEL[data.hari]} pada JP ${data.jpMulai}`)
     } else {
       await createMutation.mutateAsync({
         kelasId: kelasId,
         mataPelajaranId: data.mataPelajaranId,
         guruId: data.guruId,
         hari: data.hari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
+        jpMulai: data.jpMulai,
         jpCount: data.jpCount,
       })
+      toast.success(`JP berhasil ditambahkan ke ${DAY_LABEL[data.hari]} pada JP ${data.jpMulai}`)
     }
+    setFormOpen(false)
+    setEditEntry(null)
+    setAddForHari(null)
+    setAddJpMulai(null)
   }
 
   const handleDelete = async () => {
@@ -220,80 +243,12 @@ export default function JadwalPage() {
     setFormOpen(true)
   }
 
-  const openAdd = (hari: string) => {
+  const openAdd = (hari: string, jpSlot?: number) => {
     setEditEntry(null)
     setAddForHari(hari)
+    setAddJpMulai(jpSlot ?? null)
     setFormOpen(true)
   }
-
-  // Get non-JP timeline items (agenda-like) for a slot
-  const getAgendaAtSlot = (day: string, jpSlotIndex: number): TimelineRecord | null => {
-    const dayItems = timelineByDay.get(day) ?? []
-    // jpSlotIndex is 0-based into jp-only array
-    // We need to find the actual timeline item at this absolute position
-    const jpItems = dayItems.filter((t) => t.tipe === "jp")
-    const targetJpItem = jpItems[jpSlotIndex]
-    if (!targetJpItem) return null
-
-    // Find non-JP items that overlap with this JP's time range
-    const jpStart = timeToMinutes(targetJpItem.jamMulai)
-    const jpEnd = timeToMinutes(targetJpItem.jamSelesai)
-
-    for (const item of dayItems) {
-      if (item.tipe === "jp") continue
-      const itemStart = timeToMinutes(item.jamMulai)
-      const itemEnd = timeToMinutes(item.jamSelesai)
-      if (jpStart < itemEnd && jpEnd > itemStart) return item
-    }
-    return null
-  }
-
-  // Get entry at a specific JP slot
-  const getEntryAtSlot = (day: string, jpSlotIndex: number): JadwalRecord | null => {
-    const jpItems = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp")
-    const targetJpItem = jpItems[jpSlotIndex]
-    if (!targetJpItem) return null
-
-    // Check if this JP slot is blocked by a non-JP item
-    const isBlocked = getAgendaAtSlot(day, jpSlotIndex) !== null
-    if (isBlocked) return null
-
-    // Academic JP = 1-based index into jpItems
-    const academicJp = jpSlotIndex + 1
-    const entries = jadwalRecords.filter(
-      (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
-    )
-    for (const entry of entries) {
-      const start = entry.jpMulai!
-      const end = start + entry.jpCount!
-      if (academicJp >= start && academicJp < end) return entry
-    }
-    return null
-  }
-
-  // Build JP grid: for each active day, list all JP items
-  const jpGridByDay = useMemo(() => {
-    const grid: { day: string; jpSlots: { jpNumber: number; timeStart: string; timeEnd: string }[] }[] = []
-    for (const day of aktifDays) {
-      const jpItems = (timelineByDay.get(day) ?? []).filter((t) => t.tipe === "jp")
-      const slots = jpItems.map((item, idx) => ({
-        jpNumber: idx + 1,
-        timeStart: item.jamMulai,
-        timeEnd: item.jamSelesai,
-      }))
-      grid.push({ day, jpSlots: slots })
-    }
-    return grid
-  }, [timelineByDay, aktifDays])
-
-  // Derive total JpSlots count for display (use max across days for uniform grid)
-  const maxJpSlots = useMemo(() => {
-    let max = 0
-    for (const { jpSlots } of jpGridByDay) {
-      if (jpSlots.length > max) max = jpSlots.length
-    }
-    return max
-  }, [jpGridByDay])
 
   const hasData = jadwalRecords.length > 0
 
@@ -313,269 +268,562 @@ export default function JadwalPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
-              Kelas:
-            </span>
+    <div className="space-y-6 text-left">
+      {/* Premium selection panel (Matching AkademikView.tsx ref) */}
+      <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest bg-teal-950/80 px-2.5 py-1 rounded-full border border-teal-500/20">
+            Panel Distribusi Jadwal
+          </span>
+          <h3 className="text-xl lg:text-2xl font-extrabold tracking-tight mt-3">
+            Tinjau Mingguan: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span>
+          </h3>
+          <p className="text-slate-300 text-xs mt-1.5 max-w-md font-medium">
+            Silakan filter rombel kelas dan pilih hari untuk melihat jadwal kegiatan belajar mengajar secara sistematis.
+          </p>
+        </div>
+
+        {/* Class, Day & View Mode pickers */}
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+          <div className="w-full sm:w-auto">
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
             <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
-              <SelectTrigger className="w-52 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
-                <SelectValue placeholder="Pilih kelas">{selectedKelasMain || "Pilih kelas"}</SelectValue>
+              <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
+                <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-800 text-white border-slate-700">
                 {kelasRecords.map((k) => (
-                  <SelectItem key={k.id} value={k.id}>
+                  <SelectItem key={k.id} value={k.id} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
                     {formatKelasLabel(k)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
-              onClick={() => setCetakOpen(true)}
-              disabled={!kelasId || !hasData}
+
+          <div className="w-full sm:w-auto">
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">Filter Hari</label>
+            <Select
+              value={selectedDays.length === 0 ? "all" : selectedDays[0]}
+              onValueChange={(val) => {
+                if (val === "all" || !val) {
+                  setSelectedDays([])
+                } else {
+                  setSelectedDays([val])
+                }
+              }}
             >
-              <Printer className="h-4 w-4 text-slate-500" /> Cetak
-            </Button>
-            <ExportExcelJadwal />
-            <Button
-              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
-              variant="outline"
-              onClick={() => setAiGenerateOpen(true)}
-            >
-              <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400" /> AI Generate
-            </Button>
-            <Button
-              className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
-              variant="outline"
-              onClick={() => setPengaturanOpen(true)}
-            >
-              <Settings className="h-4 w-4 text-slate-500" /> Pengaturan Jadwal
-            </Button>
+              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
+                <SelectValue placeholder="Pilih Hari">
+                  {selectedDays.length === 0 ? "Semua Hari" : DAY_LABEL[selectedDays[0]]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 text-white border-slate-700">
+                <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">Semua Hari</SelectItem>
+                {DAYS.map((day) => (
+                  <SelectItem key={day} value={day} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
+                    {DAY_LABEL[day]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <label className="block text-[8px] font-black text-slate-300 uppercase tracking-wider mb-1">Mode Tampilan</label>
+            <div className="flex bg-slate-800/80 p-1 border border-slate-700/80 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setScheduleViewMode("mingguan")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                  scheduleViewMode === "mingguan"
+                    ? "bg-teal-500 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Mingguan (PC Grid)
+              </button>
+              <button
+                type="button"
+                onClick={() => setScheduleViewMode("harian")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                  scheduleViewMode === "harian"
+                    ? "bg-teal-500 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Harian (Timeline)
+              </button>
+            </div>
           </div>
         </div>
-
-        {!kelasId ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-muted-foreground">Pilih kelas untuk melihat jadwal</p>
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-[hsl(142_72%_40%)]" />
-          </div>
-        ) : maxJpSlots === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Settings className="h-10 w-10 text-muted-foreground/45 mb-2" />
-            <p className="text-sm font-semibold text-slate-700">Jam Pelajaran Belum Diatur</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-              Silakan atur Jam Pelajaran (JP) terlebih dahulu melalui tombol <strong>Pengaturan Jadwal</strong>.
-            </p>
-          </div>
-        ) : (
-          <>
-          <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/10">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800">
-                  <th className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/30 px-3 py-3.5 text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider w-24">
-                    JP
-                  </th>
-                  {aktifDays.map((day) => (
-                    <th
-                      key={day}
-                      className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/30 px-4 py-3.5 text-left text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider min-w-[150px] last:border-r-0"
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span>{DAY_LABEL[day]}</span>
-                        <button
-                          onClick={() => openAdd(day)}
-                          className="rounded-lg p-1 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500 transition-all cursor-pointer shadow-sm border border-teal-100 dark:border-teal-900/20"
-                          title={`Tambah jadwal ${DAY_LABEL[day]}`}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {Array.from({ length: maxJpSlots }, (_, slotIdx) => (
-                  <tr key={slotIdx} className="hover:bg-slate-50/20 dark:hover:bg-slate-900/5">
-                    <td className="border-r border-slate-150 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 px-3 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span>JP {slotIdx + 1}</span>
-                        {(() => {
-                          const slotWithTime = jpGridByDay.find((g) => g.jpSlots[slotIdx])?.jpSlots[slotIdx]
-                          if (slotWithTime) {
-                            return (
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold tracking-tight mt-0.5">
-                                {slotWithTime.timeStart} - {slotWithTime.timeEnd}
-                              </span>
-                            )
-                          }
-                          return null
-                        })()}
-                      </div>
-                    </td>
-                    {aktifDays.map((day) => {
-                      const agenda = getAgendaAtSlot(day, slotIdx)
-                      const entry = agenda ? null : getEntryAtSlot(day, slotIdx)
-                      const daySlots = jpGridByDay.find((g) => g.day === day)?.jpSlots
-                      const hasSlot = daySlots && slotIdx < daySlots.length
-                      if (!hasSlot) {
-                        return (
-                          <td key={day} className="border-r border-slate-150 dark:border-slate-800 px-3 py-3 align-middle text-center last:border-r-0">
-                            <span className="text-slate-350 dark:text-slate-650">—</span>
-                          </td>
-                        )
-                      }
-                      return (
-                        <td key={day} className="border-r border-slate-150 dark:border-slate-800 px-3 py-3 align-top last:border-r-0">
-                          {agenda ? (
-                            <div className="rounded-xl border border-amber-250 dark:border-amber-800/80 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 shadow-xs">
-                              <div className="flex items-center gap-1 text-[9px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                                {agenda.label || agenda.tipe}
-                              </div>
-                            </div>
-                          ) : entry ? (
-                            <div className="group relative rounded-xl border border-teal-150 dark:border-teal-900/30 bg-teal-50/40 dark:bg-teal-950/10 p-2.5 shadow-sm hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md transition-all text-left">
-                              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                                {mapelMap.get(entry.mataPelajaranId)?.namaMapel ?? "-"}
-                              </div>
-                              <div className="text-[10px] text-slate-500 dark:text-slate-450 font-semibold leading-tight mt-1 truncate">
-                                {guruMap.get(entry.guruId)?.namaLengkap ?? "-"}
-                              </div>
-                              <div className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 rounded-lg p-0.5 border border-slate-100 dark:border-slate-800 shadow-sm">
-                                <Tooltip>
-                                  <TooltipTrigger
-                                    onClick={() => openEdit(entry)}
-                                    className="rounded-md p-1 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-500 dark:text-slate-400"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </TooltipTrigger>
-                                  <TooltipPortal>
-                                    <TooltipPositioner>
-                                      <TooltipPopup>Edit</TooltipPopup>
-                                    </TooltipPositioner>
-                                  </TooltipPortal>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger
-                                    onClick={() => setDeleteId(entry.id)}
-                                    className="rounded-md p-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-550 cursor-pointer"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </TooltipTrigger>
-                                  <TooltipPortal>
-                                    <TooltipPositioner>
-                                      <TooltipPopup>Hapus</TooltipPopup>
-                                    </TooltipPositioner>
-                                  </TooltipPortal>
-                                </Tooltip>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-slate-300 dark:text-slate-650 block text-center py-2">—</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile schedule view */}
-          <div className="md:hidden space-y-3">
-            {aktifDays.map((day) => {
-              const dayEntryList = jadwalRecords.filter((e) => e.hari === day)
-              const daySlots = jpGridByDay.find((g) => g.day === day)?.jpSlots || []
-              return (
-                <div key={day} className="glass-card rounded-2xl overflow-hidden">
-                  <div className="flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{DAY_LABEL[day]}</span>
-                    <button
-                      onClick={() => openAdd(day)}
-                      className="rounded-lg p-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 hover:bg-teal-600 hover:text-white transition-all cursor-pointer border border-teal-100 dark:border-teal-900/20"
-                      title={`Tambah jadwal ${DAY_LABEL[day]}`}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  {dayEntryList.length === 0 ? (
-                    <div className="px-4 py-6 text-center">
-                      <p className="text-xs text-slate-400">Tidak ada jadwal</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {dayEntryList.map((entry) => {
-                        const jpStartTime = daySlots[entry.jpMulai ? entry.jpMulai - 1 : 0]
-                        return (
-                          <div key={entry.id} className="px-4 py-3 flex items-center gap-3">
-                            <div className="flex-shrink-0 w-14 text-center">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">JP {entry.jpMulai}</span>
-                              {jpStartTime && (
-                                <span className="text-[8px] text-slate-400">{jpStartTime.timeStart}</span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{mapelMap.get(entry.mataPelajaranId)?.namaMapel ?? "-"}</p>
-                              <p className="text-[11px] text-slate-500 font-semibold truncate">{guruMap.get(entry.guruId)?.namaLengkap ?? "-"}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => openEdit(entry)} className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => setDeleteId(entry.id)} className="rounded-lg p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-400 hover:text-rose-600 cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </>)}
-
-        {hasData && !isLoading && (
-          <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-            <span>
-              <strong className="text-foreground">{jadwalRecords.length}</strong> jadwal
-            </span>
-            <span>
-              <strong className="text-foreground">
-                {new Set(jadwalRecords.map((j) => j.hari)).size}
-              </strong>{" "}
-              hari
-            </span>
-            <span>
-              <strong className="text-foreground">
-                {new Set(jadwalRecords.map((j) => j.mataPelajaranId)).size}
-              </strong>{" "}
-              mapel
-            </span>
-            {pengaturanData && (
-              <span>
-                1 JP = <strong className="text-foreground">{pengaturanData.durasiJP}</strong> menit
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
+      {/* Quick Actions Bar */}
+      <div className="flex flex-wrap justify-end gap-3 mb-6 bg-white dark:bg-slate-900/10 p-4 border border-slate-100 dark:border-slate-850 rounded-3xl shadow-sm">
+        <Button
+          onClick={() => setPengaturanOpen(true)}
+          className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-650 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          <span>Pengaturan Jadwal</span>
+        </Button>
+
+        <Button
+          onClick={() => setAiGenerateOpen(true)}
+          className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          <span>AI Auto-Generate</span>
+        </Button>
+
+        <Button
+          onClick={() => setCetakOpen(true)}
+          disabled={!kelasId || !hasData}
+          className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-750 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50"
+        >
+          <Printer className="w-4 h-4 mr-2" />
+          <span>Cetak Jadwal</span>
+        </Button>
+
+        <ExportExcelJadwal />
+      </div>
+
+      {/* Main Content Area */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-teal-650" />
+        </div>
+      ) : timelineRecords.length === 0 ? (
+        <div className="neumo-card bg-background p-12 rounded-3xl text-center flex flex-col items-center justify-center">
+          <Settings className="h-12 w-12 text-slate-300 mb-2" />
+          <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">Timeline Jam Belum Dibuat</h4>
+          <p className="text-xs text-slate-400 font-bold max-w-sm mt-1 uppercase">
+            Silakan konfigurasikan template timeline jam pelajaran (JP) terlebih dahulu di tombol Pengaturan Jadwal.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Day selection tab buttons for Timeline view */}
+          {scheduleViewMode === "harian" && (
+            <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-3xl text-left space-y-2">
+              <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">
+                Saring Berdasarkan Hari Kerja
+              </span>
+              <div className="flex gap-2 overflow-x-auto pb-1 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDays([])}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                    selectedDays.length === 0
+                      ? "bg-teal-600 border-teal-650 text-white shadow-md shadow-teal-150"
+                      : "bg-white border-slate-200 text-slate-655 hover:bg-slate-50"
+                  }`}
+                >
+                  Semua Hari
+                </button>
+                {DAYS.map((day) => {
+                  const isSel = selectedDays.includes(day)
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        if (selectedDays.includes(day)) {
+                          setSelectedDays(selectedDays.filter((d) => d !== day))
+                        } else {
+                          setSelectedDays([day])
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                        isSel
+                          ? "bg-teal-600 border-teal-650 text-white shadow-md shadow-teal-150"
+                          : "bg-white border-slate-200 text-slate-655 hover:bg-slate-50"
+                      }`}
+                    >
+                      {DAY_LABEL[day]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {scheduleViewMode === "mingguan" ? (
+            /* ================= WEEKLY GRID VIEW (Day columns vertical cards) ================= */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+              {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {
+                const dayItems = timelineByDay.get(day) ?? []
+                const jpItems = dayItems.filter((t) => t.tipe === "jp")
+
+                return (
+                  <div key={day} className="bg-white dark:bg-slate-900/10 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm" />
+                        <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">
+                          {DAY_LABEL[day]}
+                        </h4>
+                      </div>
+                      <button
+                        onClick={() => openAdd(day)}
+                        className="rounded-lg p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-650 transition-all border border-teal-100/30 cursor-pointer"
+                        title={`Tambah Jadwal Hari ${DAY_LABEL[day]}`}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Timeline items stack */}
+                    <div className="space-y-3">
+                      {dayItems.length === 0 ? (
+                        <p className="text-center py-6 text-xs text-slate-400 font-bold uppercase">Libur / Tidak KBM</p>
+                      ) : (
+                        dayItems.map((item) => {
+                          if (item.tipe !== "jp") {
+                            // Non-JP Agenda Item (Istirahat, Sholat, Upacara, dll)
+                            let Icon = Clock
+                            let iconColor = "text-slate-500 bg-slate-50 border border-slate-100"
+                            let cardStyle = "bg-slate-50/50 border-slate-200/50 text-slate-700"
+
+                            if (item.tipe === "upacara") {
+                              Icon = Flag
+                              iconColor = "text-amber-600 bg-amber-50 border border-amber-100"
+                              cardStyle = "bg-amber-50/30 border-amber-200/30 text-amber-900"
+                            } else if (item.tipe === "pembiasaan") {
+                              Icon = BookOpen
+                              iconColor = "text-emerald-600 bg-emerald-50 border border-emerald-100"
+                              cardStyle = "bg-emerald-50/30 border-emerald-200/30 text-emerald-900"
+                            } else if (item.tipe === "istirahat") {
+                              Icon = Coffee
+                              iconColor = "text-indigo-600 bg-indigo-50 border border-indigo-100"
+                              cardStyle = "bg-indigo-50/30 border-indigo-200/30 text-indigo-900"
+                            } else if (item.tipe === "sholat") {
+                              Icon = Sparkles
+                              iconColor = "text-purple-600 bg-purple-50 border border-purple-100"
+                              cardStyle = "bg-purple-50/30 border-purple-200/30 text-purple-900"
+                            }
+
+                            return (
+                              <div
+                                key={item.id}
+                                className={`p-3 rounded-2xl border border-dashed flex items-center justify-between gap-3 text-left ${cardStyle}`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  <div className={`p-2 rounded-xl shrink-0 ${iconColor}`}>
+                                    <Icon size={14} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <span className="text-[8px] font-black opacity-60 uppercase tracking-widest block">Agenda</span>
+                                    <h5 className="text-xs font-black truncate leading-tight uppercase">
+                                      {item.label || item.tipe}
+                                    </h5>
+                                  </div>
+                                </div>
+                                <span className="font-mono text-[9px] font-extrabold opacity-75 whitespace-nowrap">
+                                  {item.jamMulai} - {item.jamSelesai}
+                                </span>
+                              </div>
+                            )
+                          } else {
+                            // JP slot
+                            const jpIndex = jpItems.findIndex((x) => x.id === item.id)
+                            const academicJp = jpIndex + 1
+                            const entries = jadwalRecords.filter(
+                              (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
+                            )
+                            const entry = entries.find(
+                              (e) => academicJp >= e.jpMulai! && academicJp < e.jpMulai! + e.jpCount!
+                            )
+
+                            if (entry) {
+                              const isStart = entry.jpMulai === academicJp
+                              const mapel = mapelMap.get(entry.mataPelajaranId)
+                              const teacher = guruMap.get(entry.guruId)
+
+                              // Calculate spans time
+                              const startSlot = jpItems[entry.jpMulai! - 1]
+                              const endSlot = jpItems[entry.jpMulai! - 1 + entry.jpCount! - 1]
+                              const tStart = startSlot?.jamMulai || item.jamMulai
+                              const tEnd = endSlot?.jamSelesai || item.jamSelesai
+
+                              return (
+                                <div
+                                  key={`jp-${item.id}`}
+                                  className="group relative p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-teal-200 transition-all flex flex-col justify-between text-left shadow-xs hover:shadow-sm"
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="bg-teal-50 text-teal-700 border border-teal-100/40 rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                                      JP {academicJp}
+                                    </span>
+                                    <span className="text-[9px] font-mono font-bold text-slate-400">
+                                      {tStart} - {tEnd}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-2 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-1.5 py-0.5 bg-teal-50 text-teal-750 border border-teal-100/50 rounded text-[9px] font-mono font-black uppercase">
+                                        {mapel?.kodeMapel || "MAPEL"}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
+                                        {teacher?.namaLengkap || "Guru"}
+                                      </span>
+                                    </div>
+                                    <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 mt-1 line-clamp-2 leading-tight uppercase">
+                                      {mapel?.namaMapel || "—"}
+                                    </h5>
+                                  </div>
+
+                                  <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800/80 flex items-center justify-end">
+                                    {isStart ? (
+                                      <div className="flex space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => openEdit(entry)}
+                                          className="p-1.5 bg-slate-55/10 hover:bg-teal-50 text-slate-450 hover:text-teal-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
+                                          title="Edit Jadwal"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                        <button
+                                          onClick={() => setDeleteId(entry.id)}
+                                          className="p-1.5 bg-slate-55/10 hover:bg-rose-50 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
+                                          title="Hapus Jadwal"
+                                        >
+                                          <Trash2 size={11} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest">
+                                        Lanjutan
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            } else {
+                              return (
+                                <div
+                                  key={`jp-empty-${item.id}`}
+                                  className="p-3 bg-slate-50/20 border border-dashed border-slate-200/60 rounded-2xl flex items-center justify-between text-left"
+                                >
+                                  <div>
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
+                                    <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">Sesi Kosong</span>
+                                  </div>
+                                  <button
+                                    onClick={() => openAdd(day, academicJp)}
+                                    className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/40 cursor-pointer"
+                                    title="Isi Jadwal JP"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )
+                            }
+                          }
+                        })
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            /* ================= HARIAN/TIMELINE LIST VIEW ================= */
+            <div className="space-y-6">
+              {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {
+                const dayItems = timelineByDay.get(day) ?? []
+                const jpItems = dayItems.filter((t) => t.tipe === "jp")
+
+                return (
+                  <div key={day} className="bg-white dark:bg-slate-900/10 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+                    <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-50 dark:border-slate-800">
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm" />
+                      <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">{DAY_LABEL[day]}</h4>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-150/40 px-2.5 py-0.5 rounded-md uppercase">
+                        Hari KBM Aktif
+                      </span>
+                    </div>
+
+                    {/* Timeline view mapping */}
+                    <div className="relative border-l border-slate-100 dark:border-slate-800 pl-4 ml-2 space-y-4 text-left">
+                      {dayItems.length === 0 ? (
+                        <p className="text-xs text-slate-400 font-bold uppercase py-2">Tidak ada jadwal</p>
+                      ) : (
+                        dayItems.map((item) => {
+                          if (item.tipe !== "jp") {
+                            let Icon = Clock
+                            let iconColor = "text-slate-500 bg-slate-50"
+                            let badgeStyle = "text-slate-800 bg-slate-50 border-slate-200"
+
+                            if (item.tipe === "upacara") {
+                              Icon = Flag
+                              iconColor = "text-amber-600 bg-amber-50"
+                              badgeStyle = "text-amber-900 bg-amber-50 border-amber-200/50"
+                            } else if (item.tipe === "pembiasaan") {
+                              Icon = BookOpen
+                              iconColor = "text-emerald-600 bg-emerald-50"
+                              badgeStyle = "text-emerald-900 bg-emerald-50 border-emerald-200/50"
+                            } else if (item.tipe === "istirahat") {
+                              Icon = Coffee
+                              iconColor = "text-indigo-600 bg-indigo-50"
+                              badgeStyle = "text-indigo-900 bg-indigo-50 border-indigo-200/50"
+                            } else if (item.tipe === "sholat") {
+                              Icon = Sparkles
+                              iconColor = "text-purple-600 bg-purple-50"
+                              badgeStyle = "text-purple-900 bg-purple-50 border-purple-200/50"
+                            }
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="relative p-3.5 bg-slate-50/50 dark:bg-slate-900/5 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
+                              >
+                                <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white dark:border-slate-900" />
+                                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                  <div className={`p-2.5 rounded-xl shrink-0 ${iconColor}`}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Agenda</span>
+                                    <h5 className="text-xs font-black text-slate-850 dark:text-slate-250 truncate leading-none uppercase">{item.label || item.tipe}</h5>
+                                  </div>
+                                </div>
+                                <div className={`px-2.5 py-1 rounded-xl border font-mono text-[10px] font-bold ${badgeStyle}`}>
+                                  {item.jamMulai} - {item.jamSelesai}
+                                </div>
+                              </div>
+                            )
+                          } else {
+                            const jpIndex = jpItems.findIndex((x) => x.id === item.id)
+                            const academicJp = jpIndex + 1
+                            const entries = jadwalRecords.filter(
+                              (e) => e.hari === day && e.jpMulai !== null && e.jpCount !== null
+                            )
+                            const entry = entries.find(
+                              (e) => academicJp >= e.jpMulai! && academicJp < e.jpMulai! + e.jpCount!
+                            )
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="relative p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:shadow-xs transition-all"
+                              >
+                                <div className={`absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${entry ? "bg-teal-500" : "bg-slate-200"}`} />
+                                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                  <span className={`px-2.5 py-1 rounded-xl font-bold text-xs shrink-0 ${entry ? "bg-teal-50 text-teal-700" : "bg-slate-50 text-slate-400"}`}>
+                                    JP {academicJp}
+                                  </span>
+
+                                  {entry ? (
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="px-1.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-100/50 rounded text-[9px] font-mono font-black uppercase">
+                                          {mapelMap.get(entry.mataPelajaranId)?.kodeMapel || "MAPEL"}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
+                                          {guruMap.get(entry.guruId)?.namaLengkap || "—"}
+                                        </span>
+                                      </div>
+                                      <h5 className="text-xs sm:text-sm font-black text-slate-850 dark:text-slate-200 mt-1 leading-tight uppercase">
+                                        {mapelMap.get(entry.mataPelajaranId)?.namaMapel || "—"}
+                                      </h5>
+                                    </div>
+                                  ) : (
+                                    <div className="min-w-0 flex-1 text-left">
+                                      <span className="text-[10px] font-bold text-slate-300 uppercase block">Sesi Kosong</span>
+                                      <span className="text-[11px] font-semibold text-slate-400 block mt-0.5">Dapat diisi jadwal pelajaran</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-slate-50 dark:border-slate-800/80 sm:border-t-0">
+                                  <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-150 dark:border-slate-700 px-2.5 py-1 rounded-lg">
+                                    {item.jamMulai} - {item.jamSelesai}
+                                  </span>
+
+                                  {entry ? (
+                                    <div className="flex space-x-1 shrink-0">
+                                      {entry.jpMulai === academicJp && (
+                                        <>
+                                          <button
+                                            onClick={() => openEdit(entry)}
+                                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-655 cursor-pointer"
+                                            title="Edit"
+                                          >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => setDeleteId(entry.id)}
+                                            className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-600 cursor-pointer"
+                                            title="Hapus"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => openAdd(day, academicJp)}
+                                      disabled={mapelRecords.length === 0}
+                                      className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/30 cursor-pointer text-[10px] font-bold"
+                                      title="Isi Jadwal"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                        })
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Footer stats summary */}
+          {hasData && (
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 text-[10px] font-black uppercase text-slate-400 flex-wrap">
+              <span>
+                <strong className="text-slate-700 dark:text-slate-300">{jadwalRecords.length}</strong> jadwal terdaftar
+              </span>
+              <span>
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {new Set(jadwalRecords.map((j) => j.hari)).size}
+                </strong>{" "}
+                hari kbm
+              </span>
+              <span>
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {new Set(jadwalRecords.map((j) => j.mataPelajaranId)).size}
+                </strong>{" "}
+                mapel aktif
+              </span>
+              {pengaturanData && (
+                <span>
+                  1 JP = <strong className="text-slate-700 dark:text-slate-300">{pengaturanData.durasiJP}</strong> menit
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dialog components */}
       <JadwalFormDialog
         open={formOpen}
         onClose={() => {
           setFormOpen(false)
           setEditEntry(null)
           setAddForHari(null)
+          setAddJpMulai(null)
         }}
         onOpenPengaturan={() => {
           setFormOpen(false)
@@ -589,6 +837,7 @@ export default function JadwalPage() {
         existingJadwal={jadwalRecords as any}
         timelineItems={timelineRecords as any}
         contextHari={addForHari ?? undefined}
+        initialJp={addJpMulai}
         kelasId={kelasId}
       />
 
@@ -612,22 +861,23 @@ export default function JadwalPage() {
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl p-6 bg-background border-0 shadow-2xl overflow-hidden max-w-sm text-left">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Jadwal</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini tidak dapat dibatalkan.
+            <AlertDialogTitle className="text-sm font-black text-slate-800 uppercase tracking-wider">Hapus Jadwal</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-bold text-slate-450 leading-normal">
+              Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={removeMutation.isPending}>Batal</AlertDialogCancel>
+          <AlertDialogFooter className="flex items-center gap-3 mt-4 border-t border-slate-100 pt-4">
+            <AlertDialogCancel disabled={removeMutation.isPending} className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center">
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={removeMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Hapus
+              {removeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Hapus</span>}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
