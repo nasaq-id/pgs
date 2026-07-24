@@ -529,3 +529,24 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
+
+/* 
+  Global rules to hide redundant page header titles and descriptions 
+  since they are already displayed in the sticky Topbar header.
+*/
+/* 1. Hide the text title block container inside flex headers (e.g., student page, guru page) */
+main > div > div:first-child > div:first-child:has(> h2.tracking-tight),
+main > div > div:first-child > div:first-child:has(> h1.tracking-tight),
+main > div > div:first-child > div:first-child:has(> h3.tracking-tight) {
+  display: none !important;
+}
+
+/* 2. Hide standalone top-level title blocks (e.g., sarpras page, kelas page, absensi page) */
+main > div > div:first-child:not(.flex):not(.grid):has(> h2.tracking-tight),
+main > div > div:first-child:not(.flex):not(.grid):has(> h1.tracking-tight),
+main > div > h2.text-3xl:first-child,
+main > div > h2.text-3xl:first-child + p,
+main > div > h1.text-3xl:first-child,
+main > div > h1.text-3xl:first-child + p {
+  display: none !important;
+}
