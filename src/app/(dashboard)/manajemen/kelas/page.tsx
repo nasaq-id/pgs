@@ -879,14 +879,14 @@ export default function KelasPage() {
                     <Select
                       value={srcTingkat}
                       onValueChange={(val) => { setSrcTingkat(val || ""); setSrcKelasId(""); setSelectedSiswaIds([]); }}
-                      options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
+                      options={uniqueTingkat.map((t) => ({ value: t, label: `Kelas ${t.replace(/^Kelas\s*/i, "")}` }))}
                     >
                       <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
                         {uniqueTingkat.map((t) => (
-                          <SelectItem key={t} value={t}>{`Tingkat ${t}`}</SelectItem>
+                          <SelectItem key={t} value={t}>{`Kelas ${t.replace(/^Kelas\s*/i, "")}`}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1011,14 +1011,14 @@ export default function KelasPage() {
                     <Select
                       value={dstTingkat}
                       onValueChange={(val) => { setDstTingkat(val || ""); setDstKelasId(""); }}
-                      options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
+                      options={uniqueTingkat.map((t) => ({ value: t, label: `Kelas ${t.replace(/^Kelas\s*/i, "")}` }))}
                     >
                       <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
                         {uniqueTingkat.map((t) => (
-                          <SelectItem key={t} value={t}>{`Tingkat ${t}`}</SelectItem>
+                          <SelectItem key={t} value={t}>{`Kelas ${t.replace(/^Kelas\s*/i, "")}`}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1072,7 +1072,7 @@ export default function KelasPage() {
                   <Button
                     onClick={() => setConfirmTransferOpen(true)}
                     disabled={selectedSiswaIds.length === 0 || !dstKelasId || bulkSetKelasMutation.isPending}
-                    className="w-full gap-2 rounded-xl bg-teal-650 hover:bg-teal-700 text-white font-semibold cursor-pointer active:scale-98 transition-all h-11 hover:scale-[1.01]"
+                    className="w-full gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold cursor-pointer active:scale-98 transition-all h-11 hover:scale-[1.01]"
                     style={{
                       boxShadow: "4px 4px 10px oklch(0.70 0.08 175 / 0.5), -3px -3px 8px oklch(1 0 0)",
                     }}
@@ -1163,7 +1163,7 @@ export default function KelasPage() {
                   kelasId: dstKelasId,
                 })
               }}
-              className="bg-teal-650 hover:bg-teal-700 text-white font-semibold"
+              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold"
               style={{
                 boxShadow: "4px 4px 10px oklch(0.70 0.08 175 / 0.5), -3px -3px 8px oklch(1 0 0)",
               }}
