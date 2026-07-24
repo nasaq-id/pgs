@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, ShieldAlert } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -142,6 +142,7 @@ export default function SiswaPage() {
   const [importMode, setImportMode] = useState<"quick" | "regular" | null>(null)
   const [importPreviewData, setImportPreviewData] = useState<any[] | null>(null)
   const [importPreviewOpen, setImportPreviewOpen] = useState(false)
+  const [importErrors, setImportErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -656,14 +657,7 @@ export default function SiswaPage() {
         alamatLengkapIbu: row["Alamat Ibu"] ? String(row["Alamat Ibu"]).trim() : undefined,
         kodePosIbu: row["Kode Pos Ibu"] ? String(row["Kode Pos Ibu"]).trim() : undefined,
       }
-    }).filter((r) => r.namaLengkap && r.nisLokal)
-
-    const errors = validateImportData(mapped, mode)
-    if (errors.length > 0) {
-      const msg = errors.slice(0, 5).join("\n") + (errors.length > 5 ? `\n... dan ${errors.length - 5} error lainnya` : "")
-      toast.error(msg, { duration: 8000 })
-      return null
-    }
+    }).filter((r) => r.namaLengkap || r.nisLokal)
     return mapped
   }
 
@@ -675,14 +669,20 @@ export default function SiswaPage() {
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false })
+      
+      // Deteksi dinamis jika baris pertama adalah petunjuk panduan impor
+      const hasPanduan = ws && ws["A1"]?.v && String(ws["A1"].v).includes("PANDUAN")
+      const range = hasPanduan ? 1 : 0
+      
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, range })
       const mapped = parseAndMap(rows, importMode)
 
-      if (!mapped) return
-
+      const errors = validateImportData(mapped, importMode)
+      setImportErrors(errors)
       setImportPreviewData(mapped)
       setImportPreviewOpen(true)
-    } catch {
+    } catch (err: any) {
+      console.error(err)
       toast.error("Gagal membaca file Excel. Pastikan format file sesuai template.")
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -1538,7 +1538,7 @@ export default function SiswaPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) } }}>
+      <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null); setImportErrors([]) } }}>
         <DialogContent className={cn(
           "rounded-[32px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left flex flex-col max-h-[90vh]",
           importMode === "quick" ? "sm:max-w-md" : "sm:max-w-5xl"
@@ -1565,61 +1565,108 @@ export default function SiswaPage() {
 
                 {importPreviewData && (
                   <div className="space-y-4 pt-3">
-                    <div className="flex items-center gap-3.5 rounded-2xl bg-emerald-500/10 p-4 border border-emerald-500/20 shadow-xs">
-                      <div className="size-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md">
-                        <Upload className="size-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-extrabold text-slate-850 dark:text-slate-150">
-                          {importPreviewData.length} Siswa Ditemukan
-                        </p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Semua baris valid & siap diimport
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-3 max-h-52 overflow-y-auto space-y-2">
-                      {importPreviewData.slice(0, 10).map((d, i) => {
-                        const kls = kelasList?.find((k) => k.id === d.kelasId)
-                        return (
-                        <div key={i} className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850">
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{i + 1}.</span>
-                            <span className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{d.namaLengkap}</span>
+                    {/* Error Boundary Banner */}
+                    {importErrors.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3.5 rounded-2xl bg-rose-500/10 p-4 border border-rose-500/20 shadow-xs">
+                          <div className="size-11 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-md shrink-0">
+                            <ShieldAlert className="size-5" />
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {kls && (
-                              <span className="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md">
-                                {kls.namaKelas}
-                              </span>
-                            )}
-                            <span className="font-mono text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                              NISN: {d.nisn || "-"}
-                            </span>
+                          <div>
+                            <p className="text-sm font-extrabold text-slate-850 dark:text-slate-150">
+                              {importErrors.length} Kesalahan Ditemukan
+                            </p>
+                            <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                              Silakan perbaiki data berkas Anda dan impor kembali
+                            </p>
                           </div>
                         </div>
-                      )})}
-                      {importPreviewData.length > 10 && (
-                        <p className="text-[11px] text-muted-foreground text-center pt-1 font-semibold">
-                          + {importPreviewData.length - 10} data siswa lainnya
-                        </p>
-                      )}
-                    </div>
+                        
+                        <div className="rounded-2xl border border-rose-200/60 dark:border-rose-800/60 bg-rose-50/20 dark:bg-rose-950/10 p-3.5 max-h-52 overflow-y-auto space-y-1.5 font-mono text-[11px] text-rose-700 dark:text-rose-450 font-semibold">
+                          {importErrors.map((err, idx) => (
+                            <div key={idx} className="flex gap-1.5">
+                              <span className="text-rose-500">•</span>
+                              <span>{err}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : importPreviewData.length === 0 ? (
+                      <div className="flex items-center gap-3.5 rounded-2xl bg-amber-500/10 p-4 border border-amber-500/20 shadow-xs">
+                        <div className="size-11 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-md shrink-0">
+                          <ShieldAlert className="size-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-extrabold text-slate-850 dark:text-slate-150">
+                            0 Siswa Ditemukan
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                            Tidak ada data siswa yang valid dalam file Excel.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      // Success Banner
+                      <div className="flex items-center gap-3.5 rounded-2xl bg-emerald-500/10 p-4 border border-emerald-500/20 shadow-xs">
+                        <div className="size-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md">
+                          <Upload className="size-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-extrabold text-slate-850 dark:text-slate-150">
+                            {importPreviewData.length} Siswa Ditemukan
+                          </p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                            Semua baris valid & siap diimport
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show preview only if there are no errors and there is data */}
+                    {importErrors.length === 0 && importPreviewData.length > 0 && (
+                      <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 p-3 max-h-52 overflow-y-auto space-y-2">
+                        {importPreviewData.slice(0, 10).map((d, i) => {
+                          const kls = kelasList?.find((k) => k.id === d.kelasId)
+                          return (
+                            <div key={i} className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850">
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="text-[10px] font-bold text-slate-400 w-4 shrink-0">{i + 1}.</span>
+                                <span className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{d.namaLengkap}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {kls && (
+                                  <span className="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded-md">
+                                    {kls.namaKelas}
+                                  </span>
+                                )}
+                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                  NISN: {d.nisn || "-"}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {importPreviewData.length > 10 && (
+                          <p className="text-[11px] text-muted-foreground text-center pt-1 font-semibold">
+                            + {importPreviewData.length - 10} data siswa lainnya
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <DialogFooter className="!p-0 !bg-transparent !border-0 pt-4 flex gap-2 sm:justify-end">
                   <Button
                     variant="outline"
-                    onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) }}
+                    onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null); setImportErrors([]) }}
                     className="rounded-xl text-xs font-bold px-4 cursor-pointer"
                   >
                     Batal
                   </Button>
                   <Button
                     onClick={handleImportConfirm}
-                    disabled={importing}
+                    disabled={importing || importErrors.length > 0 || !importPreviewData || importPreviewData.length === 0}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider px-5 shadow-md cursor-pointer"
                   >
                     {importing ? (
@@ -1646,95 +1693,131 @@ export default function SiswaPage() {
 
                 {/* Neomorphic Summary Stats Cards inside Preview */}
                 {importPreviewData && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
-                    <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">TOTAL DATA</span>
-                      <span className="text-lg font-black text-slate-850 dark:text-slate-150 block">
-                        {importPreviewData.length} Baris
-                      </span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">LAKI-LAKI (L)</span>
-                      <span className="text-lg font-black text-teal-600 block">
-                        {importPreviewData.filter((d) => d.jenisKelamin === "L").length} Siswa
-                      </span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">PEREMPUAN (P)</span>
-                      <span className="text-lg font-black text-rose-600 block">
-                        {importPreviewData.filter((d) => d.jenisKelamin === "P").length} Siswa
-                      </span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">STATUS VALID</span>
-                      <span className="text-lg font-black text-emerald-600 block flex items-center gap-1">
-                        100% Valid
-                      </span>
+                  <div className="space-y-4 pt-1">
+                    {/* Error Boundary Banner */}
+                    {importErrors.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3.5 rounded-2xl bg-rose-500/10 p-4 border border-rose-500/20 shadow-xs">
+                          <div className="size-11 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-md shrink-0">
+                            <ShieldAlert className="size-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-extrabold text-slate-850 dark:text-slate-150">
+                              {importErrors.length} Kesalahan Data Ditemukan
+                            </p>
+                            <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                              Silakan perbaiki kolom data berkas Anda terlebih dahulu dan impor kembali
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="rounded-2xl border border-rose-200/60 dark:border-rose-800/60 bg-rose-50/20 dark:bg-rose-950/10 p-3.5 max-h-40 overflow-y-auto space-y-1.5 font-mono text-[11px] text-rose-700 dark:text-rose-450 font-semibold">
+                          {importErrors.map((err, idx) => (
+                            <div key={idx} className="flex gap-1.5">
+                              <span className="text-rose-500">•</span>
+                              <span>{err}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">TOTAL DATA</span>
+                        <span className="text-lg font-black text-slate-850 dark:text-slate-150 block">
+                          {importPreviewData.length} Baris
+                        </span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">LAKI-LAKI (L)</span>
+                        <span className="text-lg font-black text-teal-650 block">
+                          {importPreviewData.filter((d) => d.jenisKelamin === "L").length} Siswa
+                        </span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">PEREMPUAN (P)</span>
+                        <span className="text-lg font-black text-rose-600 block">
+                          {importPreviewData.filter((d) => d.jenisKelamin === "P").length} Siswa
+                        </span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/40 space-y-0.5 shadow-xs">
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">STATUS VALIDASI</span>
+                        <span className={cn(
+                          "text-lg font-black block",
+                          importErrors.length > 0 ? "text-rose-600" : "text-emerald-600"
+                        )}>
+                          {importErrors.length > 0 ? `${importErrors.length} Error` : "100% Valid"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Scrollable Data Table Preview with restricted height to prevent overlaps */}
-                <div className="overflow-y-auto rounded-2xl border border-slate-200/80 dark:border-slate-800/80 mt-2 bg-slate-50/30 max-h-[42vh] min-h-[220px] w-full">
-                  <Table>
-                    <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50 sticky top-0 z-10">
-                      <TableRow>
-                        <TableHead className="w-10 text-[10px] font-black text-slate-450 uppercase py-3">NO</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NISN</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NIS LOKAL</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NAMA LENGKAP</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">L/P</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">KELAS</TableHead>
-                        <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">ALAMAT</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importPreviewData?.slice(0, 100).map((d, i) => {
-                        const kls = kelasList?.find((k) => k.id === d.kelasId)
-                        return (
-                        <TableRow key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors border-b border-slate-100 dark:border-slate-800/60">
-                          <TableCell className="text-muted-foreground font-semibold text-xs py-2.5">{i + 1}</TableCell>
-                          <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 py-2.5">{d.nisn || "-"}</TableCell>
-                          <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 py-2.5">{d.nisLokal || "-"}</TableCell>
-                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200 py-2.5">{d.namaLengkap}</TableCell>
-                          <TableCell className="py-2.5">
-                            <Badge className={cn(
-                              "text-[10px] font-black px-2 py-0.5 rounded-md",
-                              d.jenisKelamin === "L"
-                                ? "bg-teal-50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-400 border-teal-200"
-                                : "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-rose-200"
-                            )}>
-                              {d.jenisKelamin || "-"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-bold text-teal-600 dark:text-teal-400 py-2.5">
-                            {kls ? kls.namaKelas : "-"}
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-500 max-w-[200px] truncate py-2.5">{d.alamat || "-"}</TableCell>
-                        </TableRow>
-                      )})}
-                      {importPreviewData && importPreviewData.length > 100 && (
+                {/* Scrollable Data Table Preview */}
+                {importErrors.length === 0 && importPreviewData && importPreviewData.length > 0 && (
+                  <div className="overflow-y-auto rounded-2xl border border-slate-200/80 dark:border-slate-800/80 mt-2 bg-slate-50/30 max-h-[35vh] min-h-[180px] w-full">
+                    <Table>
+                      <TableHeader className="bg-slate-100/50 dark:bg-slate-950/50 sticky top-0 z-10">
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-slate-450 text-xs py-4 font-bold">
-                            ... dan {importPreviewData.length - 100} data siswa lainnya tidak ditampilkan di preview
-                          </TableCell>
+                          <TableHead className="w-10 text-[10px] font-black text-slate-450 uppercase py-3">NO</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NISN</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NIS LOKAL</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">NAMA LENGKAP</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">L/P</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">KELAS</TableHead>
+                          <TableHead className="text-[10px] font-black text-slate-450 uppercase py-3">ALAMAT</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {importPreviewData.slice(0, 100).map((d, i) => {
+                          const kls = kelasList?.find((k) => k.id === d.kelasId)
+                          return (
+                            <TableRow key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                              <TableCell className="text-muted-foreground font-semibold text-xs py-2.5">{i + 1}</TableCell>
+                              <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 py-2.5">{d.nisn || "-"}</TableCell>
+                              <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 py-2.5">{d.nisLokal || "-"}</TableCell>
+                              <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200 py-2.5">{d.namaLengkap}</TableCell>
+                              <TableCell className="py-2.5">
+                                <Badge className={cn(
+                                  "text-[10px] font-black px-2 py-0.5 rounded-md",
+                                  d.jenisKelamin === "L"
+                                    ? "bg-teal-50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-400 border-teal-200"
+                                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-rose-200"
+                                )}>
+                                  {d.jenisKelamin || "-"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs font-bold text-teal-600 dark:text-teal-400 py-2.5">
+                                {kls ? kls.namaKelas : "-"}
+                              </TableCell>
+                              <TableCell className="text-xs text-slate-500 max-w-[200px] truncate py-2.5">{d.alamat || "-"}</TableCell>
+                            </TableRow>
+                          )
+                        })}
+                        {importPreviewData.length > 100 && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-slate-450 text-xs py-4 font-bold">
+                              ... dan {importPreviewData.length - 100} data siswa lainnya tidak ditampilkan di preview
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 <DialogFooter className="!p-0 !bg-transparent !border-0 pt-3 flex gap-2 sm:justify-end">
                   <Button
                     variant="outline"
-                    onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null) }}
+                    onClick={() => { setImportPreviewOpen(false); setImportPreviewData(null); setImportMode(null); setImportErrors([]) }}
                     className="rounded-xl text-xs font-bold px-4 cursor-pointer"
                   >
                     Batal
                   </Button>
                   <Button
                     onClick={handleImportConfirm}
-                    disabled={importing}
+                    disabled={importing || importErrors.length > 0 || !importPreviewData || importPreviewData.length === 0}
                     className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase tracking-wider px-5 shadow-md cursor-pointer"
                   >
                     {importing ? (
