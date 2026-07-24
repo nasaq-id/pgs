@@ -83,6 +83,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const { data: session } = useSession()
   const [impersonatedId, setImpersonatedId] = useState<string | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024)
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
   const pageTitle = getPageTitle(pathname)
 
   useEffect(() => {
@@ -126,13 +136,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       )}
 
-      <div className={cn(
-        "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-2 lg:py-2 transition-all duration-300 ease-in-out",
-        isImpersonating ? "lg:top-11 lg:bottom-0" : "lg:inset-y-0",
-        isMinimized ? "lg:w-20 sidebar-minimized" : "lg:w-[308px]"
-      )}>
+      <motion.div
+        animate={{ width: isDesktop ? (isMinimized ? 80 : 308) : 308 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={cn(
+          "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-2 lg:py-2 overflow-hidden",
+          isImpersonating ? "lg:top-11 lg:bottom-0" : "lg:inset-y-0",
+          isMinimized ? "sidebar-minimized" : ""
+        )}
+      >
         <Sidebar isMinimized={isMinimized} setIsMinimized={setIsMinimized} />
-      </div>
+      </motion.div>
  
       {sidebarOpen && (
         <>
@@ -149,10 +163,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </>
       )}
 
-      <div className={cn(
-        "transition-all duration-300 ease-in-out",
-        isMinimized ? "lg:pl-20" : "lg:pl-[298px]"
-      )}>
+      <motion.div
+        animate={{ paddingLeft: isDesktop ? (isMinimized ? 80 : 298) : 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="w-full flex-grow flex flex-col"
+      >
         <Topbar
           onMenuClick={() => setSidebarOpen(true)}
           isMinimized={isMinimized}
@@ -172,7 +187,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </motion.div>
           </AnimatePresence>
         </main>
-      </div>
+      </motion.div>
 
       {pathname === "/" && <DashboardTour />}
       <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />

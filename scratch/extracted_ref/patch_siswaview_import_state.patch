@@ -1,0 +1,80 @@
+--- src/components/SiswaView.tsx
++++ src/components/SiswaView.tsx
+@@ -5,3 +5,3 @@
+ import React, { useState, useRef, useEffect } from 'react';
+-import { Search, UserPlus, MoreVertical, Eye, Edit3, Key, Trash2, ShieldAlert, ChevronLeft, ChevronRight, FileUp, FileDown } from 'lucide-react';
++import { Search, UserPlus, MoreVertical, Eye, Edit3, Key, Trash2, ShieldAlert, ChevronLeft, ChevronRight, FileUp, FileDown, AlertCircle, X, CheckCircle } from 'lucide-react';
+ import { Student, Institution, getPdfLogo } from '../types';
+@@ -29,2 +29,8 @@
+   const [activeImportType, setActiveImportType] = useState<'quick'|'regular'>('quick');
++
++  const [importPreviewData, setImportPreviewData] = useState<{
++    students: Student[];
++    errors: { rowIndex: number; rowName: string; messages: string[] }[];
++    type: 'quick'|'regular';
++  } | null>(null);
+ 
+@@ -658,2 +664,3 @@
+ 
+         // Parse rows
++        const errors: { rowIndex: number; rowName: string; messages: string[] }[] = [];
+         for (let i = 1; i < rows.length; i++) {
+@@ -673,6 +680,18 @@
+           const jkRaw = getVal(idxJk).toLowerCase();
++          const rowErrors: string[] = [];
+           
+           // Basic check
+           if (!nama && !nis && !jkRaw) {
+             continue; // empty row
+           }
++
++          if (!nama) rowErrors.push('Nama Lengkap kosong');
++          if (!nis) rowErrors.push('NIS kosong');
++          else if (nis.length !== 6) rowErrors.push('NIS harus 6 angka');
++          
++          const nisn = getVal(idxNisn);
++          if (nisn && nisn.length !== 10) rowErrors.push('NISN harus 10 angka');
++          
++          if (!jkRaw) rowErrors.push('Jenis Kelamin kosong');
+ 
+           const jk: 'Laki-laki' | 'Perempuan' = (jkRaw.includes('p') || jkRaw.includes('wanita') || jkRaw.includes('female') || jkRaw.includes('perempuan')) ? 'Perempuan' : 'Laki-laki';
+@@ -689,4 +708,8 @@
+           if (activeImportType === 'regular') {
+             nik = getVal(idxNik).replace(/\s+/g, '');
++            if (!nik) rowErrors.push('NIK kosong');
++            else if (nik.length !== 16) rowErrors.push('NIK harus 16 digit');
++
+             tempatLahir = getVal(idxTempatLahir);
++            if (!tempatLahir) rowErrors.push('Tempat Lahir kosong');
+             
+@@ -734,10 +757,4 @@
+ 
+-            if (!nik || !tempatLahir || !tanggalLahir || !namaAyah || !namaIbu) {
+-              alert(`Baris ke-${i + 1} (${nama}) memiliki data wajib reguler yang kosong. NIK, Tempat Lahir, Tanggal Lahir, Nama Ayah, dan Nama Ibu wajib diisi.`);
+-              return;
+-            }
+-            if (nik.length !== 16) {
+-              alert(`Baris ke-${i + 1} (${nama}) memiliki NIK yang tidak valid (harus 16 digit).`);
+-              return;
+-            }
++            if (!tanggalLahir) rowErrors.push('Tanggal Lahir kosong/tidak valid');
++            if (!namaAyah) rowErrors.push('Nama Ayah kosong');
++            if (!namaIbu) rowErrors.push('Nama Ibu kosong');
+           }
+@@ -747,3 +764,2 @@
+           const password = getVal(idxPassword) || 'password123';
+-          const nisn = getVal(idxNisn);
+           const hp = '';
+@@ -802,2 +818,6 @@
+           parsedStudents.push(newStudent);
++          
++          if (rowErrors.length > 0) {
++            errors.push({ rowIndex: i + 1, rowName: nama || 'Baris Tanpa Nama', messages: rowErrors });
++          }
+         }
+@@ -808,4 +828,3 @@
+ 
+-        onImportStudents(parsedStudents);
+-        alert(`Berhasil mengimpor ${parsedStudents.length} data siswa (${activeImportType === 'quick' ? 'Impor Cepat' : 'Impor Lengkap'}).`);
++        setImportPreviewData({ students: parsedStudents, errors, type: activeImportType });
+       } catch (err) {

@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Manajemen Lembaga",
+  "description": "Sistem Manajemen Lembaga Modern (Core Management) untuk pengelolaan data sekolah, data siswa, guru, tendik, dan profil lembaga dengan antarmuka yang modern, responsif, dan interaktif.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

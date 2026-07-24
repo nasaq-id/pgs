@@ -1,0 +1,142 @@
+--- src/components/SiswaView.tsx
++++ src/components/SiswaView.tsx
+@@ -298,28 +298,46 @@
+     const doc = new jsPDF('landscape');
+     
+     const kopSettings = institution?.kopSettings || {
+       useColoredBackground: false,
+       backgroundColor: '#f8fafc',
+       separatorLineType: 'solid',
+       useRoundedRectangle: false,
+-      showLeftLogo: true,
+-      showRightLogo: true,
++      showLogoLembaga: true,
++      logoLembagaPosition: 'right',
++      showLogoKemenag: false,
++      logoKemenagPosition: 'left',
++      showLogoKemdikbud: true,
++      logoKemdikbudPosition: 'left',
+       showOrganizer: true,
+       showName: true,
+       showAddress: true,
+       showContact: true,
+-      alignment: 'center'
++      alignment: 'center',
++      useCustomText: false,
++      customText: 'Teks Tambahan KOP',
++      customTextSize: 10,
++      customTextBold: false,
++      customTextItalic: false,
++      customTextPosition: 'bottom'
+     };
+ 
++    const leftLogos: string[] = [];
++    const rightLogos: string[] = [];
++    
++    if (kopSettings.showLogoKemdikbud && institution?.kemdikbudLogo) (kopSettings.logoKemdikbudPosition === 'left' ? leftLogos : rightLogos).push(institution.kemdikbudLogo);
++    if (kopSettings.showLogoKemenag && institution?.kemenagLogo) (kopSettings.logoKemenagPosition === 'left' ? leftLogos : rightLogos).push(institution.kemenagLogo);
++    if (kopSettings.showLogoLembaga && institution?.logo) (kopSettings.logoLembagaPosition === 'left' ? leftLogos : rightLogos).push(institution.logo);
++
+     let startY = 10;
+     
+     // Calculate align values
+     let alignMethod: "center" | "left" | "right" = kopSettings.alignment === 'left' ? 'left' : (kopSettings.alignment === 'right' ? 'right' : 'center');
+     let xPos = doc.internal.pageSize.getWidth() / 2;
+     if (alignMethod === 'left') {
+-      xPos = kopSettings.showLeftLogo ? 45 : 15;
++      xPos = 15 + (leftLogos.length * 25);
+     } else if (alignMethod === 'right') {
+-      xPos = doc.internal.pageSize.getWidth() - (kopSettings.showRightLogo ? 45 : 15);
++      xPos = doc.internal.pageSize.getWidth() - 15 - (rightLogos.length * 25);
+     }
+     
+     // Background Color
+@@ -328,6 +346,20 @@
+       doc.rect(10, 5, doc.internal.pageSize.getWidth() - 20, 35, 'F');
+     }
+ 
++    const renderCustomTextPdf = (yPos: number) => {
++      if (!kopSettings.useCustomText || !kopSettings.customText) return yPos;
++      doc.setFontSize(kopSettings.customTextSize || 10);
++      const fontStyle = kopSettings.customTextBold && kopSettings.customTextItalic 
++        ? "bolditalic" 
++        : kopSettings.customTextBold 
++          ? "bold" 
++          : kopSettings.customTextItalic 
++            ? "italic" 
++            : "normal";
++      doc.setFont("helvetica", fontStyle);
++      doc.text(kopSettings.customText, xPos, yPos, { align: alignMethod });
++      return yPos + 5;
++    };
++
++    if (kopSettings.customTextPosition === 'top') startY = renderCustomTextPdf(startY + 6) - 6;
++
+     if (kopSettings.showOrganizer && institution?.organizer) {
+       doc.setFontSize(10);
+       doc.setFont("helvetica", "bold");
+@@ -335,6 +367,8 @@
+       startY += 5;
+     }
+ 
++    if (kopSettings.customTextPosition === 'middle') startY = renderCustomTextPdf(startY + 6) - 6;
++
+     if (kopSettings.showName) {
+       const schoolName = institution?.name?.toUpperCase() || 'NAMA SEKOLAH';
+       doc.setFontSize(16);
+@@ -357,6 +391,8 @@
+       startY += 5;
+     }
+ 
++    if (kopSettings.customTextPosition === 'bottom') startY = renderCustomTextPdf(startY + 6) - 6;
++
+     startY += 5;
+     
+     // Separator line or Rounded Rectangle
+@@ -382,24 +418,24 @@
+     }
+     
+     // Logos
+-    if (kopSettings.showLeftLogo) {
+-      try {
+-        const leftLogoUrl = getPdfLogo(institution);
+-        let leftLogoBase64 = leftLogoUrl;
+-        if (!leftLogoUrl.startsWith('data:image')) {
+-           leftLogoBase64 = await getBase64ImageFromUrl(leftLogoUrl);
+-        }
+-        doc.addImage(leftLogoBase64, 'PNG', 15, 10, 20, 20);
+-      } catch(e) { console.error('Failed to load left logo', e); }
+-    }
+-
+-    if (kopSettings.showRightLogo && institution?.logo) {
+-      try {
+-        if (institution.logo.startsWith('data:image')) {
+-          doc.addImage(institution.logo, 'PNG', doc.internal.pageSize.getWidth() - 35, 10, 20, 20);
+-        } else {
+-          const logoBase64 = await getBase64ImageFromUrl(institution.logo);
+-          doc.addImage(logoBase64, 'PNG', doc.internal.pageSize.getWidth() - 35, 10, 20, 20);
+-        }
+-      } catch(e) { console.error('Failed to load right logo', e); }
+-    }
++    for (let i = 0; i < leftLogos.length; i++) {
++      try {
++        const url = leftLogos[i];
++        let b64 = url;
++        if (!url.startsWith('data:image')) b64 = await getBase64ImageFromUrl(url);
++        doc.addImage(b64, 'PNG', 15 + (i * 22), 10, 20, 20);
++      } catch(e) { console.error('Failed to load left logo', e); }
++    }
++
++    for (let i = 0; i < rightLogos.length; i++) {
++      try {
++        const url = rightLogos[i];
++        let b64 = url;
++        if (!url.startsWith('data:image')) b64 = await getBase64ImageFromUrl(url);
++        // Calculate right pos, rightmost goes to the very end
++        // The last logo in array is on the rightmost? Wait, if they are flex, order is 0,1. 
++        // The first logo is visually on the left of the right logos. 
++        // doc.internal.pageSize.getWidth() - 35
++        const rightX = doc.internal.pageSize.getWidth() - 35 - ((rightLogos.length - 1 - i) * 22);
++        doc.addImage(b64, 'PNG', rightX, 10, 20, 20);
++      } catch(e) { console.error('Failed to load right logo', e); }
++    }

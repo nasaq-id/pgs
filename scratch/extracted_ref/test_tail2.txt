@@ -1,0 +1,12 @@
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 rounded-full bg-white border border-slate-200 text-slate-600 font-bold text-[14px] hover:bg-slate-50 transition-all cursor-pointer"
+          >
+            Batal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
