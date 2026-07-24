@@ -116,9 +116,18 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Ekstrakurikuler", path: "/kesiswaan/ekstrakurikuler" },
       { label: "Prestasi", path: "/kesiswaan/prestasi" },
-      { label: "Poin Siswa", path: "/kesiswaan/poin-siswa" },
-      { label: "Monitoring Poin", path: "/kesiswaan/monitoring-poin" },
-      { label: "Laporan Poin", path: "/kesiswaan/laporan-poin" },
+    ]
+  },
+  { 
+    icon: Shield, 
+    label: "E-Poin", 
+    allowedRoles: ["super_admin", "admin_sekolah", "guru", "siswa", "ortu"],
+    children: [
+      { label: "Dashboard E-Poin", path: "/kesiswaan/poin-siswa" },
+      { label: "Input & Data Poin", path: "/kesiswaan/poin-siswa/input-data", allowedRoles: ["super_admin", "admin_sekolah", "guru"] },
+      { label: "Monitoring, SP & Apresiasi", path: "/kesiswaan/poin-siswa/monitoring-sp", allowedRoles: ["super_admin", "admin_sekolah", "guru"] },
+      { label: "Pengaturan E-Poin", path: "/kesiswaan/poin-siswa/pengaturan", allowedRoles: ["super_admin", "admin_sekolah"] },
+      { label: "SOP E-Poin", path: "/kesiswaan/poin-siswa/sop" },
     ]
   },
   { 
