@@ -73,6 +73,7 @@ interface Props {
   onClose: () => void
   onSubmit: (data: JadwalFormData) => Promise<void>
   initial?: JadwalFormData | null
+  initialJp?: number | null
   mapelList: MapelItem[]
   guruList: GuruItem[]
   saving?: boolean
@@ -88,6 +89,7 @@ export default function JadwalFormDialog({
   onClose,
   onSubmit,
   initial,
+  initialJp,
   mapelList,
   saving,
   existingJadwal = [],
@@ -206,11 +208,11 @@ export default function JadwalFormDialog({
       setHari(contextHari || "senin")
       setMataPelajaranId("")
       setGuruId("")
-      setSelectedJpMulai(null)
+      setSelectedJpMulai(initialJp ?? null)
       setJpCount(1)
       setDurasiMenit(durasiJP)
     }
-  }, [open, initial, contextHari, durasiJP])
+  }, [open, initial, contextHari, durasiJP, initialJp])
 
   useEffect(() => {
     if (mataPelajaranId) {
