@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle, GraduationCap, UserCheck, Users, Eye } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, AlertTriangle, GraduationCap, UserCheck, Users, Eye, Printer, School } from "lucide-react"
+import jsPDF from "jspdf"
+import { autoTable } from "jspdf-autotable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -163,6 +165,174 @@ export default function KelasPage() {
   const { data: session } = useSession()
   const sekolahId = session?.user?.sekolahId ?? ""
 
+  const { data: sekolah } = api.lembaga.getSekolah.useQuery()
+  const { data: aktifTa } = api.lembaga.getActiveTahunAjaran.useQuery()
+  const [exporting, setExporting] = useState(false)
+
+  const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(url)
+      const blob = await resp.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      return null
+    }
+  }
+
+  const handleExportPDF = async () => {
+    setExporting(true)
+    try {
+      let logoBase64: string | null = null
+      if (sekolah?.logo) {
+        logoBase64 = await urlToBase64(sekolah.logo)
+      }
+
+      let customKopBase64: string | null = null
+      if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
+        customKopBase64 = await urlToBase64(sekolah.customKopGambar)
+      }
+
+      const rows: (string | number)[][] = records.map((r, i) => {
+        const wali = r.waliKelasId ? (guruMap.get(r.waliKelasId) || "-") : "-"
+        const kelasLabel = formatKelasLabel(r)
+        const tingkatLabel = formatTingkatLabel(r.tingkat)
+        const kapasitasLabel = r.kapasitas ? `${r.siswaCount} / ${r.kapasitas}` : `${r.siswaCount} / -`
+        return [
+          i + 1,
+          tingkatLabel || "-",
+          kelasLabel || "-",
+          wali,
+          kapasitasLabel,
+          `${r.siswaCount} Siswa`
+        ]
+      })
+
+      const head = [["No", "Tingkat", "Nama Rombel / Kelas", "Wali Kelas", "Kapasitas Terisi", "Jumlah Siswa"]]
+
+      const doc = new jsPDF("portrait", "mm", "a4")
+      const pageW = doc.internal.pageSize.getWidth()
+
+      const useCustomKop = sekolah?.useCustomKop && customKopBase64
+      const kopH = useCustomKop ? (sekolah?.customKopTinggi || 35) : 24
+      const logoSize = 16
+      const logoX = 14
+      const logoY = 4
+      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 14
+
+      if (useCustomKop && customKopBase64) {
+        try {
+          doc.addImage(customKopBase64, "JPEG", 0, 0, pageW, kopH)
+        } catch {
+          try {
+            doc.addImage(customKopBase64, "PNG", 0, 0, pageW, kopH)
+          } catch {}
+        }
+      } else {
+        // Render Standard Double-Line White Header
+        if (logoBase64) {
+          try {
+            doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
+          } catch {
+            try {
+              doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
+            } catch {}
+          }
+        }
+
+        doc.setTextColor(30, 41, 59) // slate-800
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        const centerX = logoBase64 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
+        doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 9, { align: "center" })
+
+        doc.setFontSize(8)
+        doc.setFont("helvetica", "normal")
+        doc.setTextColor(71, 85, 105) // slate-600
+        doc.text(sekolah?.alamat || "", centerX, 14, { align: "center" })
+
+        if (sekolah?.npsn || sekolah?.telepon) {
+          const infoParts = []
+          if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
+          if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
+          doc.text(infoParts.join(" | "), centerX, 18, { align: "center" })
+        }
+
+        // Double lines at the bottom of the kop
+        doc.setLineWidth(0.8)
+        doc.setDrawColor(30, 41, 59)
+        doc.line(14, kopH - 2, pageW - 14, kopH - 2)
+        doc.setLineWidth(0.2)
+        doc.line(14, kopH - 1, pageW - 14, kopH - 1)
+      }
+
+      const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
+      const titleText = `Laporan Rombongan Belajar (Rombel)${taLabel}`
+
+      // Teal Theme for Sub-header Bar
+      const subHeaderH = 8
+      doc.setFillColor(13, 148, 136) // teal-600
+      doc.rect(0, kopH, pageW, subHeaderH, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(8.5)
+      doc.setFont("helvetica", "bold")
+      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
+
+      const infoY = kopH + subHeaderH + 4
+      doc.setTextColor(100, 100, 100)
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      const now = new Date()
+      const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
+      const toDdMmYyyy = (d: Date) => {
+        const dd = String(d.getDate()).padStart(2, '0')
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const yyyy = d.getFullYear()
+        return `${dd}/${mm}/${yyyy}`
+      }
+      const tglStr = `Diexport pada: ${hari}, ${toDdMmYyyy(now)}`
+      doc.text(tglStr, pageW - 14, infoY, { align: "right" })
+      doc.text(`Total data: ${records.length} Rombel`, 14, infoY)
+
+      autoTable(doc, {
+        startY: infoY + 4,
+        head,
+        body: rows,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2.5,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.25,
+          textColor: [50, 50, 50],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [13, 148, 136], // Teal-600
+          textColor: [255, 255, 255],
+          fontSize: 8.5,
+          fontStyle: "bold",
+          halign: "left",
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252], // slate-50
+        },
+        margin: { top: 10, left: 14, right: 14, bottom: 10 },
+      })
+
+      doc.save(`Laporan_Rombel_${now.getTime()}.pdf`)
+      toast.success("Berhasil mengekspor PDF data rombel")
+    } catch (err) {
+      console.error(err)
+      toast.error("Gagal mengunduh PDF data rombel")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const guruMap = new Map(
     (guruList ?? []).map((g: { id: string; namaLengkap: string }) => [g.id, g.namaLengkap])
   )
@@ -204,11 +374,48 @@ export default function KelasPage() {
   const records = (kelasList ?? []) as KelasRecord[]
   const recordsWithoutTingkat = records.filter((r) => !r.tingkat)
 
+  const totalRombel = records.length
+  const totalSiswa = records.reduce((sum, r) => sum + (r.siswaCount || 0), 0)
+  const totalKapasitas = records.reduce((sum, r) => sum + (r.kapasitas || 0), 0)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Rombongan Belajar</h2>
         <p className="text-muted-foreground">Kelola data rombongan belajar</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="glass-card rounded-[22px] border border-slate-250/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+          <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-650 dark:text-teal-400 rounded-xl shrink-0">
+            <School className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Total Rombongan Belajar</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalRombel} Rombel</h3>
+          </div>
+        </div>
+        <div className="glass-card rounded-[22px] border border-slate-255/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-650 dark:text-emerald-400 rounded-xl shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Kapasitas Terisi</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              {totalSiswa} <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">/ {totalKapasitas || "-"} Kursi</span>
+            </h3>
+          </div>
+        </div>
+        <div className="glass-card rounded-[22px] border border-slate-250/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+          <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 rounded-xl shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Siswa Aktif di Rombel</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalSiswa} Siswa</h3>
+          </div>
+        </div>
       </div>
 
       {recordsWithoutTingkat.length > 0 && (
@@ -235,16 +442,31 @@ export default function KelasPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button
-            className="gap-2"
-            style={{ backgroundColor: "hsl(142 72% 40%)" }}
-            onClick={() => {
-              setEditData(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4" /> Tambah Kelas
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
+              onClick={handleExportPDF}
+              disabled={exporting}
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="h-4 w-4 text-teal-600" />
+              )}
+              {exporting ? "Mengekspor..." : "Cetak PDF"}
+            </Button>
+            <Button
+              className="gap-2 text-white font-semibold cursor-pointer shadow-md shadow-emerald-500/10 hover:brightness-105 active:scale-95 transition-all"
+              style={{ backgroundColor: "hsl(142 72% 40%)" }}
+              onClick={() => {
+                setEditData(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4" /> Tambah Kelas
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
