@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Shield, FileText, Calendar, User, Eye, Download, Trash2, Plus, ArrowRight, Loader2, Check, AlertCircle, Edit, Settings } from "lucide-react"
+import { useState, useMemo, useCallback } from "react"
+import { Shield, FileText, Calendar, User, Eye, Download, Trash2, Plus, ArrowRight, Loader2, Check, AlertCircle, Edit, Settings, Search, TrendingUp, TrendingDown } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 export default function MonitoringSpApresiasiPage() {
   const utils = api.useUtils()
 
-  const [activeTab, setActiveTab] = useState<"monitoring" | "sp" | "apresiasi">("monitoring")
+  const [activeTab, setActiveTab] = useState<"rekap" | "monitoring" | "sp" | "apresiasi">("rekap")
   
   // Modal states
   const [updateStatusOpen, setUpdateStatusOpen] = useState(false)
@@ -36,6 +36,77 @@ export default function MonitoringSpApresiasiPage() {
   const { data: dashboardData, isLoading: isLoadingDashboard } = api.poin.getDashboardGuruAdmin.useQuery()
   const { data: aturanList } = api.poin.getAllAturan.useQuery()
 
+  // ── Rekap Tab State ──
+  const [rekapSearch, setRekapSearch] = useState("")
+  const [rekapFilterKelas, setRekapFilterKelas] = useState("all")
+  const { data: semuaSiswa } = api.siswa.getAll.useQuery({ limit: 1000 })
+  const { data: semuaSikap } = api.poin.getAllSikap.useQuery({ limit: 500 })
+  const { data: daftarKelas } = api.kelas.getAll.useQuery({})
+
+  const siswaKelasMap = useMemo(() => {
+    if (!semuaSiswa) return new Map<string, string>()
+    const map = new Map<string, string>()
+    semuaSiswa.forEach((s: any) => { if (s.kelasId) map.set(s.id, s.kelasId) })
+    return map
+  }, [semuaSiswa])
+
+  const kelasNameMap = useMemo(() => {
+    if (!daftarKelas) return new Map<string, string>()
+    const map = new Map<string, string>()
+    daftarKelas.forEach((k: any) => { map.set(k.id, k.namaKelas) })
+    return map
+  }, [daftarKelas])
+
+  const getKelasNama = useCallback((siswaId: string) => {
+    const kelasId = siswaKelasMap.get(siswaId)
+    if (!kelasId) return "-"
+    return kelasNameMap.get(kelasId) || kelasId
+  }, [siswaKelasMap, kelasNameMap])
+
+  const rekapStudentSummary = useMemo(() => {
+    if (!semuaSiswa || !semuaSikap) return []
+    let filtered = semuaSiswa
+    if (rekapFilterKelas !== "all") {
+      filtered = filtered.filter((s: any) => s.kelasId === rekapFilterKelas)
+    }
+    if (rekapSearch.trim()) {
+      const q = rekapSearch.toLowerCase()
+      filtered = filtered.filter((s: any) => s.namaLengkap.toLowerCase().includes(q))
+    }
+    return filtered.map((sis: any) => {
+      const logs = semuaSikap.filter((l: any) => l.siswaId === sis.id)
+      let posPoin = 0, negPoin = 0
+      logs.forEach((l: any) => {
+        const p = Number(l.poin) || 0
+        if (p > 0) posPoin += p
+        else if (p < 0) negPoin += Math.abs(p)
+      })
+      const netPoin = posPoin - negPoin
+      const latestLog = logs.length > 0 ? logs[0] : null
+      let status = "Normal"
+      let statusClass = "bg-slate-100 text-slate-600 border-slate-200"
+      if (netPoin < -10) { status = "Peringatan"; statusClass = "bg-rose-50 text-rose-600 border-rose-200" }
+      else if (netPoin > 10) { status = "Apresiasi"; statusClass = "bg-emerald-50 text-emerald-600 border-emerald-200" }
+      return {
+        id: sis.id,
+        nama: sis.namaLengkap,
+        kelas: getKelasNama(sis.id),
+        posPoin, negPoin, netPoin,
+        latestTindakLanjut: latestLog?.deskripsi || "-",
+        status, statusClass
+      }
+    })
+  }, [semuaSiswa, semuaSikap, rekapFilterKelas, rekapSearch, getKelasNama])
+
+  const availableKelas = useMemo(() => {
+    if (!semuaSiswa || !daftarKelas) return []
+    const kelasSet = new Set<string>()
+    semuaSiswa.forEach((s: any) => { if (s.kelasId) kelasSet.add(s.kelasId) })
+    return Array.from(kelasSet)
+      .map((id: string) => ({ id, nama: daftarKelas.find((k: any) => k.id === id)?.namaKelas || id }))
+      .sort((a: any, b: any) => a.nama.localeCompare(b.nama))
+  }, [semuaSiswa, daftarKelas])
+
   const updateStatusMutation = api.poin.updateStatusMonitoring.useMutation({
     onSuccess: () => {
       toast.success("Status kasus berhasil diperbarui")
@@ -59,7 +130,7 @@ export default function MonitoringSpApresiasiPage() {
           list.push({
             noSurat: `0${index}/SP/BK/${format(new Date(), "MM/yyyy")}`,
             nama: std.namaLengkap,
-            kelas: std.siswaId.slice(0, 5).toUpperCase(), // fallback representation of class context
+            kelas: getKelasNama(std.siswaId),
             jenis: group.aturan.status || "Surat Peringatan",
             tanggal: format(new Date(), "dd MMM yyyy"),
             status: "Terkirim"
@@ -69,7 +140,7 @@ export default function MonitoringSpApresiasiPage() {
       }
     })
     return list
-  }, [thresholdData])
+  }, [thresholdData, getKelasNama])
 
   // Compute Piagam list dynamically from real positive points achievers
   const dynamicPiagams = useMemo(() => {
@@ -89,7 +160,7 @@ export default function MonitoringSpApresiasiPage() {
       list.push({
         noSurat: `0${index}/APRESIASI/BK/${format(new Date(), "MM/yyyy")}`,
         nama: std.namaLengkap,
-        kelas: std.siswaId.slice(0, 5).toUpperCase(),
+        kelas: getKelasNama(std.siswaId),
         jenis,
         poin: `+${pts} Poin`,
         tanggal: format(new Date(), "dd MMM yyyy"),
@@ -98,7 +169,7 @@ export default function MonitoringSpApresiasiPage() {
       index++
     })
     return list
-  }, [dashboardData])
+  }, [dashboardData, getKelasNama])
 
   const handleOpenUpdateStatus = (item: any) => {
     setSelectedCase(item)
@@ -134,6 +205,16 @@ export default function MonitoringSpApresiasiPage() {
       {/* Tabs list */}
       <div className="flex items-center gap-1 border-b border-slate-100">
         <button
+          onClick={() => setActiveTab("rekap")}
+          className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
+            activeTab === "rekap"
+              ? "border-teal-500 text-teal-650"
+              : "border-transparent text-slate-450 hover:text-slate-700"
+          }`}
+        >
+          <span>Rekap Poin Siswa</span>
+        </button>
+        <button
           onClick={() => setActiveTab("monitoring")}
           className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 relative ${
             activeTab === "monitoring"
@@ -164,6 +245,87 @@ export default function MonitoringSpApresiasiPage() {
           <span>Surat & Piagam Apresiasi</span>
         </button>
       </div>
+
+      {/* Content Tab: Rekap */}
+      {activeTab === "rekap" && (
+        <div className="neumo-card bg-background rounded-3xl p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Rekap Akumulasi Poin Siswa</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Rekapitulasi poin prestasi dan pelanggaran seluruh siswa.</p>
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Cari nama siswa..."
+                  value={rekapSearch}
+                  onChange={(e) => setRekapSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700"
+                />
+              </div>
+              <select
+                value={rekapFilterKelas}
+                onChange={(e) => setRekapFilterKelas(e.target.value)}
+                className="px-3 py-2.5 rounded-xl bg-slate-50/50 border border-slate-200/50 text-xs font-bold text-slate-700 cursor-pointer"
+              >
+                <option value="all">Semua Kelas</option>
+                {availableKelas.map((k) => (
+                  <option key={k.id} value={k.id}>Kelas {k.nama}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="py-4 px-4 w-12 text-center">No</th>
+                  <th className="py-4 px-4">Nama Siswa</th>
+                  <th className="py-4 px-4">Kelas</th>
+                  <th className="py-4 px-4 text-center">Poin Prestasi (+)</th>
+                  <th className="py-4 px-4 text-center">Poin Pelanggaran (-)</th>
+                  <th className="py-4 px-4 text-center">Net Poin</th>
+                  <th className="py-4 px-4">Tindak Lanjut Terakhir</th>
+                  <th className="py-4 px-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
+                {rekapStudentSummary.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400 font-bold">
+                      Tidak ada data siswa ditemukan.
+                    </td>
+                  </tr>
+                ) : (
+                  rekapStudentSummary.map((item, idx) => (
+                    <tr key={item.id} className="hover:bg-slate-50/40">
+                      <td className="py-4 px-4 text-center font-extrabold text-slate-400">{idx + 1}</td>
+                      <td className="py-4 px-4">
+                        <div className="font-black text-slate-800 uppercase leading-none">{item.nama}</div>
+                      </td>
+                      <td className="py-4 px-4 text-slate-500">Kelas {item.kelas}</td>
+                      <td className="py-4 px-4 text-center font-black text-emerald-600">+{item.posPoin}</td>
+                      <td className="py-4 px-4 text-center font-black text-rose-600">-{item.negPoin}</td>
+                      <td className={`py-4 px-4 text-center font-black ${item.netPoin > 0 ? "text-emerald-600" : item.netPoin < 0 ? "text-rose-600" : "text-slate-500"}`}>
+                        {item.netPoin > 0 ? `+${item.netPoin}` : item.netPoin}
+                      </td>
+                      <td className="py-4 px-4 text-slate-500 max-w-[180px] truncate">{item.latestTindakLanjut}</td>
+                      <td className="py-4 px-4 text-center">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${item.statusClass}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Content Tab: Monitoring */}
       {activeTab === "monitoring" && (
@@ -217,7 +379,7 @@ export default function MonitoringSpApresiasiPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="font-black text-slate-800 uppercase leading-none">{item.siswa?.namaLengkap}</div>
-                          <span className="text-[9px] text-slate-400 uppercase mt-1 block">Kelas: {item.siswa?.kelasId} • {item.poin} Poin</span>
+                          <span className="text-[9px] text-slate-400 uppercase mt-1 block">Kelas: {getKelasNama(item.siswa?.id)} • {item.poin} Poin</span>
                         </td>
                         <td className="py-4 px-4">
                           <div className="font-extrabold text-slate-850">{actionPlan}</div>
@@ -330,7 +492,7 @@ export default function MonitoringSpApresiasiPage() {
                         <td className="py-4 px-4 text-slate-500 font-extrabold">{sp.noSurat}</td>
                         <td className="py-4 px-4">
                           <div className="font-black text-slate-800 uppercase">{sp.nama}</div>
-                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Siswa ID: {sp.kelas}</span>
+                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas: {sp.kelas}</span>
                         </td>
                         <td className="py-4 px-4 text-center">
                           <span className="inline-flex px-2.5 py-0.5 rounded-md text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100 uppercase tracking-wider">
@@ -463,7 +625,7 @@ export default function MonitoringSpApresiasiPage() {
                         <td className="py-4 px-4 text-slate-500 font-extrabold">{piagam.noSurat}</td>
                         <td className="py-4 px-4">
                           <div className="font-black text-slate-800 uppercase">{piagam.nama}</div>
-                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Siswa ID: {piagam.kelas}</span>
+                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas: {piagam.kelas}</span>
                         </td>
                         <td className="py-4 px-4 text-slate-800 font-extrabold">{piagam.jenis}</td>
                         <td className="py-4 px-4 text-center">

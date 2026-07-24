@@ -396,6 +396,18 @@ export const poinRouter = router({
       return result
     }),
 
+  removeSikap: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = getSekolahIdFilter(ctx as any)
+      const conditions = [eq(poinSikap.id, input.id)]
+      if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
+      const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
+      await db.delete(poinSikap).where(and(...conditions))
+      return { success: true }
+    }),
+
   // ── Dashboard ──
   getDashboardSiswa: protectedProcedure
     .query(async ({ ctx }) => {
