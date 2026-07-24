@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, count } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { guru, users } from "@/server/db/schema"
@@ -303,5 +303,33 @@ export const guruRouter = router({
        }
       await logAudit(ctx, { action: "reset_password", entity: "guru", entityId: input.id })
       return { success: true }
+    }),
+
+  getStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      
+      const totalCond: any[] = []
+      if (sekolahIdFilter) totalCond.push(eq(guru.sekolahId, sekolahIdFilter))
+      const [totalResult] = await db.select({ count: count() }).from(guru).where(and(...totalCond))
+      
+      const activeCond: any[] = [eq(guru.active, true)]
+      if (sekolahIdFilter) activeCond.push(eq(guru.sekolahId, sekolahIdFilter))
+      const [activeResult] = await db.select({ count: count() }).from(guru).where(and(...activeCond))
+      
+      const maleCond: any[] = [eq(guru.active, true), eq(guru.jenisKelamin, "L")]
+      if (sekolahIdFilter) maleCond.push(eq(guru.sekolahId, sekolahIdFilter))
+      const [maleResult] = await db.select({ count: count() }).from(guru).where(and(...maleCond))
+      
+      const femaleCond: any[] = [eq(guru.active, true), eq(guru.jenisKelamin, "P")]
+      if (sekolahIdFilter) femaleCond.push(eq(guru.sekolahId, sekolahIdFilter))
+      const [femaleResult] = await db.select({ count: count() }).from(guru).where(and(...femaleCond))
+
+      return {
+        total: Number(totalResult?.count ?? 0),
+        active: Number(activeResult?.count ?? 0),
+        male: Number(maleResult?.count ?? 0),
+        female: Number(femaleResult?.count ?? 0),
+      }
     }),
 })

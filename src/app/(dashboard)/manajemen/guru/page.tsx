@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, Users, UserCheck, UserX } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -82,6 +82,7 @@ export default function GuruPage() {
     limit,
     offset: page * limit,
   })
+  const statsQuery = api.guru.getStats.useQuery()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingGuru, setEditingGuru] = useState<GuruItem | null>(null)
@@ -562,6 +563,70 @@ export default function GuruPage() {
             className="hidden"
             onChange={handleImportFileSelected}
           />
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
+          <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-650 dark:text-teal-400 rounded-xl shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Total Pendidik & Tendik</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              {statsQuery.isLoading ? (
+                <Skeleton className="h-7 w-16 rounded" />
+              ) : (
+                `${statsQuery.data?.active ?? 0} Staf`
+              )}
+            </h3>
+          </div>
+        </div>
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
+          <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 rounded-xl shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Guru Laki-laki</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              {statsQuery.isLoading ? (
+                <Skeleton className="h-7 w-16 rounded" />
+              ) : (
+                `${statsQuery.data?.male ?? 0} Staf`
+              )}
+            </h3>
+          </div>
+        </div>
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-650 dark:text-emerald-405 rounded-xl shrink-0">
+            <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Guru Perempuan</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              {statsQuery.isLoading ? (
+                <Skeleton className="h-7 w-16 rounded" />
+              ) : (
+                `${statsQuery.data?.female ?? 0} Staf`
+              )}
+            </h3>
+          </div>
+        </div>
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
+          <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 rounded-xl shrink-0">
+            <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Semua Terdaftar</span>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              {statsQuery.isLoading ? (
+                <Skeleton className="h-7 w-16 rounded" />
+              ) : (
+                `${statsQuery.data?.total ?? 0} Staf`
+              )}
+            </h3>
+          </div>
         </div>
       </div>
 

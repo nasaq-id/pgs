@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, inArray, isNull } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, inArray, isNull, count } from "drizzle-orm"
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
@@ -535,5 +535,38 @@ export const siswaRouter = router({
       })
 
       return { success: true }
+    }),
+
+  getStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      
+      const totalCond: any[] = []
+      if (sekolahIdFilter) totalCond.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const [totalResult] = await db.select({ count: count() }).from(siswa).where(and(...totalCond))
+      
+      const activeCond: any[] = [eq(siswa.status, "aktif")]
+      if (sekolahIdFilter) activeCond.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const [activeResult] = await db.select({ count: count() }).from(siswa).where(and(...activeCond))
+      
+      const maleCond: any[] = [eq(siswa.status, "aktif"), eq(siswa.jenisKelamin, "L")]
+      if (sekolahIdFilter) maleCond.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const [maleResult] = await db.select({ count: count() }).from(siswa).where(and(...maleCond))
+      
+      const femaleCond: any[] = [eq(siswa.status, "aktif"), eq(siswa.jenisKelamin, "P")]
+      if (sekolahIdFilter) femaleCond.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const [femaleResult] = await db.select({ count: count() }).from(siswa).where(and(...femaleCond))
+
+      const noClassCond: any[] = [eq(siswa.status, "aktif"), isNull(siswa.kelasId)]
+      if (sekolahIdFilter) noClassCond.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const [noClassResult] = await db.select({ count: count() }).from(siswa).where(and(...noClassCond))
+
+      return {
+        total: Number(totalResult?.count ?? 0),
+        active: Number(activeResult?.count ?? 0),
+        male: Number(maleResult?.count ?? 0),
+        female: Number(femaleResult?.count ?? 0),
+        noClass: Number(noClassResult?.count ?? 0),
+      }
     }),
 })
