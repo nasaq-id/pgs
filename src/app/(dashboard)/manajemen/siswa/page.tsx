@@ -1256,7 +1256,10 @@ export default function SiswaPage() {
                         {activeMenuId === s.id && (
                           <div
                             ref={menuRef}
-                            className="absolute right-12 top-0 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xl z-50 min-w-[210px] p-2 space-y-1 block animate-fade-in text-left"
+                            className={cn(
+                              "absolute right-12 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xl z-50 min-w-[210px] p-2 space-y-1 block animate-fade-in text-left",
+                              index >= siswaList.length - 3 ? "bottom-0" : "top-0"
+                            )}
                           >
                             <button
                               onClick={() => {
