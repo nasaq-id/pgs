@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
 import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield, X } from "lucide-react"
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
 
@@ -33,6 +34,10 @@ const STATUS_COLORS: Record<StatusAbsensi, string> = {
   izin: "bg-blue-500/10 text-blue-700 border-blue-500/20",
   sakit: "bg-orange-500/10 text-orange-700 border-orange-500/20",
   alpha: "bg-destructive/10 text-destructive border-destructive/20",
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
 }
 
 export default function AbsensiPage() {
@@ -79,6 +84,11 @@ export default function AbsensiPage() {
   const [bulkProgress, setBulkProgress] = useState("")
   const [qrPerPage, setQrPerPage] = useState<string>("6")
   const [bulkPrinting, setBulkPrinting] = useState(false)
+  const initializedSiswaKelasRef = useRef<string | null>(null)
+  const initializedGuruRef = useRef(false)
+  const [siswaQrUrl, setSiswaQrUrl] = useState<string | null>(null)
+  const [guruQrUrl, setGuruQrUrl] = useState<string | null>(null)
+  const [adminQrUrl, setAdminQrUrl] = useState<string | null>(null)
 
   useEffect(() => {
     setTanggal(new Date().toISOString().split("T")[0])
@@ -179,6 +189,28 @@ export default function AbsensiPage() {
     return (siswaAll || []).find((s) => s.usernameSiswa === session?.user?.email || s.nisn === session?.user?.email || s.nisLokal === session?.user?.email)
   }, [siswaAll, role, session])
 
+  // Generate personal QR data URLs locally instead of using external api.qrserver.com
+  useEffect(() => {
+    if (role === "siswa" && currentSiswaInfo) {
+      const qrData = currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id
+      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setSiswaQrUrl).catch(() => {})
+    }
+  }, [role, currentSiswaInfo])
+
+  useEffect(() => {
+    if (role === "guru" && ownGuru) {
+      const qrData = ownGuru.nipnuptk || ownGuru.nik || ownGuru.id
+      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setGuruQrUrl).catch(() => {})
+    }
+  }, [role, ownGuru])
+
+  useEffect(() => {
+    if (role === "super_admin" || role === "admin_sekolah" || role === "tu") {
+      const qrData = session?.user?.email || session?.user?.id || ""
+      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setAdminQrUrl).catch(() => {})
+    }
+  }, [role, session])
+
   // Populate manual records for siswa
   useEffect(() => {
     if (studentAttendanceQuery.data && studentAttendanceQuery.data.length > 0) {
@@ -191,14 +223,16 @@ export default function AbsensiPage() {
         }
       }
       setSiswaRecords(map)
-    } else if (studentAttendanceQuery.isFetched) {
+      initializedSiswaKelasRef.current = kelasId
+    } else if (studentAttendanceQuery.isFetched && initializedSiswaKelasRef.current !== kelasId) {
       const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
       for (const s of siswaDiKelas) {
         map[s.id] = { status: "hadir", jamMasuk: "", jamPulang: "" }
       }
       setSiswaRecords(map)
+      initializedSiswaKelasRef.current = kelasId
     }
-  }, [studentAttendanceQuery.data, studentAttendanceQuery.isFetched, siswaDiKelas])
+  }, [studentAttendanceQuery.data, studentAttendanceQuery.isFetched, siswaDiKelas, kelasId])
 
   // Populate manual records for guru
   useEffect(() => {
@@ -212,12 +246,14 @@ export default function AbsensiPage() {
         }
       }
       setGuruRecords(map)
-    } else if (guruAttendanceQuery.isFetched && guruAll) {
+      initializedGuruRef.current = true
+    } else if (guruAttendanceQuery.isFetched && guruAll && !initializedGuruRef.current) {
       const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
       for (const g of guruAll) {
         map[g.id] = { status: "hadir", jamMasuk: "", jamPulang: "" }
       }
       setGuruRecords(map)
+      initializedGuruRef.current = true
     }
   }, [guruAttendanceQuery.data, guruAttendanceQuery.isFetched, guruAll])
 
@@ -299,8 +335,8 @@ export default function AbsensiPage() {
         }
 
         const existingMap = new Map((studentAttendanceQuery.data || []).map((r) => [r.siswaId, r]))
-        const toCreate: any[] = []
-        const toUpdate: any[] = []
+        const toCreate: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null }[] = []
+        const toUpdate: { id: string; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null }[] = []
 
         for (const s of siswaDiKelas) {
           const rec = siswaRecords[s.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
@@ -339,15 +375,16 @@ export default function AbsensiPage() {
         if (toCreate.length > 0) {
           await createAbsensiSiswa.mutateAsync({ absensi: toCreate })
         }
-        for (const u of toUpdate) {
-          await updateAbsensiSiswa.mutateAsync(u)
-        }
+        const updatePromises = toUpdate.map((u) => updateAbsensiSiswa.mutateAsync(u))
+        await Promise.all(updatePromises)
 
         toast.success("Absensi siswa berhasil disimpan")
         studentAttendanceQuery.refetch()
       } else {
         // Guru
         if (!guruAll) return
+
+        const guruPromises: Promise<any>[] = []
 
         for (const g of guruAll) {
           const rec = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
@@ -364,25 +401,27 @@ export default function AbsensiPage() {
               (existing.jamPulang && new Date(existing.jamPulang).toTimeString().slice(0, 5) !== rec.jamPulang) ||
               (!existing.jamPulang && rec.jamPulang)
             ) {
-              await saveGuruAbsensi.mutateAsync({
+              guruPromises.push(saveGuruAbsensi.mutateAsync({
                 id: existing.id,
                 guruId: g.id,
                 tanggal: tanggalDate,
                 status: rec.status,
                 jamMasuk: jamMasukDate,
                 jamPulang: jamPulangDate,
-              })
+              }))
             }
           } else {
-            await saveGuruAbsensi.mutateAsync({
+            guruPromises.push(saveGuruAbsensi.mutateAsync({
               guruId: g.id,
               tanggal: tanggalDate,
               status: rec.status,
               jamMasuk: jamMasukDate,
               jamPulang: jamPulangDate,
-            })
+            }))
           }
         }
+
+        await Promise.all(guruPromises)
 
         toast.success("Absensi guru berhasil disimpan")
         guruAttendanceQuery.refetch()
@@ -410,7 +449,7 @@ export default function AbsensiPage() {
     toast.info("Status diset Hadir Semua dengan jam masuk saat ini")
   }
 
-  const updateManualRecord = (id: string, field: "status" | "jamMasuk" | "jamPulang", value: any) => {
+  const updateManualRecord = (id: string, field: "status" | "jamMasuk" | "jamPulang", value: string) => {
     const records = targetType === "siswa" ? siswaRecords : guruRecords
     const setRecords = targetType === "siswa" ? setSiswaRecords : setGuruRecords
 
@@ -673,70 +712,16 @@ export default function AbsensiPage() {
         return
       }
 
-      let gridCols = 2
-      let gridRows = 3
-      let gapSize = "15px"
-      let cardHeight = "80mm"
-      let logoFontSize = "0.75rem"
-      let titleFontSize = "0.7rem"
-      let nameFontSize = "1rem"
-      let descFontSize = "0.8rem"
-
-      if (limitPerPage === 4) {
-        gridCols = 2
-        gridRows = 2
-        gapSize = "20px"
-        cardHeight = "115mm"
-        logoFontSize = "0.9rem"
-        titleFontSize = "0.8rem"
-        nameFontSize = "1.2rem"
-        descFontSize = "0.9rem"
-      } else if (limitPerPage === 6) {
-        gridCols = 2
-        gridRows = 3
-        gapSize = "15px"
-        cardHeight = "78mm"
-        logoFontSize = "0.75rem"
-        titleFontSize = "0.7rem"
-        nameFontSize = "1rem"
-        descFontSize = "0.8rem"
-      } else if (limitPerPage === 8) {
-        gridCols = 2
-        gridRows = 4
-        gapSize = "10px"
-        cardHeight = "58mm"
-        logoFontSize = "0.7rem"
-        titleFontSize = "0.65rem"
-        nameFontSize = "0.9rem"
-        descFontSize = "0.75rem"
-      } else if (limitPerPage === 9) {
-        gridCols = 3
-        gridRows = 3
-        gapSize = "12px"
-        cardHeight = "78mm"
-        logoFontSize = "0.75rem"
-        titleFontSize = "0.7rem"
-        nameFontSize = "1rem"
-        descFontSize = "0.8rem"
-      } else if (limitPerPage === 12) {
-        gridCols = 3
-        gridRows = 4
-        gapSize = "10px"
-        cardHeight = "58mm"
-        logoFontSize = "0.7rem"
-        titleFontSize = "0.65rem"
-        nameFontSize = "0.9rem"
-        descFontSize = "0.75rem"
-      } else if (limitPerPage === 16) {
-        gridCols = 4
-        gridRows = 4
-        gapSize = "8px"
-        cardHeight = "58mm"
-        logoFontSize = "0.6rem"
-        titleFontSize = "0.55rem"
-        nameFontSize = "0.75rem"
-        descFontSize = "0.65rem"
+      const printLayouts: Record<number, { cols: number; rows: number; gap: string; cardH: string; logoFz: string; titleFz: string; nameFz: string; descFz: string }> = {
+        4: { cols: 2, rows: 2, gap: "20px", cardH: "115mm", logoFz: "0.9rem", titleFz: "0.8rem", nameFz: "1.2rem", descFz: "0.9rem" },
+        6: { cols: 2, rows: 3, gap: "15px", cardH: "78mm", logoFz: "0.75rem", titleFz: "0.7rem", nameFz: "1rem", descFz: "0.8rem" },
+        8: { cols: 2, rows: 4, gap: "10px", cardH: "58mm", logoFz: "0.7rem", titleFz: "0.65rem", nameFz: "0.9rem", descFz: "0.75rem" },
+        9: { cols: 3, rows: 3, gap: "12px", cardH: "78mm", logoFz: "0.75rem", titleFz: "0.7rem", nameFz: "1rem", descFz: "0.8rem" },
+        12: { cols: 3, rows: 4, gap: "10px", cardH: "58mm", logoFz: "0.7rem", titleFz: "0.65rem", nameFz: "0.9rem", descFz: "0.75rem" },
+        16: { cols: 4, rows: 4, gap: "8px", cardH: "58mm", logoFz: "0.6rem", titleFz: "0.55rem", nameFz: "0.75rem", descFz: "0.65rem" },
       }
+      const layout = printLayouts[limitPerPage] || { cols: 2, rows: 3, gap: "15px", cardH: "80mm", logoFz: "0.75rem", titleFz: "0.7rem", nameFz: "1rem", descFz: "0.8rem" }
+      const { cols: gridCols, rows: gridRows, gap: gapSize, cardH: cardHeight, logoFz: logoFontSize, titleFz: titleFontSize, nameFz: nameFontSize, descFz: descFontSize } = layout
 
       const schoolName = sekolah?.namaSekolah || "PORTAL GARDA SEKOLAH"
 
@@ -851,16 +836,16 @@ export default function AbsensiPage() {
         htmlContent += `<div class="page">`;
         for (const s of pageSiswa) {
           htmlContent += `
-            <div class="card">
-              <div class="card-accent"></div>
-              <div class="logo">${s.class} &middot; ${schoolName}</div>
-              <div class="card-title">Kartu Presensi Siswa</div>
-              <img class="qr-img" src="${s.qrDataUrl}" alt="QR Code" />
-              <div>
-                <div class="student-name">${s.name}</div>
-                <span class="identifier-badge">NIS/NISN: ${s.identifier}</span>
+              <div class="card">
+                <div class="card-accent"></div>
+                <div class="logo">${escapeHtml(s.class)} &middot; ${escapeHtml(schoolName)}</div>
+                <div class="card-title">Kartu Presensi Siswa</div>
+                <img class="qr-img" src="${s.qrDataUrl}" alt="QR Code" />
+                <div>
+                  <div class="student-name">${escapeHtml(s.name)}</div>
+                  <span class="identifier-badge">NIS/NISN: ${escapeHtml(s.identifier)}</span>
+                </div>
               </div>
-            </div>
           `;
         }
         htmlContent += `</div>`;
@@ -890,30 +875,36 @@ export default function AbsensiPage() {
 
   const handleDownloadQR = async (data: string, name: string) => {
     try {
-      const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `QR_Absensi_${name.replace(/\s+/g, "_")}.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
+      const qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
+      const link = document.createElement("a")
+      link.href = qrDataUrl
+      link.download = `QR_Absensi_${name.replace(/\s+/g, "_")}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success("QR Code berhasil diunduh")
     } catch (e) {
-      window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`, "_blank")
+      console.error("QR download failed", e)
+      toast.error("Gagal mengunduh QR Code")
     }
   }
 
-  const handlePrintQR = (data: string, name: string, roleName: string, identifier: string) => {
+  const handlePrintQR = async (data: string, name: string, roleName: string, identifier: string) => {
     const printWindow = window.open("", "_blank", "width=600,height=600")
     if (!printWindow) return
+
+    let qrDataUrl = ""
+    try {
+      qrDataUrl = await QRCode.toDataURL(data, { width: 250, margin: 2, errorCorrectionLevel: "M" })
+    } catch {
+      toast.error("Gagal membuat QR Code")
+      return
+    }
 
     printWindow.document.write(`
       <html>
         <head>
-          <title>Cetak QR Code - ${name}</title>
+          <title>Cetak QR Code - ${escapeHtml(name)}</title>
           <style>
             body {
               font-family: system-ui, sans-serif;
@@ -969,10 +960,10 @@ export default function AbsensiPage() {
         <body>
           <div class="card">
             <div class="logo">E-PRESENSI SEKOLAH</div>
-            <p style="font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #10b981;">KARTU PRESENSI ${roleName}</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data}" alt="QR" />
-            <h2>${name}</h2>
-            <span class="identifier">${identifier}</span>
+            <p style="font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #10b981;">KARTU PRESENSI ${escapeHtml(roleName)}</p>
+            <img src="${qrDataUrl}" alt="QR" />
+            <h2>${escapeHtml(name)}</h2>
+            <span class="identifier">${escapeHtml(identifier)}</span>
           </div>
           <script>
             window.onload = function() {
@@ -986,49 +977,66 @@ export default function AbsensiPage() {
     printWindow.document.close()
   }
 
-  // Camera initialization with Lazy Loading
+  // Camera initialization with safe cleanup
+  const scannerRef = useRef<{ instance: any; stopped: boolean }>({ instance: null, stopped: true })
+  const mountedRef = useRef(false)
+
   useEffect(() => {
-    if (activeTab === "scan" && isScannerActive) {
-      let html5Qrcode: any = null
-      const scannerId = "reader"
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
-      // Wait brief moment to guarantee div is mounted
-      const timer = setTimeout(() => {
-        import("html5-qrcode").then(({ Html5Qrcode }) => {
-          html5Qrcode = new Html5Qrcode(scannerId)
-          html5Qrcode
-            .start(
-              { facingMode: "environment" },
-              { fps: 10, qrbox: { width: 250, height: 250 } },
-              (decodedText: string) => {
-                handleScanSuccess(decodedText)
-              },
-              () => {},
-            )
-            .catch((err: any) => {
-              console.error("Camera scanner start failed:", err)
-            })
-        })
-      }, 300)
+  useEffect(() => {
+    const scanner = scannerRef.current
+    if (activeTab !== "scan" || !isScannerActive) {
+      if (scanner.instance && !scanner.stopped) {
+        scanner.instance.stop().then(() => {
+          scanner.instance.clear()
+          scanner.stopped = true
+        }).catch(() => {})
+      }
+      return
+    }
 
-      return () => {
-        clearTimeout(timer)
-        if (html5Qrcode) {
-          try {
-            if (html5Qrcode.isScanning) {
-              html5Qrcode.stop().then(() => {
-                html5Qrcode.clear()
-              })
-            }
-          } catch (e) {
-            console.error("Cleanup camera failed", e)
-          }
+    scanner.stopped = false
+    const scannerId = "reader"
+
+    const timer = setTimeout(() => {
+      import("html5-qrcode").then(({ Html5Qrcode }) => {
+        if (!mountedRef.current || scanner.stopped) return
+        scanner.instance = new Html5Qrcode(scannerId)
+        scanner.instance
+          .start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText: string) => {
+              handleScanSuccess(decodedText)
+            },
+            () => {},
+          )
+          .catch((err: any) => {
+            console.error("Camera scanner start failed:", err)
+          })
+      })
+    }, 300)
+
+    return () => {
+      clearTimeout(timer)
+      scanner.stopped = true
+      if (scanner.instance) {
+        try {
+          scanner.instance.stop().then(() => {
+            scanner.instance.clear()
+          }).catch(() => {})
+        } catch (e) {
+          console.error("Cleanup camera failed", e)
         }
       }
     }
   }, [activeTab, isScannerActive])
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6 text-left">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -1116,7 +1124,7 @@ export default function AbsensiPage() {
             <div className="flex gap-2 flex-wrap items-center">
               <Select
                 value={targetType}
-                onValueChange={(v: any) => setTargetType(v)}
+                onValueChange={(v) => setTargetType(v as "siswa" | "guru")}
                 options={[
                   { value: "siswa", label: "Siswa" },
                   { value: "guru", label: "Guru/Pegawai" }
@@ -1697,7 +1705,7 @@ export default function AbsensiPage() {
             {role === "siswa" && currentSiswaInfo && (
               <div className="space-y-3 w-full flex flex-col items-center">
                 <div className="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center shadow-inner">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id}`} alt="Siswa QR Code" className="w-48 h-48" />
+                  {siswaQrUrl ? <img src={siswaQrUrl} alt="Siswa QR Code" className="w-48 h-48" /> : <Skeleton className="w-48 h-48 rounded-2xl" />}
                 </div>
                 <div className="w-full">
                   <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{currentSiswaInfo.namaLengkap}</h4>
@@ -1718,7 +1726,7 @@ export default function AbsensiPage() {
             {role === "guru" && ownGuru && (
               <div className="space-y-3 w-full flex flex-col items-center">
                 <div className="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center shadow-inner">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${ownGuru.nipnuptk || ownGuru.nik || ownGuru.id}`} alt="Guru QR Code" className="w-48 h-48" />
+                  {guruQrUrl ? <img src={guruQrUrl} alt="Guru QR Code" className="w-48 h-48" /> : <Skeleton className="w-48 h-48 rounded-2xl" />}
                 </div>
                 <div className="w-full">
                   <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{ownGuru.namaLengkap}</h4>
@@ -1739,7 +1747,7 @@ export default function AbsensiPage() {
             {(role === "super_admin" || role === "admin_sekolah" || role === "tu") && (
               <div className="space-y-3 w-full flex flex-col items-center">
                 <div className="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center shadow-inner">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${session?.user?.email || session?.user?.id}`} alt="Admin QR Code" className="w-48 h-48" />
+                  {adminQrUrl ? <img src={adminQrUrl} alt="Admin QR Code" className="w-48 h-48" /> : <Skeleton className="w-48 h-48 rounded-2xl" />}
                 </div>
                 <div className="w-full">
                   <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{session?.user?.name || "Administrator"}</h4>
@@ -2026,5 +2034,6 @@ export default function AbsensiPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   )
 }
