@@ -246,7 +246,7 @@ export default function MapelPage() {
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Stat 1: Total Mata Pelajaran */}
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent relative overflow-hidden flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent relative overflow-hidden flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Mata Pelajaran</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalMapel} <span className="text-xs font-semibold text-slate-500">Mapel</span></h3>
@@ -257,7 +257,7 @@ export default function MapelPage() {
         </div>
 
         {/* Stat 2: Kategori Kurikulum */}
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent relative overflow-hidden space-y-2 shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent relative overflow-hidden space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Kategori Kurikulum</p>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -278,7 +278,7 @@ export default function MapelPage() {
         </div>
 
         {/* Stat 3: Total Beban Mengajar */}
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent relative overflow-hidden flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent relative overflow-hidden flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Beban Mengajar</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">{totalBebanJam} <span className="text-xs font-semibold text-slate-500">JP /Minggu</span></h3>
@@ -289,7 +289,7 @@ export default function MapelPage() {
         </div>
       </div>
 
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+      <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
             <div className="relative w-full sm:max-w-xs lg:max-w-sm">
@@ -340,13 +340,13 @@ export default function MapelPage() {
         <div className="md:hidden space-y-4">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3">
+              <div key={i} className="neumo-card bg-background rounded-[22px] p-4 space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
             ))
           ) : localRecords.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+            <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
               {search ? "Tidak ditemukan" : "Belum ada mata pelajaran"}
             </div>
           ) : (
@@ -360,7 +360,7 @@ export default function MapelPage() {
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   className={cn(
-                    "glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40 transition-all",
+                    "neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left transition-all",
                     dragIndex === index ? "opacity-50 border-dashed border-teal-500" : "cursor-grab active:cursor-grabbing"
                   )}
                 >

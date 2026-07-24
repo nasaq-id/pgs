@@ -1120,7 +1120,7 @@ export default function AbsensiPage() {
 
       {activeTab === "manual" && canTakeAttendance && (
         <div className="space-y-4">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 md:p-5 flex flex-col md:flex-row gap-3 items-start md:items-center bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+          <div className="neumo-card bg-background rounded-[26px] p-4 md:p-5 flex flex-col md:flex-row gap-3 items-start md:items-center text-left">
             <div className="flex gap-2 flex-wrap items-center">
               <Select
                 value={targetType}
@@ -1270,7 +1270,7 @@ export default function AbsensiPage() {
                 {siswaDiKelas.map((std, idx) => {
                   const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
                   return (
-                    <div key={std.id} className="glass-card rounded-2xl p-4 space-y-3">
+                    <div key={std.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</p>
@@ -1396,7 +1396,7 @@ export default function AbsensiPage() {
                 {guruAll.map((g, idx) => {
                   const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
                   return (
-                    <div key={g.id} className="glass-card rounded-2xl p-4 space-y-3">
+                    <div key={g.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{g.namaLengkap}</p>
@@ -1452,7 +1452,7 @@ export default function AbsensiPage() {
 
       {activeTab === "scan" && canTakeAttendance && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-left">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 lg:col-span-2 space-y-4 flex flex-col items-center bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+          <div className="neumo-card bg-background rounded-[26px] p-5 lg:col-span-2 space-y-4 flex flex-col items-center">
             <div className="text-center">
               <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-200">Scan Barcode / QR Code Kehadiran</h3>
               <p className="text-xs text-muted-foreground mt-1">Posisikan kode batang NISN Siswa atau NIP Guru di depan kamera</p>
@@ -1486,7 +1486,7 @@ export default function AbsensiPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[26px] p-5">
               <h4 className="font-black text-[10px] text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Hasil Pemindaian (Scan)</h4>
               {!scanResult ? (
                 <div className="py-16 text-center text-slate-400 font-semibold text-xs">Menunggu pemindaian barcode...</div>
@@ -1534,7 +1534,7 @@ export default function AbsensiPage() {
       {activeTab === "setting" && canManageGlobal && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-4xl text-left">
           {/* Main Setting Card */}
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-5 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+          <div className="neumo-card bg-background rounded-[26px] p-6 space-y-5">
             <div className="flex items-center gap-3">
               <Settings className="h-5 w-5 text-teal-600" />
               <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Konfigurasi Absensi & Geofencing</h3>
@@ -1655,7 +1655,7 @@ export default function AbsensiPage() {
 
           {/* Right Status Info Box */}
           <div className="space-y-4">
-            <div className="glass-card rounded-[26px] border border-emerald-500/20 bg-emerald-500/[0.01] p-5 space-y-4">
+            <div className="neumo-card bg-background rounded-[26px] border border-emerald-500/20 bg-emerald-500/[0.01] p-5 space-y-4">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Shield className="h-4 w-4" />
                 <h4 className="text-xs font-black uppercase tracking-wider">Geofence Multi-Tenancy</h4>
@@ -1693,7 +1693,7 @@ export default function AbsensiPage() {
       {activeTab === "pribadi" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
           <div className="space-y-6">
-            <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-5 flex flex-col items-center text-center bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[26px] p-6 space-y-5 flex flex-col items-center text-center">
             <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center">
               <QrCode className="h-6 w-6" />
             </div>
@@ -1768,7 +1768,7 @@ export default function AbsensiPage() {
 
           {/* Bulk Barcode Download Card */}
           {(role === "super_admin" || role === "admin_sekolah" || role === "tu") && (
-            <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
+            <div className="neumo-card bg-background rounded-[26px] p-6 space-y-4 text-left">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
                   <Printer className="h-5 w-5" />
@@ -1880,7 +1880,7 @@ export default function AbsensiPage() {
           )}
         </div>
 
-        <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 md:col-span-2 space-y-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)] text-left">
+        <div className="neumo-card bg-background rounded-[26px] p-5 md:col-span-2 space-y-4 text-left">
             <div>
               <h3 className="font-extrabold text-base text-slate-800 dark:text-slate-100">Riwayat Kehadiran (30 Hari Terakhir)</h3>
               <p className="text-xs text-muted-foreground mt-1">Log kehadiran masuk dan pulang mandiri</p>

@@ -213,7 +213,7 @@ export default function IzinPage() {
       </div>
 
       {activeTab === "form" && isGuruOrSiswa && (
-        <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-6 max-w-xl bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+        <div className="neumo-card bg-background rounded-[26px] p-6 max-w-xl text-left">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jenis Izin</Label>
@@ -314,13 +314,13 @@ export default function IzinPage() {
       )}
 
       {activeTab === "riwayat" && isGuruOrSiswa && (
-        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+        <div className="neumo-card bg-background rounded-[22px] overflow-hidden text-left">
           {isListLoading ? (
             <div className="space-y-3 p-6">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : historyList.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] m-4">
+            <div className="py-16 text-center text-slate-400 font-bold text-sm rounded-[22px] m-4">
               Belum ada riwayat pengajuan izin
             </div>
           ) : (
@@ -349,13 +349,13 @@ export default function IzinPage() {
       )}
 
       {activeTab === "approval" && canApprove && (
-        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+        <div className="neumo-card bg-background rounded-[22px] overflow-hidden text-left">
           {isListLoading ? (
             <div className="space-y-3 p-6">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : approvalList.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] m-4">
+            <div className="py-16 text-center text-slate-400 font-bold text-sm rounded-[22px] m-4">
               Tidak ada pengajuan izin pending yang perlu persetujuan
             </div>
           ) : (
@@ -424,13 +424,13 @@ export default function IzinPage() {
       )}
 
       {activeTab === "riwayat_approval" && canApprove && (
-        <div className="rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+        <div className="neumo-card bg-background rounded-[22px] overflow-hidden text-left">
           {isListLoading ? (
             <div className="space-y-3 p-6">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
             </div>
           ) : processedList.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 font-bold text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 m-4 rounded-[22px]">
+            <div className="py-16 text-center text-slate-400 font-bold text-sm rounded-[22px] m-4">
               Belum ada riwayat persetujuan izin
             </div>
           ) : (

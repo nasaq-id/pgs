@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
 import { useSession } from "next-auth/react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -339,7 +338,7 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Filter Card Section (Hidden on print) */}
-      <Card className="print:hidden p-5 rounded-[24px] bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-sm">
+      <div className="print:hidden neumo-card bg-background rounded-[24px] p-5 space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <Filter className="w-4 h-4 text-emerald-600" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -510,11 +509,11 @@ export default function RekapPresensiPage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Stat Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
               Total {activeTab === "siswa" ? "Siswa" : "Guru"}
@@ -528,7 +527,7 @@ export default function RekapPresensiPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Rata-rata Kehadiran</span>
             <span className="text-2xl font-black text-teal-600 dark:text-teal-400 block">
@@ -540,7 +539,7 @@ export default function RekapPresensiPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Terlambat / Izin</span>
             <span className="text-2xl font-black text-amber-500 dark:text-amber-400 block">
@@ -552,7 +551,7 @@ export default function RekapPresensiPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shadow-sm">
+        <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Alpha (Tanpa Ket)</span>
             <span className="text-2xl font-black text-rose-500 dark:text-rose-400 block">
@@ -566,7 +565,7 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Table Section */}
-      <Card className="rounded-[24px] bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden p-0">
+      <div className="neumo-card bg-background rounded-[24px] overflow-hidden">
         {/* Search Bar (Hidden on print) */}
         <div className="print:hidden p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
           <div className="relative w-full sm:w-[280px]">
@@ -687,7 +686,7 @@ export default function RekapPresensiPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Printable Signature Section (Visible on print) */}
       <div className="hidden print:grid grid-cols-2 gap-10 pt-10 text-xs font-semibold text-center">

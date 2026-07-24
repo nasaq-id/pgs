@@ -176,7 +176,7 @@ export default function PresensiGuruPage() {
       {activeTab === "scan" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Left: Camera Scanner Box */}
-          <Card className="p-6 rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 glass-card space-y-5 text-left">
+          <Card className="p-6 rounded-[28px] neumo-card bg-background space-y-5 text-left">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
@@ -287,7 +287,7 @@ export default function PresensiGuruPage() {
                 </p>
               </Card>
             ) : (
-              <Card className="p-6 rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 glass-card text-left space-y-4">
+              <Card className="p-6 rounded-[28px] neumo-card bg-background text-left space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center font-bold shrink-0">
                     <UserCheck className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function PresensiGuruPage() {
 
       {/* Tab 2: QR Code Sekolah (Tampilan QR Code Statik Utama) */}
       {activeTab === "qrcode" && (
-        <Card className="p-8 rounded-[32px] border border-slate-200/80 dark:border-slate-800/80 glass-card max-w-2xl mx-auto space-y-6 text-center shadow-xl">
+        <Card className="p-8 rounded-[32px] neumo-card bg-background max-w-2xl mx-auto space-y-6 text-center">
           <div className="space-y-1.5">
             <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 block">
               {staticQrData?.sekolahNama || "SEKOLAH"}
@@ -414,7 +414,7 @@ export default function PresensiGuruPage() {
 
       {/* Tab 3: Log Presensi Guru Hari Ini */}
       {activeTab === "logs" && (
-        <Card className="p-6 rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 glass-card space-y-4 text-left shadow-sm">
+        <Card className="p-6 rounded-[28px] neumo-card bg-background space-y-4 text-left">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">

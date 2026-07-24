@@ -854,7 +854,7 @@ export default function SiswaPage() {
         ))}
       </div>
 
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+      <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         {/* Row 1: Search and Filters */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input on the Left */}
@@ -989,20 +989,20 @@ export default function SiswaPage() {
         <div className="md:hidden space-y-4">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3">
+              <div key={i} className="neumo-card bg-background rounded-[22px] p-4 space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
             ))
           ) : !siswaList || siswaList.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+            <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
               Tidak ada data siswa ditemukan
             </div>
           ) : (
             siswaList.map((s) => {
               const currentKelas = kelasList?.find(k => k.id === s.kelasId)?.namaKelas
               return (
-                <div key={s.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                <div key={s.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
                   <div className="flex items-start gap-2">
                     <input
                       type="checkbox"

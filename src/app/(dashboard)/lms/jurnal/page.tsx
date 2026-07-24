@@ -139,7 +139,7 @@ export default function JurnalMengajarPage() {
       </div>
 
       {/* Rekapitulasi Jurnal Card (Matching Screenshot) */}
-      <Card className="p-6 rounded-3xl glass-card shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-200/80 dark:border-slate-800/80 space-y-5">
+      <Card className="p-6 rounded-3xl neumo-card bg-background space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4 flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600">

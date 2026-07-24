@@ -340,7 +340,7 @@ export default function IdCardPage() {
         
         {/* Panel Kiri: List & Filter (Col 7) */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="glass rounded-2xl p-5 border">
+          <div className="neumo-card bg-background rounded-2xl p-5">
             <Tabs value={activeTab} onValueChange={(val) => {
               setActiveTab(val as "siswa" | "guru")
               setSelectedSiswaIds({})
@@ -493,7 +493,7 @@ export default function IdCardPage() {
                 </div>
                 <div className="md:hidden space-y-2">
                   {!isLoadingSiswa && siswaList && siswaList.length > 0 && siswaList.map((siswa) => (
-                    <div key={siswa.id} className="glass-card rounded-2xl p-4">
+                    <div key={siswa.id} className="neumo-card bg-background rounded-2xl p-4">
                       <div className="flex items-center gap-3 mb-2">
                         <Checkbox
                           checked={!!selectedSiswaIds[siswa.id]}
@@ -613,7 +613,7 @@ export default function IdCardPage() {
                 </div>
                 <div className="md:hidden space-y-2">
                   {!isLoadingGuru && guruList && guruList.length > 0 && guruList.map((guru) => (
-                    <div key={guru.id} className="glass-card rounded-2xl p-4">
+                    <div key={guru.id} className="neumo-card bg-background rounded-2xl p-4">
                       <div className="flex items-center gap-3 mb-2">
                         <Checkbox
                           checked={!!selectedGuruIds[guru.id]}
@@ -654,7 +654,7 @@ export default function IdCardPage() {
         <div className="lg:col-span-5 space-y-6">
           
           {/* Pratinjau ID Card Live */}
-          <div className="glass rounded-2xl p-5 border space-y-4">
+          <div className="neumo-card bg-background rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b">
               <div className="flex items-center gap-2 font-semibold">
                 <Layout className="h-4 w-4 text-primary" />
@@ -826,7 +826,7 @@ export default function IdCardPage() {
           </div>
 
           {/* Panel Kustomisasi Desain */}
-          <div className="glass rounded-2xl p-5 border space-y-5">
+          <div className="neumo-card bg-background rounded-2xl p-5 space-y-5">
             <div className="flex items-center gap-2 font-semibold pb-3 border-b">
               <Sliders className="h-4 w-4 text-primary" />
               <span>Pengaturan Desain Kartu</span>

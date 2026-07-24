@@ -268,7 +268,7 @@ export default function EMateriPage() {
 
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 bg-gradient-to-br from-blue-500/10 to-transparent flex items-center justify-between">
+        <div className="neumo-card bg-background rounded-[22px] p-4 bg-gradient-to-br from-blue-500/10 to-transparent flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total e-Materi</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalMateri}</h3>
@@ -278,7 +278,7 @@ export default function EMateriPage() {
           </div>
         </div>
 
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 bg-gradient-to-br from-indigo-500/10 to-transparent flex items-center justify-between">
+        <div className="neumo-card bg-background rounded-[22px] p-4 bg-gradient-to-br from-indigo-500/10 to-transparent flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Dokumen PDF/File</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{countDokumen}</h3>
@@ -288,7 +288,7 @@ export default function EMateriPage() {
           </div>
         </div>
 
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 bg-gradient-to-br from-rose-500/10 to-transparent flex items-center justify-between">
+        <div className="neumo-card bg-background rounded-[22px] p-4 bg-gradient-to-br from-rose-500/10 to-transparent flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Video Learning</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{countVideo}</h3>
@@ -298,7 +298,7 @@ export default function EMateriPage() {
           </div>
         </div>
 
-        <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 bg-gradient-to-br from-emerald-500/10 to-transparent flex items-center justify-between">
+        <div className="neumo-card bg-background rounded-[22px] p-4 bg-gradient-to-br from-emerald-500/10 to-transparent flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Materi Terbit</p>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{countTerbit}</h3>
@@ -313,7 +313,7 @@ export default function EMateriPage() {
       {activeTab === "mapel_cards" && (
         <div className="space-y-5">
           {/* Filter Bar for Mapel Cards */}
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-4">
+          <div className="neumo-card bg-background rounded-[26px] p-5 space-y-4">
             <div className="flex flex-col sm:flex-row items-center gap-3">
               {/* Search Mapel */}
               <div className="relative w-full sm:max-w-md">
@@ -355,7 +355,7 @@ export default function EMateriPage() {
           {isLoadingMapel ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="glass-card rounded-[26px] border border-slate-200 p-5 space-y-4">
+                <div key={i} className="neumo-card bg-background rounded-[26px] p-5 space-y-4">
                   <Skeleton className="h-6 w-1/3" />
                   <Skeleton className="h-8 w-3/4" />
                   <Skeleton className="h-10 w-full" />
@@ -363,7 +363,7 @@ export default function EMateriPage() {
               ))}
             </div>
           ) : !mapelList || mapelList.length === 0 ? (
-            <div className="glass-card rounded-[26px] border border-slate-200 dark:border-slate-800 p-12 text-center space-y-3">
+            <div className="neumo-card bg-background rounded-[26px] p-12 text-center space-y-3">
               <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
                 <BookOpen className="w-7 h-7" />
               </div>
@@ -394,7 +394,7 @@ export default function EMateriPage() {
                         handleOpenAddForMapel(m.id)
                       }
                     }}
-                    className="glass-card rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 p-6 hover:shadow-xl hover:border-teal-500/50 dark:hover:border-teal-500/50 transition-all duration-300 flex flex-col justify-between space-y-5 bg-white dark:bg-slate-900/50 cursor-pointer group relative overflow-hidden"
+                    className="neumo-card bg-background rounded-[28px] p-6 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-5 cursor-pointer group relative overflow-hidden"
                   >
                     {/* Top Soft Gradient Glow Header */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 dark:bg-teal-500/10 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
@@ -447,7 +447,7 @@ export default function EMateriPage() {
       {activeTab === "semua_materi" && (
         <div className="space-y-5">
           {/* Filter Bar */}
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-4">
+          <div className="neumo-card bg-background rounded-[26px] p-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Search Input */}
               <div className="relative">
@@ -531,7 +531,7 @@ export default function EMateriPage() {
           {isLoadingMateri ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="glass-card rounded-[24px] border border-slate-200 p-5 space-y-3">
+                <div key={i} className="neumo-card bg-background rounded-[24px] p-5 space-y-3">
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-8 w-1/2" />
@@ -539,7 +539,7 @@ export default function EMateriPage() {
               ))}
             </div>
           ) : !materiList || materiList.length === 0 ? (
-            <div className="glass-card rounded-[26px] border border-slate-200 dark:border-slate-800 p-12 text-center space-y-3">
+            <div className="neumo-card bg-background rounded-[26px] p-12 text-center space-y-3">
               <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
                 <BookOpen className="w-7 h-7" />
               </div>
@@ -553,7 +553,7 @@ export default function EMateriPage() {
               {materiList.map((m) => (
                 <div
                   key={m.id}
-                  className="glass-card rounded-[26px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900/40 relative group"
+                  className="neumo-card bg-background rounded-[26px] p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-4 relative group"
                 >
                   <div className="space-y-3">
                     {/* Card Header Badges */}

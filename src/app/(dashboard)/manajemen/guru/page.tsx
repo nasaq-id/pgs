@@ -565,7 +565,7 @@ export default function GuruPage() {
         </div>
       </div>
 
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+      <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex items-center w-full md:max-w-xs lg:max-w-md">
             <Search className="absolute left-3.5 text-slate-400 w-4 h-4 shrink-0" />
@@ -692,20 +692,20 @@ export default function GuruPage() {
         <div className="md:hidden space-y-4">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3">
+              <div key={i} className="neumo-card bg-background rounded-[22px] p-4 space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
             ))
           ) : !guruList || guruList.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+            <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
               Tidak ada data guru ditemukan
             </div>
           ) : (
             guruList.map((g) => {
               const isMenuOpen = activeMenuId === g.id
               return (
-                <div key={g.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                <div key={g.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-2.5 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
