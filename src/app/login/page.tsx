@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
   Compass, Eye, EyeOff, ShieldAlert, Sparkles, Users, GraduationCap,
-  School, ArrowRight, BookMarked, Award, CheckCircle2, BookOpen, Shield,
+  School, ArrowRight, BookMarked, Award, CheckCircle2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [activeRole, setActiveRole] = useState<"siswa" | "guru" | "admin">("siswa")
   const formRef = useRef<HTMLFormElement>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -36,46 +35,14 @@ export default function LoginPage() {
   //   { enabled: hostname !== "" }
   // )
 
-  type RoleKey = "siswa" | "guru" | "admin"
-
-  const ROLE_CONFIG: Record<RoleKey, { emailLabel: string; emailPlaceholder: string }> = {
-    siswa: {
-      emailLabel: "NISN / NIS Lokal / Username Siswa",
-      emailPlaceholder: "Masukkan NISN, NIS lokal, atau username",
-    },
-    guru: {
-      emailLabel: "NIP / NUPTK / Username Guru",
-      emailPlaceholder: "Masukkan NIP, NUPTK, atau username",
-    },
-    admin: {
-      emailLabel: "Email / Username Admin",
-      emailPlaceholder: "Masukkan email atau username admin",
-    },
-  }
-
-  const ROLE_TABS: { key: RoleKey; label: string; icon: React.ElementType }[] = [
-    { key: "siswa", label: "Siswa", icon: GraduationCap },
-    { key: "guru", label: "Guru", icon: BookOpen },
-    { key: "admin", label: "Admin", icon: Shield },
-  ]
-
   const DEMO_CREDENTIALS = [
-    { label: "Siswa Demo", role: "siswa" as const, email: "123455", password: "daus123" },
-    { label: "Guru Demo", role: "guru" as const, email: "mohtb", password: "mohtb123" },
-    { label: "Admin Cikalongwetan", role: "admin" as const, email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
-    { label: "Admin Muhammadiyah 1", role: "admin" as const, email: "admin.smam1bdg@demo.com", password: "muhammadiyah123" },
+    { label: "Siswa Demo", email: "123455", password: "daus123" },
+    { label: "Guru Demo", email: "mohtb", password: "mohtb123" },
+    { label: "Admin Cikalongwetan", email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
+    { label: "Admin Muhammadiyah 1", email: "admin.smam1bdg@demo.com", password: "muhammadiyah123" },
   ]
-
-  function handleRoleChange(role: RoleKey) {
-    setActiveRole(role)
-    setError("")
-    setShowPassword(false)
-    if (emailRef.current) emailRef.current.value = ""
-    if (passwordRef.current) passwordRef.current.value = ""
-  }
 
   function handleDemoLogin(creds: typeof DEMO_CREDENTIALS[number]) {
-    setActiveRole(creds.role)
     setError("")
     setShowPassword(false)
     if (emailRef.current) emailRef.current.value = creds.email
@@ -99,8 +66,8 @@ export default function LoginPage() {
       })
 
       if (res?.error) {
-        toast.error("Login Gagal: Email, NISN, atau password salah.")
-        setError("Email atau password salah")
+        toast.error("Login Gagal: Username, ID Pengguna, atau password salah.")
+        setError("ID Pengguna atau password salah")
         setLoading(false)
       } else {
         toast.success("Login Berhasil! Selamat datang.")
@@ -237,25 +204,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Role Switcher */}
-            <div className="flex p-1 neumo-inset bg-[oklch(0.94_0.01_250)] rounded-xl mb-6 relative z-10">
-              {ROLE_TABS.map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleRoleChange(key)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                    activeRole === key
-                      ? "bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  <Icon size={14} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-
             {/* Error */}
             {error && (
               <div className="bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-2xl mb-6 flex items-start gap-2 text-xs font-bold relative z-10 text-left">
@@ -268,7 +216,7 @@ export default function LoginPage() {
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 relative z-10 text-left">
               <div>
                 <label htmlFor="email" className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">
-                  {ROLE_CONFIG[activeRole].emailLabel}
+                  Username / ID Pengguna / Email
                 </label>
                 <div className="relative">
                   <input
@@ -278,7 +226,7 @@ export default function LoginPage() {
                     type="text"
                     required
                     className="w-full px-4 py-3.5 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] border-0 focus:outline-none focus:ring-2 focus:ring-teal-500/15 text-sm font-bold text-foreground placeholder-slate-400"
-                    placeholder={ROLE_CONFIG[activeRole].emailPlaceholder}
+                    placeholder="Masukkan username, NISN, NIP, atau email"
                   />
                 </div>
               </div>
