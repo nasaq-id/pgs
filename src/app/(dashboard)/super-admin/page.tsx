@@ -40,6 +40,12 @@ export default function SuperAdminPage() {
   const [editNpsn, setEditNpsn] = useState("")
   const [editJenjang, setEditJenjang] = useState<"sd" | "smp" | "sma" | "smk" | "mi" | "mts" | "ma" | "tk">("sma")
 
+  // Reset Password State
+  const [resetModalOpen, setResetModalOpen] = useState(false)
+  const [selectedSekolahForReset, setSelectedSekolahForReset] = useState<any>(null)
+  const [selectedAdminId, setSelectedAdminId] = useState("")
+  const [newAdminPassword, setNewAdminPassword] = useState("")
+
   // Queries & Mutations
   const utils = api.useUtils()
   const { data: sekolahList = [], isLoading } = api.superAdmin.listSekolah.useQuery()
@@ -50,6 +56,25 @@ export default function SuperAdminPage() {
 
   const { data: auditLogsList = [], isLoading: isLogsLoading } = api.superAdmin.listGlobalAuditLogs.useQuery({ limit: 50 }, {
     enabled: activeTab === "logs",
+  })
+
+  // List admins for selected school to reset password
+  const { data: adminsList = [], isLoading: isLoadingAdmins } = api.superAdmin.listSekolahAdmins.useQuery(
+    { sekolahId: selectedSekolahForReset?.id || "" },
+    { enabled: !!selectedSekolahForReset }
+  )
+
+  const resetPasswordMutation = api.superAdmin.resetAdminPassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password admin berhasil diperbarui!")
+      setResetModalOpen(false)
+      setNewAdminPassword("")
+      setSelectedAdminId("")
+      setSelectedSekolahForReset(null)
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Gagal memperbarui password admin.")
+    }
   })
 
   const registerMutation = api.superAdmin.registerSekolah.useMutation({
@@ -288,6 +313,36 @@ export default function SuperAdminPage() {
     setEditModalOpen(true)
   }
 
+  async function handleResetPassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!selectedAdminId) {
+      toast.error("Silakan pilih akun admin yang ingin direset.")
+      return
+    }
+    if (newAdminPassword.length < 6) {
+      toast.error("Password minimal 6 karakter.")
+      return
+    }
+    setLoading(true)
+    try {
+      await resetPasswordMutation.mutateAsync({
+        userId: selectedAdminId,
+        newPassword: newAdminPassword,
+      })
+    } catch (err) {
+      // Handled by onError
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResetPasswordClick = (s: any) => {
+    setSelectedSekolahForReset(s)
+    setSelectedAdminId("")
+    setNewAdminPassword("")
+    setResetModalOpen(true)
+  }
+
   const handleImpersonate = (sekolahId: string) => {
     document.cookie = `impersonated_sekolah_id=${sekolahId}; path=/; max-age=${7 * 24 * 60 * 60}`
     toast.success("Masuk ke mode pengelolaan sekolah")
@@ -431,20 +486,24 @@ export default function SuperAdminPage() {
                     <th className="py-4 px-4">Nama Singkat / Alias</th>
                     <th className="py-4 px-4 text-center">NPSN</th>
                     <th className="py-4 px-4 text-center">Jenjang</th>
+                    <th className="py-4 px-4 text-center">Siswa</th>
+                    <th className="py-4 px-4 text-center">Guru</th>
+                    <th className="py-4 px-4 text-center">Kelas</th>
+                    <th className="py-4 px-4 text-center">Health</th>
                     <th className="py-4 px-4 text-center">Status</th>
-                    <th className="py-4 px-4 text-center w-48">Aksi</th>
+                    <th className="py-4 px-4 text-center w-60">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-450">
+                      <td colSpan={11} className="py-12 text-center text-xs font-bold text-slate-455">
                         Memuat data sekolah...
                       </td>
                     </tr>
                   ) : filteredSchools.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-450">
+                      <td colSpan={11} className="py-12 text-center text-xs font-bold text-slate-455">
                         Tidak ada sekolah yang cocok dengan pencarian Anda.
                       </td>
                     </tr>
@@ -467,6 +526,16 @@ export default function SuperAdminPage() {
                         </td>
                         <td className="py-4 px-4 text-center font-mono text-slate-700">{item.npsn || "—"}</td>
                         <td className="py-4 px-4 text-center uppercase font-black text-slate-700">{item.jenjang}</td>
+                        <td className="py-4 px-4 text-center font-mono text-slate-700">{item.stats?.siswa ?? 0}</td>
+                        <td className="py-4 px-4 text-center font-mono text-slate-700">{item.stats?.guru ?? 0}</td>
+                        <td className="py-4 px-4 text-center font-mono text-slate-700">{item.stats?.kelas ?? 0}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                            item.stats?.health === "hijau" ? "bg-emerald-500" :
+                            item.stats?.health === "kuning" ? "bg-amber-400" :
+                            item.stats?.health === "merah" ? "bg-rose-500" : "bg-slate-400"
+                          }`} title={`Status: ${item.stats?.health}`} />
+                        </td>
                         <td className="py-4 px-4 text-center">
                           <span
                             className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -497,6 +566,15 @@ export default function SuperAdminPage() {
                           >
                             <Pencil size={12} />
                             <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetPasswordClick(item)}
+                            className="px-2.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer shadow-sm flex items-center gap-1"
+                            title="Reset Password Admin"
+                          >
+                            <Key size={12} />
+                            <span>Reset Pass</span>
                           </button>
                           {item.active && (
                             <button
@@ -541,13 +619,17 @@ export default function SuperAdminPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-black text-slate-800 leading-tight">{item.namaSekolah}</h4>
-                        <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
                           <span className="text-[10px] text-slate-400 font-extrabold uppercase">
                             NPSN: {item.npsn || "—"}
                           </span>
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                           <span className="text-[10px] text-slate-400 font-extrabold uppercase">
                             Jenjang: {item.jenjang}
+                          </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                          <span className="text-[10px] text-slate-500 font-extrabold uppercase">
+                            S:{item.stats?.siswa ?? 0} G:{item.stats?.guru ?? 0} K:{item.stats?.kelas ?? 0}
                           </span>
                         </div>
                       </div>
@@ -580,6 +662,13 @@ export default function SuperAdminPage() {
                           className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all bg-slate-50 border border-slate-200 text-slate-650 cursor-pointer"
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResetPasswordClick(item)}
+                          className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all bg-amber-50 border border-amber-200 text-amber-700 cursor-pointer"
+                        >
+                          Reset Pass
                         </button>
                         {item.active && (
                           <button
@@ -1048,6 +1137,100 @@ export default function SuperAdminPage() {
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <span>Simpan</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Reset Password Modal ── */}
+      <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
+        <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="max-h-[85vh] overflow-y-auto p-6 relative text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+            <DialogHeader className="text-left relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
+                <Key size={20} />
+              </div>
+              <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">
+                Reset Password Admin
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 font-bold">
+                Pilih akun admin sekolah {selectedSekolahForReset?.namaSekolah ? `(${selectedSekolahForReset.namaSekolah})` : ""} yang ingin direset dan masukkan password baru.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleResetPassword} className="space-y-4 mt-4 relative z-10">
+              {/* Select Admin Section */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[9px] font-black text-slate-455 uppercase tracking-widest mb-1.5">
+                    Pilih Akun Admin Sekolah <span className="text-rose-500">*</span>
+                  </label>
+                  {isLoadingAdmins ? (
+                    <div className="flex items-center gap-2 text-xs text-slate-450 font-bold p-3 bg-slate-50/50 rounded-xl border border-slate-200/50">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                      <span>Memuat daftar administrator...</span>
+                    </div>
+                  ) : adminsList.length === 0 ? (
+                    <div className="text-xs text-rose-500 font-bold p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+                      Tidak ada akun admin_sekolah terdaftar untuk instansi ini.
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={selectedAdminId}
+                      onChange={(e) => setSelectedAdminId(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 transition-all duration-300 cursor-pointer"
+                    >
+                      <option value="">-- Pilih Akun Admin --</option>
+                      {adminsList.map((adm: any) => (
+                        <option key={adm.id} value={adm.id}>
+                          {adm.email} ({[adm.firstName, adm.lastName].filter(Boolean).join(" ") || "Admin"})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-slate-455 uppercase tracking-widest mb-1.5">
+                    Password Baru <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Minimal 6 karakter"
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 placeholder-slate-400 transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setResetModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || adminsList.length === 0 || !selectedAdminId}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>Reset Password</span>
                   )}
                 </button>
               </div>

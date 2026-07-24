@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, desc, sql } from "drizzle-orm"
+import { eq, desc, sql, and } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
-import { sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs } from "@/server/db/schema"
+import { sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas } from "@/server/db/schema"
 import { router, roleProtectedProcedure } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -20,10 +20,63 @@ const registerSekolahSchema = z.object({
 export const superAdminRouter = router({
   listSekolah: roleProtectedProcedure(["super_admin"])
     .query(async () => {
-      return db
+      // 1. Get raw schools
+      const schools = await db
         .select()
         .from(sekolah)
         .orderBy(desc(sekolah.createdAt))
+
+      // 2. Fetch aggregates grouped by sekolahId
+      const siswaCounts = await db
+        .select({ sekolahId: siswa.sekolahId, count: sql<number>`count(*)` })
+        .from(siswa)
+        .groupBy(siswa.sekolahId)
+
+      const guruCounts = await db
+        .select({ sekolahId: guru.sekolahId, count: sql<number>`count(*)` })
+        .from(guru)
+        .groupBy(guru.sekolahId)
+
+      const kelasCounts = await db
+        .select({ sekolahId: kelas.sekolahId, count: sql<number>`count(*)` })
+        .from(kelas)
+        .groupBy(kelas.sekolahId)
+
+      // Map counts by school ID for O(1) lookups
+      const siswaMap = new Map(siswaCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const guruMap = new Map(guruCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const kelasMap = new Map(kelasCounts.map(c => [c.sekolahId, Number(c.count)]))
+
+      // Compute stats for each school
+      return schools.map(s => {
+        const totalSiswa = siswaMap.get(s.id) ?? 0
+        const totalGuru = guruMap.get(s.id) ?? 0
+        const totalKelas = kelasMap.get(s.id) ?? 0
+
+        // Calculate health state:
+        // - "abu" : suspended/inactive
+        // - "merah" : active but has 0 students
+        // - "kuning" : active but has 0 teachers
+        // - "hijau" : active and has both students & teachers
+        let health: "hijau" | "kuning" | "merah" | "abu" = "hijau"
+        if (!s.active) {
+          health = "abu"
+        } else if (totalSiswa === 0) {
+          health = "merah"
+        } else if (totalGuru === 0) {
+          health = "kuning"
+        }
+
+        return {
+          ...s,
+          stats: {
+            siswa: totalSiswa,
+            guru: totalGuru,
+            kelas: totalKelas,
+            health,
+          }
+        }
+      })
     }),
 
   registerSekolah: roleProtectedProcedure(["super_admin"])
@@ -227,5 +280,64 @@ export const superAdminRouter = router({
         .offset(input.offset)
 
       return logs
+    }),
+
+  listSekolahAdmins: roleProtectedProcedure(["super_admin"])
+    .input(z.object({ sekolahId: z.string() }))
+    .query(async ({ input }) => {
+      return db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          active: users.active,
+        })
+        .from(users)
+        .where(and(
+          eq(users.sekolahId, input.sekolahId),
+          eq(users.role, "admin_sekolah")
+        ))
+        .orderBy(users.email)
+    }),
+
+  resetAdminPassword: roleProtectedProcedure(["super_admin"])
+    .input(z.object({
+      userId: z.string(),
+      newPassword: z.string().min(6, "Password minimal 6 karakter"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userToReset = await db.query.users.findFirst({
+        where: eq(users.id, input.userId),
+      })
+      if (!userToReset) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User tidak ditemukan",
+        })
+      }
+
+      if (userToReset.role !== "admin_sekolah") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Hanya akun admin sekolah yang dapat direset melalui menu ini",
+        })
+      }
+
+      const hashedPassword = await bcrypt.hash(input.newPassword, 10)
+      const [updated] = await db
+        .update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, input.userId))
+        .returning()
+
+      await logAudit(ctx, {
+        action: "update",
+        entity: "users",
+        entityId: input.userId,
+        metadata: { reset_admin_password: true, email: userToReset.email },
+      })
+
+      return { success: true, email: updated.email }
     }),
 })
