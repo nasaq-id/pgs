@@ -96,14 +96,15 @@ export default function SiswaPage() {
 
   const resolveTingkatDanKelasToKelasId = useCallback((tingkat: string, kelasInput: string): string | null => {
     if (!kelasList || !tingkat || !kelasInput) return null
-    const normTingkat = tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
-    const normKelas = kelasInput.trim().toUpperCase()
+    const normTingkat = tingkat.replace(/^(tingkat|kelas|kls)[\s_-]*/i, "").trim().toLowerCase()
+    const normKelas = kelasInput.replace(/^(tingkat|kelas|kls)[\s_-]*/i, "").trim().toUpperCase()
     const match = kelasList.find((k) => {
       if (!k.tingkat) return false
-      const kt = k.tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "").trim().toLowerCase()
+      const kt = k.tingkat.replace(/^(tingkat|kelas|kls)[\s_-]*/i, "").trim().toLowerCase()
       if (kt !== normTingkat) return false
       const kn = k.namaKelas.trim().toUpperCase()
-      return kn === normKelas || kn === `${normTingkat}${normKelas}`
+      const knClean = kn.replace(/^(tingkat|kelas|kls)[\s_-]*/i, "").trim()
+      return kn === normKelas || knClean === normKelas || kn === `${normTingkat}${normKelas}` || knClean === `${normTingkat}${normKelas}`
     })
     return match?.id || null
   }, [kelasList])
@@ -551,10 +552,10 @@ export default function SiswaPage() {
     }
   }
 
-  const validateImportData = (data: any[], mode: "quick" | "regular") => {
+  const validateImportData = (data: any[], mode: "quick" | "regular", offset: number = 2) => {
     const errors: string[] = []
     data.forEach((row, i) => {
-      const line = i + 2
+      const line = i + offset
       if (!row.namaLengkap) errors.push(`Baris ${line}: Nama Lengkap wajib diisi`)
       if (!row.nisLokal) errors.push(`Baris ${line}: NIS Lokal wajib diisi`)
       if (!row.jenisKelamin) errors.push(`Baris ${line}: Jenis Kelamin wajib diisi (Laki-laki/Perempuan)`)
@@ -677,7 +678,7 @@ export default function SiswaPage() {
       const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, range })
       const mapped = parseAndMap(rows, importMode)
 
-      const errors = validateImportData(mapped, importMode)
+      const errors = validateImportData(mapped, importMode, hasPanduan ? 3 : 2)
       setImportErrors(errors)
       setImportPreviewData(mapped)
       setImportPreviewOpen(true)
