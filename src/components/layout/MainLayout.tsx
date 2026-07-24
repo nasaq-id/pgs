@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import MobileBottomNav from "./MobileBottomNav"
+import DashboardTour from "./DashboardTour"
 import { cn } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
@@ -173,6 +174,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
 
+      {pathname === "/" && <DashboardTour />}
       <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />
     </div>
   )

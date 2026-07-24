@@ -410,7 +410,7 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
           <Tooltip>
             <TooltipTrigger
               render={
-                <DropdownMenuTrigger className="flex items-center space-x-2 md:space-x-3 bg-card dark:bg-slate-900/60 p-1.5 md:pr-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-teal-200 dark:hover:border-teal-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left outline-none" />
+                <DropdownMenuTrigger id="profile-dropdown-tour" className="flex items-center space-x-2 md:space-x-3 bg-card dark:bg-slate-900/60 p-1.5 md:pr-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-teal-200 dark:hover:border-teal-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left outline-none" />
               }
             >
               {userPhoto ? (
