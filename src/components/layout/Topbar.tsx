@@ -254,32 +254,28 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
         </TooltipPortal>
       </Tooltip>
 
-      <div className="hidden lg:block flex-shrink-0">
-        <p className="text-[15px] font-bold text-foreground leading-none">Hi, {displayName}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-none">{pageTitle}</p>
-      </div>
-      <p className="lg:hidden text-base font-bold text-foreground flex-grow md:flex-grow-0">{pageTitle}</p>
-
-      {/* Center section: Tahun Akademik Pill */}
-      {user?.role !== "super_admin" && (
-        <div className="hidden md:flex flex-grow justify-center items-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-500/[0.04] to-emerald-500/[0.04] dark:from-teal-500/[0.02] dark:to-emerald-500/[0.02] border border-teal-500/15 rounded-full text-[11px] font-bold text-teal-600 dark:text-teal-400 shadow-sm transition-all hover:border-teal-500/30">
+      <div className="hidden lg:flex items-center gap-3.5 flex-shrink-0">
+        <h1 className="text-sm font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">
+          {pageTitle}
+        </h1>
+        {user?.role !== "super_admin" && activeTa && (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-teal-500/[0.04] to-emerald-500/[0.04] dark:from-teal-500/[0.02] dark:to-emerald-500/[0.02] border border-teal-500/15 rounded-full text-[10px] font-bold text-teal-650 dark:text-teal-400 shadow-sm transition-all hover:border-teal-500/30 select-none">
             <span className="flex h-1.5 w-1.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
             </span>
-            <CalendarDays className="h-3.5 w-3.5 text-teal-555" />
-            <span className="text-[10px] text-slate-450 dark:text-slate-400 font-extrabold tracking-wide uppercase">TA:</span>
-            <span className="text-slate-800 dark:text-slate-200 font-extrabold">{activeTa?.namaTahunAjaran || "-"}</span>
-            <span className="h-3 w-px bg-teal-500/20" />
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-teal-500/10 text-teal-650 dark:text-teal-400 rounded-full tracking-wider">
-              {activeTa?.semester || "-"}
+            <span className="text-[9px] text-slate-450 dark:text-slate-500 font-extrabold tracking-wide uppercase">TA:</span>
+            <span className="text-slate-800 dark:text-slate-200 font-extrabold">{activeTa.namaTahunAjaran}</span>
+            <span className="h-2.5 w-px bg-teal-500/20" />
+            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-teal-500/10 text-teal-650 dark:text-teal-400 rounded-full tracking-wider leading-none">
+              {activeTa.semester}
             </span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <p className="lg:hidden text-base font-bold text-slate-850 dark:text-slate-200 flex-grow md:flex-grow-0">{pageTitle}</p>
 
-      <div className="flex-grow md:flex-grow-0" />
+      <div className="flex-grow" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <Tooltip>
