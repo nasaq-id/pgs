@@ -31,6 +31,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const [cameraReady, setCameraReady] = useState(false)
   const html5QrcodeRef = useRef<any>(null)
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
+  const guruScanMutation = api.absensi.scanSingleQrGuru.useMutation()
 
   const playSound = useCallback((type: "success" | "error") => {
     try {
@@ -67,14 +68,20 @@ export default function QRScannerModal({ open, onClose }: Props) {
     async (decodedText: string) => {
       try {
         hapticFeedback("success")
-        const result = await barcodeScanMutation.mutateAsync({ barcode: decodedText })
+        const isGuruQr = decodedText.startsWith("PGS-PRESENSI-GURU-")
+        let result
+        if (isGuruQr) {
+          result = await guruScanMutation.mutateAsync({ qrCode: decodedText })
+        } else {
+          result = await barcodeScanMutation.mutateAsync({ barcode: decodedText })
+        }
         playSound("success")
         setScanResult({
           success: true,
           name: result.name,
           action: result.action === "masuk" ? "MASUK" : "PULANG",
-          status: STATUS_LABELS[result.status as StatusAbsensi],
-          message: `${result.name} — ${result.action === "masuk" ? "Masuk" : "Pulang"} (${STATUS_LABELS[result.status as StatusAbsensi]})`,
+          status: STATUS_LABELS[result.status as StatusAbsensi] || result.status,
+          message: `${result.name} — ${result.action === "masuk" ? "Masuk" : "Pulang"} (${STATUS_LABELS[result.status as StatusAbsensi] || result.status})`,
         })
         setTimeout(() => onClose(), 2000)
       } catch (err: any) {
@@ -86,7 +93,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
         })
       }
     },
-    [barcodeScanMutation, onClose, playSound, hapticFeedback],
+    [barcodeScanMutation, guruScanMutation, onClose, playSound, hapticFeedback],
   )
 
   useEffect(() => {
