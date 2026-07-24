@@ -92,6 +92,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     tahun: currentMonth.getFullYear(),
   })
 
+  // Fetch active academic year
+  const { data: activeTa } = api.lembaga.getActiveTahunAjaran.useQuery(undefined, {
+    enabled: !!session,
+    refetchInterval: 30000,
+  })
+
   const { data: notifications = [] } = api.notifikasi.getRecent.useQuery(
     { limit: 5 },
     { refetchInterval: 15000 },
@@ -226,9 +232,26 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <p className="text-[15px] font-bold text-foreground leading-none">Hi, {displayName}</p>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-none">{pageTitle}</p>
       </div>
-      <p className="lg:hidden text-base font-bold text-foreground flex-1">{pageTitle}</p>
+      <p className="lg:hidden text-base font-bold text-foreground flex-grow md:flex-grow-0">{pageTitle}</p>
 
-      <div className="flex-grow" />
+      {/* Center section: Tahun Akademik Pill */}
+      <div className="hidden md:flex flex-grow justify-center items-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-teal-500/[0.04] to-emerald-500/[0.04] dark:from-teal-500/[0.02] dark:to-emerald-500/[0.02] border border-teal-500/15 rounded-full text-[11px] font-bold text-teal-600 dark:text-teal-400 shadow-sm transition-all hover:border-teal-500/30">
+          <span className="flex h-1.5 w-1.5 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
+          </span>
+          <CalendarDays className="h-3.5 w-3.5 text-teal-555" />
+          <span className="text-[10px] text-slate-450 dark:text-slate-400 font-extrabold tracking-wide uppercase">TA:</span>
+          <span className="text-slate-800 dark:text-slate-200 font-extrabold">{activeTa?.namaTahunAjaran || "-"}</span>
+          <span className="h-3 w-px bg-teal-500/20" />
+          <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-teal-500/10 text-teal-650 dark:text-teal-400 rounded-full tracking-wider">
+            {activeTa?.semester || "-"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-grow md:flex-grow-0" />
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <Tooltip>

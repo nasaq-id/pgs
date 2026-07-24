@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, CalendarDays, Shield
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield
 } from "lucide-react"
 import {
   Dialog,
@@ -207,12 +207,6 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
     enabled: !!session,
   })
 
-  // Fetch active academic year
-  const { data: activeTa } = api.lembaga.getActiveTahunAjaran.useQuery(undefined, {
-    enabled: !!session,
-    refetchInterval: 30000,
-  })
-
   // Fetch user profile
   const { data: profile } = api.profil.getProfile.useQuery(undefined, {
     enabled: !!session,
@@ -351,55 +345,19 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       </div>
 
       {/* Dynamic Desktop Expander Toggler */}
-      {isMinimized && setIsMinimized && (
-        <div className="hidden lg:flex justify-center py-4 border-b border-border/50">
+      {setIsMinimized && (
+        <div className={cn(
+          "hidden lg:flex border-b border-border/50 py-3.5 transition-all duration-300",
+          isMinimized ? "justify-center" : "justify-between items-center px-4"
+        )}>
+          {!isMinimized && (
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sembunyikan Menu</span>
+          )}
           <IosSwitch
             checked={!isMinimized}
-            onChange={() => setIsMinimized(false)}
-            title="Tampilkan Menu"
+            onChange={() => setIsMinimized(!isMinimized)}
+            title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
           />
-        </div>
-      )}
-
-      {/* Academic Year Info */}
-      {!isMinimized ? (
-        <div className="mx-4 mt-4 p-3 bg-gradient-to-br from-teal-500/[0.02] to-emerald-500/[0.02] dark:from-teal-500/[0.01] dark:to-emerald-500/[0.01] rounded-xl border border-border/60 hover:border-teal-500/20 dark:hover:border-teal-500/10 sidebar-text-container transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <div className="flex items-center space-x-2">
-              <span className="flex h-1.5 w-1.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
-              </span>
-              <CalendarDays className="w-3.5 h-3.5 text-teal-500" />
-              <span className="text-[9px] font-black uppercase tracking-wider">Tahun Akademik</span>
-            </div>
-            {setIsMinimized && (
-              <div className="hidden lg:block">
-                <IosSwitch
-                  checked={!isMinimized}
-                  onChange={() => setIsMinimized(true)}
-                  title="Sembunyikan Menu"
-                />
-              </div>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">{activeTa?.namaTahunAjaran || "-"}</span>
-            <span className="text-[9px] font-black px-2 py-0.5 bg-teal-50/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 border border-teal-500/20 rounded-full tracking-wider uppercase">
-              {activeTa?.semester || "-"}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="hidden lg:flex flex-col items-center py-4 text-muted-foreground border-b border-border/50 relative group" title={`Tahun Ajaran ${activeTa?.namaTahunAjaran || "-"}`}>
-          <CalendarDays className="w-5 h-5 text-teal-500 mb-1" />
-          <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-teal-50/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 rounded border border-teal-500/20 uppercase">
-            {activeTa?.semester?.slice(0, 3) || "-"}
-          </span>
-          {/* Minimized tooltip */}
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-800">
-            Tahun Ajaran {activeTa?.namaTahunAjaran || "-"} ({activeTa?.semester || "-"})
-          </div>
         </div>
       )}
 
