@@ -867,13 +867,17 @@ export default function KelasPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tingkat</label>
-                    <Select value={srcTingkat} onValueChange={(val) => { setSrcTingkat(val || ""); setSrcKelasId(""); setSelectedSiswaIds([]); }}>
+                    <Select
+                      value={srcTingkat}
+                      onValueChange={(val) => { setSrcTingkat(val || ""); setSrcKelasId(""); setSelectedSiswaIds([]); }}
+                      options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
+                    >
                       <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
                         {uniqueTingkat.map((t) => (
-                          <SelectItem key={t} value={t}>Tingkat {t}</SelectItem>
+                          <SelectItem key={t} value={t}>{`Tingkat ${t}`}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -881,13 +885,18 @@ export default function KelasPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Rombongan Belajar</label>
-                    <Select value={srcKelasId} onValueChange={(val) => { setSrcKelasId(val || ""); setSelectedSiswaIds([]); }} disabled={!srcTingkat}>
+                    <Select
+                      value={srcKelasId}
+                      onValueChange={(val) => { setSrcKelasId(val || ""); setSelectedSiswaIds([]); }}
+                      disabled={!srcTingkat}
+                      options={srcClassOptions.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
+                    >
                       <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
                         <SelectValue placeholder={srcTingkat ? "Pilih Rombel" : "Pilih Tingkat Dahulu"} />
                       </SelectTrigger>
                       <SelectContent>
                         {srcClassOptions.map((k) => (
-                          <SelectItem key={k.id} value={k.id}>{formatKelasLabel(k)}</SelectItem>
+                          <SelectItem key={k.id} value={k.id} label={formatKelasLabel(k)}>{formatKelasLabel(k)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -985,13 +994,17 @@ export default function KelasPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tingkat</label>
-                    <Select value={dstTingkat} onValueChange={(val) => { setDstTingkat(val || ""); setDstKelasId(""); }}>
+                    <Select
+                      value={dstTingkat}
+                      onValueChange={(val) => { setDstTingkat(val || ""); setDstKelasId(""); }}
+                      options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
+                    >
                       <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
                         {uniqueTingkat.map((t) => (
-                          <SelectItem key={t} value={t}>Tingkat {t}</SelectItem>
+                          <SelectItem key={t} value={t}>{`Tingkat ${t}`}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -999,13 +1012,18 @@ export default function KelasPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Rombongan Belajar</label>
-                    <Select value={dstKelasId} onValueChange={(val) => setDstKelasId(val || "")} disabled={!dstTingkat}>
+                    <Select
+                      value={dstKelasId}
+                      onValueChange={(val) => setDstKelasId(val || "")}
+                      disabled={!dstTingkat}
+                      options={dstClassOptions.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
+                    >
                       <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
                         <SelectValue placeholder={dstTingkat ? "Pilih Rombel" : "Pilih Tingkat Dahulu"} />
                       </SelectTrigger>
                       <SelectContent>
                         {dstClassOptions.map((k) => (
-                          <SelectItem key={k.id} value={k.id} disabled={k.id === srcKelasId}>{formatKelasLabel(k)} {k.id === srcKelasId && "(Asal)"}</SelectItem>
+                          <SelectItem key={k.id} value={k.id} disabled={k.id === srcKelasId} label={formatKelasLabel(k) + (k.id === srcKelasId ? " (Asal)" : "")}>{formatKelasLabel(k)} {k.id === srcKelasId && "(Asal)"}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
