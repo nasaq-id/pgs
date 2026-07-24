@@ -138,14 +138,19 @@ export default function PrestasiPage() {
 
       <div className="neumo-card bg-background rounded-3xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari prestasi atau siswa..."
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari prestasi atau siswa..."
+                className="pl-9 h-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
           </div>
           <button
             onClick={() => {

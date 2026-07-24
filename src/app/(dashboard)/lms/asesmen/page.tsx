@@ -361,19 +361,23 @@ export default function AsesmenPage() {
 
           {/* Search & Filter Bar */}
           <div className="neumo-card bg-background rounded-[24px] p-3 flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari judul asesmen atau materi..."
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none text-slate-700 dark:text-slate-300"
-              />
+            <div className="flex items-center gap-2 flex-1 w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari judul asesmen atau materi..."
+                  className="pl-9 h-10"
+                />
+              </div>
+              <Button type="button" variant="secondary" className="h-10 px-4">
+                Cari
+              </Button>
             </div>
 
             <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
-              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                 <SelectValue placeholder="Semua Kelas">{selectedKelasLabel || "Semua Kelas"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -385,7 +389,7 @@ export default function AsesmenPage() {
             </Select>
 
             <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "all")}>
-              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+              <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                 <SelectValue placeholder="Semua Mapel" />
               </SelectTrigger>
               <SelectContent>
@@ -534,7 +538,7 @@ export default function AsesmenPage() {
 
               {/* Class Dropdown Filter */}
               <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "")}>
-                <SelectTrigger className="w-full sm:w-[220px] !h-12 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-extrabold bg-slate-50 dark:bg-slate-900 cursor-pointer">
+                <SelectTrigger className="w-full sm:w-[220px] !h-12 !rounded-2xl text-xs font-extrabold cursor-pointer">
                   <SelectValue placeholder="Pilih Kelas">{rekapKelasName}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>

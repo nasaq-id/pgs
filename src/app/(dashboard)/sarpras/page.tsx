@@ -11,6 +11,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import KelasTab from "@/components/sarpras/KelasTab"
 
 interface Prasarana {
@@ -256,13 +257,6 @@ export default function SarprasPage() {
   const kondisiOptions = ["Semua Kondisi", "Baik", "Rusak Ringan", "Rusak Berat"]
   const tipeOptions = ["Semua Tipe", "Ruang Kelas", "Laboratorium", "Perpustakaan", "Kantor Guru", "Fasilitas Olahraga", "Lainnya"]
 
-  const tabClass = (tab: string) =>
-    `flex-1 shrink-0 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-      activeTab === tab
-        ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-    }`
-
   return (
     <div className="animate-fade-in space-y-6 text-left">
       <div>
@@ -271,13 +265,24 @@ export default function SarprasPage() {
       </div>
 
       {/* Custom Tabs */}
-      <div className="flex justify-center mb-6">
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-md hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
-          <button onClick={() => setActiveTab("kelas")} className={tabClass("kelas")}>Rombel Kelas</button>
-          <button onClick={() => setActiveTab("sarana")} className={tabClass("sarana")}>Data Sarana</button>
-          <button onClick={() => setActiveTab("prasarana")} className={tabClass("prasarana")}>Prasarana</button>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger value="kelas" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 data-[state=active]:dark:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <School className="w-4 h-4" />
+              <span>Rombel Kelas</span>
+            </TabsTrigger>
+            <TabsTrigger value="sarana" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 data-[state=active]:dark:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <Box className="w-4 h-4" />
+              <span>Data Sarana</span>
+            </TabsTrigger>
+            <TabsTrigger value="prasarana" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 data-[state=active]:dark:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <Building2 className="w-4 h-4" />
+              <span>Prasarana</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       {/* Tab Content */}
       {activeTab === "kelas" && <KelasTab />}
@@ -323,13 +328,12 @@ export default function SarprasPage() {
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
                     value={saranaSearch}
                     onChange={e => setSaranaSearch(e.target.value)}
                     placeholder="Cari nama/spesifikasi..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
+                    className="pl-9 h-10"
                   />
                 </div>
                 <SearchableSelect
@@ -337,14 +341,14 @@ export default function SarprasPage() {
                   onValueChange={setSaranaKategoriFilter}
                   options={kategoriOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kategori"
-                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
+                  className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer"
                 />
                 <SearchableSelect
                   value={saranaKondisiFilter}
                   onValueChange={setSaranaKondisiFilter}
                   options={kondisiOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kondisi"
-                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
+                  className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer"
                 />
                 <SearchableSelect
                   value={saranaLokasiFilter}
@@ -355,12 +359,12 @@ export default function SarprasPage() {
                     ...prasaranaList.map(p => ({ value: p.id, label: p.nama })),
                   ]}
                   placeholder="Semua Lokasi"
-                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
+                  className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer"
                 />
               </div>
               <button
                 onClick={handleOpenAddSarana}
-                className="w-full lg:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
+                className="w-full lg:w-auto neumo-sm bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 <span>Tambah Sarana</span>
@@ -371,7 +375,7 @@ export default function SarprasPage() {
           {/* Mobile View: Card List (Visible on mobile, hidden on desktop) */}
           <div className="md:hidden space-y-4">
             {filteredSarana.length === 0 ? (
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+              <div className="neumo-inset bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
                 Tidak ada data sarana yang cocok dengan filter pencarian.
               </div>
             ) : (
@@ -412,13 +416,13 @@ export default function SarprasPage() {
                     <div className="flex space-x-1.5 items-center shrink-0">
                       <button
                         onClick={() => handleOpenEditSarana(s)}
-                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        className="px-2.5 py-1.5 neumo-sm bg-background hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteSarana(s)}
-                        className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-600 dark:text-rose-450 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        className="px-2.5 py-1.5 neumo-sm bg-background hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-450 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
                       >
                         Hapus
                       </button>
@@ -430,10 +434,10 @@ export default function SarprasPage() {
           </div>
 
           {/* Desktop View: Table (Visible on desktop, hidden on mobile) */}
-          <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
+          <div className="hidden md:block neumo-card bg-background rounded-[22px] overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
-                <TableRow>
+              <TableHeader className="neumo-inset bg-background/50">
+                <TableRow className="border-b border-slate-100 dark:border-slate-800/60">
                   <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Nama Sarana</TableHead>
                   <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Kategori</TableHead>
                   <TableHead className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jumlah</TableHead>
@@ -453,7 +457,7 @@ export default function SarprasPage() {
                   </TableRow>
                 ) : (
                   filteredSarana.map(s => (
-                    <TableRow key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                    <TableRow key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100/60 dark:border-slate-800/40 last:border-0">
                       <TableCell className="font-extrabold text-slate-800 dark:text-slate-205 text-xs">{s.nama}</TableCell>
                       <TableCell>
                         <span className={`px-2.5 py-1 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getCategoryBadgeColor(s.kategori)}`}>
@@ -486,13 +490,13 @@ export default function SarprasPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenEditSarana(s)}
-                            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-900/30 transition-all shadow-xs cursor-pointer"
+                            className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteSarana(s)}
-                            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-900/30 transition-all shadow-xs cursor-pointer"
+                            className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-all cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -548,13 +552,12 @@ export default function SarprasPage() {
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
                     value={prasaranaSearch}
                     onChange={e => setPrasaranaSearch(e.target.value)}
                     placeholder="Cari prasarana/ruangan..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
+                    className="pl-9 h-10"
                   />
                 </div>
                 <SearchableSelect
@@ -562,19 +565,19 @@ export default function SarprasPage() {
                   onValueChange={setPrasaranaTipeFilter}
                   options={tipeOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Tipe"
-                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
+                  className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer"
                 />
                 <SearchableSelect
                   value={prasaranaKondisiFilter}
                   onValueChange={setPrasaranaKondisiFilter}
                   options={kondisiOptions.map(v => ({ value: v, label: v }))}
                   placeholder="Semua Kondisi"
-                  className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer"
+                  className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer"
                 />
               </div>
               <button
                 onClick={handleOpenAddPrasarana}
-                className="w-full lg:w-auto bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center justify-center cursor-pointer"
+                className="w-full lg:w-auto neumo-sm bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 <span>Tambah Prasarana</span>
@@ -584,7 +587,7 @@ export default function SarprasPage() {
 
           {/* Card Grid */}
           {filteredPrasarana.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+            <div className="neumo-inset bg-background rounded-[22px] p-16 text-center text-slate-400 font-semibold flex flex-col items-center justify-center">
               <Building2 className="w-16 h-16 text-slate-300 dark:text-slate-700 mb-4" />
               <h3 className="text-lg font-bold text-slate-700 dark:text-slate-350">Tidak ada Prasarana</h3>
               <p className="text-slate-400 text-sm mt-1">Data prasarana tidak ditemukan berdasarkan filter yang diterapkan.</p>
@@ -627,13 +630,13 @@ export default function SarprasPage() {
                       <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={e => handleOpenEditPrasarana(p, e)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-900/30 transition-all shadow-xs cursor-pointer"
+                          className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={e => handleDeletePrasarana(p, e)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-450 hover:border-rose-200 dark:hover:border-rose-900/30 transition-all shadow-xs cursor-pointer"
+                          className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-450 transition-all cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -650,7 +653,7 @@ export default function SarprasPage() {
       {/* ===== PRASARANA MODAL ===== */}
       {prasaranaModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4">
-          <div className="glass-dialog rounded-2xl w-full max-w-md mx-auto overflow-hidden">
+          <div className="neumo-card bg-background rounded-2xl w-full max-w-md mx-auto overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <h3 className="font-semibold text-foreground">{editingPrasarana ? "Edit Prasarana" : "Tambah Prasarana"}</h3>
@@ -715,7 +718,7 @@ export default function SarprasPage() {
                   onChange={e => setPrasaranaForm(prev => ({ ...prev, keterangan: e.target.value }))}
                   placeholder="Detail lokasi (contoh: Gedung Utara Lantai 2)"
                   rows={3}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-xl text-xs font-semibold text-foreground focus:outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"
+                  className="w-full px-3 py-2 neumo-inset bg-background border-0 rounded-xl text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/15 transition-all resize-none"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -723,13 +726,13 @@ export default function SarprasPage() {
                   variant="outline"
                   type="button"
                   onClick={() => setPrasaranaModalOpen(false)}
-                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer neumo-sm hover:bg-slate-50 dark:hover:bg-slate-850"
                 >
                   Batal
                 </Button>
                 <button
                   type="submit"
-                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer"
+                  className="flex-1 neumo-sm bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
                 >
                   Simpan
                 </button>
@@ -742,7 +745,7 @@ export default function SarprasPage() {
       {/* ===== SARANA MODAL ===== */}
       {saranaModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4">
-          <div className="glass-dialog rounded-2xl w-full max-w-md mx-auto overflow-hidden">
+          <div className="neumo-card bg-background rounded-2xl w-full max-w-md mx-auto overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <h3 className="font-semibold text-foreground">{editingSarana ? "Edit Sarana" : "Tambah Sarana / Inventaris"}</h3>
@@ -840,13 +843,13 @@ export default function SarprasPage() {
                   variant="outline"
                   type="button"
                   onClick={() => setSaranaModalOpen(false)}
-                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+                  className="flex-1 !h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer neumo-sm hover:bg-slate-50 dark:hover:bg-slate-850"
                 >
                   Batal
                 </Button>
                 <button
                   type="submit"
-                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer"
+                  className="flex-1 neumo-sm bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
                 >
                   Simpan
                 </button>
@@ -859,10 +862,10 @@ export default function SarprasPage() {
       {/* ===== DETAIL PRASARANA MODAL ===== */}
       {detailPrasarana && (
         <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4">
-          <div className="glass-dialog rounded-2xl w-full max-w-2xl mx-auto overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="neumo-card bg-background rounded-2xl w-full max-w-2xl mx-auto overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-teal-50 rounded-xl">{getPrasaranaIcon(detailPrasarana.tipe)}</div>
+                <div className="p-2.5 bg-teal-50 dark:bg-teal-950/30 rounded-xl">{getPrasaranaIcon(detailPrasarana.tipe)}</div>
                 <div>
                   <span className="text-[9px] font-black text-teal-600 uppercase tracking-widest block">{detailPrasarana.tipe}</span>
                   <h3 className="text-lg font-extrabold text-slate-800">{detailPrasarana.nama}</h3>
@@ -884,7 +887,7 @@ export default function SarprasPage() {
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">
                 Daftar Inventaris di Ruangan Ini
               </h4>
-              <div className="max-h-[300px] overflow-y-auto border border-slate-100 rounded-xl bg-slate-50/30">
+              <div className="max-h-[300px] overflow-y-auto neumo-inset bg-background rounded-xl">
                 {saranaList.filter(s => s.lokasiPrasaranaId === detailPrasarana.id).length === 0 ? (
                   <div className="text-center py-12">
                     <Box className="w-12 h-12 text-slate-300 mx-auto mb-2" />
@@ -893,8 +896,8 @@ export default function SarprasPage() {
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader>
-                      <TableRow>
+                    <TableHeader className="neumo-inset bg-background/50">
+                      <TableRow className="border-b border-slate-100 dark:border-slate-800/60">
                         <TableHead className="text-[10px] font-black text-slate-400 uppercase">Nama Barang</TableHead>
                         <TableHead className="text-[10px] font-black text-slate-400 uppercase">Kategori</TableHead>
                         <TableHead className="text-[10px] font-black text-slate-400 uppercase">Jumlah</TableHead>
@@ -906,7 +909,7 @@ export default function SarprasPage() {
                       {saranaList
                         .filter(s => s.lokasiPrasaranaId === detailPrasarana.id)
                         .map(s => (
-                          <TableRow key={s.id}>
+                          <TableRow key={s.id} className="border-b border-slate-100/60 dark:border-slate-800/40 last:border-0">
                             <TableCell className="font-extrabold text-slate-800 text-xs">{s.nama}</TableCell>
                             <TableCell>
                               <span className={`px-2 py-0.5 border rounded-lg text-[9px] font-bold uppercase tracking-wide ${getCategoryBadgeColor(s.kategori)}`}>
@@ -928,11 +931,11 @@ export default function SarprasPage() {
               </div>
             </div>
 
-            <div className="flex justify-end px-6 py-4 glass-dialog-footer">
+            <div className="flex justify-end px-6 py-4">
               <Button
                 variant="outline"
                 onClick={() => setDetailPrasarana(null)}
-                className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850"
+                className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer neumo-sm hover:bg-slate-50 dark:hover:bg-slate-850"
               >
                 Tutup Detail
               </Button>

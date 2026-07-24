@@ -854,16 +854,19 @@ export default function BukuNilaiPage() {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex justify-center w-full pb-1">
-            <TabsList className="flex items-center max-w-xl bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 w-full gap-1">
-              <TabsTrigger value="olah" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer">
-                Olah Nilai
+            <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+              <TabsTrigger value="olah" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+                <Award className="w-4 h-4" />
+                <span>Olah Nilai</span>
               </TabsTrigger>
-              <TabsTrigger value="deskripsi" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer">
-                Deskripsi Capaian
+              <TabsTrigger value="deskripsi" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+                <BookOpen className="w-4 h-4" />
+                <span>Deskripsi Capaian</span>
               </TabsTrigger>
               {isWaliKelas && (
-                <TabsTrigger value="leger" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer">
-                  Leger Kelas
+                <TabsTrigger value="leger" className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:dark:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Leger Kelas</span>
                 </TabsTrigger>
               )}
             </TabsList>

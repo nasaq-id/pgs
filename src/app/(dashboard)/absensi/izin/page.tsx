@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ResponsiveTable from "@/components/ui/responsive-table"
 import type { Column } from "@/components/ui/responsive-table"
 import { toast } from "sonner"
-import { Loader2, Plus, Calendar, Check, X, FileText, Upload, Eye } from "lucide-react"
+import { Loader2, Plus, Calendar, Check, X, FileText, Upload, Eye, History, FilePlus, CheckSquare } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 
 const JENIS_IZIN_LABEL: Record<string, string> = {
@@ -169,50 +170,37 @@ export default function IzinPage() {
         </div>
       </div>
 
-      <div className="flex justify-center mb-6">
-        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl mx-auto hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1">
-          {isGuruOrSiswa && (
-            <button
-              onClick={() => setActiveTab("form")}
-              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-                activeTab === "form" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Formulir Pengajuan
-            </button>
-          )}
-          {isGuruOrSiswa && (
-            <button
-              onClick={() => setActiveTab("riwayat")}
-              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-                activeTab === "riwayat" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Riwayat Saya
-            </button>
-          )}
-          {canApprove && (
-            <button
-              onClick={() => setActiveTab("approval")}
-              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-                activeTab === "approval" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Persetujuan Izin {approvalList.length > 0 && <span className="ml-1.5 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
-            </button>
-          )}
-          {canApprove && (
-            <button
-              onClick={() => setActiveTab("riwayat_approval")}
-              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-                activeTab === "riwayat_approval" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Riwayat Persetujuan
-            </button>
-          )}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-4xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            {isGuruOrSiswa && (
+              <TabsTrigger value="form" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <FilePlus className="w-4 h-4" />
+                <span>Formulir Pengajuan</span>
+              </TabsTrigger>
+            )}
+            {isGuruOrSiswa && (
+              <TabsTrigger value="riwayat" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <History className="w-4 h-4" />
+                <span>Riwayat Saya</span>
+              </TabsTrigger>
+            )}
+            {canApprove && (
+              <TabsTrigger value="approval" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <CheckSquare className="w-4 h-4" />
+                <span>Persetujuan Izin</span>
+                {approvalList.length > 0 && <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
+              </TabsTrigger>
+            )}
+            {canApprove && (
+              <TabsTrigger value="riwayat_approval" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <History className="w-4 h-4" />
+                <span>Riwayat Persetujuan</span>
+              </TabsTrigger>
+            )}
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       {activeTab === "form" && isGuruOrSiswa && (
         <div className="neumo-card bg-background rounded-[26px] p-6 max-w-xl text-left">
@@ -220,7 +208,7 @@ export default function IzinPage() {
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jenis Izin</Label>
               <Select value={jenisIzin} onValueChange={(v: any) => setJenisIzin(v)}>
-                <SelectTrigger className="w-full !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+                <SelectTrigger className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                   <SelectValue placeholder="Pilih jenis izin" />
                 </SelectTrigger>
                 <SelectContent>

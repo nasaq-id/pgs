@@ -298,12 +298,12 @@ export default function KelasDetailDialog({ open, onOpenChange, kelasId }: Kelas
                   Daftar Anggota Kelas ({detail.students?.length || 0} Siswa)
                 </h4>
                 <div className="relative w-full sm:w-60">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Cari anggota kelas..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 text-xs rounded-xl"
+                    className="pl-9 h-10 text-xs rounded-xl"
                   />
                 </div>
               </div>

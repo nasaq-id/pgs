@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export default function InputDataPoinPage() {
   const { data: session } = useSession()
@@ -390,9 +392,8 @@ export default function InputDataPoinPage() {
                   Pilih Siswa (Bisa Lebih Dari Satu) <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="text"
+                  <Search className="absolute left-3 top-2.5 text-muted-foreground w-4 h-4" />
+                  <Input
                     placeholder="Ketik nama, NISN, atau kelas siswa..."
                     value={siswaSearchInput}
                     onChange={(e) => {
@@ -400,7 +401,7 @@ export default function InputDataPoinPage() {
                       setShowSiswaDropdown(true)
                     }}
                     onFocus={() => setShowSiswaDropdown(true)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700"
+                    className="pl-9 h-10"
                   />
                   {showSiswaDropdown && (
                     <div ref={dropdownRef} className="absolute left-0 right-0 top-full mt-1 bg-background border border-slate-100 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto">
@@ -674,15 +675,19 @@ export default function InputDataPoinPage() {
         <div className="neumo-card bg-background rounded-3xl p-6 space-y-6">
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
             {/* Search Input */}
-            <div className="relative w-full sm:max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Cari berdasarkan nama siswa, kategori sikap, atau petugas..."
-                value={searchRekapQuery}
-                onChange={(e) => setSearchRekapQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 placeholder-slate-400"
-              />
+            <div className="flex items-center gap-2 w-full sm:max-w-md">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Cari berdasarkan nama siswa, kategori sikap, atau petugas..."
+                  value={searchRekapQuery}
+                  onChange={(e) => setSearchRekapQuery(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+              <Button type="button" variant="secondary" className="h-10 px-4">
+                Cari
+              </Button>
             </div>
 
             {/* Filter Dropdown */}

@@ -84,7 +84,7 @@ export default function GuruFormPendidikanTab({ form, onChange }: GuruFormPendid
           value={selectedJenjang}
           onValueChange={(val) => val && setSelectedJenjang(val)}
         >
-          <SelectTrigger className="bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200">
+          <SelectTrigger className="font-semibold text-slate-800 dark:text-slate-200">
             <SelectValue placeholder="Pilih Jenjang" />
           </SelectTrigger>
           <SelectContent>

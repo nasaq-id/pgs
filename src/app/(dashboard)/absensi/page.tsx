@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield, X } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield, X, User } from "lucide-react"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
@@ -1049,76 +1050,55 @@ export default function AbsensiPage() {
         </div>
       </div>
 
-      <div className="flex justify-center mb-6">
-        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl mx-auto hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1">
-          {canManageGlobal && (
-            <button
-              onClick={() => {
-                setActiveTab("setting")
-                setIsScannerActive(false)
-              }}
-              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
-                activeTab === "setting" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Pengaturan Presensi
-            </button>
-          )}
-          {canTakeAttendance && (
-            <button
-              onClick={() => {
-                setActiveTab("manual")
-                setIsScannerActive(false)
-              }}
-              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
-                activeTab === "manual" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Presensi Manual
-            </button>
-          )}
-          {canTakeAttendance && (
-            <button
-              onClick={() => {
-                setActiveTab("scan")
-                setIsScannerActive(true)
-              }}
-              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
-                activeTab === "scan" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              Scan Barcode
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setActiveTab("pribadi")
-              setIsScannerActive(false)
-            }}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
-              activeTab === "pribadi" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            Presensi Saya
-          </button>
-          {canTakeAttendance && (
-            <>
-              <button
-                onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
-                className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed flex-1"
-              >
-                Sidik Jari <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-              </button>
-              <button
-                onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-                className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed flex-1"
-              >
-                Face ID <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-              </button>
-            </>
-          )}
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        setIsScannerActive(v === "scan");
+      }} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-4xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            {canManageGlobal && (
+              <TabsTrigger value="setting" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <Settings className="w-4 h-4" />
+                <span>Pengaturan Presensi</span>
+              </TabsTrigger>
+            )}
+            {canTakeAttendance && (
+              <TabsTrigger value="manual" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <ClipboardCheck className="w-4 h-4" />
+                <span>Presensi Manual</span>
+              </TabsTrigger>
+            )}
+            {canTakeAttendance && (
+              <TabsTrigger value="scan" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <Scan className="w-4 h-4" />
+                <span>Scan Barcode</span>
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="pribadi" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <User className="w-4 h-4" />
+              <span>Presensi Saya</span>
+            </TabsTrigger>
+            {canTakeAttendance && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
+                  className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs"
+                >
+                  Sidik Jari <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
+                  className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs"
+                >
+                  Face ID <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+                </button>
+              </>
+            )}
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       {activeTab === "manual" && canTakeAttendance && (
         <div className="space-y-4">
@@ -1132,7 +1112,7 @@ export default function AbsensiPage() {
                   { value: "guru", label: "Guru/Pegawai" }
                 ]}
               >
-                <SelectTrigger className="w-full sm:w-36 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+                <SelectTrigger className="w-full sm:w-36 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                   <SelectValue placeholder="Tipe Absen" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1148,7 +1128,7 @@ export default function AbsensiPage() {
                   disabled={role === "guru" && isWaliKelas && !canManageGlobal}
                   options={classes?.map((c) => ({ value: c.id, label: c.namaKelas }))}
                 >
-                  <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 cursor-pointer">
+                   <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                     <SelectValue placeholder="Pilih Kelas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1794,7 +1774,7 @@ export default function AbsensiPage() {
                       ...(classes?.map((c) => ({ value: c.id, label: c.namaKelas })) || [])
                     ]}
                   >
-                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
                       <SelectValue placeholder="Semua Kelas" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
@@ -1824,7 +1804,7 @@ export default function AbsensiPage() {
                       { value: "16", label: "16 QR / Halaman (4x4)" }
                     ]}
                   >
-                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
                       <SelectValue placeholder="6 QR / Halaman" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">

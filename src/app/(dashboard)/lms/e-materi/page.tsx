@@ -20,6 +20,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -316,15 +317,19 @@ export default function EMateriPage() {
           <div className="neumo-card bg-background rounded-[26px] p-5 space-y-4">
             <div className="flex flex-col sm:flex-row items-center gap-3">
               {/* Search Mapel */}
-              <div className="relative w-full sm:max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cari nama atau kode mata pelajaran..."
-                  value={searchMapel}
-                  onChange={(e) => setSearchMapel(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-slate-700 dark:text-slate-300 font-medium"
-                />
+              <div className="flex items-center gap-2 flex-1 w-full sm:max-w-md">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari nama atau kode mata pelajaran..."
+                    value={searchMapel}
+                    onChange={(e) => setSearchMapel(e.target.value)}
+                    className="pl-9 h-10"
+                  />
+                </div>
+                <Button type="button" variant="secondary" className="h-10 px-4">
+                  Cari
+                </Button>
               </div>
 
               {/* Tingkat Filter Dropdown */}
@@ -335,7 +340,7 @@ export default function EMateriPage() {
                   onValueChange={(v) => setTingkatFilter(v ?? "semua")}
                   options={uniqueTingkatOptions}
                 >
-                  <SelectTrigger className="w-full sm:w-48 !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <SelectTrigger className="w-full sm:w-48 !h-9 text-xs font-bold !rounded-2xl">
                     <SelectValue placeholder="Semua Tingkat" />
                   </SelectTrigger>
                   <SelectContent>
@@ -450,15 +455,19 @@ export default function EMateriPage() {
           <div className="neumo-card bg-background rounded-[26px] p-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Search Input */}
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cari judul materi, bab..."
-                  value={searchMateri}
-                  onChange={(e) => setSearchMateri(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-slate-700 dark:text-slate-300 font-medium"
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari judul materi, bab..."
+                    value={searchMateri}
+                    onChange={(e) => setSearchMateri(e.target.value)}
+                    className="pl-9 h-10"
+                  />
+                </div>
+                <Button type="button" variant="secondary" className="h-10 px-4">
+                  Cari
+                </Button>
               </div>
 
               {/* Mapel Filter */}
@@ -469,7 +478,7 @@ export default function EMateriPage() {
                   onValueChange={(v) => setMapelFilter(v ?? "semua")}
                   options={mapelFilterOptions}
                 >
-                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl">
                     <SelectValue placeholder="Semua Mapel" />
                   </SelectTrigger>
                   <SelectContent>
@@ -491,7 +500,7 @@ export default function EMateriPage() {
                   onValueChange={(v) => setKelasFilter(v ?? "semua")}
                   options={kelasFilterOptions}
                 >
-                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl">
                     <SelectValue placeholder="Semua Kelas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -512,7 +521,7 @@ export default function EMateriPage() {
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="shrink-0 font-medium">Format:</span>
                 <Select value={tipeFilter} onValueChange={(v) => setTipeFilter(v ?? "semua")}>
-                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <SelectTrigger className="w-full !h-9 text-xs font-bold !rounded-2xl">
                     <SelectValue placeholder="Semua Format" />
                   </SelectTrigger>
                   <SelectContent>

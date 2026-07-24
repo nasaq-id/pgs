@@ -564,11 +564,13 @@ export default function KelasPage() {
       )}      <Tabs defaultValue="daftar" className="w-full space-y-6">
         <div className="flex justify-center">
           <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-            <TabsTrigger value="daftar" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider">
-              Daftar Rombel
+            <TabsTrigger value="daftar" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <School className="w-4 h-4" />
+              <span>Daftar Rombel</span>
             </TabsTrigger>
-            <TabsTrigger value="pindah" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider">
-              Pindah Kelas
+            <TabsTrigger value="pindah" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <ArrowRightLeft className="w-4 h-4" />
+              <span>Pindah Kelas</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -576,14 +578,19 @@ export default function KelasPage() {
         <TabsContent value="daftar" className="space-y-6 outline-none">
           <Card className="p-5">
             <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari kelas..."
-                  className="pl-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari kelas..."
+                    className="pl-9 h-10"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <Button type="button" variant="secondary" className="h-10 px-4">
+                  Cari
+                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -874,7 +881,7 @@ export default function KelasPage() {
                       onValueChange={(val) => { setSrcTingkat(val || ""); setSrcKelasId(""); setSelectedSiswaIds([]); }}
                       options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
                     >
-                      <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
@@ -893,7 +900,7 @@ export default function KelasPage() {
                       disabled={!srcTingkat}
                       options={srcClassOptions.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
                     >
-                      <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder={srcTingkat ? "Pilih Rombel" : "Pilih Tingkat Dahulu"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -908,14 +915,19 @@ export default function KelasPage() {
                 {srcKelasId ? (
                   <div className="space-y-4 pt-2">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="relative flex-1 max-w-sm min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-450" />
-                        <Input
-                          placeholder="Cari siswa..."
-                          className="pl-9 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800"
-                          value={srcSearch}
-                          onChange={(e) => setSrcSearch(e.target.value)}
-                        />
+                      <div className="flex items-center gap-2 flex-1 max-w-sm min-w-[200px]">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Cari siswa..."
+                            className="pl-9 h-10"
+                            value={srcSearch}
+                            onChange={(e) => setSrcSearch(e.target.value)}
+                          />
+                        </div>
+                        <Button type="button" variant="secondary" className="h-10 px-4">
+                          Cari
+                        </Button>
                       </div>
                       <span className="text-xs font-semibold text-slate-550 dark:text-slate-400">
                         Terpilih: <strong className="text-teal-650 dark:text-teal-400">{selectedSiswaIds.length}</strong> / {filteredSrcStudents.length} Siswa
@@ -1001,7 +1013,7 @@ export default function KelasPage() {
                       onValueChange={(val) => { setDstTingkat(val || ""); setDstKelasId(""); }}
                       options={uniqueTingkat.map((t) => ({ value: t, label: `Tingkat ${t}` }))}
                     >
-                      <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder="Pilih Tingkat" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1020,7 +1032,7 @@ export default function KelasPage() {
                       disabled={!dstTingkat}
                       options={dstClassOptions.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
                     >
-                      <SelectTrigger className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200/60 dark:border-slate-800">
+                      <SelectTrigger className="w-full rounded-xl">
                         <SelectValue placeholder={dstTingkat ? "Pilih Rombel" : "Pilih Tingkat Dahulu"} />
                       </SelectTrigger>
                       <SelectContent>

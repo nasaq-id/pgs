@@ -292,16 +292,18 @@ export default function MapelPage() {
       <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
-            <div className="relative w-full sm:max-w-xs lg:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
-              <input
-                type="text"
+            <div className="relative flex-1 sm:max-w-xs lg:max-w-sm">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
                 placeholder="Cari mata pelajaran..."
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
+                className="pl-9 h-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
 
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full sm:w-auto">
               <span className="shrink-0 font-medium">Tingkat:</span>
@@ -310,7 +312,7 @@ export default function MapelPage() {
                 value={tingkatFilter || "semua"}
                 onValueChange={(v) => setTingkatFilter(!v || v === "semua" ? "" : v)}
               >
-                <SelectTrigger className="w-full sm:w-44 !h-10 text-xs font-bold !rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-full sm:w-44 !h-10 text-xs font-bold !rounded-2xl">
                   <SelectValue placeholder="Semua Tingkat" />
                 </SelectTrigger>
                 <SelectContent>

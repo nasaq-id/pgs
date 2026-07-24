@@ -173,7 +173,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
                 onValueChange={(v) => setMataPelajaranId(v ?? "")}
                 options={mapelOptions}
               >
-                <SelectTrigger className="rounded-2xl h-10 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                <SelectTrigger className="rounded-2xl h-10">
                   <SelectValue placeholder="Pilih Mata Pelajaran" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,7 +199,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
                 onValueChange={(v) => setKelasId(v ?? "all")}
                 options={kelasOptions}
               >
-                <SelectTrigger className="rounded-2xl h-10 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                <SelectTrigger className="rounded-2xl h-10">
                   <SelectValue placeholder="Semua Kelas (Umum)" />
                 </SelectTrigger>
                 <SelectContent>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ClipboardCheck,
   Users,
@@ -304,41 +305,20 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Main Tab Switcher (Hidden on print) */}
-      <div className="print:hidden flex justify-center mb-6">
-        <div className="flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800 w-full max-w-md shadow-inner">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("siswa")
-              setSearchQuery("")
-            }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === "siswa"
-                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span>Siswa</span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("guru")
-              setSearchQuery("")
-            }}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === "guru"
-                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Guru</span>
-          </button>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSearchQuery(""); }} className="print:hidden w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger value="siswa" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              <span>Siswa</span>
+            </TabsTrigger>
+            <TabsTrigger value="guru" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              <span>Guru</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       {/* Filter Card Section (Hidden on print) */}
       <div className="print:hidden neumo-card bg-background rounded-[24px] p-5 space-y-4">
@@ -356,7 +336,7 @@ export default function RekapPresensiPage() {
               Tipe Periode
             </Label>
             <Select value={periodeType} onValueChange={(v) => v && setPeriodeType(v as PeriodeType)}>
-              <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+              <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                 <SelectValue placeholder="Pilih Periode" />
               </SelectTrigger>
               <SelectContent>
@@ -374,7 +354,7 @@ export default function RekapPresensiPage() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pilih Bulan</Label>
                 <Select value={selectedMonth} onValueChange={(v) => v && setSelectedMonth(v)}>
-                  <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                   <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                     <SelectValue placeholder="Pilih Bulan" />
                   </SelectTrigger>
                   <SelectContent>
@@ -404,7 +384,7 @@ export default function RekapPresensiPage() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pilih Semester</Label>
                 <Select value={selectedSemester} onValueChange={(v) => v && setSelectedSemester(v as any)}>
-                  <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                   <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                     <SelectValue placeholder="Pilih Semester" />
                   </SelectTrigger>
                   <SelectContent>
@@ -462,7 +442,7 @@ export default function RekapPresensiPage() {
                     setSiswaFilter("all")
                   }}
                 >
-                  <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                   <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                     <SelectValue placeholder="Semua Kelas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -479,7 +459,7 @@ export default function RekapPresensiPage() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Filter Siswa Specific</Label>
                 <Select value={siswaFilter} onValueChange={(v) => setSiswaFilter(v ?? "all")}>
-                  <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                   <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                     <SelectValue placeholder="Semua Siswa" />
                   </SelectTrigger>
                   <SelectContent>
@@ -497,7 +477,7 @@ export default function RekapPresensiPage() {
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Filter Guru Specific</Label>
               <Select value={guruFilter} onValueChange={(v) => setGuruFilter(v ?? "all")}>
-                <SelectTrigger className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
                   <SelectValue placeholder="Semua Guru" />
                 </SelectTrigger>
                 <SelectContent>
@@ -571,15 +551,19 @@ export default function RekapPresensiPage() {
       <div className="neumo-card bg-background rounded-[24px] overflow-hidden">
         {/* Search Bar (Hidden on print) */}
         <div className="print:hidden p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
-          <div className="relative w-full sm:w-[280px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Cari nama ${activeTab === "siswa" ? "siswa" : "guru"}...`}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-[280px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Cari nama ${activeTab === "siswa" ? "siswa" : "guru"}...`}
+                className="pl-9 h-10"
+              />
+            </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
           </div>
           <div className="text-xs text-muted-foreground font-medium">
             Periode: <strong className="text-slate-800 dark:text-slate-200">{dateRangeLabel}</strong>

@@ -181,7 +181,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           isMinimized={isMinimized}
           setIsMinimized={setIsMinimized}
         />
-        <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pb-20 lg:pb-6">
+        <main className="pt-4 lg:pt-5 pb-20 lg:pb-6 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}

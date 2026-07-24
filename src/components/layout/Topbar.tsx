@@ -299,7 +299,7 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
             <TooltipTrigger
               delay={0}
               render={
-                <DropdownMenuTrigger className="relative w-10 h-10 flex items-center justify-center bg-card dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-amber-500 hover:text-amber-600 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all shadow-sm cursor-pointer outline-none" />
+                <DropdownMenuTrigger className="relative w-10 h-10 flex items-center justify-center neumo-sm bg-background rounded-xl text-amber-500 hover:text-amber-600 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all cursor-pointer outline-none" />
               }
             >
               <span className="flex items-center justify-center"><Bell className="h-4.5 w-4.5 stroke-[2.2] text-amber-500" /></span>
@@ -406,7 +406,7 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
           <Tooltip>
             <TooltipTrigger
               render={
-                <DropdownMenuTrigger id="profile-dropdown-tour" className="flex items-center space-x-2 md:space-x-3 bg-card dark:bg-slate-900/60 p-1.5 md:pr-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-teal-200 dark:hover:border-teal-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left outline-none" />
+                <DropdownMenuTrigger id="profile-dropdown-tour" className="flex items-center space-x-2 md:space-x-3 neumo-sm bg-background p-1.5 md:pr-4 rounded-xl cursor-pointer hover:border-teal-200 dark:hover:border-teal-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-left outline-none" />
               }
             >
               {userPhoto ? (

@@ -632,21 +632,21 @@ export default function GuruPage() {
 
       <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="relative flex items-center w-full md:max-w-xs lg:max-w-md">
-            <Search className="absolute left-3.5 text-slate-400 w-4 h-4 shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari nama, NIP/NUPTK..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full pl-10 pr-20 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
-            />
+          <div className="flex items-center gap-2 w-full md:max-w-xs lg:max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Cari nama, NIP/NUPTK..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-9 h-10"
+              />
+            </div>
             <Button 
               variant="secondary" 
-              size="sm" 
               onClick={handleSearch} 
-              className="absolute right-1.5 h-8 rounded-xl font-bold text-xs uppercase cursor-pointer"
+              className="h-10 px-4"
             >
               Cari
             </Button>
@@ -668,7 +668,7 @@ export default function GuruPage() {
                 value={statusFilter || "semua"}
                 onValueChange={(v) => { setStatusFilter(!v || v === "semua" ? "" : v); setPage(0) }}
               >
-                <SelectTrigger className="w-36 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-36 !h-8 text-xs font-bold !rounded-xl">
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -695,7 +695,7 @@ export default function GuruPage() {
                 value={sortOption}
                 onValueChange={(v: any) => { setSortOption(v || "name_asc"); setPage(0) }}
               >
-                <SelectTrigger className="w-44 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-44 !h-8 text-xs font-bold !rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -710,7 +710,7 @@ export default function GuruPage() {
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>Tampil</span>
               <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
-                <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

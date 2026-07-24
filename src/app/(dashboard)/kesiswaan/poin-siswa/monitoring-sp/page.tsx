@@ -6,6 +6,7 @@ import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 export default function MonitoringSpApresiasiPage() {
@@ -255,15 +256,20 @@ className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all
               <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Rekapitulasi poin prestasi dan pelanggaran seluruh siswa.</p>
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="relative flex-1 sm:max-w-xs">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Cari nama siswa..."
-                  value={rekapSearch}
-                  onChange={(e) => setRekapSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700"
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 sm:max-w-xs">
+                  <Search className="absolute left-3 top-2.5 text-muted-foreground w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama siswa..."
+                    value={rekapSearch}
+                    onChange={(e) => setRekapSearch(e.target.value)}
+                    className="w-full pl-9 h-10 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700"
+                  />
+                </div>
+                <Button type="button" variant="secondary" className="h-10 px-4">
+                  Cari
+                </Button>
               </div>
               <select
                 value={rekapFilterKelas}

@@ -8,6 +8,8 @@ import {
   Activity, ScrollText, Pencil, Users, Shield, Loader2
 } from "lucide-react"
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SuperAdminPage() {
   const [activeTab, setActiveTab] = useState<"lembaga" | "metrics" | "logs">("lembaga")
@@ -377,43 +380,24 @@ export default function SuperAdminPage() {
       </div>
 
       {/* Tab Switcher (Centered & Neomorphic) */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1 w-full max-w-xl shadow-inner">
-          <button
-            onClick={() => setActiveTab("lembaga")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === "lembaga"
-                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <School size={14} />
-            <span>Daftar Lembaga</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("metrics")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === "metrics"
-                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <Activity size={14} />
-            <span>Kesehatan Platform</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("logs")}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              activeTab === "logs"
-                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <ScrollText size={14} />
-            <span>Log Audit Global</span>
-          </button>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger value="lembaga" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+              <School size={14} />
+              <span>Daftar Lembaga</span>
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+              <Activity size={14} />
+              <span>Kesehatan Platform</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+              <ScrollText size={14} />
+              <span>Log Audit Global</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       {/* Tab 1: Lembaga */}
       {activeTab === "lembaga" && (
@@ -465,15 +449,14 @@ export default function SuperAdminPage() {
 
           {/* Table & Search */}
           <div className="neumo-card bg-background rounded-3xl p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
-              <div className="relative w-full sm:max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <input
-                  type="text"
+            <div className="flex flex-col sm:flex-row items-center gap-3 justify-between">
+              <div className="relative flex-1 sm:max-w-md">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
                   placeholder="Cari sekolah berdasarkan nama, alias, atau NPSN..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-teal-500/10 focus:border-teal-500 text-xs font-bold text-slate-700 placeholder-slate-400 transition-all duration-300"
+                  className="pl-9 h-10"
                 />
               </div>
             </div>

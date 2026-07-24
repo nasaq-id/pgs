@@ -135,9 +135,14 @@ function KategoriTab() {
     <Card className="p-5 rounded-3xl">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div className="flex gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cari kategori..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Cari kategori..." className="pl-9 h-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
           </div>
           <Select value={filterJenis} onValueChange={(v) => setFilterJenis(v || "")}>
             <SelectTrigger className="w-32"><SelectValue placeholder="Semua" /></SelectTrigger>
@@ -310,9 +315,14 @@ function TindakLanjutTab() {
     <Card className="p-5 rounded-3xl">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div className="flex gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cari tindak lanjut..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Cari tindak lanjut..." className="pl-9 h-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
           </div>
           <Select value={filterJenis} onValueChange={(v) => setFilterJenis(v || "")}>
             <SelectTrigger className="w-32"><SelectValue placeholder="Semua" /></SelectTrigger>

@@ -309,7 +309,7 @@ export default function JadwalPage() {
             <div className="w-full sm:w-auto">
               <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
               <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
-                <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
+                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold text-white focus:ring-1 focus:ring-teal-500">
                   <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -335,7 +335,7 @@ export default function JadwalPage() {
                 }
               }}
             >
-              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
+              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl text-xs font-bold text-white focus:ring-1 focus:ring-teal-500">
                 <SelectValue placeholder="Pilih Hari">
                   {selectedDays.length === 0 ? "Semua Hari" : DAY_LABEL[selectedDays[0]]}
                 </SelectValue>

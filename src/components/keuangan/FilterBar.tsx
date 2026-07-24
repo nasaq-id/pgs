@@ -1,6 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search } from "lucide-react"
 
@@ -32,14 +33,19 @@ export default function FilterBar({ searchPlaceholder = "Cari...", searchValue, 
           </SelectContent>
         </Select>
       ))}
-      <div className="relative sm:ml-auto">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder}
-          className="pl-9 h-9 w-[200px]"
-        />
+      <div className="flex items-center gap-2 sm:ml-auto">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="pl-9 h-10 w-[200px]"
+          />
+        </div>
+        <Button type="button" variant="secondary" className="h-10 px-4">
+          Cari
+        </Button>
       </div>
     </div>
   )

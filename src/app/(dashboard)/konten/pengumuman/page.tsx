@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, Loader2, Search, X, Megaphone, CalendarDays, Eye } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, X, Megaphone, CalendarDays, Eye, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -256,12 +256,16 @@ export default function PengumumanPage() {
       {isAdmin && (
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <div className="flex justify-center">
-            <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 shadow-inner">
-              <TabsTrigger value="pengumuman" className="py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer">Pengumuman</TabsTrigger>
-              <TabsTrigger value="kelola" className="py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer">
-                Kelola
+            <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+              <TabsTrigger value="pengumuman" className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+                <Megaphone className="w-4 h-4" />
+                <span>Pengumuman</span>
+              </TabsTrigger>
+              <TabsTrigger value="kelola" className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+                <Settings className="w-4 h-4" />
+                <span>Kelola</span>
                 {counts && (
-                  <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-350">
+                  <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-350">
                     {counts.draft > 0 ? `${counts.draft} draft` : counts.total}
                   </span>
                 )}
@@ -346,7 +350,7 @@ export default function PengumumanPage() {
                     { value: "orang_tua", label: "Orang Tua" }
                   ]}
                 >
-                  <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/50"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="semua">Semua</SelectItem>
                     <SelectItem value="guru">Guru</SelectItem>
@@ -667,14 +671,19 @@ function AdminView({
         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-[300px]">
           <div className="flex-1 min-w-[200px] space-y-1.5">
             <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest">Cari Pengumuman</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="Judul atau isi pengumuman..." 
-                className="pl-9 rounded-xl border-slate-200 focus:ring-teal-500/10 focus:border-teal-500" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Judul atau isi pengumuman..." 
+                  className="pl-9 h-10" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
+              </div>
+              <Button type="button" variant="secondary" className="h-10 px-4">
+                Cari
+              </Button>
             </div>
           </div>
           

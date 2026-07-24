@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, ShieldAlert, Users, UserCheck, UserX } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, ShieldAlert, Users, UserCheck, UserX, GraduationCap, ArrowUpRight } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -30,6 +30,7 @@ import {
   TooltipPositioner,
   TooltipPopup,
 } from "@/components/ui/tooltip"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface SiswaItem {
   id: string
@@ -896,50 +897,44 @@ export default function SiswaPage() {
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex justify-center mb-6">
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 w-full max-w-xl">
-          {[
-            { id: "aktif", label: "Data Siswa Aktif" },
-            { id: "mutasi_keluar", label: "Mutasi Keluar" },
-            { id: "tidak_aktif", label: "Alumni / Tidak Aktif" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any)
-                setPage(0)
-              }}
-              className={`flex-1 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === tab.id
-                  ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                  : "text-slate-500 hover:text-slate-750 dark:text-slate-450 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(0); }} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger value="aktif" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <UserCheck className="w-4 h-4" />
+              <span>Data Siswa Aktif</span>
+            </TabsTrigger>
+            <TabsTrigger value="mutasi_keluar" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <ArrowUpRight className="w-4 h-4" />
+              <span>Mutasi Keluar</span>
+            </TabsTrigger>
+            <TabsTrigger value="tidak_aktif" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <GraduationCap className="w-4 h-4" />
+              <span>Alumni / Tidak Aktif</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
+      </Tabs>
 
       <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         {/* Row 1: Search and Filters */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input on the Left */}
-          <div className="relative flex items-center w-full md:max-w-xs lg:max-w-md">
-            <Search className="absolute left-3.5 text-slate-400 w-4 h-4 shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari nama atau NISN..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full pl-10 pr-20 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-350"
-            />
+          <div className="flex items-center gap-2 w-full md:max-w-xs lg:max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Cari nama atau NISN..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-9 h-10"
+              />
+            </div>
             <Button 
               variant="secondary" 
-              size="sm" 
               onClick={handleSearch} 
-              className="absolute right-1.5 h-8 rounded-xl font-bold text-xs uppercase cursor-pointer"
+              className="h-10 px-4"
             >
               Cari
             </Button>
@@ -949,7 +944,7 @@ export default function SiswaPage() {
           <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
             {activeTab === "aktif" && (
               <Select value={subStatus} onValueChange={(v) => { setSubStatus(v as any); setPage(0) }}>
-                <SelectTrigger className="w-40 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-40 !h-10 !rounded-2xl text-xs font-bold">
                   <SelectValue placeholder="Status Aktif" />
                 </SelectTrigger>
                 <SelectContent>
@@ -960,7 +955,7 @@ export default function SiswaPage() {
             )}
             
             <Select value={kelasFilter} onValueChange={(v) => { setKelasFilter(v ?? ""); setPage(0) }}>
-              <SelectTrigger className="w-44 !h-10 !rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900/40">
+              <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
                 <SelectValue placeholder="Semua Kelas" />
               </SelectTrigger>
               <SelectContent>
@@ -974,7 +969,7 @@ export default function SiswaPage() {
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2">
               <span>Tampil</span>
               <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
-                <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1150,7 +1145,7 @@ export default function SiswaPage() {
                         Edit
                       </button>
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="w-7 h-7 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-650 dark:hover:text-slate-300 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/20">
+                        <DropdownMenuTrigger className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-650 dark:hover:text-slate-300 transition-all cursor-pointer">
                           <MoreHorizontal size={14} strokeWidth={2.5} />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">

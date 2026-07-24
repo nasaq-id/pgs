@@ -166,18 +166,22 @@ export default function KelasTab() {
 
   return (
     <>
-      <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5 text-left">
+      <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5 text-left">
         {/* Action Header & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari kelas berdasarkan nama atau tingkat..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-900/60 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-800 transition-all text-slate-700 dark:text-slate-300"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Cari kelas berdasarkan nama atau tingkat..."
+                className="pl-9 h-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button type="button" variant="secondary" className="h-10 px-4">
+              Cari
+            </Button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -185,7 +189,7 @@ export default function KelasTab() {
             <button
               type="button"
               onClick={() => setShowRekap(!showRekap)}
-              className="px-4 py-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              className="px-4 py-2.5 rounded-2xl neumo-sm bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
             >
               <BarChart2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               <span>{showRekap ? "Tutup Rekap" : "Rekap & Statistik"}</span>
@@ -195,7 +199,7 @@ export default function KelasTab() {
             <button
               type="button"
               onClick={() => setLaporanOpen(true)}
-              className="px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              className="px-4 py-2.5 rounded-2xl neumo-sm bg-background text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
             >
               <Printer className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               <span>Laporan Kelas</span>
@@ -203,7 +207,10 @@ export default function KelasTab() {
 
             {/* Tambah Kelas Button */}
             <button
-              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center cursor-pointer"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer hover:scale-[1.01] active:scale-[0.98]"
+              style={{
+                boxShadow: "4px 4px 10px oklch(0.70 0.08 175 / 0.5), -3px -3px 8px oklch(1 0 0)",
+              }}
               onClick={() => {
                 setEditData(null)
                 setFormOpen(true)
@@ -221,8 +228,8 @@ export default function KelasTab() {
             {/* Left Column: Metric Cards */}
             <div className="lg:col-span-4 space-y-3">
               {/* TOTAL KELAS */}
-              <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900/60 shadow-xs">
-                <div className="w-11 h-11 rounded-2xl bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-900/40 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+              <div className="neumo-card p-4 rounded-2xl flex items-center gap-4 bg-background">
+                <div className="w-11 h-11 rounded-2xl neumo-inset bg-background flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
@@ -232,8 +239,8 @@ export default function KelasTab() {
               </div>
 
               {/* SISWA TERBAGI KELAS */}
-              <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900/60 shadow-xs">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+              <div className="neumo-card p-4 rounded-2xl flex items-center gap-4 bg-background">
+                <div className="w-11 h-11 rounded-2xl neumo-inset bg-background flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
@@ -243,8 +250,8 @@ export default function KelasTab() {
               </div>
 
               {/* BELUM MASUK KELAS */}
-              <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center gap-4 bg-white dark:bg-slate-900/60 shadow-xs">
-                <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+              <div className="neumo-card p-4 rounded-2xl flex items-center gap-4 bg-background">
+                <div className="w-11 h-11 rounded-2xl neumo-inset bg-background flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
@@ -255,7 +262,7 @@ export default function KelasTab() {
             </div>
 
             {/* Right Column: REKAPITULASI SISWA PER KELAS Table */}
-            <div className="lg:col-span-8 glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xs space-y-3">
+            <div className="lg:col-span-8 neumo-card p-4 rounded-2xl bg-background space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -268,8 +275,8 @@ export default function KelasTab() {
 
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+                  <TableHeader className="neumo-inset bg-background/50">
+                    <TableRow className="border-b border-slate-150 dark:border-slate-800">
                       <TableHead className="text-[10px] font-black text-slate-400 uppercase py-2">KELAS</TableHead>
                       <TableHead className="text-[10px] font-black text-slate-400 uppercase text-center py-2">L (LAKI-LAKI)</TableHead>
                       <TableHead className="text-[10px] font-black text-slate-400 uppercase text-center py-2">P (PEREMPUAN)</TableHead>
@@ -287,7 +294,7 @@ export default function KelasTab() {
                       records.map((r) => {
                         const st = kelasStatsMap.get(r.id) || { count: 0, laki: 0, perempuan: 0 }
                         return (
-                          <TableRow key={r.id} className="border-b border-slate-100 dark:border-slate-800 text-xs py-1.5">
+                          <TableRow key={r.id} className="border-b border-slate-100/60 dark:border-slate-800/40 last:border-0 text-xs py-1.5">
                             <TableCell className="font-bold text-slate-800 dark:text-slate-200 py-1.5">{r.namaKelas}</TableCell>
                             <TableCell className="text-center font-extrabold text-blue-600 dark:text-blue-400 py-1.5">{st.laki}</TableCell>
                             <TableCell className="text-center font-extrabold text-rose-600 dark:text-rose-400 py-1.5">{st.perempuan}</TableCell>
@@ -296,7 +303,7 @@ export default function KelasTab() {
                         )
                       })
                     )}
-                    <TableRow className="bg-slate-50 dark:bg-slate-900 font-black text-xs border-t-2 border-slate-200 dark:border-slate-800">
+                    <TableRow className="neumo-inset bg-background/50 font-black text-xs">
                       <TableCell className="text-slate-800 dark:text-slate-100 py-2">Total Siswa</TableCell>
                       <TableCell className="text-center text-blue-600 dark:text-blue-400 py-2">{totalRekapL}</TableCell>
                       <TableCell className="text-center text-rose-600 dark:text-rose-400 py-2">{totalRekapP}</TableCell>
@@ -313,13 +320,13 @@ export default function KelasTab() {
         <div className="md:hidden space-y-4">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-4 space-y-3">
+              <div key={i} className="neumo-card rounded-[22px] p-4 space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
             ))
           ) : records.length === 0 ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-400 font-semibold shadow-sm">
+            <div className="neumo-inset bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
               {search ? "Tidak ditemukan" : "Belum ada data rombel kelas"}
             </div>
           ) : (
@@ -329,7 +336,7 @@ export default function KelasTab() {
               const pct = Math.min(100, Math.round((st.count / cap) * 100))
 
               return (
-                <div key={r.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                <div key={r.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
                   <div className="flex justify-between items-start">
                     <div className="min-w-0">
                       <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-900/50">
@@ -364,13 +371,13 @@ export default function KelasTab() {
                           })
                           setFormOpen(true)
                         }}
-                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-600 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        className="px-2.5 py-1.5 neumo-sm bg-background hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setDeleteId(r.id)}
-                        className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        className="px-2.5 py-1.5 neumo-sm bg-background hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
                       >
                         Hapus
                       </button>
@@ -383,10 +390,10 @@ export default function KelasTab() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
+        <div className="hidden md:block neumo-card bg-background rounded-[22px] overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
-              <TableRow>
+            <TableHeader className="neumo-inset bg-background/50">
+              <TableRow className="border-b border-slate-100 dark:border-slate-800/60">
                 <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">TINGKAT</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">NAMA KELAS (ROMBEL)</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-400 uppercase tracking-wider py-3">WALI KELAS</TableHead>
@@ -417,7 +424,7 @@ export default function KelasTab() {
                   const pct = Math.min(100, Math.round((st.count / cap) * 100))
 
                   return (
-                    <TableRow key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                    <TableRow key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100/60 dark:border-slate-800/40 last:border-0">
                       <TableCell>
                         <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-900/50">
                           {r.tingkat ? `KELAS ${r.tingkat.replace(/^(tingkat_|kelas_|kls_)/i, "")}` : "UMUM"}
@@ -441,7 +448,7 @@ export default function KelasTab() {
                             <span className="text-slate-700 dark:text-slate-300">{st.count} / {cap} Siswa</span>
                             <span className="text-[10px] font-extrabold text-slate-400">{pct}%</span>
                           </div>
-                          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full neumo-inset bg-background rounded-full overflow-hidden">
                             <div className="h-full bg-teal-500 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
@@ -467,7 +474,7 @@ export default function KelasTab() {
                                 })
                                 setFormOpen(true)
                               }}
-                              className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-200 dark:hover:border-amber-900/30 transition-all shadow-xs cursor-pointer"
+                              className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </TooltipTrigger>
@@ -480,7 +487,7 @@ export default function KelasTab() {
                           <Tooltip>
                             <TooltipTrigger
                               onClick={() => setDeleteId(r.id)}
-                              className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-900/30 transition-all shadow-xs cursor-pointer"
+                              className="w-8 h-8 rounded-xl neumo-sm flex items-center justify-center bg-background hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-all cursor-pointer"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </TooltipTrigger>
