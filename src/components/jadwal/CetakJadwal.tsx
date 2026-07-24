@@ -90,10 +90,10 @@ export default function CetakJadwal({ open, onClose }: Props) {
     enabled: open,
   })
 
-  const { data: kelasList } = api.kelas.getAll.useQuery({}, { enabled: open })
-  const { data: mapelList } = api.mapel.getAll.useQuery({}, { enabled: open })
-  const { data: guruList } = api.guru.getAll.useQuery({}, { enabled: open })
-  const { data: allJadwal, isLoading } = api.jadwal.getAll.useQuery({}, { enabled: open })
+  const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 1000 }, { enabled: open })
+  const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 1000 }, { enabled: open })
+  const { data: guruList } = api.guru.getAll.useQuery({ limit: 1000 }, { enabled: open })
+  const { data: allJadwal, isLoading } = api.jadwal.getAll.useQuery({ limit: 5000 }, { enabled: open })
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({}, { enabled: open })
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({}, { enabled: open })
 
@@ -258,7 +258,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
           .judul p { font-size: 11px; margin: 2px 0; }
           table { width: 100%; border-collapse: collapse; font-size: 8px; margin-bottom: 15px; }
           th, td { border: 1px solid #000; padding: 3px 4px; text-align: center; vertical-align: middle; }
-          th { background: #f0f0f0; font-weight: bold; }
+          th { background: #4f46e5 !important; color: #fff !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .day-cell { font-weight: bold; background: #fafafa; font-size: 9px; }
           .jp-cell { font-size: 7px; white-space: nowrap; }
           .agenda-cell { font-style: italic; color: #555; background: #f9f9f9; }
@@ -435,11 +435,11 @@ export default function CetakJadwal({ open, onClose }: Props) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
               <thead>
                 <tr>
-                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#f0f0f0", width: 70 }}>Hari</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#f0f0f0", width: 30 }}>JP</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#f0f0f0", width: 70 }}>Jam</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#f0f0f0" }}>Mata Pelajaran</th>
-                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#f0f0f0" }}>Guru</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#4f46e5", color: "#fff", width: 70 }}>Hari</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#4f46e5", color: "#fff", width: 30 }}>JP</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#4f46e5", color: "#fff", width: 70 }}>Jam</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#4f46e5", color: "#fff" }}>Mata Pelajaran</th>
+                  <th style={{ border: "1px solid #000", padding: "4px 6px", background: "#4f46e5", color: "#fff" }}>Guru</th>
                 </tr>
               </thead>
               <tbody>
@@ -523,14 +523,14 @@ export default function CetakJadwal({ open, onClose }: Props) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
           <thead>
             <tr>
-              <th rowSpan={2} style={{ border: "1px solid #000", padding: "3px 4px", background: "#f0f0f0", width: 60, verticalAlign: "middle" }}>
+              <th rowSpan={2} style={{ border: "1px solid #000", padding: "3px 4px", background: "#4f46e5", color: "#fff", width: 60, verticalAlign: "middle" }}>
                 JP / Jam
               </th>
               {aktifDays.map((day) => (
                 <th
                   key={day}
                   colSpan={sortedKelas.length}
-                  style={{ border: "1px solid #000", padding: "3px 4px", background: "#f0f0f0", fontSize: 9 }}
+                  style={{ border: "1px solid #000", padding: "3px 4px", background: "#4f46e5", color: "#fff", fontSize: 9 }}
                 >
                   {DAY_LABEL[day]}
                 </th>
@@ -539,7 +539,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
             <tr>
               {aktifDays.map((day) =>
                 sortedKelas.map((kelas) => (
-                  <th key={`${day}-${kelas.id}`} style={{ border: "1px solid #000", padding: "2px 3px", background: "#f5f5f5", fontSize: 7 }}>
+                  <th key={`${day}-${kelas.id}`} style={{ border: "1px solid #000", padding: "2px 3px", background: "#4f46e5", color: "#fff", fontSize: 7 }}>
                     {formatKelasLabel(kelas)}
                   </th>
                 ))
@@ -589,9 +589,9 @@ export default function CetakJadwal({ open, onClose }: Props) {
             <table className="legend-table" style={{ borderCollapse: "collapse", fontSize: 8, marginBottom: 10 }}>
               <thead>
                 <tr>
-                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#f0f0f0", fontWeight: "bold" }}>Kode</th>
-                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#f0f0f0", fontWeight: "bold" }}>Nama Guru</th>
-                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#f0f0f0", fontWeight: "bold" }}>Mata Pelajaran</th>
+                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#4f46e5", color: "#fff", fontWeight: "bold" }}>Kode</th>
+                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#4f46e5", color: "#fff", fontWeight: "bold" }}>Nama Guru</th>
+                  <th style={{ border: "1px solid #000", padding: "2px 8px", background: "#4f46e5", color: "#fff", fontWeight: "bold" }}>Mata Pelajaran</th>
                 </tr>
               </thead>
               <tbody>
