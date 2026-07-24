@@ -51,6 +51,15 @@ interface SekolahData {
   npsn: string | null
   kepalaSekolah: string | null
   logo?: string | null
+  jenjang?: string | null
+  useCustomKop?: boolean | null
+  customKopGambar?: string | null
+  customKopTinggi?: number | null
+  logoKiriKop?: string | null
+  kopBaris1?: string | null
+  kopBaris2?: string | null
+  kopBaris3?: string | null
+  kopBaris4?: string | null
 }
 
 interface TimelineRecord {
@@ -287,6 +296,80 @@ export default function CetakJadwal({ open, onClose }: Props) {
 
   const jpSlots = Array.from({ length: totalJpSlots }, (_, i) => i + 1)
 
+  const renderKopHeader = () => {
+    if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
+      return (
+        <div className="kop-container" style={{ width: "100%", height: `${(sekolah.customKopTinggi || 35) * 3}px`, position: "relative", marginBottom: "15px" }}>
+          <img 
+            src={sekolah.customKopGambar} 
+            alt="Kop Surat" 
+            style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+          />
+        </div>
+      )
+    }
+
+    const isKemenag = ["mi", "mts", "ma"].includes(sekolah?.jenjang || "")
+    const hasKopBaris = sekolah?.kopBaris1 || sekolah?.kopBaris2 || sekolah?.kopBaris3 || sekolah?.kopBaris4
+
+    return (
+      <div className="kop-container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "15px", borderBottom: "3px double #000", paddingBottom: "10px", marginBottom: "15px", width: "100%" }}>
+        {/* Left Logo */}
+        {sekolah?.logoKiriKop ? (
+          <img src={sekolah.logoKiriKop} alt="Logo Kiri" style={{ height: 55, width: 55, objectFit: "contain" }} />
+        ) : isKemenag ? (
+          <div style={{ height: 50, width: 50, borderRadius: "50%", backgroundColor: "#059669", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "1px solid #047857", padding: "2px", boxSizing: "border-box" }}>
+            <span style={{ fontSize: "7px", fontWeight: "bold", textTransform: "uppercase" }}>Kemenag</span>
+          </div>
+        ) : (
+          <div style={{ height: 50, width: 50, borderRadius: "50%", backgroundColor: "#2563eb", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "1px solid #1d4ed8", padding: "2px", boxSizing: "border-box" }}>
+            <span style={{ fontSize: "6px", fontWeight: "bold", textTransform: "uppercase" }}>Tut Wuri</span>
+          </div>
+        )}
+
+        {/* Center Text */}
+        <div style={{ flex: 1, textAlign: "center", fontFamily: "serif" }}>
+          {hasKopBaris ? (
+            <>
+              {sekolah?.kopBaris1 && (
+                <h5 style={{ fontSize: 9, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  {sekolah.kopBaris1}
+                </h5>
+              )}
+              {sekolah?.kopBaris2 && (
+                <h5 style={{ fontSize: 9, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  {sekolah.kopBaris2}
+                </h5>
+              )}
+              <h4 style={{ fontSize: 13, margin: "2px 0", fontWeight: "bold", textTransform: "uppercase" }}>
+                {sekolah?.kopBaris3 || sekolah?.namaSekolah || "SEKOLAH CONTOH"}
+              </h4>
+              <p style={{ fontSize: 8, margin: 0, color: "#4b5563" }}>
+                {sekolah?.kopBaris4 || sekolah?.alamat || ""}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 style={{ fontSize: 15, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
+                {sekolah?.namaSekolah || "Nama Lembaga Pendidikan"}
+              </h1>
+              <p style={{ fontSize: 9, margin: "2px 0", color: "#4b5563" }}>
+                {sekolah?.alamat || ""}{sekolah?.npsn ? ` | NPSN: ${sekolah.npsn}` : ""}
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Right Logo */}
+        {sekolah?.logo ? (
+          <img src={sekolah.logo} alt="Logo Kanan" style={{ height: 55, width: 55, objectFit: "contain" }} />
+        ) : (
+          <div style={{ height: 50, width: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: "8px", fontWeight: "bold", fontSize: 8, color: "#9ca3af" }}>LOGO</div>
+        )}
+      </div>
+    )
+  }
+
   const renderSelectionScreen = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
       <button
@@ -340,21 +423,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
           </div>
         ) : (
           <div ref={printRef} className="bg-white text-black p-4">
-            <div className="kop-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", borderBottom: "3px double #000", paddingBottom: "10px", marginBottom: "15px" }}>
-              {sekolah?.logo ? (
-                <img src={sekolah.logo} alt="Logo" style={{ height: 60, width: 60, objectFit: "contain" }} />
-              ) : (
-                <div style={{ height: 60, width: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f0f0", border: "1px solid #ccc", borderRadius: "50%", fontWeight: "bold", fontSize: 10 }}>LOGO</div>
-              )}
-              <div style={{ textAlign: "center" }}>
-                <h1 style={{ fontSize: 18, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
-                  {sekolah?.namaSekolah || "Nama Lembaga Pendidikan"}
-                </h1>
-                <p style={{ fontSize: 11, margin: "2px 0" }}>
-                  {sekolah?.alamat || ""}{sekolah?.npsn ? ` | NPSN: ${sekolah.npsn}` : ""}
-                </p>
-              </div>
-            </div>
+            {renderKopHeader()}
 
             <div style={{ textAlign: "center", margin: "12px 0" }}>
               <h2 style={{ fontSize: 14, margin: 0, fontWeight: "bold", textDecoration: "none" }}>Jadwal Pelajaran</h2>
@@ -442,21 +511,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
   const renderKeseluruhan = () => (
 
       <div ref={printRef} className="bg-white text-black p-4">
-        <div className="kop-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", borderBottom: "3px double #000", paddingBottom: "10px", marginBottom: "15px" }}>
-          {sekolah?.logo ? (
-            <img src={sekolah.logo} alt="Logo" style={{ height: 60, width: 60, objectFit: "contain" }} />
-          ) : (
-            <div style={{ height: 60, width: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f0f0", border: "1px solid #ccc", borderRadius: "50%", fontWeight: "bold", fontSize: 10 }}>LOGO</div>
-          )}
-          <div style={{ textAlign: "center" }}>
-            <h1 style={{ fontSize: 18, margin: 0, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
-              {sekolah?.namaSekolah || "Nama Lembaga Pendidikan"}
-            </h1>
-            <p style={{ fontSize: 11, margin: "2px 0" }}>
-              {sekolah?.alamat || ""}{sekolah?.npsn ? ` | NPSN: ${sekolah.npsn}` : ""}
-            </p>
-          </div>
-        </div>
+        {renderKopHeader()}
 
         <div style={{ textAlign: "center", margin: "12px 0" }}>
           <h2 style={{ fontSize: 14, margin: 0, fontWeight: "bold", textDecoration: "none" }}>Jadwal Pelajaran</h2>
