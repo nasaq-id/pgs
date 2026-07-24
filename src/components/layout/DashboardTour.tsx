@@ -68,20 +68,19 @@ export default function DashboardTour() {
     }
   }, [currentStep])
 
-  // Watch currentStep, resize and scroll
+  // Watch currentStep, resize, scroll, and poll at 30ms to follow transition animations smoothly
   useEffect(() => {
     if (!active) return
 
     updateCoords()
     
-    // Add small timeout in case elements shift due to rendering/animation
-    const timer = setTimeout(updateCoords, 150)
+    const interval = setInterval(updateCoords, 30)
 
     window.addEventListener("resize", updateCoords)
     window.addEventListener("scroll", updateCoords, { capture: true })
 
     return () => {
-      clearTimeout(timer)
+      clearInterval(interval)
       window.removeEventListener("resize", updateCoords)
       window.removeEventListener("scroll", updateCoords, { capture: true })
     }
@@ -179,7 +178,7 @@ export default function DashboardTour() {
       {/* Spotlight for target element */}
       {coords && (
         <div
-          className="fixed rounded-xl pointer-events-none transition-all duration-300 shadow-[0_0_0_9999px_rgba(15,23,42,0.75)] border-2 border-teal-400/80 animate-pulse-subtle"
+          className="fixed rounded-xl pointer-events-none transition-all duration-300 shadow-[0_0_0_9999px_rgba(15,23,42,0.75)] border border-white/20 dark:border-slate-800/40 shadow-[0_0_15px_rgba(255,255,255,0.06)]"
           style={{
             top: coords.top - 4,
             left: coords.left - 4,
@@ -190,10 +189,10 @@ export default function DashboardTour() {
         />
       )}
 
-      {/* Tooltip Card (Neomorphic Style) */}
+      {/* Tooltip Card (Hybrid Glassmorphic + Neomorphic Style) */}
       <div
         style={tooltipStyle}
-        className="bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-3xl border border-white/40 dark:border-slate-800/40 p-5 shadow-2xl neumo-card animate-in zoom-in-95 duration-200 text-left"
+        className="bg-[oklch(0.96_0.01_250_/_0.85)] dark:bg-[oklch(0.16_0.01_250_/_0.75)] backdrop-blur-md rounded-3xl border border-white/30 dark:border-slate-800/30 p-5 shadow-2xl neumo-card animate-in zoom-in-95 duration-200 text-left"
       >
         <button
           onClick={handleComplete}
