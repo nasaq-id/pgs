@@ -887,7 +887,7 @@ export default function KelasPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {srcClassOptions.map((k) => (
-                          <SelectItem key={k.id} value={k.id}>{k.namaKelas}</SelectItem>
+                          <SelectItem key={k.id} value={k.id}>{formatKelasLabel(k)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -931,18 +931,25 @@ export default function KelasPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredSrcStudents.map((s) => (
-                              <TableRow key={s.id} className="hover:bg-slate-100/20 dark:hover:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/85">
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={selectedSiswaIds.includes(s.id)}
-                                    onCheckedChange={(val) => handleSelectOne(!!val, s.id)}
-                                  />
-                                </TableCell>
-                                <TableCell className="font-semibold text-slate-700 dark:text-slate-300">{s.namaLengkap}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground font-mono">{s.nisn || "-"}</TableCell>
-                              </TableRow>
-                            ))}
+                            {filteredSrcStudents.map((s) => {
+                              const isSelected = selectedSiswaIds.includes(s.id)
+                              return (
+                                <TableRow
+                                  key={s.id}
+                                  className="hover:bg-slate-100/20 dark:hover:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/85 cursor-pointer select-none"
+                                  onClick={() => handleSelectOne(!isSelected, s.id)}
+                                >
+                                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={(val) => handleSelectOne(!!val, s.id)}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-semibold text-slate-700 dark:text-slate-300">{s.namaLengkap}</TableCell>
+                                  <TableCell className="text-xs text-muted-foreground font-mono">{s.nisn || "-"}</TableCell>
+                                </TableRow>
+                              )
+                            })}
                           </TableBody>
                         </Table>
                       )}
@@ -994,7 +1001,7 @@ export default function KelasPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {dstClassOptions.map((k) => (
-                          <SelectItem key={k.id} value={k.id} disabled={k.id === srcKelasId}>{k.namaKelas} {k.id === srcKelasId && "(Asal)"}</SelectItem>
+                          <SelectItem key={k.id} value={k.id} disabled={k.id === srcKelasId}>{formatKelasLabel(k)} {k.id === srcKelasId && "(Asal)"}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
