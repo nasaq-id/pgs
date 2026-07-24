@@ -22,13 +22,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipPopup,
-} from "@/components/ui/tooltip"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -46,12 +39,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
+import { useSession } from "next-auth/react"
 import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
 import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
 import CetakJadwal from "@/components/jadwal/CetakJadwal"
 import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
 import AiGenerateDialog from "@/components/jadwal/AiGenerateDialog"
-import { DAYS, DAY_LABEL, toTimeInputValue, timeToMinutes, formatKelasLabel } from "@/components/jadwal/constants"
+import { DAYS, DAY_LABEL, toTimeInputValue, formatKelasLabel } from "@/components/jadwal/constants"
 
 interface JadwalRecord {
   id: string
@@ -102,6 +96,17 @@ interface TimelineRecord {
 }
 
 export default function JadwalPage() {
+  const { data: session } = useSession()
+  const role = session?.user?.role
+
+  // Role permissions checks
+  const canEdit = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "kurikulum"
+  const canViewAll = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "kurikulum" || role === "yayasan" || role === "kepala_sekolah" || role === "kepsek"
+  const isGuru = role === "guru"
+  const isSiswa = role === "siswa"
+
+  const { data: profile } = api.profil.getProfile.useQuery(undefined, { enabled: !!session })
+
   const [kelasId, setKelasId] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<JadwalFormData | null>(null)
@@ -112,7 +117,7 @@ export default function JadwalPage() {
   const [cetakOpen, setCetakOpen] = useState(false)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
 
-  // New Filters & Modes states (Matching AkademikView.tsx ref)
+  // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [scheduleViewMode, setScheduleViewMode] = useState<'mingguan' | 'harian'>('mingguan')
 
@@ -124,17 +129,24 @@ export default function JadwalPage() {
     return cls ? formatKelasLabel(cls) : ""
   }, [kelasId, kelasRecords])
 
+  // Sync current user's profile IDs
   useEffect(() => {
-    if (!kelasId && kelasRecords.length > 0) {
+    if (isSiswa && profile?.kelasId) {
+      setKelasId(profile.kelasId as string)
+    } else if (!isSiswa && !isGuru && !kelasId && kelasRecords.length > 0) {
       setKelasId(kelasRecords[0].id)
     }
-  }, [kelasId, kelasRecords])
+  }, [isSiswa, isGuru, kelasId, kelasRecords, profile])
 
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
+
+  // Query is dynamically filtered by teacher ID if logged in as a teacher
   const { data: jadwalList, isLoading } = api.jadwal.getAll.useQuery(
-    { kelasId: kelasId || undefined },
-    { enabled: !!kelasId }
+    isGuru
+      ? { guruId: (profile?.id || "none") as string }
+      : { kelasId: kelasId || undefined },
+    { enabled: isGuru ? !!profile?.id : (isSiswa ? !!kelasId : true) }
   )
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({})
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({})
@@ -175,12 +187,10 @@ export default function JadwalPage() {
     [guruRecords]
   )
 
-  // Get active days from timeline items
   const aktifDays = useMemo(() => {
     return DAYS
   }, [])
 
-  // Build timeline-based academic JP mapping
   const timelineByDay = useMemo(() => {
     const map = new Map<string, TimelineRecord[]>()
     for (const day of aktifDays) {
@@ -193,6 +203,7 @@ export default function JadwalPage() {
   }, [timelineRecords, aktifDays])
 
   const handleSubmit = async (data: JadwalFormData) => {
+    if (!canEdit) return
     if (data.id) {
       await updateMutation.mutateAsync({
         id: data.id,
@@ -223,12 +234,13 @@ export default function JadwalPage() {
   }
 
   const handleDelete = async () => {
-    if (!deleteId) return
+    if (!canEdit || !deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
   }
 
   const openEdit = (entry: JadwalRecord) => {
+    if (!canEdit) return
     setEditEntry({
       id: entry.id,
       hari: entry.hari,
@@ -244,6 +256,7 @@ export default function JadwalPage() {
   }
 
   const openAdd = (hari: string, jpSlot?: number) => {
+    if (!canEdit) return
     setEditEntry(null)
     setAddForHari(hari)
     setAddJpMulai(jpSlot ?? null)
@@ -269,37 +282,46 @@ export default function JadwalPage() {
 
   return (
     <div className="space-y-6 text-left">
-      {/* Premium selection panel (Matching AkademikView.tsx ref) */}
+      {/* Premium selection panel */}
       <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest bg-teal-950/80 px-2.5 py-1 rounded-full border border-teal-500/20">
-            Panel Distribusi Jadwal
+            {isGuru ? "Jadwal Mengajar Anda" : isSiswa ? "Jadwal Belajar Kelas Anda" : "Panel Distribusi Jadwal"}
           </span>
           <h3 className="text-xl lg:text-2xl font-extrabold tracking-tight mt-3">
-            Tinjau Mingguan: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span>
+            {isGuru ? (
+              <span>Tinjau Agenda: <span className="text-teal-400">{(profile?.namaLengkap as string) || "Guru"}</span></span>
+            ) : (
+              <span>Tinjau Mingguan: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span></span>
+            )}
           </h3>
           <p className="text-slate-300 text-xs mt-1.5 max-w-md font-medium">
-            Silakan filter rombel kelas dan pilih hari untuk melihat jadwal kegiatan belajar mengajar secara sistematis.
+            {isGuru
+              ? "Tinjauan lengkap jam pelajaran mengajar Anda yang terdaftar secara resmi di sekolah."
+              : "Silakan filter rombel kelas dan pilih hari untuk melihat jadwal kegiatan belajar mengajar secara sistematis."}
           </p>
         </div>
 
         {/* Class, Day & View Mode pickers */}
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
-          <div className="w-full sm:w-auto">
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
-            <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
-              <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
-                <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 text-white border-slate-700">
-                {kelasRecords.map((k) => (
-                  <SelectItem key={k.id} value={k.id} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
-                    {formatKelasLabel(k)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Hide rombel picker for students and teachers */}
+          {!isSiswa && !isGuru && (
+            <div className="w-full sm:w-auto">
+              <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
+              <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
+                <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
+                  <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 text-white border-slate-700">
+                  {kelasRecords.map((k) => (
+                    <SelectItem key={k.id} value={k.id} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
+                      {formatKelasLabel(k)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="w-full sm:w-auto">
             <label className="block text-[11px] font-medium text-slate-300 mb-1">Filter Hari</label>
@@ -359,35 +381,45 @@ export default function JadwalPage() {
         </div>
       </div>
 
-      {/* Quick Actions Bar */}
-      <div className="flex flex-wrap justify-end gap-3 mb-6 bg-white dark:bg-slate-900/10 p-4 border border-slate-100 dark:border-slate-850 rounded-3xl shadow-sm">
-        <Button
-          onClick={() => setPengaturanOpen(true)}
-          className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-650 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          <span>Pengaturan Jadwal</span>
-        </Button>
+      {/* Quick Actions Bar (Visible only for users authorized to edit/print) */}
+      {(canEdit || canViewAll) && (
+        <div className="flex flex-wrap justify-end gap-3 mb-6 bg-white dark:bg-slate-900/10 p-4 border border-slate-100 dark:border-slate-850 rounded-3xl shadow-sm">
+          {canEdit && (
+            <>
+              <Button
+                onClick={() => setPengaturanOpen(true)}
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-650 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                <span>Pengaturan Jadwal</span>
+              </Button>
 
-        <Button
-          onClick={() => setAiGenerateOpen(true)}
-          className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          <span>AI Auto-Generate</span>
-        </Button>
+              <Button
+                onClick={() => setAiGenerateOpen(true)}
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span>AI Auto-Generate</span>
+              </Button>
+            </>
+          )}
 
-        <Button
-          onClick={() => setCetakOpen(true)}
-          disabled={!kelasId || !hasData}
-          className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-750 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50"
-        >
-          <Printer className="w-4 h-4 mr-2" />
-          <span>Cetak Jadwal</span>
-        </Button>
+          {canViewAll && (
+            <>
+              <Button
+                onClick={() => setCetakOpen(true)}
+                disabled={!kelasId || !hasData}
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-750 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                <span>Cetak Jadwal</span>
+              </Button>
 
-        <ExportExcelJadwal />
-      </div>
+              <ExportExcelJadwal />
+            </>
+          )}
+        </div>
+      )}
 
       {/* Main Content Area */}
       {isLoading ? (
@@ -404,7 +436,7 @@ export default function JadwalPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Day selection tab buttons for Timeline view */}
+          {/* Day selection tab buttons for Harian view */}
           {scheduleViewMode === "harian" && (
             <div className="bg-slate-50/50 border border-slate-100 p-4 rounded-3xl text-left space-y-2">
               <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">
@@ -450,7 +482,7 @@ export default function JadwalPage() {
           )}
 
           {scheduleViewMode === "mingguan" ? (
-            /* ================= WEEKLY GRID VIEW (Day columns vertical cards) ================= */
+            /* ================= WEEKLY GRID VIEW ================= */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
               {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {
                 const dayItems = timelineByDay.get(day) ?? []
@@ -466,13 +498,15 @@ export default function JadwalPage() {
                           {DAY_LABEL[day]}
                         </h4>
                       </div>
-                      <button
-                        onClick={() => openAdd(day)}
-                        className="rounded-lg p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-650 transition-all border border-teal-100/30 cursor-pointer"
-                        title={`Tambah Jadwal Hari ${DAY_LABEL[day]}`}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => openAdd(day)}
+                          className="rounded-lg p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-650 transition-all border border-teal-100/30 cursor-pointer"
+                          title={`Tambah Jadwal Hari ${DAY_LABEL[day]}`}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
 
                     {/* Timeline items stack */}
@@ -482,7 +516,7 @@ export default function JadwalPage() {
                       ) : (
                         dayItems.map((item) => {
                           if (item.tipe !== "jp") {
-                            // Non-JP Agenda Item (Istirahat, Sholat, Upacara, dll)
+                            // Non-JP Agenda Item
                             let Icon = Clock
                             let iconColor = "text-slate-500 bg-slate-50 border border-slate-100"
                             let cardStyle = "bg-slate-50/50 border-slate-200/50 text-slate-700"
@@ -541,8 +575,8 @@ export default function JadwalPage() {
                               const isStart = entry.jpMulai === academicJp
                               const mapel = mapelMap.get(entry.mataPelajaranId)
                               const teacher = guruMap.get(entry.guruId)
+                              const kelas = kelasRecords.find((k) => k.id === entry.kelasId)
 
-                              // Calculate spans time
                               const startSlot = jpItems[entry.jpMulai! - 1]
                               const endSlot = jpItems[entry.jpMulai! - 1 + entry.jpCount! - 1]
                               const tStart = startSlot?.jamMulai || item.jamMulai
@@ -568,7 +602,9 @@ export default function JadwalPage() {
                                         {mapel?.kodeMapel || "MAPEL"}
                                       </span>
                                       <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
-                                        {teacher?.namaLengkap || "Guru"}
+                                        {isGuru
+                                          ? formatKelasLabel(kelas)
+                                          : (teacher?.namaLengkap || "Guru")}
                                       </span>
                                     </div>
                                     <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 mt-1 line-clamp-2 leading-tight uppercase">
@@ -579,20 +615,24 @@ export default function JadwalPage() {
                                   <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800/80 flex items-center justify-end">
                                     {isStart ? (
                                       <div className="flex space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          onClick={() => openEdit(entry)}
-                                          className="p-1.5 bg-slate-55/10 hover:bg-teal-50 text-slate-450 hover:text-teal-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
-                                          title="Edit Jadwal"
-                                        >
-                                          <Pencil size={11} />
-                                        </button>
-                                        <button
-                                          onClick={() => setDeleteId(entry.id)}
-                                          className="p-1.5 bg-slate-55/10 hover:bg-rose-50 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
-                                          title="Hapus Jadwal"
-                                        >
-                                          <Trash2 size={11} />
-                                        </button>
+                                        {canEdit && (
+                                          <>
+                                            <button
+                                              onClick={() => openEdit(entry)}
+                                              className="p-1.5 bg-slate-55/10 hover:bg-teal-50 text-slate-450 hover:text-teal-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
+                                              title="Edit Jadwal"
+                                            >
+                                              <Pencil size={11} />
+                                            </button>
+                                            <button
+                                              onClick={() => setDeleteId(entry.id)}
+                                              className="p-1.5 bg-slate-55/10 hover:bg-rose-50 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-slate-200/50 cursor-pointer"
+                                              title="Hapus Jadwal"
+                                            >
+                                              <Trash2 size={11} />
+                                            </button>
+                                          </>
+                                        )}
                                       </div>
                                     ) : (
                                       <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest">
@@ -610,15 +650,19 @@ export default function JadwalPage() {
                                 >
                                   <div>
                                     <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
-                                    <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">Sesi Kosong</span>
+                                    <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">
+                                      {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
+                                    </span>
                                   </div>
-                                  <button
-                                    onClick={() => openAdd(day, academicJp)}
-                                    className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/40 cursor-pointer"
-                                    title="Isi Jadwal JP"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                  </button>
+                                  {canEdit && (
+                                    <button
+                                      onClick={() => openAdd(day, academicJp)}
+                                      className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/40 cursor-pointer"
+                                      title="Isi Jadwal JP"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
                               )
                             }
@@ -647,7 +691,6 @@ export default function JadwalPage() {
                       </span>
                     </div>
 
-                    {/* Timeline view mapping */}
                     <div className="relative border-l border-slate-100 dark:border-slate-800 pl-4 ml-2 space-y-4 text-left">
                       {dayItems.length === 0 ? (
                         <p className="text-xs text-slate-400 font-bold uppercase py-2">Tidak ada jadwal</p>
@@ -679,7 +722,7 @@ export default function JadwalPage() {
                             return (
                               <div
                                 key={item.id}
-                                className="relative p-3.5 bg-slate-50/50 dark:bg-slate-900/5 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
+                                className="relative p-3.5 bg-slate-55/5 dark:bg-slate-900/5 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
                               >
                                 <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white dark:border-slate-900" />
                                 <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -724,7 +767,9 @@ export default function JadwalPage() {
                                           {mapelMap.get(entry.mataPelajaranId)?.kodeMapel || "MAPEL"}
                                         </span>
                                         <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
-                                          {guruMap.get(entry.guruId)?.namaLengkap || "—"}
+                                          {isGuru
+                                            ? formatKelasLabel(kelasRecords.find((k) => k.id === entry.kelasId))
+                                            : (guruMap.get(entry.guruId)?.namaLengkap || "—")}
                                         </span>
                                       </div>
                                       <h5 className="text-xs sm:text-sm font-black text-slate-850 dark:text-slate-200 mt-1 leading-tight uppercase">
@@ -733,8 +778,12 @@ export default function JadwalPage() {
                                     </div>
                                   ) : (
                                     <div className="min-w-0 flex-1 text-left">
-                                      <span className="text-[10px] font-bold text-slate-300 uppercase block">Sesi Kosong</span>
-                                      <span className="text-[11px] font-semibold text-slate-400 block mt-0.5">Dapat diisi jadwal pelajaran</span>
+                                      <span className="text-[10px] font-bold text-slate-300 uppercase block">
+                                        {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
+                                      </span>
+                                      <span className="text-[11px] font-semibold text-slate-455 block mt-0.5">
+                                        {isGuru ? "Waktu luang / koordinasi" : "Dapat diisi jadwal pelajaran"}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -746,7 +795,7 @@ export default function JadwalPage() {
 
                                   {entry ? (
                                     <div className="flex space-x-1 shrink-0">
-                                      {entry.jpMulai === academicJp && (
+                                      {entry.jpMulai === academicJp && canEdit && (
                                         <>
                                           <button
                                             onClick={() => openEdit(entry)}
@@ -766,14 +815,16 @@ export default function JadwalPage() {
                                       )}
                                     </div>
                                   ) : (
-                                    <button
-                                      onClick={() => openAdd(day, academicJp)}
-                                      disabled={mapelRecords.length === 0}
-                                      className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/30 cursor-pointer text-[10px] font-bold"
-                                      title="Isi Jadwal"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </button>
+                                    canEdit && (
+                                      <button
+                                        onClick={() => openAdd(day, academicJp)}
+                                        disabled={mapelRecords.length === 0}
+                                        className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/30 cursor-pointer text-[10px] font-bold"
+                                        title="Isi Jadwal"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    )
                                   )}
                                 </div>
                               </div>
@@ -817,54 +868,60 @@ export default function JadwalPage() {
       )}
 
       {/* Dialog components */}
-      <JadwalFormDialog
-        open={formOpen}
-        onClose={() => {
-          setFormOpen(false)
-          setEditEntry(null)
-          setAddForHari(null)
-          setAddJpMulai(null)
-        }}
-        onOpenPengaturan={() => {
-          setFormOpen(false)
-          setPengaturanOpen(true)
-        }}
-        onSubmit={handleSubmit}
-        initial={editEntry}
-        mapelList={mapelRecords}
-        guruList={guruRecords}
-        saving={createMutation.isPending || updateMutation.isPending}
-        existingJadwal={jadwalRecords as any}
-        timelineItems={timelineRecords as any}
-        contextHari={addForHari ?? undefined}
-        initialJp={addJpMulai}
-        kelasId={kelasId}
-      />
+      {canEdit && (
+        <>
+          <JadwalFormDialog
+            open={formOpen}
+            onClose={() => {
+              setFormOpen(false)
+              setEditEntry(null)
+              setAddForHari(null)
+              setAddJpMulai(null)
+            }}
+            onOpenPengaturan={() => {
+              setFormOpen(false)
+              setPengaturanOpen(true)
+            }}
+            onSubmit={handleSubmit}
+            initial={editEntry}
+            mapelList={mapelRecords}
+            guruList={guruRecords}
+            saving={createMutation.isPending || updateMutation.isPending}
+            existingJadwal={jadwalRecords as any}
+            timelineItems={timelineRecords as any}
+            contextHari={addForHari ?? undefined}
+            initialJp={addJpMulai}
+            kelasId={kelasId}
+          />
 
-      <PengaturanJadwalDialog
-        open={pengaturanOpen}
-        onClose={() => setPengaturanOpen(false)}
-      />
+          <PengaturanJadwalDialog
+            open={pengaturanOpen}
+            onClose={() => setPengaturanOpen(false)}
+          />
 
-      <CetakJadwal
-        open={cetakOpen}
-        onClose={() => setCetakOpen(false)}
-      />
+          <AiGenerateDialog
+            open={aiGenerateOpen}
+            onClose={() => setAiGenerateOpen(false)}
+            kelasRecords={kelasRecords}
+            mapelRecords={mapelRecords}
+            guruRecords={guruRecords}
+            existingJadwal={jadwalRecords as any}
+          />
+        </>
+      )}
 
-      <AiGenerateDialog
-        open={aiGenerateOpen}
-        onClose={() => setAiGenerateOpen(false)}
-        kelasRecords={kelasRecords}
-        mapelRecords={mapelRecords}
-        guruRecords={guruRecords}
-        existingJadwal={jadwalRecords as any}
-      />
+      {canViewAll && (
+        <CetakJadwal
+          open={cetakOpen}
+          onClose={() => setCetakOpen(false)}
+        />
+      )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent className="rounded-3xl p-6 bg-background border-0 shadow-2xl overflow-hidden max-w-sm text-left">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm font-black text-slate-800 uppercase tracking-wider">Hapus Jadwal</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs font-bold text-slate-450 leading-normal">
+            <AlertDialogDescription className="text-xs font-bold text-slate-455 leading-normal">
               Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
