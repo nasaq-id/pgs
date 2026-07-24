@@ -34,7 +34,7 @@ export default function EpoinDashboardPage() {
         if (isPositif) prestasiHariIni++
       }
 
-      // Check if it's SP (Surat Peringatan) related or has high negative points
+      // Check if it's SP related or has high negative points
       if (itemMonthStr === thisMonthStr && isNegatif && Math.abs(item.poin) >= 15) {
         spBulanIni++
       }
@@ -42,7 +42,7 @@ export default function EpoinDashboardPage() {
 
     // Kritis is calculated from thresholdData
     const statusKritis = thresholdData?.reduce((acc, curr) => {
-      if (curr.aturan.poinMin <= -25) {
+      if (curr.aturan.poinMin <= -20) {
         return acc + curr.students.length
       }
       return acc
@@ -51,19 +51,14 @@ export default function EpoinDashboardPage() {
     return {
       pelanggaranHariIni,
       prestasiHariIni,
-      statusKritis: statusKritis || 8, // fallback to mock 8 if empty
-      spBulanIni: spBulanIni || 3, // fallback to mock 3 if empty
+      statusKritis,
+      spBulanIni,
     }
   })()
 
   // Format student list for "Perlu Tindak Lanjut"
   const criticalStudents = (() => {
-    if (!thresholdData || thresholdData.length === 0) {
-      // Fallback mockup data exactly as screenshot if database has no entries
-      return [
-        { id: "hudan", namaLengkap: "hudan", poin: -40, status: "Kritis" }
-      ]
-    }
+    if (!thresholdData || thresholdData.length === 0) return []
     const list: any[] = []
     thresholdData.forEach((group: any) => {
       if (group.aturan.poinMin <= -20) {
@@ -77,9 +72,7 @@ export default function EpoinDashboardPage() {
         })
       }
     })
-    return list.length > 0 ? list : [
-      { id: "hudan", namaLengkap: "hudan", poin: -40, status: "Kritis" }
-    ]
+    return list
   })()
 
   const topAchievers = dashboardData?.topPositif || []
@@ -111,7 +104,7 @@ export default function EpoinDashboardPage() {
             </span>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-3xl font-black text-slate-850">
-                {isRiwayatLoading ? "..." : stats.pelanggaranHariIni || 12}
+                {isRiwayatLoading ? "..." : stats.pelanggaranHariIni}
               </span>
               <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-lg border border-rose-100 uppercase tracking-wider">
                 <TrendingUp size={10} />
@@ -132,7 +125,7 @@ export default function EpoinDashboardPage() {
             </span>
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-3xl font-black text-slate-850">
-                {isRiwayatLoading ? "..." : stats.prestasiHariIni || 5}
+                {isRiwayatLoading ? "..." : stats.prestasiHariIni}
               </span>
               <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-lg border border-emerald-100 uppercase tracking-wider">
                 <TrendingUp size={10} />

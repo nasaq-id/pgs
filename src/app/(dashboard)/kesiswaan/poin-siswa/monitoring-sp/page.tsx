@@ -32,6 +32,10 @@ export default function MonitoringSpApresiasiPage() {
 
   // ── Database Queries ──
   const { data: monitoringData, isLoading: isLoadingMonitoring } = api.poin.getMonitoring.useQuery({ limit: 100 })
+  const { data: thresholdData, isLoading: isLoadingThreshold } = api.poin.getMonitoringThreshold.useQuery()
+  const { data: dashboardData, isLoading: isLoadingDashboard } = api.poin.getDashboardGuruAdmin.useQuery()
+  const { data: aturanList } = api.poin.getAllAturan.useQuery()
+
   const updateStatusMutation = api.poin.updateStatusMonitoring.useMutation({
     onSuccess: () => {
       toast.success("Status kasus berhasil diperbarui")
@@ -43,19 +47,58 @@ export default function MonitoringSpApresiasiPage() {
     }
   })
 
-  // Simulated SP Letters state (falls back to values in screenshot)
-  const [spLetters, setSpLetters] = useState([
-    { noSurat: "01/SP/BK/VIII/2026", nama: "Amelia Regina Putri", kelas: "10-A", jenis: "Surat Peringatan 1", tanggal: "18 Jul 2026", status: "Terkirim" },
-    { noSurat: "03/SP/BK/VIII/2026", nama: "Resa Shafira Putri", kelas: "10-A", jenis: "Surat Peringatan 3", tanggal: "21 Jul 2026", status: "Terkirim" },
-    { noSurat: "02/SP/BK/VIII/2026", nama: "Rizky Ibrahim", kelas: "10-A", jenis: "Surat Peringatan 2", tanggal: "19 Jul 2026", status: "Terkirim" }
-  ])
+  // Compute SP list dynamically from real thresholdData (negative rules)
+  const dynamicSpLetters = useMemo(() => {
+    if (!thresholdData) return []
+    const list: any[] = []
+    let index = 1
+    thresholdData.forEach((group: any) => {
+      // Negative thresholds indicate violations warranting SP
+      if (group.aturan.poinMin <= -10) {
+        group.students.forEach((std: any) => {
+          list.push({
+            noSurat: `0${index}/SP/BK/${format(new Date(), "MM/yyyy")}`,
+            nama: std.namaLengkap,
+            kelas: std.siswaId.slice(0, 5).toUpperCase(), // fallback representation of class context
+            jenis: group.aturan.status || "Surat Peringatan",
+            tanggal: format(new Date(), "dd MMM yyyy"),
+            status: "Terkirim"
+          })
+          index++
+        })
+      }
+    })
+    return list
+  }, [thresholdData])
 
-  // Simulated Apresiasi Piagam state (falls back to values in screenshot)
-  const [piagams, setPiagams] = useState([
-    { noSurat: "[Grafis Otomatis]", nama: "Muhammad Rayhan", kelas: "9-A", jenis: "Piagam Penghargaan Prestasi Unggul", poin: "+65 Poin", tanggal: "22 Jul 2026", status: "Terbit / Diterima" },
-    { noSurat: "01/APRESIASI/BK/VIII/2026", nama: "Andi Setiawan", kelas: "7-A", jenis: "Piagam Penghargaan Bintang Kelas", poin: "+35 Poin", tanggal: "20 Jul 2026", status: "Terbit / Diterima" },
-    { noSurat: "02/APRESIASI/BK/VIII/2026", nama: "Siti Rahmawati", kelas: "8-B", jenis: "Sertifikat Apresiasi Siswa Teladan Utama", poin: "+50 Poin", tanggal: "21 Jul 2026", status: "Terbit / Diterima" }
-  ])
+  // Compute Piagam list dynamically from real positive points achievers
+  const dynamicPiagams = useMemo(() => {
+    const list: any[] = []
+    if (!dashboardData?.topPositif) return []
+    
+    let index = 1
+    dashboardData.topPositif.forEach((std: any) => {
+      const pts = std.totalPoin
+      let jenis = "Piagam Penghargaan Bintang Kelas"
+      if (pts >= 50 && pts < 75) {
+        jenis = "Sertifikat Apresiasi Siswa Teladan Utama"
+      } else if (pts >= 75) {
+        jenis = "Piagam Penghargaan Prestasi Unggul"
+      }
+
+      list.push({
+        noSurat: `0${index}/APRESIASI/BK/${format(new Date(), "MM/yyyy")}`,
+        nama: std.namaLengkap,
+        kelas: std.siswaId.slice(0, 5).toUpperCase(),
+        jenis,
+        poin: `+${pts} Poin`,
+        tanggal: format(new Date(), "dd MMM yyyy"),
+        status: "Terbit / Diterima"
+      })
+      index++
+    })
+    return list
+  }, [dashboardData])
 
   const handleOpenUpdateStatus = (item: any) => {
     setSelectedCase(item)
@@ -69,16 +112,6 @@ export default function MonitoringSpApresiasiPage() {
       id: selectedCase.id,
       status: newStatus,
     })
-  }
-
-  const handleDeleteSp = (noSurat: string) => {
-    setSpLetters(prev => prev.filter(s => s.noSurat !== noSurat))
-    toast.success("Surat Peringatan berhasil dihapus")
-  }
-
-  const handleDeletePiagam = (noSurat: string) => {
-    setPiagams(prev => prev.filter(p => p.noSurat !== noSurat))
-    toast.success("Piagam Apresiasi berhasil dihapus")
   }
 
   return (
@@ -142,7 +175,7 @@ export default function MonitoringSpApresiasiPage() {
             </div>
             <button
               onClick={() => toast.info("Fitur pembuatan kasus kustom sedang disiapkan.")}
-              className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-teal-650 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all bg-teal-655 hover:bg-teal-700 text-white shadow-md shadow-teal-500/10 cursor-pointer"
             >
               + Tambah Kasus Baru
             </button>
@@ -167,140 +200,58 @@ export default function MonitoringSpApresiasiPage() {
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">Memuat data monitoring...</td>
                   </tr>
                 ) : !monitoringData || monitoringData.length === 0 ? (
-                  /* Mock data exactly as screenshots if DB has no values */
-                  <>
-                    <tr className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-400">18 Jul 2026</td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase">Rizky Ibrahim</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas 10-A • 40 Poin Negatif</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="space-y-1">
-                          <p className="font-extrabold text-slate-800">Skorsing & Pendampingan Guru BK</p>
-                          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-800 leading-normal">
-                            <span className="font-black uppercase tracking-wider block mb-0.5">⚠️ Arahan Kepsek:</span>
-                            "Harap pastikan wali kelas ikut mendampingi proses ini."
-                          </div>
-                          <span className="text-[9px] text-slate-450 block italic mt-1">Catatan: Orang tua sudah dihubungi melalui pesan WhatsApp.</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800">Guru BK</div>
-                        <span className="text-[9px] text-slate-400 uppercase tracking-widest font-extrabold">Cuti/DK</span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 uppercase tracking-wider">
-                          Dalam Proses
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleOpenUpdateStatus({ id: "mock1", namaLengkap: "Rizky Ibrahim", status: "sedang_diproses" })}
-                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-400">19 Jul 2026</td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase">Amelia Regina Putri</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas 10-A • 20 Poin Negatif</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-extrabold text-slate-800">Pemanggilan Orang Tua & Konseling</div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800">Rahmat Hidayat, S.S.</div>
-                        <span className="text-[9px] text-slate-400 uppercase tracking-widest font-extrabold">Wakasek Kesiswaan</span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-100 uppercase tracking-wider">
-                          Belum Diproses
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleOpenUpdateStatus({ id: "mock2", namaLengkap: "Amelia Regina Putri", status: "belum_diproses" })}
-                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-400">19 Jul 2026</td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase">Resa Shafira Putri</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas 10-A • 65 Poin Positif</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-extrabold text-slate-800">Pemberian Piagam Penghargaan di Upacara</div>
-                        <span className="text-[9px] text-slate-450 block italic mt-1">Catatan: Piagam telah diserahkan oleh Kepala Sekolah saat upacara hari Senin.</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800">Rahmat Hidayat, S.S.</div>
-                        <span className="text-[9px] text-slate-400 uppercase tracking-widest font-extrabold">Wakasek Kesiswaan</span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 uppercase tracking-wider">
-                          Selesai
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleOpenUpdateStatus({ id: "mock3", namaLengkap: "Resa Shafira Putri", status: "selesai" })}
-                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                  </>
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">Tidak ada catatan kasus aktif yang perlu ditindaklanjuti.</td>
+                  </tr>
                 ) : (
-                  monitoringData.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-500">
-                        {format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase leading-none">{item.siswa?.namaLengkap}</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-1 block">Kelas: {item.siswa?.kelasId}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="font-extrabold text-slate-850">{item.kategori?.nama}</div>
-                        {item.deskripsi && <p className="text-[10px] text-slate-450 italic font-normal mt-1">"{item.deskripsi}"</p>}
-                      </td>
-                      <td className="py-4 px-4 text-slate-500 font-extrabold">
-                        {item.guru?.namaLengkap || "Wali Kelas / BK"}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span
-                          className={`inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                            item.status === "selesai"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                              : item.status === "sedang_diproses"
-                                ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                : "bg-amber-50 text-amber-600 border border-amber-100"
-                          }`}
-                        >
-                          {item.status === "selesai" && "Selesai"}
-                          {item.status === "sedang_diproses" && "Dalam Proses"}
-                          {item.status === "belum_diproses" && "Belum Diproses"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleOpenUpdateStatus(item)}
-                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  monitoringData.map((item: any) => {
+                    // Match action plan dynamically
+                    const pts = item.poin || 0
+                    const matchedRule = aturanList?.find(rule => pts >= rule.poinMin && pts <= rule.poinMax)
+                    const actionPlan = matchedRule ? matchedRule.tindakLanjut : "Pendampingan & Evaluasi Wali Kelas/BK"
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/40">
+                        <td className="py-4 px-4 text-slate-500">
+                          {format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="font-black text-slate-800 uppercase leading-none">{item.siswa?.namaLengkap}</div>
+                          <span className="text-[9px] text-slate-400 uppercase mt-1 block">Kelas: {item.siswa?.kelasId} • {item.poin} Poin</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="font-extrabold text-slate-850">{actionPlan}</div>
+                          {item.deskripsi && <p className="text-[10px] text-slate-450 italic font-normal mt-1">"{item.deskripsi}"</p>}
+                        </td>
+                        <td className="py-4 px-4 text-slate-500 font-extrabold">
+                          {item.guru?.namaLengkap || "Wali Kelas / BK"}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span
+                            className={`inline-flex px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                              item.status === "selesai"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : item.status === "sedang_diproses"
+                                  ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                  : "bg-amber-50 text-amber-600 border border-amber-100"
+                            }`}
+                          >
+                            {item.status === "selesai" && "Selesai"}
+                            {item.status === "sedang_diproses" && "Dalam Proses"}
+                            {item.status === "belum_diproses" && "Belum Diproses"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <button
+                            onClick={() => handleOpenUpdateStatus(item)}
+                            className="px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
+                          >
+                            Update Status
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
@@ -344,7 +295,7 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => toast.info("Fitur pembuatan SP Manual sedang disiapkan.")}
-                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-650 hover:bg-teal-700 text-white transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-655 hover:bg-teal-700 text-white transition-all cursor-pointer"
               >
                 + Buat SP Manual
               </button>
@@ -365,50 +316,53 @@ export default function MonitoringSpApresiasiPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                  {spLetters.map((sp) => (
-                    <tr key={sp.noSurat} className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-500 font-extrabold">{sp.noSurat}</td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase">{sp.nama}</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas {sp.kelas}</span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex px-2.5 py-0.5 rounded-md text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100 uppercase tracking-wider">
-                          {sp.jenis}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-500">{sp.tanggal}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 uppercase tracking-wider">
-                          <Check size={10} className="stroke-[3]" />
-                          <span>{sp.status}</span>
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => toast.info(`Membuka berkas: ${sp.noSurat}`)}
-                          className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                          title="Lihat"
-                        >
-                          <Eye size={12} />
-                        </button>
-                        <button
-                          onClick={() => toast.success(`Mendownload berkas: ${sp.noSurat}`)}
-                          className="p-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-650 hover:bg-teal-100 cursor-pointer"
-                          title="Cetak/Download"
-                        >
-                          <Download size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSp(sp.noSurat)}
-                          className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 cursor-pointer"
-                          title="Hapus"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </td>
+                  {isLoadingThreshold ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">Membuat daftar SP terbit...</td>
                     </tr>
-                  ))}
+                  ) : dynamicSpLetters.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">Tidak ada Surat Peringatan yang perlu diterbitkan berdasarkan poin sikap saat ini.</td>
+                    </tr>
+                  ) : (
+                    dynamicSpLetters.map((sp) => (
+                      <tr key={sp.noSurat} className="hover:bg-slate-50/40">
+                        <td className="py-4 px-4 text-slate-500 font-extrabold">{sp.noSurat}</td>
+                        <td className="py-4 px-4">
+                          <div className="font-black text-slate-800 uppercase">{sp.nama}</div>
+                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Siswa ID: {sp.kelas}</span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="inline-flex px-2.5 py-0.5 rounded-md text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100 uppercase tracking-wider">
+                            {sp.jenis}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-500">{sp.tanggal}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 uppercase tracking-wider">
+                            <Check size={10} className="stroke-[3]" />
+                            <span>{sp.status}</span>
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => toast.info(`Membuka berkas: ${sp.noSurat}`)}
+                            className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
+                            title="Lihat"
+                          >
+                            <Eye size={12} />
+                          </button>
+                          <button
+                            onClick={() => toast.success(`Mendownload berkas: ${sp.noSurat}`)}
+                            className="p-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-650 hover:bg-teal-100 cursor-pointer"
+                            title="Cetak/Download"
+                          >
+                            <Download size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -428,7 +382,7 @@ export default function MonitoringSpApresiasiPage() {
               </div>
               <button
                 onClick={() => toast.success("Template SP berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-650 text-white hover:bg-teal-700 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-655 text-white hover:bg-teal-700 transition-all cursor-pointer"
               >
                 Simpan Template
               </button>
@@ -473,7 +427,7 @@ export default function MonitoringSpApresiasiPage() {
               </button>
               <button
                 onClick={() => toast.info("Fitur pembuatan Apresiasi Manual sedang disiapkan.")}
-                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-650 hover:bg-teal-700 text-white transition-all cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-teal-655 hover:bg-teal-700 text-white transition-all cursor-pointer"
               >
                 + Terbitkan Apresiasi Manual
               </button>
@@ -495,51 +449,54 @@ export default function MonitoringSpApresiasiPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                  {piagams.map((piagam) => (
-                    <tr key={piagam.noSurat} className="hover:bg-slate-50/40">
-                      <td className="py-4 px-4 text-slate-500 font-extrabold">{piagam.noSurat}</td>
-                      <td className="py-4 px-4">
-                        <div className="font-black text-slate-800 uppercase">{piagam.nama}</div>
-                        <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Kelas {piagam.kelas}</span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-800 font-extrabold">{piagam.jenis}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black">
-                          {piagam.poin}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-500">{piagam.tanggal}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 uppercase tracking-wider">
-                          <Check size={10} className="stroke-[3]" />
-                          <span>{piagam.status}</span>
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => toast.info(`Membuka piagam: ${piagam.noSurat}`)}
-                          className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
-                          title="Lihat"
-                        >
-                          <Eye size={12} />
-                        </button>
-                        <button
-                          onClick={() => toast.success(`Mendownload piagam: ${piagam.noSurat}`)}
-                          className="p-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-650 hover:bg-teal-100 cursor-pointer"
-                          title="Cetak/Download"
-                        >
-                          <Download size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDeletePiagam(piagam.noSurat)}
-                          className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 cursor-pointer"
-                          title="Hapus"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </td>
+                  {isLoadingDashboard ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">Membuat daftar piagam...</td>
                     </tr>
-                  ))}
+                  ) : dynamicPiagams.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">Belum ada piagam apresiasi yang diterbitkan untuk siswa berprestasi.</td>
+                    </tr>
+                  ) : (
+                    dynamicPiagams.map((piagam) => (
+                      <tr key={piagam.noSurat} className="hover:bg-slate-50/40">
+                        <td className="py-4 px-4 text-slate-500 font-extrabold">{piagam.noSurat}</td>
+                        <td className="py-4 px-4">
+                          <div className="font-black text-slate-800 uppercase">{piagam.nama}</div>
+                          <span className="text-[9px] text-slate-400 uppercase mt-0.5 block">Siswa ID: {piagam.kelas}</span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-800 font-extrabold">{piagam.jenis}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="inline-flex px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black">
+                            {piagam.poin}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-500">{piagam.tanggal}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 uppercase tracking-wider">
+                            <Check size={10} className="stroke-[3]" />
+                            <span>{piagam.status}</span>
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => toast.info(`Membuka piagam: ${piagam.noSurat}`)}
+                            className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 cursor-pointer"
+                            title="Lihat"
+                          >
+                            <Eye size={12} />
+                          </button>
+                          <button
+                            onClick={() => toast.success(`Mendownload piagam: ${piagam.noSurat}`)}
+                            className="p-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-650 hover:bg-teal-100 cursor-pointer"
+                            title="Cetak/Download"
+                          >
+                            <Download size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -559,7 +516,7 @@ export default function MonitoringSpApresiasiPage() {
               </div>
               <button
                 onClick={() => toast.success("Template Piagam berhasil disimpan!")}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-650 text-white hover:bg-teal-700 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase bg-teal-655 text-white hover:bg-teal-700 transition-all cursor-pointer"
               >
                 Simpan Template
               </button>
@@ -585,7 +542,7 @@ export default function MonitoringSpApresiasiPage() {
               
               <div className="space-y-2">
                 {[
-                  { value: "belum_diproses", label: "Belum Diproses (Antrean BK)", color: "border-slate-200 text-slate-600 bg-slate-50/20" },
+                  { value: "belum_diproses", label: "Belum Diproses (Antrean BK)", color: "border-slate-200 text-slate-650 bg-slate-50/20" },
                   { value: "sedang_diproses", label: "Sedang Diproses (Konseling/Mediasi)", color: "border-amber-200 text-amber-600 bg-amber-50/10" },
                   { value: "selesai", label: "Selesai (Kasus Ditutup)", color: "border-emerald-200 text-emerald-600 bg-emerald-50/10" }
                 ].map((st) => (
@@ -609,7 +566,7 @@ export default function MonitoringSpApresiasiPage() {
               <button
                 type="button"
                 onClick={() => setUpdateStatusOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
               >
                 Batal
               </button>
