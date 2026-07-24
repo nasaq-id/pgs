@@ -546,9 +546,9 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
       )}
 
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="max-w-xs sm:max-w-sm rounded-[2rem] bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card border-0 p-6 z-[110]">
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 z-[110] shadow-xl">
           <DialogHeader className="text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-red-500 mx-auto">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30 flex items-center justify-center text-red-500 mx-auto">
               <LogOut className="w-6 h-6 stroke-[2.5]" />
             </div>
             <DialogTitle className="text-base font-black text-slate-800 dark:text-slate-100">Konfirmasi Keluar</DialogTitle>
@@ -559,13 +559,13 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
           <div className="flex items-center gap-3.5 mt-6">
             <button
               onClick={() => setLogoutDialogOpen(false)}
-              className="flex-1 py-3 px-4 rounded-xl neumo bg-white dark:bg-slate-900 text-slate-650 dark:text-slate-300 font-black text-xs transition-all active:scale-95 cursor-pointer text-center"
+              className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs transition-all active:scale-95 cursor-pointer text-center border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700"
             >
               Batal
             </button>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="flex-1 py-3 px-4 rounded-xl bg-red-650 text-white font-black text-xs transition-all active:scale-95 cursor-pointer text-center shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:brightness-105"
+              className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs transition-all active:scale-95 cursor-pointer text-center shadow-sm"
             >
               Keluar
             </button>

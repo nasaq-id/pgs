@@ -27,7 +27,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Profil & Menu Keluar",
-    content: "Di sini Anda bisa mengakses profil pribadi atau keluar dari sistem secara aman melalui pop-up konfirmasi neomorfik kami.",
+    content: "Di sini Anda bisa mengakses profil pribadi atau keluar dari sistem secara aman melalui pop-up konfirmasi.",
     targetId: "profile-dropdown-tour",
   },
 ]
@@ -116,7 +116,7 @@ export default function DashboardTour() {
     return (
       <button
         onClick={handleResetTour}
-        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 z-40 h-10 w-10 rounded-full neumo bg-white dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800/40 text-teal-600 dark:text-teal-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg group cursor-pointer focus:outline-none"
+        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 z-40 h-10 w-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-teal-600 dark:text-teal-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md group cursor-pointer focus:outline-none"
         title="Ulangi Tur Dashboard"
       >
         <HelpCircle className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
@@ -192,7 +192,7 @@ export default function DashboardTour() {
       {/* Tooltip Card (Hybrid Glassmorphic + Neomorphic Style) */}
       <div
         style={tooltipStyle}
-        className="bg-[oklch(0.96_0.01_250_/_0.85)] dark:bg-[oklch(0.16_0.01_250_/_0.75)] backdrop-blur-md rounded-3xl border border-white/30 dark:border-slate-800/30 p-5 shadow-2xl neumo-card animate-in zoom-in-95 duration-200 text-left"
+        className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xl animate-in zoom-in-95 duration-200 text-left"
       >
         <button
           onClick={handleComplete}
@@ -203,7 +203,7 @@ export default function DashboardTour() {
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-teal-650 dark:text-teal-400 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/30 border border-teal-200/50 dark:border-teal-800/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
@@ -230,7 +230,7 @@ export default function DashboardTour() {
               {currentStep > 0 && (
                 <button
                   onClick={handlePrev}
-                  className="h-8 px-2.5 rounded-lg neumo-sm bg-white dark:bg-slate-900 border-0 text-slate-650 dark:text-slate-300 active:scale-95 flex items-center justify-center gap-1 cursor-pointer transition-all text-[10px] font-black uppercase tracking-wider"
+                  className="h-8 px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 active:scale-95 flex items-center justify-center gap-1 cursor-pointer transition-all text-[10px] font-black uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   <span>Kembali</span>
@@ -239,7 +239,7 @@ export default function DashboardTour() {
 
               <button
                 onClick={handleNext}
-                className="h-8 px-3 rounded-lg bg-teal-650 dark:bg-teal-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 shadow-[0_3px_10px_rgba(20,184,166,0.3)] hover:brightness-105 transition-all cursor-pointer"
+                className="h-8 px-3 rounded-lg bg-teal-600 dark:bg-teal-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 shadow-sm hover:bg-teal-700 transition-all cursor-pointer"
               >
                 <span>{isLastStep ? "Selesai" : "Lanjut"}</span>
                 {!isLastStep && <ChevronRight className="h-3.5 w-3.5" />}
