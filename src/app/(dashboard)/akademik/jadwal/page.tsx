@@ -312,9 +312,9 @@ export default function JadwalPage() {
                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl border-slate-700 text-xs font-bold bg-slate-800 text-white focus:ring-1 focus:ring-teal-500">
                   <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 text-white border-slate-700">
+                <SelectContent>
                   {kelasRecords.map((k) => (
-                    <SelectItem key={k.id} value={k.id} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
+                    <SelectItem key={k.id} value={k.id}>
                       {formatKelasLabel(k)}
                     </SelectItem>
                   ))}
@@ -340,10 +340,10 @@ export default function JadwalPage() {
                   {selectedDays.length === 0 ? "Semua Hari" : DAY_LABEL[selectedDays[0]]}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 text-white border-slate-700">
-                <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">Semua Hari</SelectItem>
+              <SelectContent>
+                <SelectItem value="all">Semua Hari</SelectItem>
                 {DAYS.map((day) => (
-                  <SelectItem key={day} value={day} className="hover:bg-slate-700 focus:bg-slate-700 text-white cursor-pointer">
+                  <SelectItem key={day} value={day}>
                     {DAY_LABEL[day]}
                   </SelectItem>
                 ))}
@@ -388,7 +388,7 @@ export default function JadwalPage() {
             <>
               <Button
                 onClick={() => setPengaturanOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-650 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Pengaturan Jadwal</span>
@@ -409,7 +409,7 @@ export default function JadwalPage() {
               <Button
                 onClick={() => setCetakOpen(true)}
                 disabled={!kelasId || !hasData}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-750 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50"
               >
                 <Printer className="w-4 h-4 mr-2" />
                 <span>Cetak Jadwal</span>
@@ -424,7 +424,7 @@ export default function JadwalPage() {
       {/* Main Content Area */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-650" />
+          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
         </div>
       ) : timelineRecords.length === 0 ? (
         <div className="neumo-card bg-background p-12 rounded-3xl text-center flex flex-col items-center justify-center">
@@ -448,8 +448,8 @@ export default function JadwalPage() {
                   onClick={() => setSelectedDays([])}
                   className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
                     selectedDays.length === 0
-                      ? "bg-teal-600 border-teal-650 text-white shadow-md shadow-teal-150"
-                      : "bg-white border-slate-200 text-slate-655 hover:bg-slate-50"
+                      ? "bg-teal-600 border-teal-600 text-white shadow-md shadow-teal-150"
+                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   Semua Hari
@@ -469,8 +469,8 @@ export default function JadwalPage() {
                       }}
                       className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
                         isSel
-                          ? "bg-teal-600 border-teal-650 text-white shadow-md shadow-teal-150"
-                          : "bg-white border-slate-200 text-slate-655 hover:bg-slate-50"
+                          ? "bg-teal-600 border-teal-600 text-white shadow-md shadow-teal-150"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                       }`}
                     >
                       {DAY_LABEL[day]}
@@ -501,7 +501,7 @@ export default function JadwalPage() {
                       {canEdit && (
                         <button
                           onClick={() => openAdd(day)}
-                          className="rounded-lg p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-650 transition-all border border-teal-100/30 cursor-pointer"
+                          className="rounded-lg p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-600 transition-all border border-teal-100/30 cursor-pointer"
                           title={`Tambah Jadwal Hari ${DAY_LABEL[day]}`}
                         >
                           <Plus className="w-4 h-4" />
@@ -598,7 +598,7 @@ export default function JadwalPage() {
 
                                   <div className="mt-2 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="px-1.5 py-0.5 bg-teal-50 text-teal-750 border border-teal-100/50 rounded text-[9px] font-mono font-black uppercase">
+                                      <span className="px-1.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-100/50 rounded text-[9px] font-mono font-black uppercase">
                                         {mapel?.kodeMapel || "MAPEL"}
                                       </span>
                                       <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
@@ -657,7 +657,7 @@ export default function JadwalPage() {
                                   {canEdit && (
                                     <button
                                       onClick={() => openAdd(day, academicJp)}
-                                      className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/40 cursor-pointer"
+                                      className="p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-600 rounded-xl transition-all border border-teal-100/40 cursor-pointer"
                                       title="Isi Jadwal JP"
                                     >
                                       <Plus className="w-3.5 h-3.5" />
@@ -819,7 +819,7 @@ export default function JadwalPage() {
                                       <button
                                         onClick={() => openAdd(day, academicJp)}
                                         disabled={mapelRecords.length === 0}
-                                        className="p-1.5 bg-teal-50 hover:bg-teal-650 hover:text-white text-teal-650 rounded-xl transition-all border border-teal-100/30 cursor-pointer text-[10px] font-bold"
+                                        className="p-1.5 bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-600 rounded-xl transition-all border border-teal-100/30 cursor-pointer text-[10px] font-bold"
                                         title="Isi Jadwal"
                                       >
                                         <Plus className="w-3.5 h-3.5" />

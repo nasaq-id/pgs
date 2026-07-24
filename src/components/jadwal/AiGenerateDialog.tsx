@@ -461,7 +461,7 @@ export default function AiGenerateDialog({
               type="button"
               onClick={handleGenerate}
               disabled={filteredPengampu.length === 0}
-              className="bg-indigo-650 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer shadow-md"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer shadow-md"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Mulai Auto-Scheduler
