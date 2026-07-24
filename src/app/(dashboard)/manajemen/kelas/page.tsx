@@ -1072,7 +1072,10 @@ export default function KelasPage() {
                   <Button
                     onClick={() => setConfirmTransferOpen(true)}
                     disabled={selectedSiswaIds.length === 0 || !dstKelasId || bulkSetKelasMutation.isPending}
-                    className="w-full gap-2 rounded-xl bg-teal-650 hover:bg-teal-700 text-white font-semibold cursor-pointer shadow-md shadow-teal-500/10 active:scale-98 transition-all h-11"
+                    className="w-full gap-2 rounded-xl bg-teal-650 hover:bg-teal-700 text-white font-semibold cursor-pointer active:scale-98 transition-all h-11 hover:scale-[1.01]"
+                    style={{
+                      boxShadow: "4px 4px 10px oklch(0.70 0.08 175 / 0.5), -3px -3px 8px oklch(1 0 0)",
+                    }}
                   >
                     <ArrowRightLeft className="w-4 h-4" /> Pindahkan {selectedSiswaIds.length} Siswa
                   </Button>
@@ -1161,6 +1164,9 @@ export default function KelasPage() {
                 })
               }}
               className="bg-teal-650 hover:bg-teal-700 text-white font-semibold"
+              style={{
+                boxShadow: "4px 4px 10px oklch(0.70 0.08 175 / 0.5), -3px -3px 8px oklch(1 0 0)",
+              }}
             >
               {bulkSetKelasMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Ya, Pindahkan
