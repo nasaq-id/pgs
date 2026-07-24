@@ -639,6 +639,11 @@ export const jadwalRouter = router({
           }
         }
 
+        const options = {
+          avoidSame: attempt < 20,
+          avoidConsecutive: attempt < 10,
+        }
+
         const solverState = { steps: 0, maxSteps: 2000 }
         success = runBacktrackingSolver(
           shuffledBlocks,
@@ -649,7 +654,8 @@ export const jadwalRouter = router({
           academicSlotsPerDay,
           teacherExclusions,
           kelasDaysMap,
-          solverState
+          solverState,
+          options
         )
         if (success) {
           blocks.length = 0
@@ -675,6 +681,11 @@ export const jadwalRouter = router({
             }
           }
 
+          const options = {
+            avoidSame: attempt < 20,
+            avoidConsecutive: attempt < 10,
+          }
+
           const solverState = { steps: 0, maxSteps: 2000 }
           success = runBacktrackingSolver(
             shuffledBlocks,
@@ -685,7 +696,8 @@ export const jadwalRouter = router({
             academicSlotsPerDay,
             new Set(), // Rileksasikan pengecualian guru
             kelasDaysMap,
-            solverState
+            solverState,
+            options
           )
           if (success) {
             blocks.length = 0
@@ -872,7 +884,7 @@ export const jadwalRouter = router({
     }),
 })
 
-// Backtracking solver (same as before, extracted as standalone function)
+// Backtracking solver with smart spacing logic constraints
 function runBacktrackingSolver(
   blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[],
   index: number,
@@ -882,7 +894,8 @@ function runBacktrackingSolver(
   academicSlotsPerDay: Map<string, number[]>,
   teacherExclusions: Set<string>,
   kelasDaysMap: Map<string, Set<string>>,
-  state?: { steps: number; maxSteps: number }
+  state: { steps: number; maxSteps: number } | undefined,
+  options: { avoidSame: boolean; avoidConsecutive: boolean }
 ): boolean {
   if (state) {
     state.steps++
@@ -899,6 +912,36 @@ function runBacktrackingSolver(
   for (const day of activeDays) {
     const slots: number[] = academicSlotsPerDay.get(day) || []
     if (slots.length === 0) continue
+
+    // Spacing constraints check
+    if (options.avoidSame) {
+      let alreadyScheduledOnDay = false
+      for (const [sKey, sVal] of assigned.entries()) {
+        const [kId, d, ] = sKey.split("|")
+        if (kId === block.kelasId && d === day && sVal.mataPelajaranId === block.mataPelajaranId) {
+          alreadyScheduledOnDay = true
+          break
+        }
+      }
+      if (alreadyScheduledOnDay) continue
+    }
+
+    if (options.avoidConsecutive) {
+      const weekdaysOrder = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]
+      const idxCurrent = weekdaysOrder.indexOf(day)
+      let alreadyScheduledConsecutive = false
+      for (const [sKey, sVal] of assigned.entries()) {
+        const [kId, d, ] = sKey.split("|")
+        if (kId === block.kelasId && sVal.mataPelajaranId === block.mataPelajaranId) {
+          const idxOther = weekdaysOrder.indexOf(d)
+          if (idxCurrent !== -1 && idxOther !== -1 && Math.abs(idxCurrent - idxOther) === 1) {
+            alreadyScheduledConsecutive = true
+            break
+          }
+        }
+      }
+      if (alreadyScheduledConsecutive) continue
+    }
 
     // Try each possible starting academic JP slot
     for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
@@ -953,7 +996,7 @@ function runBacktrackingSolver(
       kelasDays.add(day)
       kelasDaysMap.set(block.kelasId, kelasDays)
 
-      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state)) {
+      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state, options)) {
         return true
       }
 
