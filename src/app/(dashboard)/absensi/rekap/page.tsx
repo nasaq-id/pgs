@@ -304,37 +304,40 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Main Tab Switcher (Hidden on print) */}
-      <div className="print:hidden flex items-center p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 max-w-md">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab("siswa")
-            setSearchQuery("")
-          }}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === "siswa"
-              ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <GraduationCap className="w-4 h-4" />
-          <span>Rekap Presensi Siswa</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab("guru")
-            setSearchQuery("")
-          }}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === "guru"
-              ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <UserCheck className="w-4 h-4" />
-          <span>Rekap Presensi Guru</span>
-        </button>
+      <div className="print:hidden flex justify-center mb-6">
+        <div className="flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800 w-full max-w-md shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("siswa")
+              setSearchQuery("")
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === "siswa"
+                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Siswa</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("guru")
+              setSearchQuery("")
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === "guru"
+                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Guru</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Card Section (Hidden on print) */}

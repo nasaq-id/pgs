@@ -1049,73 +1049,75 @@ export default function AbsensiPage() {
         </div>
       </div>
 
-      <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-0.5">
-        {canManageGlobal && (
+      <div className="flex justify-center mb-6">
+        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl mx-auto hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1">
+          {canManageGlobal && (
+            <button
+              onClick={() => {
+                setActiveTab("setting")
+                setIsScannerActive(false)
+              }}
+              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
+                activeTab === "setting" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Pengaturan Presensi
+            </button>
+          )}
+          {canTakeAttendance && (
+            <button
+              onClick={() => {
+                setActiveTab("manual")
+                setIsScannerActive(false)
+              }}
+              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
+                activeTab === "manual" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Presensi Manual
+            </button>
+          )}
+          {canTakeAttendance && (
+            <button
+              onClick={() => {
+                setActiveTab("scan")
+                setIsScannerActive(true)
+              }}
+              className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
+                activeTab === "scan" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Scan Barcode
+            </button>
+          )}
           <button
             onClick={() => {
-              setActiveTab("setting")
+              setActiveTab("pribadi")
               setIsScannerActive(false)
             }}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "setting" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center flex-1 ${
+              activeTab === "pribadi" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
             }`}
           >
-            Pengaturan Presensi
+            Presensi Saya
           </button>
-        )}
-        {canTakeAttendance && (
-          <button
-            onClick={() => {
-              setActiveTab("manual")
-              setIsScannerActive(false)
-            }}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "manual" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Presensi Manual
-          </button>
-        )}
-        {canTakeAttendance && (
-          <button
-            onClick={() => {
-              setActiveTab("scan")
-              setIsScannerActive(true)
-            }}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "scan" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Scan Barcode
-          </button>
-        )}
-        <button
-          onClick={() => {
-            setActiveTab("pribadi")
-            setIsScannerActive(false)
-          }}
-          className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-            activeTab === "pribadi" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          Presensi Saya
-        </button>
-        {canTakeAttendance && (
-          <>
-            <button
-              onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
-              className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed"
-            >
-              Sidik Jari <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-            </button>
-            <button
-              onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-              className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed"
-            >
-              Face ID <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-            </button>
-          </>
-        )}
+          {canTakeAttendance && (
+            <>
+              <button
+                onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
+                className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed flex-1"
+              >
+                Sidik Jari <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+              </button>
+              <button
+                onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
+                className="rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 px-4 py-2.5 flex items-center justify-center whitespace-nowrap cursor-not-allowed flex-1"
+              >
+                Face ID <span className="text-[8px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {activeTab === "manual" && canTakeAttendance && (

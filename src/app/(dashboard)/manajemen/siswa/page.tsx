@@ -896,27 +896,29 @@ export default function SiswaPage() {
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex space-x-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl mb-6 overflow-x-auto w-full scrollbar-none border border-slate-200/50 dark:border-slate-800">
-        {[
-          { id: "aktif", label: "Data Siswa Aktif" },
-          { id: "mutasi_keluar", label: "Mutasi Keluar" },
-          { id: "tidak_aktif", label: "Alumni / Tidak Aktif" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id as any)
-              setPage(0)
-            }}
-            className={`flex-1 shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === tab.id
-                ? "bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex justify-center mb-6">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 w-full max-w-xl">
+          {[
+            { id: "aktif", label: "Data Siswa Aktif" },
+            { id: "mutasi_keluar", label: "Mutasi Keluar" },
+            { id: "tidak_aktif", label: "Alumni / Tidak Aktif" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as any)
+                setPage(0)
+              }}
+              className={`flex-1 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === tab.id
+                  ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                  : "text-slate-500 hover:text-slate-750 dark:text-slate-450 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">

@@ -255,17 +255,19 @@ export default function PengumumanPage() {
 
       {isAdmin && (
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="rounded-2xl neumo-card bg-background p-1">
-            <TabsTrigger value="pengumuman" className="rounded-xl">Pengumuman</TabsTrigger>
-            <TabsTrigger value="kelola" className="rounded-xl">
-              Kelola
-              {counts && (
-                <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 font-bold text-slate-650">
-                  {counts.draft > 0 ? `${counts.draft} draft` : counts.total}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center">
+            <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 shadow-inner">
+              <TabsTrigger value="pengumuman" className="py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer">Pengumuman</TabsTrigger>
+              <TabsTrigger value="kelola" className="py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer">
+                Kelola
+                {counts && (
+                  <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-350">
+                    {counts.draft > 0 ? `${counts.draft} draft` : counts.total}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="pengumuman">
             <PublishedView records={publishedRecords} loading={loadingPublished} onDetail={openDetail} />

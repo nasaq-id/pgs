@@ -562,14 +562,16 @@ export default function KelasPage() {
           </div>
         </div>
       )}      <Tabs defaultValue="daftar" className="w-full space-y-6">
-        <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-fit flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-          <TabsTrigger value="daftar" className="rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 cursor-pointer">
-            Daftar Rombel
-          </TabsTrigger>
-          <TabsTrigger value="pindah" className="rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 cursor-pointer">
-            Pindah Kelas
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex justify-center">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger value="daftar" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider">
+              Daftar Rombel
+            </TabsTrigger>
+            <TabsTrigger value="pindah" className="flex-1 rounded-xl px-5 py-2 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider">
+              Pindah Kelas
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="daftar" className="space-y-6 outline-none">
           <Card className="p-5">

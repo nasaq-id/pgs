@@ -169,47 +169,49 @@ export default function IzinPage() {
         </div>
       </div>
 
-      <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-0.5">
-        {isGuruOrSiswa && (
-          <button
-            onClick={() => setActiveTab("form")}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "form" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Formulir Pengajuan
-          </button>
-        )}
-        {isGuruOrSiswa && (
-          <button
-            onClick={() => setActiveTab("riwayat")}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "riwayat" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Riwayat Saya
-          </button>
-        )}
-        {canApprove && (
-          <button
-            onClick={() => setActiveTab("approval")}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "approval" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Persetujuan Izin {approvalList.length > 0 && <span className="ml-1.5 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
-          </button>
-        )}
-        {canApprove && (
-          <button
-            onClick={() => setActiveTab("riwayat_approval")}
-            className={`rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
-              activeTab === "riwayat_approval" ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            Riwayat Persetujuan
-          </button>
-        )}
+      <div className="flex justify-center mb-6">
+        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-4xl mx-auto hide-scrollbar border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1">
+          {isGuruOrSiswa && (
+            <button
+              onClick={() => setActiveTab("form")}
+              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+                activeTab === "form" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Formulir Pengajuan
+            </button>
+          )}
+          {isGuruOrSiswa && (
+            <button
+              onClick={() => setActiveTab("riwayat")}
+              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+                activeTab === "riwayat" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Riwayat Saya
+            </button>
+          )}
+          {canApprove && (
+            <button
+              onClick={() => setActiveTab("approval")}
+              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+                activeTab === "approval" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Persetujuan Izin {approvalList.length > 0 && <span className="ml-1.5 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
+            </button>
+          )}
+          {canApprove && (
+            <button
+              onClick={() => setActiveTab("riwayat_approval")}
+              className={`flex-1 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer px-4 py-2.5 flex items-center justify-center ${
+                activeTab === "riwayat_approval" ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              Riwayat Persetujuan
+            </button>
+          )}
+        </div>
       </div>
 
       {activeTab === "form" && isGuruOrSiswa && (

@@ -259,8 +259,8 @@ export default function SarprasPage() {
   const tabClass = (tab: string) =>
     `flex-1 shrink-0 px-4 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
       activeTab === tab
-        ? "bg-white dark:bg-slate-950 text-teal-650 dark:text-teal-400 shadow-xs"
-        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/40 dark:hover:bg-slate-800/40"
+        ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
     }`
 
   return (
@@ -271,10 +271,12 @@ export default function SarprasPage() {
       </div>
 
       {/* Custom Tabs */}
-      <div className="flex space-x-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-md hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
-        <button onClick={() => setActiveTab("kelas")} className={tabClass("kelas")}>Rombel Kelas</button>
-        <button onClick={() => setActiveTab("sarana")} className={tabClass("sarana")}>Data Sarana</button>
-        <button onClick={() => setActiveTab("prasarana")} className={tabClass("prasarana")}>Prasarana</button>
+      <div className="flex justify-center mb-6">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl overflow-x-auto w-full max-w-md hide-scrollbar border border-slate-200/50 dark:border-slate-800/40">
+          <button onClick={() => setActiveTab("kelas")} className={tabClass("kelas")}>Rombel Kelas</button>
+          <button onClick={() => setActiveTab("sarana")} className={tabClass("sarana")}>Data Sarana</button>
+          <button onClick={() => setActiveTab("prasarana")} className={tabClass("prasarana")}>Prasarana</button>
+        </div>
       </div>
 
       {/* Tab Content */}

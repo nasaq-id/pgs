@@ -125,45 +125,47 @@ export default function PresensiGuruPage() {
             Sistem presensi digital guru menggunakan Single Scan QR Statik Sekolah
           </p>
         </div>
+      </div>
 
-        {/* Tab Switcher */}
-        <div className="bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-200/60 dark:border-slate-800 shrink-0">
+      {/* Centered Neomorphic Tabs */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1 w-full max-w-lg shadow-inner">
           <button
             type="button"
             onClick={() => setActiveTab("scan")}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5",
+              "flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5",
               activeTab === "scan"
-                ? "bg-teal-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                ? "bg-white dark:bg-slate-800 text-teal-655 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-205 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
             )}
           >
             <Camera className="w-4 h-4" />
-            <span>Scan QR Sekolah</span>
+            <span>Scan QR</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("qrcode")}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5",
+              "flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5",
               activeTab === "qrcode"
-                ? "bg-teal-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                ? "bg-white dark:bg-slate-800 text-teal-655 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-205 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
             )}
           >
             <QrCode className="w-4 h-4" />
-            <span>QR Code Sekolah</span>
+            <span>QR Code</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("logs")}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5",
+              "flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5",
               activeTab === "logs"
-                ? "bg-teal-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                ? "bg-white dark:bg-slate-800 text-teal-655 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-205 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
             )}
           >
             <ClipboardList className="w-4 h-4" />

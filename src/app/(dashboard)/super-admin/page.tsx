@@ -376,41 +376,43 @@ export default function SuperAdminPage() {
         </button>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab("lembaga")}
-          className={`flex items-center gap-2 py-3 px-5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
-            activeTab === "lembaga"
-              ? "border-teal-650 text-teal-700 font-black"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
-        >
-          <School size={14} />
-          <span>Daftar Lembaga</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("metrics")}
-          className={`flex items-center gap-2 py-3 px-5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
-            activeTab === "metrics"
-              ? "border-teal-650 text-teal-700 font-black"
-              : "border-transparent text-slate-450 hover:text-slate-700"
-          }`}
-        >
-          <Activity size={14} />
-          <span>Kesehatan Platform</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 py-3 px-5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
-            activeTab === "logs"
-              ? "border-teal-650 text-teal-700 font-black"
-              : "border-transparent text-slate-455 hover:text-slate-700"
-          }`}
-        >
-          <ScrollText size={14} />
-          <span>Log Audit Global</span>
-        </button>
+      {/* Tab Switcher (Centered & Neomorphic) */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/40 flex items-center gap-1 w-full max-w-xl shadow-inner">
+          <button
+            onClick={() => setActiveTab("lembaga")}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === "lembaga"
+                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <School size={14} />
+            <span>Daftar Lembaga</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("metrics")}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === "metrics"
+                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <Activity size={14} />
+            <span>Kesehatan Platform</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("logs")}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-[10.5px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeTab === "logs"
+                ? "bg-white dark:bg-slate-800 text-teal-650 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+            }`}
+          >
+            <ScrollText size={14} />
+            <span>Log Audit Global</span>
+          </button>
+        </div>
       </div>
 
       {/* Tab 1: Lembaga */}
