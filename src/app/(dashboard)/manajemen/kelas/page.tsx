@@ -936,7 +936,11 @@ export default function KelasPage() {
                               return (
                                 <TableRow
                                   key={s.id}
-                                  className="hover:bg-slate-100/20 dark:hover:bg-slate-800/20 border-slate-200/40 dark:border-slate-800/85 cursor-pointer select-none"
+                                  className={`border-slate-200/40 dark:border-slate-800/85 cursor-pointer select-none transition-colors duration-150 ${
+                                    isSelected
+                                      ? "bg-teal-500/[0.06] dark:bg-teal-500/[0.03] hover:bg-teal-500/[0.08] dark:hover:bg-teal-500/[0.05]"
+                                      : "hover:bg-slate-100/20 dark:hover:bg-slate-800/20"
+                                  }`}
                                   onClick={() => handleSelectOne(!isSelected, s.id)}
                                 >
                                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -945,7 +949,7 @@ export default function KelasPage() {
                                       onCheckedChange={(val) => handleSelectOne(!!val, s.id)}
                                     />
                                   </TableCell>
-                                  <TableCell className="font-semibold text-slate-700 dark:text-slate-300">{s.namaLengkap}</TableCell>
+                                  <TableCell className="font-semibold text-slate-700 dark:text-slate-350">{s.namaLengkap}</TableCell>
                                   <TableCell className="text-xs text-muted-foreground font-mono">{s.nisn || "-"}</TableCell>
                                 </TableRow>
                               )
