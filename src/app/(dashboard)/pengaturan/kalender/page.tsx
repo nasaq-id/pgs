@@ -247,7 +247,7 @@ export default function KalenderPage() {
         </Button>
       </div>
 
-      <div className="glass-card rounded-2xl p-5">
+      <div className="neumo-card bg-background rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -384,7 +384,7 @@ export default function KalenderPage() {
           </div>
           <div className="md:hidden space-y-2">
             {records.map((r) => (
-              <div key={r.id} className="glass-card rounded-2xl p-4">
+              <div key={r.id} className="neumo-card bg-background rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: r.warna ?? "#3b82f6" }} />

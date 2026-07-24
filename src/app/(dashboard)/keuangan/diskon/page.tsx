@@ -175,7 +175,7 @@ export default function DiskonPage() {
               <div className="text-center py-8 text-muted-foreground text-sm">Belum ada diskon</div>
             ) : (
               discounts.map((d) => (
-                <div key={d.id} className="glass-card rounded-2xl p-4">
+                <div key={d.id} className="neumo-card bg-background rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{siswaMap.get(d.studentId) || d.studentId}</span>
                     <Badge variant={DISCOUNT_COLOR[d.type]} className="text-xs">{DISCOUNT_LABEL[d.type]}</Badge>

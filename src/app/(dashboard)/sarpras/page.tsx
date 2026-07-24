@@ -285,7 +285,7 @@ export default function SarprasPage() {
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
                 <Box className="w-5 h-5" />
               </div>
@@ -294,7 +294,7 @@ export default function SarprasPage() {
                 <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalSaranaUnits} Unit</h3>
               </div>
             </div>
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
                 <CheckCircle className="w-5 h-5" />
               </div>
@@ -305,7 +305,7 @@ export default function SarprasPage() {
                 </h3>
               </div>
             </div>
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-450 rounded-xl shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
@@ -317,7 +317,7 @@ export default function SarprasPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+          <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
@@ -374,7 +374,7 @@ export default function SarprasPage() {
               </div>
             ) : (
               filteredSarana.map(s => (
-                <div key={s.id} className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-4 shadow-sm space-y-3 relative text-left bg-white dark:bg-slate-900/40">
+                <div key={s.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
                   <div className="flex justify-between items-start">
                     <div className="min-w-0">
                       <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">TAHUN: {s.tahunPengadaan}</span>
@@ -510,7 +510,7 @@ export default function SarprasPage() {
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
@@ -519,7 +519,7 @@ export default function SarprasPage() {
                 <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{prasaranaList.length} Ruangan</h3>
               </div>
             </div>
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
                 <Hash className="w-5 h-5" />
               </div>
@@ -528,7 +528,7 @@ export default function SarprasPage() {
                 <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalPrasaranaLuas} m&sup2;</h3>
               </div>
             </div>
-            <div className="glass-card rounded-[22px] border border-slate-200/80 dark:border-slate-800/80 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+            <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
               <div className="p-3.5 bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 rounded-xl shrink-0">
                 <CheckCircle className="w-5 h-5" />
               </div>
@@ -542,7 +542,7 @@ export default function SarprasPage() {
           </div>
 
           {/* Filter Bar */}
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-5 md:p-6 mb-6 space-y-5">
+          <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto flex-1">
                 <div className="relative">
@@ -596,7 +596,7 @@ export default function SarprasPage() {
                   <div
                     key={p.id}
                     onClick={() => setDetailPrasarana(p)}
-                    className="glass-card rounded-[22px] border border-slate-200/85 dark:border-slate-800/85 p-5 hover:shadow-xl hover:border-teal-300 dark:hover:border-teal-850 hover:bg-white dark:hover:bg-slate-900/50 transition-all cursor-pointer flex flex-col justify-between bg-white dark:bg-slate-900/40 text-left shadow-[0_4px_20px_rgb(0,0,0,0.01)]"
+                    className="neumo-card bg-background rounded-[22px] p-5 hover:shadow-xl hover:border-teal-300 dark:hover:border-teal-850 hover:bg-white dark:hover:bg-slate-900/50 transition-all cursor-pointer flex flex-col justify-between text-left"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="p-2.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl">{getPrasaranaIcon(p.tipe)}</div>

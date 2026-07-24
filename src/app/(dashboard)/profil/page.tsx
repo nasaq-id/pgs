@@ -3,7 +3,6 @@
 import { useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, ChevronRight, Edit3, Loader2 } from "lucide-react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/trpc/client"
@@ -48,7 +47,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 
 function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <Card className="p-5 rounded-3xl glass-card space-y-1">
+    <div className="neumo-card bg-background rounded-3xl p-5 space-y-1">
       {title && (
         <div className="flex items-center gap-2 pb-3 mb-1 border-b border-border/40">
           <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -56,7 +55,7 @@ function SectionCard({ title, children }: { title?: string; children: React.Reac
         </div>
       )}
       {children}
-    </Card>
+    </div>
   )
 }
 
@@ -175,7 +174,7 @@ export default function ProfilPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Left - Photo */}
-        <Card className="p-6 rounded-3xl glass-card flex flex-col items-center text-center">
+        <div className="neumo-card bg-background rounded-3xl p-6 flex flex-col items-center text-center">
           <div className="relative mb-4">
             <div
               onClick={handlePhotoClick}
@@ -211,7 +210,7 @@ export default function ProfilPage() {
             {roleLabels[role] || role}
           </span>
           <p className="text-xs text-muted-foreground mt-3">Klik foto untuk mengganti</p>
-        </Card>
+        </div>
 
         {/* Right - Biodata */}
         <div className="space-y-6">

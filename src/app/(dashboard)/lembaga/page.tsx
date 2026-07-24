@@ -192,12 +192,12 @@ export default function LembagaPage() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-2 glass-card rounded-3xl p-6 space-y-4">
+        <div className="lg:col-span-2 neumo-card bg-background rounded-3xl p-6 space-y-4">
           <Skeleton className="h-28 w-28 rounded-full mx-auto" />
           <Skeleton className="h-6 w-40 mx-auto" />
           <Skeleton className="h-4 w-28 mx-auto" />
         </div>
-        <div className="lg:col-span-3 glass-card rounded-3xl p-6 space-y-4">
+        <div className="lg:col-span-3 neumo-card bg-background rounded-3xl p-6 space-y-4">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function LembagaPage() {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
         <div className="lg:col-span-2 flex w-full">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 text-center flex flex-col items-center relative w-full justify-start">
+          <div className="neumo-card bg-background rounded-[26px] p-6 text-center flex flex-col items-center relative w-full justify-start">
             <button
               onClick={openEdit}
               className="absolute top-4 right-4 p-2 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full transition-colors cursor-pointer border border-slate-200 dark:border-slate-800"
@@ -291,7 +291,7 @@ export default function LembagaPage() {
         </div>
 
       <div className="lg:col-span-3 flex flex-col gap-5 justify-between w-full">
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 flex-grow flex flex-col justify-between">
+          <div className="neumo-card bg-background rounded-[26px] p-6 flex-grow flex flex-col justify-between">
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-1.5 h-5 bg-emerald-500 rounded-full"></div>
@@ -323,7 +323,7 @@ export default function LembagaPage() {
             </div>
           </div>
 
-          <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6">
+          <div className="neumo-card bg-background rounded-[26px] p-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-1.5 h-5 bg-rose-500 rounded-full"></div>
               <h3 className="text-xs font-black text-foreground uppercase tracking-[0.15em]">

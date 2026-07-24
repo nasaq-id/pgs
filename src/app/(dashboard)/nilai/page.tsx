@@ -270,7 +270,7 @@ export default function NilaiPage() {
             {siswaDiKelas.map((s, idx) => {
               const record = nilaiMap[s.id] || { nilaiTugas: null, nilaiUts: null, nilaiUas: null, nilaiAkhir: null }
               return (
-                <div key={s.id} className="glass-card rounded-2xl p-4 space-y-3">
+                <div key={s.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                     <div>
                       <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{s.namaLengkap}</p>

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Search, FileSpreadsheet, FileText, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -136,7 +135,7 @@ export default function LaporanPoinPage() {
           .no-print { display: none !important; }
           .print-area { display: block !important; }
           body { background: white; }
-          .glass-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+          
           table { border-collapse: collapse; width: 100%; }
           th, td { border: 1px solid #000; padding: 4px 6px; font-size: 9px; }
           th { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -148,13 +147,13 @@ export default function LaporanPoinPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="rounded-2xl glass-card p-1">
+        <TabsList className="rounded-2xl neumo-card bg-background p-1">
           <TabsTrigger value="semua" className="rounded-xl">Semua Riwayat</TabsTrigger>
           <TabsTrigger value="per-siswa" className="rounded-xl">Per Siswa (Rapor Karakter)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="semua" className="space-y-4">
-          <Card className="p-5 rounded-3xl glass-card">
+          <div className="neumo-card bg-background rounded-3xl p-5">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5 no-print">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Tanggal Mulai</label>
@@ -238,7 +237,7 @@ export default function LaporanPoinPage() {
               </div>
               <div className="md:hidden space-y-2">
                 {laporanData.map((r: any) => (
-                  <div key={r.id} className="glass-card rounded-2xl p-4">
+                  <div key={r.id} className="neumo-card bg-background rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.siswa?.namaLengkap || "-"}</span>
                       <span className={`font-black text-sm ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(r.poin)}</span>
@@ -256,11 +255,11 @@ export default function LaporanPoinPage() {
               </div>
               </>
             )}
-          </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="per-siswa" className="space-y-4">
-          <Card className="p-5 rounded-3xl glass-card">
+          <div className="neumo-card bg-background rounded-3xl p-5">
               <div className="flex items-center gap-3 mb-5 no-print">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -365,7 +364,7 @@ export default function LaporanPoinPage() {
                 </div>
                 <div className="md:hidden space-y-2">
                   {raporData.records.map((r: any) => (
-                    <div key={r.id} className="glass-card rounded-2xl p-4">
+                    <div key={r.id} className="neumo-card bg-background rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className={`font-black text-sm ${r.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(r.poin)}</span>
                         <Badge variant={r.kategori?.jenis === "positif" ? "default" : "destructive"} className="text-[10px]">{r.kategori?.jenis === "positif" ? "Positif" : "Negatif"}</Badge>
@@ -386,7 +385,7 @@ export default function LaporanPoinPage() {
             ) : (
               <div className="text-center py-16 text-muted-foreground">Pilih siswa untuk melihat rapor karakter</div>
             )}
-          </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

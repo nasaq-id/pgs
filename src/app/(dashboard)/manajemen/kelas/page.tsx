@@ -519,7 +519,7 @@ export default function KelasPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="glass-card rounded-[22px] border border-slate-250/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
           <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-650 dark:text-teal-400 rounded-xl shrink-0">
             <School className="w-5 h-5" />
           </div>
@@ -528,7 +528,7 @@ export default function KelasPage() {
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">{totalRombel} Rombel</h3>
           </div>
         </div>
-        <div className="glass-card rounded-[22px] border border-slate-255/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
           <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-650 dark:text-emerald-400 rounded-xl shrink-0">
             <Users className="w-5 h-5" />
           </div>
@@ -539,7 +539,7 @@ export default function KelasPage() {
             </h3>
           </div>
         </div>
-        <div className="glass-card rounded-[22px] border border-slate-250/20 dark:border-slate-800 p-5 flex items-center space-x-4 bg-white dark:bg-slate-900/40 shadow-sm">
+        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
           <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 rounded-xl shrink-0">
             <UserCheck className="w-5 h-5" />
           </div>
@@ -775,7 +775,7 @@ export default function KelasPage() {
                 {records.map((r) => {
                   const theme = getTingkatTheme(r.tingkat)
                   return (
-                    <div key={r.id} className={`glass-card rounded-2xl p-4 border border-border/50 relative overflow-hidden transition-all ${theme.rowClass}`}>
+                    <div key={r.id} className={`neumo-card bg-background rounded-2xl p-4 relative overflow-hidden transition-all ${theme.rowClass}`}>
                       <div className="flex items-start justify-between mb-3.5">
                         <div>
                           <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
@@ -855,7 +855,7 @@ export default function KelasPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* COLUMN 1 & 2: KELAS ASAL & SISWA SELECTOR (8 Cols) */}
             <div className="lg:col-span-8 space-y-6">
-              <div className="glass-card rounded-[22px] border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-6 shadow-sm space-y-6">
+              <div className="neumo-card bg-background rounded-[22px] p-6 space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-50 dark:bg-teal-950/30 text-teal-650 dark:text-teal-400 text-xs font-black">1</span>
@@ -982,7 +982,7 @@ export default function KelasPage() {
 
             {/* COLUMN 3: KELAS TUJUAN & CONFIRMATION (4 Cols) */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="glass-card rounded-[22px] border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-6 shadow-sm space-y-6">
+              <div className="neumo-card bg-background rounded-[22px] p-6 space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 text-xs font-black">2</span>

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -137,7 +136,7 @@ export default function PrestasiPage() {
         <p className="text-muted-foreground">Kelola data prestasi siswa</p>
       </div>
 
-      <Card className="p-5 rounded-3xl glass-card">
+      <div className="neumo-card bg-background rounded-3xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -259,7 +258,7 @@ export default function PrestasiPage() {
           </div>
           <div className="md:hidden space-y-2">
             {records.map((r) => (
-              <div key={r.id} className="glass-card rounded-2xl p-4">
+              <div key={r.id} className="neumo-card bg-background rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{r.namaPrestasi}</span>
@@ -280,7 +279,7 @@ export default function PrestasiPage() {
           </div>
           </>
         )}
-      </Card>
+      </div>
 
       <PrestasiFormDialog
         open={formOpen}

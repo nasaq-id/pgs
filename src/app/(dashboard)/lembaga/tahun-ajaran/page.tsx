@@ -95,7 +95,7 @@ export default function TahunAjaranPage() {
         </button>
       </div>
 
-      <div className="glass-card rounded-2xl">
+      <div className="neumo-card bg-background rounded-2xl">
         {isLoading ? (
           <div className="p-12 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
         ) : !list?.length ? (
@@ -166,7 +166,7 @@ export default function TahunAjaranPage() {
           </div>
           <div className="md:hidden space-y-2">
             {list.map((ta) => (
-              <div key={ta.id} className="glass-card rounded-2xl p-4">
+              <div key={ta.id} className="neumo-card bg-background rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{ta.namaTahunAjaran}</span>

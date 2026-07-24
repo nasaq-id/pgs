@@ -255,7 +255,7 @@ export default function PengumumanPage() {
 
       {isAdmin && (
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="rounded-2xl glass-card p-1">
+          <TabsList className="rounded-2xl neumo-card bg-background p-1">
             <TabsTrigger value="pengumuman" className="rounded-xl">Pengumuman</TabsTrigger>
             <TabsTrigger value="kelola" className="rounded-xl">
               Kelola
@@ -801,7 +801,7 @@ function AdminView({
         </div>
         <div className="md:hidden space-y-2">
           {records.map((r) => (
-            <div key={r.id} className="glass-card rounded-2xl p-4">
+            <div key={r.id} className="neumo-card bg-background rounded-2xl p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{r.judul}</p>

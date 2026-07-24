@@ -127,7 +127,7 @@ export default function VerifikasiPage() {
           </div>
           <div className="md:hidden space-y-2 p-4">
             {pending.map((p) => (
-              <div key={p.id} className="glass-card rounded-2xl p-4">
+              <div key={p.id} className="neumo-card bg-background rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm text-slate-800 dark:text-slate-200">{fmtRupiah(Number(p.amount))}</span>
                   <Badge variant="outline" className="text-xs uppercase">{p.method?.replace(/_/g, " ")}</Badge>

@@ -242,7 +242,7 @@ export default function RuangKelasPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass-card rounded-3xl border border-slate-250/20 p-5 bg-white dark:bg-slate-900/40 flex items-center gap-4">
+          <div className="neumo-card bg-background rounded-3xl p-5 flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center flex-shrink-0">
               <Building2 className="h-6 w-6" />
             </div>
@@ -252,7 +252,7 @@ export default function RuangKelasPage() {
             </div>
           </div>
 
-          <div className="glass-card rounded-3xl border border-slate-250/20 p-5 bg-white dark:bg-slate-900/40 flex items-center gap-4">
+          <div className="neumo-card bg-background rounded-3xl p-5 flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center flex-shrink-0">
               <Users className="h-6 w-6" />
             </div>
@@ -264,7 +264,7 @@ export default function RuangKelasPage() {
         </div>
 
         {/* List Card */}
-        <div className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-850/80 p-6 bg-white dark:bg-slate-900/40 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
+        <div className="neumo-card bg-background rounded-[26px] p-6">
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -367,7 +367,7 @@ export default function RuangKelasPage() {
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
                 {records.map((r) => (
-                  <div key={r.id} className="glass-card rounded-2xl p-4 flex items-center justify-between">
+                  <div key={r.id} className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
                     <div>
                       <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{r.namaRuang}</p>
                       <p className="text-xs text-slate-500 font-semibold mt-0.5">{r.kapasitas ? `${r.kapasitas} Siswa` : "Tidak Terbatas"}</p>

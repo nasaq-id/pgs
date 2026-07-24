@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Search, Loader2, Send, CheckCircle, Clock, AlertTriangle, Users, AlertOctagon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -162,7 +161,7 @@ function AllEntriesTab({
           {/* Mobile cards */}
           <div className="md:hidden space-y-2">
             {list.map((r: any) => (
-              <div key={r.id} className={`glass-card rounded-2xl p-4 space-y-2.5 ${r.status === "belum_diproses" ? "border-l-4 border-l-amber-400" : ""}`}>
+              <div key={r.id} className={`neumo-card bg-background rounded-2xl p-4 space-y-2.5 ${r.status === "belum_diproses" ? "border-l-4 border-l-amber-400" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{r.siswa?.namaLengkap || "-"}</p>
@@ -286,7 +285,7 @@ function ThresholdTab({ kirimNotif }: { kirimNotif: any }) {
             {/* Mobile cards for threshold students */}
             <div className="md:hidden space-y-2">
               {group.students.map((st: any, si: number) => (
-                <div key={st.siswaId} className="glass-card rounded-xl p-3.5 flex items-center justify-between">
+                <div key={st.siswaId} className="neumo-card bg-background rounded-xl p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <span className="text-xs text-slate-400 font-bold shrink-0">#{si + 1}</span>
                     <div className="min-w-0">
@@ -346,7 +345,7 @@ export default function MonitoringPoinPage() {
         <p className="text-muted-foreground">Pantau dan tindak lanjuti catatan poin siswa</p>
       </div>
 
-      <Card className="p-5 rounded-3xl glass-card">
+      <div className="neumo-card bg-background rounded-3xl p-5">
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "semua") utils.poin.getMonitoring.invalidate() }}>
           <TabsList className="mb-5 rounded-xl">
             <TabsTrigger value="semua" className="rounded-lg text-xs">Semua Entri</TabsTrigger>
@@ -368,7 +367,7 @@ export default function MonitoringPoinPage() {
             <ThresholdTab kirimNotif={kirimNotif} />
           </TabsContent>
         </Tabs>
-      </Card>
+      </div>
     </div>
   )
 }

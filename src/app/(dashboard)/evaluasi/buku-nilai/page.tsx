@@ -747,7 +747,7 @@ export default function BukuNilaiPage() {
               <div className="text-center py-10 text-muted-foreground text-sm">Belum ada nilai resmi yang di-publish untuk Anda.</div>
             ) : (
               grades.map((row, idx) => (
-                <div key={row.nilaiId} className="glass-card rounded-2xl p-4">
+                <div key={row.nilaiId} className="neumo-card bg-background rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.namaMapel}</span>
                     <span className="text-lg font-black text-blue-600">{row.nilaiAkhir}</span>
@@ -958,7 +958,7 @@ export default function BukuNilaiPage() {
                     const finalNa = row.nilaiAkhir
                     const asesmen = bukuNilaiQuery.data?.asesmen || []
                     return (
-                      <div key={row.student.id} className="glass-card rounded-2xl p-4 space-y-2.5">
+                      <div key={row.student.id} className="neumo-card bg-background rounded-2xl p-4 space-y-2.5">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.student.namaLengkap}</p>
@@ -1156,7 +1156,7 @@ export default function BukuNilaiPage() {
                       let total = 0
                       let count = 0
                       return (
-                        <div key={std.id} className="glass-card rounded-2xl p-4 space-y-2">
+                        <div key={std.id} className="neumo-card bg-background rounded-2xl p-4 space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</span>

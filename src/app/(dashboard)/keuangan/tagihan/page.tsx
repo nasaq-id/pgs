@@ -395,7 +395,7 @@ export default function TagihanPage() {
                       const paid = Number(inv.paidAmount)
                       const sisa = total - paid
                       return (
-                        <div key={inv.id} className="glass-card rounded-xl p-3.5 space-y-2">
+                        <div key={inv.id} className="neumo-card bg-background rounded-xl p-3.5 space-y-2">
                           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                             <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                               {BULAN[(inv.periodMonth || 1) - 1]} {inv.periodYear}

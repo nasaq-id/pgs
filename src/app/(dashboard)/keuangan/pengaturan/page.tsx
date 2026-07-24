@@ -91,7 +91,7 @@ function BillingTypeTab() {
       </div>
       <div className="md:hidden space-y-2">
         {data?.map((bt: any) => (
-          <div key={bt.id} className="glass-card rounded-2xl p-4 flex items-center justify-between">
+          <div key={bt.id} className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
             <div>
               <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{bt.name}</p>
               <div className="flex gap-2 mt-1">
@@ -203,7 +203,7 @@ function FeeStructureTab() {
       </div>
       <div className="md:hidden space-y-2">
         {data?.map((fs: any) => (
-          <div key={fs.id} className="glass-card rounded-2xl p-4">
+          <div key={fs.id} className="neumo-card bg-background rounded-2xl p-4">
             <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{billingTypes?.find((bt: any) => bt.id === fs.billingTypeId)?.name || fs.billingTypeId}</p>
             <div className="flex justify-between items-center mt-1 text-xs text-slate-500">
               <span className="font-semibold">{fs.gradeLevel}</span>

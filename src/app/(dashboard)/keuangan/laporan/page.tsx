@@ -114,7 +114,7 @@ export default function LaporanPage() {
                     const sisa = b.total - b.paid
                     const efektivitas = b.total > 0 ? Math.round((b.paid / b.total) * 100) : 0
                     return (
-                      <div key={b.bulan} className="glass-card rounded-2xl p-4">
+                      <div key={b.bulan} className="neumo-card bg-background rounded-2xl p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{BULAN[b.bulan - 1]}</span>
                           <Badge variant={efektivitas >= 80 ? "default" : efektivitas >= 50 ? "secondary" : "destructive"}>{efektivitas}%</Badge>
@@ -187,7 +187,7 @@ export default function LaporanPage() {
                     const total = Number(inv.totalAmount)
                     const paid = Number(inv.paidAmount)
                     return (
-                      <div key={inv.id} className="glass-card rounded-2xl p-4">
+                      <div key={inv.id} className="neumo-card bg-background rounded-2xl p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{inv.studentId.slice(0, 8)}...</span>
                           <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">{STATUS_LABEL[inv.status] || inv.status}</Badge>
@@ -253,7 +253,7 @@ export default function LaporanPage() {
                   <div className="text-center py-8 text-muted-foreground text-sm">Belum ada data</div>
                 ) : (
                   rekap.slice(0, 100).map((inv: any) => (
-                    <div key={inv.id} className="glass-card rounded-2xl p-4">
+                    <div key={inv.id} className="neumo-card bg-background rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{inv.id.slice(0, 8)}...</span>
                         <Badge variant={STATUS_COLOR[inv.status] || "secondary"} className="text-xs">{STATUS_LABEL[inv.status] || inv.status}</Badge>

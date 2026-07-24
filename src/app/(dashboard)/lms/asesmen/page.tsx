@@ -360,7 +360,7 @@ export default function AsesmenPage() {
           )}
 
           {/* Search & Filter Bar */}
-          <div className="glass-card rounded-[24px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-3 flex flex-col sm:flex-row items-center gap-3">
+          <div className="neumo-card bg-background rounded-[24px] p-3 flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 shrink-0" />
               <input
@@ -436,7 +436,7 @@ export default function AsesmenPage() {
                 return (
                   <div
                     key={a.id}
-                    className="glass-card rounded-[26px] border border-slate-200/80 dark:border-slate-800/80 p-5 bg-white dark:bg-slate-900/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 text-left"
+                    className="neumo-card bg-background rounded-[26px] p-5 hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 text-left"
                   >
                     <div className="space-y-3.5">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -521,7 +521,7 @@ export default function AsesmenPage() {
         /* Tab 2: Laporan & Ketuntasan (Persis Screenshot 1 & 2) */
         <div className="space-y-6">
           {/* Header Block & Class Selector Card */}
-          <div className="glass-card rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 space-y-6 bg-white dark:bg-slate-900/40">
+          <div className="neumo-card bg-background rounded-[28px] p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
               <div>
                 <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">

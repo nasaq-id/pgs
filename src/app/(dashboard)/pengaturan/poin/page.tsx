@@ -67,7 +67,7 @@ export default function PengaturanPoinPage() {
         <p className="text-muted-foreground">Kelola kategori sikap, tindak lanjut, dan aturan akumulasi poin</p>
       </div>
 
-      <div className="flex gap-1 p-1 rounded-2xl glass-card w-fit">
+      <div className="flex gap-1 p-1 rounded-2xl neumo-card bg-background w-fit">
         {tabs.map((t) => (
           <button
             key={t}
@@ -200,7 +200,7 @@ function KategoriTab() {
         </div>
         <div className="md:hidden space-y-2">
           {list.map((item: any) => (
-            <div key={item.id} className="glass-card rounded-2xl p-4">
+            <div key={item.id} className="neumo-card bg-background rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{item.nama}</span>
                 <span className={`font-black text-sm ${item.poin > 0 ? "text-green-600" : "text-red-600"}`}>{formatPoin(item.poin)}</span>
@@ -367,7 +367,7 @@ function TindakLanjutTab() {
         </div>
         <div className="md:hidden space-y-2">
           {list.map((item: any) => (
-            <div key={item.id} className="glass-card rounded-2xl p-4">
+            <div key={item.id} className="neumo-card bg-background rounded-2xl p-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{item.nama}</span>
                 <div className="flex gap-1">
@@ -514,7 +514,7 @@ function AturanTab() {
         </div>
         <div className="md:hidden space-y-2">
           {list.map((item: any) => (
-            <div key={item.id} className="glass-card rounded-2xl p-4">
+            <div key={item.id} className="neumo-card bg-background rounded-2xl p-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-200">{item.poinMin} — {item.poinMax}</span>
                 <div className="flex gap-1">

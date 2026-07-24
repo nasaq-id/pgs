@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/trpc/client"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -82,7 +81,7 @@ export default function GenerateTagihanPage() {
         </div>
       </div>
 
-      <Card className="glass-card rounded-[26px] p-6 space-y-4 border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+      <div className="neumo-card bg-background rounded-[26px] p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Jenis Tagihan</Label>
@@ -146,10 +145,10 @@ export default function GenerateTagihanPage() {
             <span>Generate Tagihan</span>
           </button>
         </div>
-      </Card>
+      </div>
 
       {result && (
-        <Card className="glass-card rounded-[26px] p-6 space-y-4 border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+        <div className="neumo-card bg-background rounded-[26px] p-6 space-y-4">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Hasil Generate</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-2xl bg-emerald-550/10 border border-emerald-100/50 text-center">
@@ -167,7 +166,7 @@ export default function GenerateTagihanPage() {
           >
             Lihat Tagihan
           </button>
-        </Card>
+        </div>
       )}
 
       <AlertDialog open={warningOpen} onOpenChange={setWarningOpen}>
