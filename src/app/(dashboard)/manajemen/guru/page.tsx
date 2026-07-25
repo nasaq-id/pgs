@@ -448,7 +448,7 @@ export default function GuruPage() {
           10: { cellWidth: 35 },
           11: { cellWidth: 16, halign: "center" },
         },
-        margin: { top: 15, bottom: 15 },
+        margin: { top: 15, bottom: 15, left: 14, right: 14 },
         pageBreak: "auto",
         showFoot: "everyPage",
         footStyles: {

@@ -421,7 +421,7 @@ export default function RekapPresensiPage() {
               8: { cellWidth: 18, halign: "center" },
               9: { cellWidth: 28, halign: "center" },
             },
-        margin: { left: 14, right: 14 },
+        margin: { top: 15, bottom: 15, left: 14, right: 14 },
         didDrawPage: (data) => {
           // Footer on every page
           doc.setFontSize(7)

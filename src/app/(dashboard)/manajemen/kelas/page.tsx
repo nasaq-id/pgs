@@ -381,7 +381,7 @@ export default function KelasPage() {
         alternateRowStyles: {
           fillColor: [248, 250, 252], // slate-50
         },
-        margin: { top: 10, left: 14, right: 14, bottom: 10 },
+        margin: { top: 15, left: 14, right: 14, bottom: 15 },
       })
 
       doc.save(`Laporan_Rombel_${now.getTime()}.pdf`)

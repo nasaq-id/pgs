@@ -521,7 +521,7 @@ export default function SiswaPage() {
           10: { cellWidth: 42 },
           11: { cellWidth: 26 },
         },
-        margin: { top: 15, bottom: 15 },
+        margin: { top: 15, bottom: 15, left: 14, right: 14 },
         pageBreak: "auto",
         showFoot: "everyPage",
         footStyles: {
