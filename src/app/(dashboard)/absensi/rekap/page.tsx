@@ -259,14 +259,40 @@ export default function RekapPresensiPage() {
   }
 
   return (
-    <div className="space-y-6 text-left pb-10">
+    <div className="space-y-6 text-left pb-10 print:p-0 print:m-0 print:space-y-0 print:w-full">
+      <style>{`
+        @page {
+          size: A4 landscape;
+          margin: 10mm 12mm 10mm 12mm;
+        }
+        @media print {
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          .print-container { padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
+          .print-header { display: block !important; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #000; }
+          .print-header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px 0; }
+          .print-header p { font-size: 11px; margin: 2px 0; }
+          .print-header .date-range { font-weight: 600; }
+          .print-header .print-info { font-size: 9px; color: #666; }
+          .print-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+          .print-table th, .print-table td { border: 1px solid #333; padding: 4px 6px; }
+          .print-table th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 800; font-size: 8px; text-transform: uppercase; }
+          .print-table td { font-size: 9px; }
+          .print-table .col-no { width: 30px; text-align: center; }
+          .print-table .col-num { width: 35px; text-align: center; }
+          .print-table .col-pct { width: 55px; text-align: center; }
+          .print-signature { display: grid !important; grid-template-columns: 1fr 1fr; gap: 40px; padding-top: 20px; page-break-inside: avoid; }
+          .print-signature .sig-block { text-align: center; font-size: 10px; }
+          .print-signature .sig-name { font-weight: 900; text-decoration: underline; margin-top: 4px; }
+          .print-signature .sig-nip { font-size: 8px; color: #666; margin-top: 2px; }
+          .print-page-break { page-break-before: always; }
+        }
+      `}</style>
+
       {/* Printable Header (Hidden on screen, visible on print) */}
-      <div className="hidden print:block text-center space-y-2 mb-6 border-b-2 border-black pb-4">
-        <h1 className="text-xl font-black uppercase tracking-wider">
-          LAPORAN REKAP PRESENSI {activeTab === "siswa" ? "SISWA" : "GURU"}
-        </h1>
-        <p className="text-sm font-semibold">{dateRangeLabel}</p>
-        <p className="text-xs text-slate-500">Dicetak pada: {new Date().toLocaleDateString("id-ID")} - Sistem Informasi Pesantren & Sekolah</p>
+      <div className="hidden print-header">
+        <h1>LAPORAN REKAP PRESENSI {activeTab === "siswa" ? "SISWA" : "GURU"}</h1>
+        <p className="date-range">{dateRangeLabel}</p>
+        <p className="print-info">Dicetak pada: {new Date().toLocaleDateString("id-ID")} — Sistem Informasi Pesantren & Sekolah</p>
       </div>
 
       {/* Top Header Controls (Hidden on print) */}
@@ -495,7 +521,7 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Stat Metric Cards */}
-      <div className="print:hidden grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="no-print print:hidden grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
@@ -572,7 +598,7 @@ export default function RekapPresensiPage() {
 
         {/* Data Table */}
         <div className="print:overflow-visible overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="print-table w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="py-3.5 px-4 w-12 text-center">No</th>
@@ -676,21 +702,21 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Printable Signature Section (Visible on print) */}
-      <div className="hidden print:grid grid-cols-2 gap-10 pt-10 text-xs font-semibold text-center">
-        <div>
+      <div className="hidden print-signature">
+        <div className="sig-block">
           <p>Mengetahui,</p>
           <p className="font-bold">Kepala Sekolah / Madin</p>
-          <div className="h-16" />
-          <p className="font-black underline">( ............................................ )</p>
-          <p className="text-[10px] text-slate-500">NIP: ....................................</p>
+          <div style={{ height: "60px" }} />
+          <p className="sig-name">( ............................................ )</p>
+          <p className="sig-nip">NIP: ....................................</p>
         </div>
 
-        <div>
+        <div className="sig-block">
           <p>Penanggung Jawab Absensi,</p>
           <p className="font-bold">{activeTab === "siswa" ? "Wali Kelas" : "Staff Tata Usaha"}</p>
-          <div className="h-16" />
-          <p className="font-black underline">( ............................................ )</p>
-          <p className="text-[10px] text-slate-500">NIP: ....................................</p>
+          <div style={{ height: "60px" }} />
+          <p className="sig-name">( ............................................ )</p>
+          <p className="sig-nip">NIP: ....................................</p>
         </div>
       </div>
     </div>
