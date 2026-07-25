@@ -467,14 +467,15 @@ export default function SiswaPage() {
 
       // Teal Theme for Sub-header Bar
       const subHeaderH = 8
+      const subHeaderY = kopH + 3
       doc.setFillColor(13, 148, 136) // teal-600
-      doc.rect(0, kopH, pageW, subHeaderH, "F")
+      doc.rect(0, subHeaderY, pageW, subHeaderH, "F")
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(8.5)
       doc.setFont("helvetica", "bold")
-      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, subHeaderY + 5.5, { align: "center" })
 
-      const infoY = kopH + subHeaderH + 4
+      const infoY = subHeaderY + subHeaderH + 4
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")

@@ -338,16 +338,17 @@ export default function RekapPresensiPage() {
 
       // Sub-header bar (teal)
       const subH = 8
+      const subHeaderY = kopH + 3
       doc.setFillColor(13, 148, 136)
-      doc.rect(0, kopH, pageW, subH, "F")
+      doc.rect(0, subHeaderY, pageW, subH, "F")
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(9)
       doc.setFont("helvetica", "bold")
       const titleText = `REKAP PRESENSI ${isSiswa ? "SISWA" : "GURU"} — ${dateRangeLabel.toUpperCase()}`
-      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, subHeaderY + 5.5, { align: "center" })
 
       // Info line
-      const infoY = kopH + subH + 4
+      const infoY = subHeaderY + subH + 4
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
