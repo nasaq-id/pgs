@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -59,6 +60,12 @@ const TIPE_INPUT_LABEL: Record<string, string> = {
 }
 
 export default function AsesmenPage() {
+  const { data: session } = useSession()
+  const userRole = session?.user?.role
+  const isGuru = userRole === "guru"
+  const isAdmin = userRole === "super_admin" || userRole === "admin_sekolah" || userRole === "tu" || userRole === "yayasan"
+  const canManage = isGuru || isAdmin
+
   const [tab, setTab] = useState("asesmen")
   const [showGuide, setShowGuide] = useState(true)
 
@@ -400,14 +407,16 @@ export default function AsesmenPage() {
               </SelectContent>
             </Select>
 
-            <button
-              type="button"
-              onClick={() => { setEditItem(null); setFormOpen(true) }}
-              className="w-full sm:w-auto shrink-0 bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-emerald-600/10 cursor-pointer transition-all flex items-center justify-center gap-1.5 active:scale-95"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Buat Asesmen</span>
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => { setEditItem(null); setFormOpen(true) }}
+                className="w-full sm:w-auto shrink-0 bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-emerald-600/10 cursor-pointer transition-all flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Buat Asesmen</span>
+              </button>
+            )}
           </div>
 
           {/* Cards List */}
@@ -506,14 +515,16 @@ export default function AsesmenPage() {
                         Detail & Nilai
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setDeleteId(a.id)}
-                        className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 dark:text-rose-400 flex items-center justify-center cursor-pointer border border-rose-100 dark:border-rose-900/40 transition-all shrink-0 active:scale-95"
-                        title="Hapus Asesmen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(a.id)}
+                          className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 dark:text-rose-400 flex items-center justify-center cursor-pointer border border-rose-100 dark:border-rose-900/40 transition-all shrink-0 active:scale-95"
+                          title="Hapus Asesmen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
