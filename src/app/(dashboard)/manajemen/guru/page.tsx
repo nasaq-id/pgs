@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import jsPDF from "jspdf"
 import { autoTable } from "jspdf-autotable"
+import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
 import {
   Tooltip,
   TooltipTrigger,
@@ -338,10 +339,6 @@ export default function GuruPage() {
 
       const useCustomKop = sekolah?.useCustomKop && customKopBase64
       const kopH = useCustomKop ? (sekolah?.customKopTinggi || 35) : 24
-      const logoSize = 16
-      const logoX = 14
-      const logoY = 4
-      const textLeftMargin = logoBase64 ? logoX + logoSize + 4 : 14
 
       if (useCustomKop && customKopBase64) {
         try {
@@ -352,41 +349,7 @@ export default function GuruPage() {
           } catch {}
         }
       } else {
-        // Render Standard Double-Line White Header
-        if (logoBase64) {
-          try {
-            doc.addImage(logoBase64, logoX, logoY, logoSize, logoSize)
-          } catch {
-            try {
-              doc.addImage(logoBase64, "JPEG", logoX, logoY, logoSize, logoSize)
-            } catch {}
-          }
-        }
-
-        doc.setTextColor(30, 41, 59) // slate-800
-        doc.setFontSize(14)
-        doc.setFont("helvetica", "bold")
-        const centerX = logoBase64 ? (pageW - textLeftMargin) / 2 + textLeftMargin : pageW / 2
-        doc.text(sekolah?.namaSekolah || "SEKOLAH", centerX, 9, { align: "center" })
-
-        doc.setFontSize(8)
-        doc.setFont("helvetica", "normal")
-        doc.setTextColor(71, 85, 105) // slate-600
-        doc.text(sekolah?.alamat || "", centerX, 14, { align: "center" })
-
-        if (sekolah?.npsn || sekolah?.telepon) {
-          const infoParts = []
-          if (sekolah.npsn) infoParts.push(`NPSN: ${sekolah.npsn}`)
-          if (sekolah.telepon) infoParts.push(`Telp: ${sekolah.telepon}`)
-          doc.text(infoParts.join(" | "), centerX, 18, { align: "center" })
-        }
-
-        // Double lines at the bottom of the kop
-        doc.setLineWidth(0.8)
-        doc.setDrawColor(30, 41, 59)
-        doc.line(14, kopH - 2, pageW - 14, kopH - 2)
-        doc.setLineWidth(0.2)
-        doc.line(14, kopH - 1, pageW - 14, kopH - 1)
+        drawGlobalKop(doc, sekolah as unknown as SekolahKopData)
       }
 
       const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
