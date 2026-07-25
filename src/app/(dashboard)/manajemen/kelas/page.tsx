@@ -336,7 +336,7 @@ export default function KelasPage() {
 
       // Teal Theme for Sub-header Bar
       const subHeaderH = 8
-      const subHeaderY = kopH + 20
+      const subHeaderY = kopH + 10
       doc.setFillColor(13, 148, 136) // teal-600
       doc.rect(0, subHeaderY, pageW, subHeaderH, "F")
       doc.setTextColor(255, 255, 255)

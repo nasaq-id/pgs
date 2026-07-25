@@ -336,19 +336,16 @@ export default function RekapPresensiPage() {
         drawGlobalKop(doc, sekolah as unknown as SekolahKopData)
       }
 
-      // Sub-header bar (teal)
-      const subH = 8
-      const subHeaderY = kopH + 20
-      doc.setFillColor(13, 148, 136)
-      doc.rect(0, subHeaderY, pageW, subH, "F")
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(9)
+      // Title (white background, no teal bar)
+      const subHeaderY = kopH + 10
+      doc.setTextColor(30, 41, 59) // slate-800
+      doc.setFontSize(11)
       doc.setFont("helvetica", "bold")
       const titleText = `REKAP PRESENSI ${isSiswa ? "SISWA" : "GURU"} — ${dateRangeLabel.toUpperCase()}`
-      doc.text(titleText, pageW / 2, subHeaderY + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, subHeaderY + 5, { align: "center" })
 
       // Info line
-      const infoY = subHeaderY + subH + 4
+      const infoY = subHeaderY + 10
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
