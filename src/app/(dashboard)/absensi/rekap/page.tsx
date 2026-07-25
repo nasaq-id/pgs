@@ -267,31 +267,66 @@ export default function RekapPresensiPage() {
       return
     }
 
+    const urlToBase64 = async (url: string): Promise<string | null> => {
+      try {
+        const resp = await fetch(url)
+        const blob = await resp.blob()
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return null
+      }
+    }
+
     try {
-      const [sekolah] = await Promise.all([
-        utils.client.lembaga.getSekolah.query(),
-      ])
+      const sekolah = await utils.client.lembaga.getSekolah.query()
+
+      let logoBase64: string | null = null
+      if (sekolah?.logo) {
+        logoBase64 = await urlToBase64(sekolah.logo)
+      }
+
+      let customKopBase64: string | null = null
+      if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
+        customKopBase64 = await urlToBase64(sekolah.customKopGambar)
+      }
 
       const doc = new jsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
       const pageH = doc.internal.pageSize.getHeight()
 
-      drawGlobalKop(doc, sekolah as unknown as SekolahKopData)
+      // Render Kop: Custom Kop or Standard Kop
+      const useCustomKop = sekolah?.useCustomKop && customKopBase64
+      const kopH = useCustomKop ? (sekolah?.customKopTinggi || 35) : 24
 
-      const kopBottom = 32
+      if (useCustomKop && customKopBase64) {
+        try {
+          doc.addImage(customKopBase64, "JPEG", 0, 0, pageW, kopH)
+        } catch {
+          try {
+            doc.addImage(customKopBase64, "PNG", 0, 0, pageW, kopH)
+          } catch {}
+        }
+      } else {
+        drawGlobalKop(doc, sekolah as unknown as SekolahKopData)
+      }
 
       // Sub-header bar (teal)
       const subH = 8
       doc.setFillColor(13, 148, 136)
-      doc.rect(0, kopBottom, pageW, subH, "F")
+      doc.rect(0, kopH, pageW, subH, "F")
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(9)
       doc.setFont("helvetica", "bold")
       const titleText = `REKAP PRESENSI ${isSiswa ? "SISWA" : "GURU"} — ${dateRangeLabel.toUpperCase()}`
-      doc.text(titleText, pageW / 2, kopBottom + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, kopH + 5.5, { align: "center" })
 
       // Info line
-      const infoY = kopBottom + subH + 4
+      const infoY = kopH + subH + 4
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
