@@ -2,6 +2,8 @@ import { initTRPC, TRPCError } from "@trpc/server"
 import { auth } from "@/auth"
 import { db } from "@/server/db"
 import { cookies } from "next/headers"
+import { z } from "zod"
+import { stripHtml } from "@/server/security"
 
 export const createTRPCContext = async () => {
   const session = await auth()
@@ -60,3 +62,18 @@ const hasRole = (roles: string[]) =>
 
 export const roleProtectedProcedure = (roles: string[]) =>
   t.procedure.use(isAuthenticated).use(hasRole(roles))
+
+function deepSanitize(obj: unknown): unknown {
+  if (typeof obj === "string") return stripHtml(obj)
+  if (Array.isArray(obj)) return obj.map(deepSanitize)
+  if (obj && typeof obj === "object") {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, deepSanitize(v)])
+    )
+  }
+  return obj
+}
+
+export function sanitized<T extends z.ZodTypeAny>(schema: T) {
+  return schema.transform((val) => deepSanitize(val) as z.infer<T>)
+}

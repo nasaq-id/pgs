@@ -34,7 +34,7 @@ export const mapelRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       if (input.search) {
@@ -78,7 +78,7 @@ export const mapelRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(mataPelajaran.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       const result = await db.query.mataPelajaran.findFirst({
@@ -92,7 +92,7 @@ export const mapelRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(mapelCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(mataPelajaran).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { namaMapel: input.namaMapel } })
@@ -102,7 +102,7 @@ export const mapelRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: mapelUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(mataPelajaran.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
@@ -119,7 +119,7 @@ export const mapelRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(mataPelajaran.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
@@ -134,7 +134,7 @@ export const mapelRouter = router({
       items: z.array(z.object({ id: z.string(), urutan: z.number() })),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       for (const item of input.items) {
         const conditions = [eq(mataPelajaran.id, item.id)]
         if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))

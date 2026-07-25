@@ -28,7 +28,7 @@ export const ruangKelasRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
       if (effectiveSekolahId) conditions.push(eq(ruangKelas.sekolahId, effectiveSekolahId))
@@ -47,7 +47,7 @@ export const ruangKelasRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ruangKelas.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ruangKelas.sekolahId, sekolahIdFilter))
       const result = await db.query.ruangKelas.findFirst({
@@ -60,7 +60,7 @@ export const ruangKelasRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(ruangKelasCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      let sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      let sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       if (!sekolahId || sekolahId === "") {
         const firstSekolah = await db.query.sekolah.findFirst()
         if (firstSekolah) {
@@ -78,7 +78,7 @@ export const ruangKelasRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: ruangKelasUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ruangKelas.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ruangKelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.ruangKelas.findFirst({ where: and(...conditions) })
@@ -97,7 +97,7 @@ export const ruangKelasRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ruangKelas.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ruangKelas.sekolahId, sekolahIdFilter))
       const existing = await db.query.ruangKelas.findFirst({ where: and(...conditions) })

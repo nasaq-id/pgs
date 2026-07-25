@@ -43,7 +43,7 @@ export const eMateriRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
 
@@ -90,7 +90,7 @@ export const eMateriRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(eMateri.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
 
@@ -109,7 +109,7 @@ export const eMateriRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(eMateriSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId || ctx.session.user.sekolahId
+      const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId || ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
 
       const id = input.id || crypto.randomUUID()
@@ -139,7 +139,7 @@ export const eMateriRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(z.object({ id: z.string(), data: eMateriSchema.partial() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(eMateri.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
 
@@ -167,7 +167,7 @@ export const eMateriRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(eMateri.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
 

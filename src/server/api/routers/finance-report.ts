@@ -15,7 +15,7 @@ export const reportRouter = router({
       const tahun = input?.tahun || sekarang.getFullYear()
       const bulan = input?.bulan || sekarang.getMonth() + 1
 
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       let filterSiswaIds: string[] | null = null
       if (sekolahIdFilter) {
         const siswaRecords = await db.query.siswa.findMany({
@@ -50,7 +50,7 @@ export const reportRouter = router({
   monthlyTrend: protectedProcedure
     .input(z.object({ tahun: z.number() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(invoice.periodYear, input.tahun)]
       if (sekolahIdFilter) {
         conditions.push(eq(invoice.sekolahId, sekolahIdFilter))
@@ -77,7 +77,7 @@ export const reportRouter = router({
   outstanding: protectedProcedure
     .input(z.object({ kelasId: z.string().optional(), limit: z.number().default(100) }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions: any[] = [
         sql`${invoice.status} NOT IN ('paid', 'cancelled')`,
         sql`${invoice.dueDate} < NOW()`,
@@ -99,7 +99,7 @@ export const reportRouter = router({
     .input(z.object({ tahun: z.number().optional(), kelasId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const tahun = input?.tahun || new Date().getFullYear()
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(invoice.periodYear, tahun)]
       if (sekolahIdFilter) {
         conditions.push(eq(invoice.sekolahId, sekolahIdFilter))

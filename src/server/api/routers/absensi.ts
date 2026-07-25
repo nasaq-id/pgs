@@ -75,7 +75,7 @@ export const absensiRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {
@@ -122,7 +122,7 @@ export const absensiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(absensiUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.absensiSiswa.findFirst({
         where: eq(absensiSiswa.id, input.id),
         with: { kelas: true },
@@ -864,7 +864,7 @@ export const absensiRouter = router({
 
   getStaticQrGuru: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || ctx.session.user.sekolahId
+      const sekolahId = getSekolahIdFilter(ctx) || ctx.session.user.sekolahId
       if (!sekolahId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
       }
@@ -895,7 +895,7 @@ export const absensiRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any) || ctx.session.user.sekolahId
+      const sekolahId = getSekolahIdFilter(ctx) || ctx.session.user.sekolahId
       if (!sekolahId) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
       }

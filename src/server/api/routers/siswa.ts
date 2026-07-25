@@ -120,7 +120,7 @@ export const siswaRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
@@ -159,7 +159,7 @@ export const siswaRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const result = await db.query.siswa.findFirst({
@@ -271,7 +271,7 @@ export const siswaRouter = router({
       search: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
@@ -292,7 +292,7 @@ export const siswaRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: siswaUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
@@ -357,7 +357,7 @@ export const siswaRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
@@ -370,7 +370,7 @@ export const siswaRouter = router({
   bulkRemove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [inArray(siswa.id, input.ids)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       await db.delete(siswa).where(and(...conditions))
@@ -383,7 +383,7 @@ export const siswaRouter = router({
       kelasId: z.string().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [inArray(siswa.id, input.ids)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       
@@ -406,7 +406,7 @@ export const siswaRouter = router({
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
@@ -438,7 +438,7 @@ export const siswaRouter = router({
 
   getMutasi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .query(async ({ ctx }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) {
         conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
@@ -494,7 +494,7 @@ export const siswaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.siswaId)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       
@@ -539,7 +539,7 @@ export const siswaRouter = router({
 
   getStats: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       
       const totalCond: any[] = []
       if (sekolahIdFilter) totalCond.push(eq(siswa.sekolahId, sekolahIdFilter))

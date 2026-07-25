@@ -1,7 +1,16 @@
 import { TRPCError } from "@trpc/server"
 
-export function getSekolahIdFilter(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
-  const { role, sekolahId } = ctx.session.user
+type Ctx = {
+  session?: {
+    user?: {
+      role?: string
+      sekolahId?: string | null
+    }
+  } | null
+}
+
+export function getSekolahIdFilter(ctx: Ctx) {
+  const { role, sekolahId } = ctx.session?.user ?? {}
   if (role === "super_admin") return null
   if (!sekolahId) {
     throw new TRPCError({
@@ -12,7 +21,7 @@ export function getSekolahIdFilter(ctx: { session: { user: { role?: string; seko
   return sekolahId
 }
 
-export function requireSekolahId(ctx: { session: { user: { role?: string; sekolahId?: string } } }) {
+export function requireSekolahId(ctx: Ctx) {
   const sekolahId = getSekolahIdFilter(ctx)
   if (!sekolahId) {
     throw new TRPCError({

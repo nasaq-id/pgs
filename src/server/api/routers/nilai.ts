@@ -60,7 +60,7 @@ export const nilaiRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {
@@ -88,7 +88,7 @@ export const nilaiRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(nilaiCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
         with: { kelas: true },
@@ -111,7 +111,7 @@ export const nilaiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: nilaiUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.nilai.findFirst({
         where: eq(nilai.id, input.id),
         with: { siswa: { with: { kelas: true } } },
@@ -138,7 +138,7 @@ export const nilaiRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {
@@ -249,7 +249,7 @@ export const nilaiRouter = router({
       if (!classRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
       
       const targetSekolahId = classRecord.sekolahId
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter && targetSekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Akses ke kelas ini ditolak" })
       }
@@ -314,7 +314,7 @@ export const nilaiRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {

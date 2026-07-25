@@ -33,7 +33,7 @@ export const prestasiRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
       if (effectiveSekolahId) conditions.push(eq(siswa.sekolahId, effectiveSekolahId))
@@ -70,7 +70,7 @@ export const prestasiRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(prestasiCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
       })
@@ -90,7 +90,7 @@ export const prestasiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: prestasiUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter
         ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
         : eq(prestasi.id, input.id)
@@ -110,7 +110,7 @@ export const prestasiRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter
         ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
         : eq(prestasi.id, input.id)

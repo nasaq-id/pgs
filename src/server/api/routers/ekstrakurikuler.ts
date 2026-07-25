@@ -33,7 +33,7 @@ export const ekstrakurikulerRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
       if (effectiveSekolahId) conditions.push(eq(ekstrakurikuler.sekolahId, effectiveSekolahId))
@@ -55,7 +55,7 @@ export const ekstrakurikulerRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ekstrakurikuler.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ekstrakurikuler.sekolahId, sekolahIdFilter))
       const result = await db.query.ekstrakurikuler.findFirst({
@@ -69,7 +69,7 @@ export const ekstrakurikulerRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(ekstrakurikulerCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      let sekolahId = getSekolahIdFilter(ctx as any) || input.sekolahId
+      let sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       if (!sekolahId || sekolahId === "") {
         const firstSekolah = await db.query.sekolah.findFirst()
         if (firstSekolah) {
@@ -87,7 +87,7 @@ export const ekstrakurikulerRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: ekstrakurikulerUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ekstrakurikuler.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ekstrakurikuler.sekolahId, sekolahIdFilter))
       const existing = await db.query.ekstrakurikuler.findFirst({ where: and(...conditions) })
@@ -106,7 +106,7 @@ export const ekstrakurikulerRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ekstrakurikuler.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(ekstrakurikuler.sekolahId, sekolahIdFilter))
       const existing = await db.query.ekstrakurikuler.findFirst({ where: and(...conditions) })

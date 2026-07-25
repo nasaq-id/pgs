@@ -139,7 +139,7 @@ export const lembagaRouter = router({
       active: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter
         ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
         : eq(tahunAjaran.id, input.id)
@@ -170,7 +170,7 @@ export const lembagaRouter = router({
   removeTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter
         ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
         : eq(tahunAjaran.id, input.id)

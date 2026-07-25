@@ -49,7 +49,7 @@ export const billingRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions: any[] = []
 
       if (input.billingTypeId) conditions.push(eq(invoice.billingTypeId, input.billingTypeId))
@@ -81,7 +81,7 @@ export const billingRouter = router({
   getByStudent: protectedProcedure
     .input(z.object({ studentId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const siswaRecord = await db.query.siswa.findFirst({
           where: (siswa: any, { eq }: any) => and(eq(siswa.id, input.studentId), eq(siswa.sekolahId, sekolahIdFilter)),
@@ -99,7 +99,7 @@ export const billingRouter = router({
   getDetail: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const result = await db
         .select()
         .from(invoice)
@@ -139,7 +139,7 @@ export const billingRouter = router({
       const userId = ctx.session.user.id!
       if (!ctx.session.user.sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       const sekolahId = ctx.session.user.sekolahId
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
 
       // Resolve target students
       let targetSiswaIds = input.studentIds || []

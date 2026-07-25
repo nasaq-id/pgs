@@ -40,7 +40,7 @@ export const settingsRouter = router({
     list: protectedProcedure
       .input(z.object({ isActive: z.boolean().optional() }).optional())
       .query(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const conditions = []
         if (sekolahIdFilter) conditions.push(eq(billingType.sekolahId, sekolahIdFilter))
         if (input?.isActive !== undefined) conditions.push(eq(billingType.isActive, input.isActive))
@@ -61,7 +61,7 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string(), data: billingTypeSchema.partial() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter
           ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
           : eq(billingType.id, input.id)
@@ -74,7 +74,7 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter
           ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
           : eq(billingType.id, input.id)
@@ -90,7 +90,7 @@ export const settingsRouter = router({
     list: protectedProcedure
       .input(z.object({ billingTypeId: z.string().optional() }).optional())
       .query(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const conditions = []
         if (sekolahIdFilter) conditions.push(eq(feeStructure.sekolahId, sekolahIdFilter))
         if (input?.billingTypeId) conditions.push(eq(feeStructure.billingTypeId, input.billingTypeId))
@@ -116,7 +116,7 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string(), data: feeStructureSchema.partial() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter
           ? and(eq(feeStructure.id, input.id), eq(feeStructure.sekolahId, sekolahIdFilter))
           : eq(feeStructure.id, input.id)
@@ -134,7 +134,7 @@ export const settingsRouter = router({
     list: protectedProcedure
       .input(z.object({ billingTypeId: z.string().optional() }).optional())
       .query(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const conditions = []
         if (sekolahIdFilter) conditions.push(eq(lateFeeRule.sekolahId, sekolahIdFilter))
         if (input?.billingTypeId) conditions.push(eq(lateFeeRule.billingTypeId, input.billingTypeId))
@@ -155,7 +155,7 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+        const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter
           ? and(eq(lateFeeRule.id, input.id), eq(lateFeeRule.sekolahId, sekolahIdFilter))
           : eq(lateFeeRule.id, input.id)

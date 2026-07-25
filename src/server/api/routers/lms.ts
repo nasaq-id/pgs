@@ -74,7 +74,7 @@ export const lmsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const conditions = []
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
       }
@@ -151,7 +151,7 @@ export const lmsRouter = router({
   createJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(jurnalCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {
@@ -197,7 +197,7 @@ export const lmsRouter = router({
   updateJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: jurnalUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
         with: { kelas: true },
@@ -237,7 +237,7 @@ export const lmsRouter = router({
   deleteJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
         with: { kelas: true },

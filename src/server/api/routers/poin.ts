@@ -60,7 +60,7 @@ export const poinRouter = router({
       aktifOnly: z.boolean().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
       if (input.search) conditions.push(like(poinKategori.nama, `%${input.search}%`))
@@ -75,7 +75,7 @@ export const poinRouter = router({
   createKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(kategoriCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinKategori).values({ ...input, id, sekolahId }).returning()
@@ -86,7 +86,7 @@ export const poinRouter = router({
   updateKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string(), data: kategoriUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinKategori.id, input.id)]
       if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
       const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
@@ -99,7 +99,7 @@ export const poinRouter = router({
   removeKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinKategori.id, input.id)]
       if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
       const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
@@ -116,7 +116,7 @@ export const poinRouter = router({
       jenis: z.enum(["positif", "negatif"]).optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
       if (input.search) conditions.push(like(poinTindakLanjut.nama, `%${input.search}%`))
@@ -130,7 +130,7 @@ export const poinRouter = router({
   createTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(tindakLanjutCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinTindakLanjut).values({ ...input, id, sekolahId }).returning()
@@ -141,7 +141,7 @@ export const poinRouter = router({
   updateTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string(), data: tindakLanjutUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinTindakLanjut.id, input.id)]
       if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
       const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
@@ -154,7 +154,7 @@ export const poinRouter = router({
   removeTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinTindakLanjut.id, input.id)]
       if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
       const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
@@ -167,7 +167,7 @@ export const poinRouter = router({
   // ── Aturan Akumulasi ──
   getAllAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
       return db.query.poinAturan.findMany({
@@ -179,7 +179,7 @@ export const poinRouter = router({
   createAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(aturanCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinAturan).values({ ...input, id, sekolahId }).returning()
@@ -190,7 +190,7 @@ export const poinRouter = router({
   updateAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string(), data: aturanUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinAturan.id, input.id)]
       if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
       const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
@@ -203,7 +203,7 @@ export const poinRouter = router({
   removeAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinAturan.id, input.id)]
       if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
       const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
@@ -224,7 +224,7 @@ export const poinRouter = router({
       offset: z.number().optional().default(0),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
       if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
       if (input.siswaId) conditions.push(eq(poinSikap.siswaId, input.siswaId))
@@ -254,7 +254,7 @@ export const poinRouter = router({
   createSikap: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sikapCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
 
       const targetSiswaIds = input.siswaIds && input.siswaIds.length > 0
@@ -353,7 +353,7 @@ export const poinRouter = router({
       offset: z.number().optional().default(0),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
       if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
       if (input.status) conditions.push(eq(poinSikap.status, input.status))
@@ -387,7 +387,7 @@ export const poinRouter = router({
       status: z.enum(["belum_diproses", "sedang_diproses", "selesai"]),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinSikap.id, input.id)]
       if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
       const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
@@ -399,7 +399,7 @@ export const poinRouter = router({
   removeSikap: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinSikap.id, input.id)]
       if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
       const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
@@ -516,7 +516,7 @@ export const poinRouter = router({
   kirimPemberitahuan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ siswaId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
 
       const dataSiswa = await db.query.siswa.findFirst({ where: eq(siswa.id, input.siswaId) })
@@ -560,7 +560,7 @@ export const poinRouter = router({
   // ── Monitoring Ambang Batas ──
   getMonitoringThreshold: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) return []
 
       const aturanList = await db.query.poinAturan.findMany({
@@ -617,7 +617,7 @@ export const poinRouter = router({
   getRaporSiswa: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ siswaId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [
         eq(poinSikap.sekolahId, sekolahId || ""),
         eq(poinSikap.siswaId, input.siswaId),
@@ -660,7 +660,7 @@ export const poinRouter = router({
       limit: z.number().optional().default(500),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx as any)
+      const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinSikap.sekolahId, sekolahId || "")]
       if (sekolahId) conditions.push(eq(poinSikap.sekolahId, sekolahId))
       if (input.tanggalMulai) conditions.push(gte(poinSikap.createdAt, input.tanggalMulai))

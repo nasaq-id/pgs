@@ -19,7 +19,7 @@ import { getSekolahIdFilter } from "@/server/api/tenant"
 export const dashboardRouter = router({
   // ─── TOTAL SISWA ───────────────────────────────────────────
   getStudentSummary: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
     const conditions: any[] = [eq(siswa.status, "aktif")]
     if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
 
@@ -43,7 +43,7 @@ export const dashboardRouter = router({
 
   // ─── GURU & TENDIK ────────────────────────────────────────
   getStaffSummary: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
     const conditions: any[] = [eq(guru.active, true)]
     if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
 
@@ -97,7 +97,7 @@ export const dashboardRouter = router({
 
   // ─── TAGIHAN PENDING (issued / belum dibayar) ──────────────
   getPendingPaymentCount: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
     const conditions: any[] = [eq(invoice.status, "issued")]
     if (sekolahIdFilter) {
       const siswaRecords = await db.query.siswa.findMany({
@@ -116,7 +116,7 @@ export const dashboardRouter = router({
 
   // ─── KEHADIRAN HARI INI ───────────────────────────────────
   getTodayAttendanceRate: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -160,7 +160,7 @@ export const dashboardRouter = router({
 
   // ─── TOTAL TUNGGAKAN SPP ──────────────────────────────────
   getOutstandingReceivables: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
     const invoiceConditions: any[] = [inArray(invoice.status, ["issued", "overdue", "partially_paid"])]
 
     if (sekolahIdFilter) {
@@ -182,7 +182,7 @@ export const dashboardRouter = router({
 
   // ─── RUANG KELAS AKTIF ────────────────────────────────────
   getRuangKelasCount: protectedProcedure.query(async ({ ctx }) => {
-    const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+    const sekolahIdFilter = getSekolahIdFilter(ctx)
     const conditions: any[] = []
     if (sekolahIdFilter) conditions.push(eq(ruangKelas.sekolahId, sekolahIdFilter))
 

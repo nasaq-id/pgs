@@ -38,7 +38,7 @@ export const paymentRouter = router({
   listPending: protectedProcedure
     .input(z.object({ limit: z.number().default(50), offset: z.number().default(0) }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       let data = await db
         .select()
         .from(payment)
@@ -71,7 +71,7 @@ export const paymentRouter = router({
   // ─── GET PENDING COUNT (for badge) ───────────────────────
   getPendingCount: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(payment.status, "pending_verification")]
       if (sekolahIdFilter) {
         conditions.push(eq(payment.sekolahId, sekolahIdFilter))
@@ -184,7 +184,7 @@ export const paymentRouter = router({
   getHistory: protectedProcedure
     .input(z.object({ invoiceId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       return db
         .select()
         .from(payment)

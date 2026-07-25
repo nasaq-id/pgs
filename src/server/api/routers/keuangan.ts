@@ -44,7 +44,7 @@ export const keuanganRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const siswaRecord = await db.query.siswa.findFirst({
           where: eq(siswa.id, input.siswaId),
@@ -70,7 +70,7 @@ export const keuanganRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(tagihanCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
       })
@@ -95,7 +95,7 @@ export const keuanganRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: tagihanUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter
         ? and(eq(tagihanSpp.id, input.id), eq(tagihanSpp.sekolahId, sekolahIdFilter))
         : eq(tagihanSpp.id, input.id)

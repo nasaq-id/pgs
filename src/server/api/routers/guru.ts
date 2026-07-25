@@ -52,7 +52,7 @@ export const guruRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       if (input.search) {
@@ -87,7 +87,7 @@ export const guruRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const result = await db.query.guru.findFirst({
@@ -189,7 +189,7 @@ export const guruRouter = router({
       search: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       if (input.search) {
@@ -202,7 +202,7 @@ export const guruRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: guruUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
@@ -262,7 +262,7 @@ export const guruRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
@@ -275,7 +275,7 @@ export const guruRouter = router({
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
@@ -307,7 +307,7 @@ export const guruRouter = router({
 
   getStats: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       
       const totalCond: any[] = []
       if (sekolahIdFilter) totalCond.push(eq(guru.sekolahId, sekolahIdFilter))

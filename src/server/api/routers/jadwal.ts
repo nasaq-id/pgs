@@ -212,7 +212,7 @@ export const jadwalRouter = router({
       hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const sekolahId = sekolahIdFilter ?? ctx.session.user.sekolahId
       const pengaturan = sekolahId
         ? await db.query.pengaturanJadwal.findFirst({
@@ -253,7 +253,7 @@ export const jadwalRouter = router({
   getSisaJp: protectedProcedure
     .input(z.object({ kelasId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
 
       const pengampuList = await db.query.pengampu.findMany({
         where: and(
@@ -297,7 +297,7 @@ export const jadwalRouter = router({
       limit: z.number().min(1).max(1000).optional().default(500),
     }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions: any[] = [eq(jadwalPelajaran.kelasId, kelas.id)]
 
       if (input.kelasId) {
@@ -330,7 +330,7 @@ export const jadwalRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(jadwalCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         if (!kelasIds.includes(input.kelasId)) {
@@ -419,7 +419,7 @@ export const jadwalRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), data: jadwalUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jadwalPelajaran.findFirst({
         where: eq(jadwalPelajaran.id, input.id),
         with: { kelas: true },
@@ -481,7 +481,7 @@ export const jadwalRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jadwalPelajaran.findFirst({
         where: eq(jadwalPelajaran.id, input.id),
         with: { kelas: true },

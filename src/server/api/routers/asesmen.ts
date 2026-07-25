@@ -54,7 +54,7 @@ export const asesmenRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const conditions = []
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
         conditions.push(inArray(asesmen.kelasId, kelasIds))
@@ -84,7 +84,7 @@ export const asesmenRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const item = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.id),
         with: {
@@ -152,7 +152,7 @@ export const asesmenRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string(), data: asesmenUpdateSchema }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.id),
         with: { kelas: true },
@@ -173,7 +173,7 @@ export const asesmenRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.id),
         with: { kelas: true },
@@ -190,7 +190,7 @@ export const asesmenRouter = router({
   getSiswaEntries: protectedProcedure
     .input(z.object({ asesmenId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const a = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.asesmenId),
         with: { kelas: true },
@@ -246,7 +246,7 @@ export const asesmenRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const a = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.asesmenId),
         with: { kelas: true },
@@ -323,7 +323,7 @@ export const asesmenRouter = router({
         with: { asesmen: { with: { kelas: true } } },
       })
 
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
 
       if (!entry) {
         // Handle grading mock student entry (temp_asesmenId_siswaId)
@@ -409,7 +409,7 @@ export const asesmenRouter = router({
   getKomentar: protectedProcedure
     .input(z.object({ asesmenId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       const comments = await db
         .select()
         .from(asesmenKomentar)
@@ -462,7 +462,7 @@ export const asesmenRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       let kelasIds: string[] = []
       if (sekolahIdFilter) {
         kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
@@ -504,7 +504,7 @@ export const asesmenRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {
         const k = await db.query.kelas.findFirst({ where: eq(kelas.id, input.kelasId) })
         if (!k || k.sekolahId !== sekolahIdFilter) {

@@ -17,7 +17,7 @@ export const discountRouter = router({
       if (input.studentId) conditions.push(eq(discount.studentId, input.studentId))
       if (input.isActive !== undefined) conditions.push(eq(discount.isActive, input.isActive))
 
-      const sekolahIdFilter = getSekolahIdFilter(ctx as any)
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
       let data = await db
         .select()
         .from(discount)
