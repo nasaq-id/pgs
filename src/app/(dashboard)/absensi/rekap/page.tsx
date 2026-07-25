@@ -338,7 +338,7 @@ export default function RekapPresensiPage() {
 
       // Sub-header bar (teal)
       const subH = 8
-      const subHeaderY = kopH + 3
+      const subHeaderY = kopH + 20
       doc.setFillColor(13, 148, 136)
       doc.rect(0, subHeaderY, pageW, subH, "F")
       doc.setTextColor(255, 255, 255)
