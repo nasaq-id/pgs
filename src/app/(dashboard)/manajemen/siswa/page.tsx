@@ -465,17 +465,14 @@ export default function SiswaPage() {
       const taLabel = aktifTa?.namaTahunAjaran ? ` Tahun Ajaran ${aktifTa.namaTahunAjaran}${aktifTa.semester ? ` Semester ${aktifTa.semester.charAt(0).toUpperCase() + aktifTa.semester.slice(1)}` : ""}` : ""
       const titleText = `Data Siswa${taLabel}`
 
-      // Teal Theme for Sub-header Bar
-      const subHeaderH = 8
+      // Title (white background, no teal bar)
       const subHeaderY = kopH + 10
-      doc.setFillColor(13, 148, 136) // teal-600
-      doc.rect(0, subHeaderY, pageW, subHeaderH, "F")
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(8.5)
+      doc.setTextColor(30, 41, 59) // slate-800
+      doc.setFontSize(11)
       doc.setFont("helvetica", "bold")
-      doc.text(titleText, pageW / 2, subHeaderY + 5.5, { align: "center" })
+      doc.text(titleText, pageW / 2, subHeaderY + 5, { align: "center" })
 
-      const infoY = subHeaderY + subHeaderH + 4
+      const infoY = subHeaderY + 10
       doc.setTextColor(100, 100, 100)
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
