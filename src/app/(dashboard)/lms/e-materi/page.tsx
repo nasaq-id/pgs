@@ -41,7 +41,7 @@ import EMateriFormDialog, { type EMateriFormData, formatTingkatLabel } from "@/c
 
 export default function EMateriPage() {
   const { data: session } = useSession()
-  const userRole = session?.user?.role ?? "guru"
+  const userRole = session?.user?.role ?? "siswa"
 
   const [activeTab, setActiveTab] = useState<"mapel_cards" | "semua_materi">("mapel_cards")
 
