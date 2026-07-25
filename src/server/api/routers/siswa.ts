@@ -5,7 +5,7 @@ import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { siswa, users, kelas, catatanMutasi } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -171,7 +171,7 @@ export const siswaRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(siswaCreateSchema)
+    .input(sanitized(siswaCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })

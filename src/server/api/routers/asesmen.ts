@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, asc, desc, inArray } from "drizzle-orm"
-import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { asesmen, asesmenSiswa, asesmenKomentar, kelas, guru, siswa } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
@@ -102,7 +102,7 @@ export const asesmenRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(asesmenCreateSchema)
+    .input(sanitized(asesmenCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan di sesi" })
@@ -239,11 +239,11 @@ export const asesmenRouter = router({
 
   submitTugas: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "siswa"])
     .input(
-      z.object({
+      sanitized(z.object({
         asesmenId: z.string(),
         jawabanTeks: z.string().optional(),
         berkasUrl: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
@@ -310,11 +310,11 @@ export const asesmenRouter = router({
 
   nilaiSiswa: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(
-      z.object({
+      sanitized(z.object({
         asesmenSiswaId: z.string(),
         nilai: z.number().min(0).max(100),
         feedback: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       let entryId = input.asesmenSiswaId
@@ -423,10 +423,10 @@ export const asesmenRouter = router({
 
   createKomentar: protectedProcedure
     .input(
-      z.object({
+      sanitized(z.object({
         asesmenId: z.string(),
         pesan: z.string().min(1),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id

@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, desc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { discount } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -43,7 +43,7 @@ export const discountRouter = router({
   // ─── CREATE DISCOUNT ─────────────────────────────────────
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(
-      z.object({
+      sanitized(z.object({
         studentId: z.string(),
         type: z.enum(["sibling", "scholarship", "yayasan", "other"]),
         valueType: z.enum(["percent", "fixed"]),
@@ -51,7 +51,7 @@ export const discountRouter = router({
         validFrom: z.coerce.date(),
         validUntil: z.coerce.date().nullable().optional(),
         note: z.string().nullable().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!

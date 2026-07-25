@@ -3,7 +3,7 @@ import { eq, or } from "drizzle-orm"
 import { TRPCError } from "@trpc/server"
 import { db } from "@/server/db"
 import { users, siswa, guru, kelas, sekolah } from "@/server/db/schema"
-import { router, protectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, sanitized } from "@/server/api/trpc"
 
 export const profilRouter = router({
   getProfile: protectedProcedure.query(async ({ ctx }) => {

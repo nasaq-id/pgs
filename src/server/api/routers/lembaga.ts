@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, ne } from "drizzle-orm"
-import { router, protectedProcedure, roleProtectedProcedure, publicProcedure } from "../trpc"
+import { router, protectedProcedure, roleProtectedProcedure, publicProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
@@ -30,7 +30,7 @@ export const lembagaRouter = router({
   }),
 
   updateSekolah: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({
+    .input(sanitized(z.object({
       namaSekolah: z.string().optional(),
       namaSingkat: z.string().optional(),
       npsn: z.string().optional(),
@@ -64,7 +64,7 @@ export const lembagaRouter = router({
       kopBaris2: z.string().nullable().optional(),
       kopBaris3: z.string().nullable().optional(),
       kopBaris4: z.string().nullable().optional(),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
@@ -95,13 +95,13 @@ export const lembagaRouter = router({
   }),
 
   createTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({
+    .input(sanitized(z.object({
       namaTahunAjaran: z.string().min(1),
       semester: z.enum(["ganjil", "genap"]),
       tanggalMulai: z.string().optional(),
       tanggalSelesai: z.string().optional(),
       active: z.boolean().default(false),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
@@ -130,14 +130,14 @@ export const lembagaRouter = router({
     }),
 
   updateTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({
+    .input(sanitized(z.object({
       id: z.string(),
       namaTahunAjaran: z.string().optional(),
       semester: z.enum(["ganjil", "genap"]).optional(),
       tanggalMulai: z.string().optional(),
       tanggalSelesai: z.string().optional(),
       active: z.boolean().optional(),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter

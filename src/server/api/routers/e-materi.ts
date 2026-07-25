@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, or, like, desc, asc, sql } from "drizzle-orm"
 import { db } from "@/server/db"
 import { eMateri, mataPelajaran, kelas } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -107,7 +107,7 @@ export const eMateriRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
-    .input(eMateriSchema)
+    .input(sanitized(eMateriSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId || ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })

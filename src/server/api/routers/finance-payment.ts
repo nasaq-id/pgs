@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, desc, sql, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { payment, invoice, invoiceStatusHistory } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -122,7 +122,7 @@ export const paymentRouter = router({
 
   // ─── REJECT PAYMENT ──────────────────────────────────────
   reject: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), reason: z.string().min(1, "Alasan reject wajib") }))
+    .input(sanitized(z.object({ id: z.string(), reason: z.string().min(1, "Alasan reject wajib") })))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
       const existing = await db.select().from(payment).where(eq(payment.id, input.id)).limit(1)

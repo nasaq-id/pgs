@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, asc, gte, lte, like } from "drizzle-orm"
-import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { kalenderEvent } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
@@ -64,7 +64,7 @@ export const kalenderRouter = router({
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(
-      z.object({
+      sanitized(z.object({
         judul: z.string().min(1),
         deskripsi: z.string().optional(),
         tanggalMulai: z.string(),
@@ -72,7 +72,7 @@ export const kalenderRouter = router({
         tipe: z.enum(["kegiatan", "libur", "lainnya"]).optional().default("kegiatan"),
         isLiburNasional: z.boolean().optional().default(false),
         warna: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
@@ -105,7 +105,7 @@ export const kalenderRouter = router({
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(
-      z.object({
+      sanitized(z.object({
         id: z.string(),
         judul: z.string().optional(),
         deskripsi: z.string().optional(),
@@ -114,7 +114,7 @@ export const kalenderRouter = router({
         tipe: z.enum(["kegiatan", "libur", "lainnya"]).optional(),
         isLiburNasional: z.boolean().optional(),
         warna: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

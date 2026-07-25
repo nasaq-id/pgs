@@ -3,21 +3,21 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, desc, between, or, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { pengajuanIzin, siswa, guru, absensiSiswa, absensiGuru, kelas } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 
 export const izinRouter = router({
   submitIzin: protectedProcedure
     .input(
-      z.object({
+      sanitized(z.object({
         jenisIzin: z.enum(["terlambat", "pulang_cepat", "tidak_masuk"]),
         alasan: z.string().min(1),
         jamPulang: z.string().optional(),
         jumlahHari: z.number().optional().default(1),
         tanggalMulai: z.coerce.date(),
         bukti: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
@@ -252,11 +252,11 @@ export const izinRouter = router({
 
   approveIzin: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(
-      z.object({
+      sanitized(z.object({
         id: z.string(),
         status: z.enum(["disetujui", "ditolak"]),
         catatanApproval: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

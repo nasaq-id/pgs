@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, desc, and } from "drizzle-orm"
 import { db } from "@/server/db"
 import { billingType, feeStructure, lateFeeRule } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 

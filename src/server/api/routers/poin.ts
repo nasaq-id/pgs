@@ -11,7 +11,7 @@ import {
   guru,
   users,
 } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter } from "@/server/api/tenant"
@@ -73,7 +73,7 @@ export const poinRouter = router({
     }),
 
   createKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(kategoriCreateSchema)
+    .input(sanitized(kategoriCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
@@ -128,7 +128,7 @@ export const poinRouter = router({
     }),
 
   createTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(tindakLanjutCreateSchema)
+    .input(sanitized(tindakLanjutCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
@@ -177,7 +177,7 @@ export const poinRouter = router({
     }),
 
   createAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(aturanCreateSchema)
+    .input(sanitized(aturanCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
@@ -252,7 +252,7 @@ export const poinRouter = router({
     }),
 
   createSikap: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(sikapCreateSchema)
+    .input(sanitized(sikapCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })

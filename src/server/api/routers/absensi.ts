@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, desc, between, or, asc, lte, gte } from "drizzle-orm"
 import { db } from "@/server/db"
 import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -218,12 +218,12 @@ export const absensiRouter = router({
 
   absenViaBarcode: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(
-      z.object({
+      sanitized(z.object({
         barcode: z.string(),
         latitude: z.number().optional().nullable(),
         longitude: z.number().optional().nullable(),
         alasan: z.string().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
@@ -611,7 +611,7 @@ export const absensiRouter = router({
 
   createOrUpdateGuruAbsensi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(
-      z.object({
+      sanitized(z.object({
         id: z.string().optional(),
         guruId: z.string(),
         tanggal: z.coerce.date(),
@@ -619,7 +619,7 @@ export const absensiRouter = router({
         jamMasuk: z.coerce.date().nullable().optional(),
         jamPulang: z.coerce.date().nullable().optional(),
         keterangan: z.string().nullable().optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, or, inArray } from "drizzle-orm"
-import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { notifikasi, sekolah, pushSubscriptions, users } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
@@ -145,7 +145,7 @@ export const notifikasiRouter = router({
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(
-      z.object({
+      sanitized(z.object({
         judul: z.string().min(1),
         pesan: z.string().min(1),
         tipe: z.enum(["info", "success", "warning", "error"]).optional().default("info"),
@@ -153,7 +153,7 @@ export const notifikasiRouter = router({
         targetRoles: z.array(
           z.enum(["super_admin", "admin_sekolah", "guru", "siswa", "tu", "yayasan"])
         ).optional(),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId

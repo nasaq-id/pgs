@@ -4,7 +4,7 @@ import { eq, desc, sql, and } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
 import { sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas } from "@/server/db/schema"
-import { router, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
 const registerSekolahSchema = z.object({

@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, lte } from "drizzle-orm"
 import { db } from "@/server/db"
 import { pengumuman, sekolah } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter } from "@/server/api/tenant"
@@ -111,7 +111,7 @@ export const pengumumanRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(pengumumanCreateSchema)
+    .input(sanitized(pengumumanCreateSchema))
     .mutation(async ({ ctx, input }) => {
       let sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       if (!sekolahId || sekolahId === "") {
