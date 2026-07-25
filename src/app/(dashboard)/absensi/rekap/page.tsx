@@ -495,7 +495,7 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Stat Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="print:hidden grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
@@ -571,7 +571,7 @@ export default function RekapPresensiPage() {
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto">
+        <div className="print:overflow-visible overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-500">
               <tr>

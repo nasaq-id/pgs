@@ -492,10 +492,66 @@
     box-shadow: none !important;
   }
 
+  /* Reset sidebar left padding (animated via motion.div paddingLeft) */
   .lg\:pl-20,
   .lg\:pl-\[298px\] {
     padding-left: 0 !important;
   }
+
+  /* Reset main content max-width and padding */
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Reset neumorphism cards for print */
+  .neumo-card,
+  .neumo,
+  .neumo-sm {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Print table styling */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    font-size: 10px !important;
+  }
+
+  table thead {
+    background: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 8px !important;
+    color: black !important;
+  }
+
+  /* Force light colors for text elements in print */
+  * {
+    color: black !important;
+    text-shadow: none !important;
+  }
+
+  /* Keep specific colored elements visible */
+  .text-emerald-600 { color: #059669 !important; }
+  .text-amber-600 { color: #d97706 !important; }
+  .text-blue-600 { color: #2563eb !important; }
+  .text-orange-600 { color: #ea580c !important; }
+  .text-rose-600 { color: #e11d48 !important; }
+  .text-teal-600 { color: #0d9488 !important; }
+  .bg-emerald-50\/30 { background: #ecfdf5 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .bg-rose-50\/30 { background: #fff1f2 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
 /* Shimmer Animation */
