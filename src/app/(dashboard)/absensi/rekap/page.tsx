@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
+import jsPDF from "jspdf"
+import { autoTable } from "jspdf-autotable"
 import {
   ClipboardCheck,
   Users,
@@ -16,7 +19,6 @@ import {
   GraduationCap,
   Calendar,
   Download,
-  Printer,
   Search,
   Filter,
   CheckCircle2,
@@ -73,6 +75,8 @@ export default function RekapPresensiPage() {
     { enabled: activeTab === "siswa" }
   )
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 }, { enabled: activeTab === "guru" })
+
+  const utils = api.useUtils()
 
   // Calculate Date Range based on Period Type
   const { startDate, endDate, dateRangeLabel } = useMemo(() => {
@@ -253,50 +257,199 @@ export default function RekapPresensiPage() {
     toast.success("Laporan Rekap Presensi berhasil di-export ke Excel (CSV)")
   }
 
-  // Handle Print PDF
-  const handlePrint = () => {
-    window.print()
+  // Handle Export PDF (jsPDF + autoTable)
+  const handleExportPDF = async () => {
+    const isSiswa = activeTab === "siswa"
+    const dataList = isSiswa ? filteredSiswaSummary : filteredGuruSummary
+
+    if (dataList.length === 0) {
+      toast.error("Tidak ada data presensi untuk diexport")
+      return
+    }
+
+    try {
+      const [sekolah] = await Promise.all([
+        utils.client.lembaga.getSekolah.query(),
+      ])
+
+      const doc = new jsPDF("landscape", "mm", "a4")
+      const pageW = doc.internal.pageSize.getWidth()
+      const pageH = doc.internal.pageSize.getHeight()
+
+      drawGlobalKop(doc, sekolah as unknown as SekolahKopData)
+
+      const kopBottom = 32
+
+      // Sub-header bar (teal)
+      const subH = 8
+      doc.setFillColor(13, 148, 136)
+      doc.rect(0, kopBottom, pageW, subH, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "bold")
+      const titleText = `REKAP PRESENSI ${isSiswa ? "SISWA" : "GURU"} — ${dateRangeLabel.toUpperCase()}`
+      doc.text(titleText, pageW / 2, kopBottom + 5.5, { align: "center" })
+
+      // Info line
+      const infoY = kopBottom + subH + 4
+      doc.setTextColor(100, 100, 100)
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      const now = new Date()
+      const hari = now.toLocaleDateString("id-ID", { weekday: "long" })
+      const tglCetak = `${hari}, ${now.toLocaleDateString("id-ID")}`
+      doc.text(`Dicetak pada: ${tglCetak}`, pageW - 14, infoY, { align: "right" })
+      doc.text(`Total: ${dataList.length} ${isSiswa ? "siswa" : "guru"}`, 14, infoY)
+
+      // Table header & body
+      const head = isSiswa
+        ? [["No", "NISN", "Nama Siswa", "Kelas", "Total Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
+        : [["No", "NIP/NUPTK", "Nama Guru", "Total Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
+
+      const rows = dataList.map((item: any, i: number) => {
+        if (isSiswa) {
+          return [
+            i + 1,
+            item.nisn || "-",
+            item.namaLengkap,
+            item.kelasNama,
+            item.totalHari,
+            item.hadirCount,
+            item.terlambatCount,
+            item.izinCount,
+            item.sakitCount,
+            item.alphaCount,
+            `${item.persentaseHadir}%`,
+          ]
+        } else {
+          return [
+            i + 1,
+            item.nipnuptk || "-",
+            item.namaLengkap,
+            item.totalHari,
+            item.hadirCount,
+            item.terlambatCount,
+            item.izinCount,
+            item.sakitCount,
+            item.alphaCount,
+            `${item.persentaseHadir}%`,
+          ]
+        }
+      })
+
+      autoTable(doc, {
+        startY: infoY + 4,
+        head,
+        body: rows,
+        styles: {
+          fontSize: 7,
+          cellPadding: 2,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.25,
+          textColor: [50, 50, 50],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [13, 148, 136],
+          textColor: [255, 255, 255],
+          fontSize: 7.5,
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250],
+        },
+        columnStyles: isSiswa
+          ? {
+              0: { cellWidth: 12, halign: "center" },
+              1: { cellWidth: 24, halign: "center" },
+              2: { cellWidth: 50 },
+              3: { cellWidth: 28, halign: "center" },
+              4: { cellWidth: 18, halign: "center" },
+              5: { cellWidth: 18, halign: "center" },
+              6: { cellWidth: 22, halign: "center" },
+              7: { cellWidth: 16, halign: "center" },
+              8: { cellWidth: 16, halign: "center" },
+              9: { cellWidth: 16, halign: "center" },
+              10: { cellWidth: 26, halign: "center" },
+            }
+          : {
+              0: { cellWidth: 12, halign: "center" },
+              1: { cellWidth: 30, halign: "center" },
+              2: { cellWidth: 55 },
+              3: { cellWidth: 20, halign: "center" },
+              4: { cellWidth: 20, halign: "center" },
+              5: { cellWidth: 24, halign: "center" },
+              6: { cellWidth: 18, halign: "center" },
+              7: { cellWidth: 18, halign: "center" },
+              8: { cellWidth: 18, halign: "center" },
+              9: { cellWidth: 28, halign: "center" },
+            },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data) => {
+          // Footer on every page
+          doc.setFontSize(7)
+          doc.setTextColor(150, 150, 150)
+          doc.text(
+            `Halaman ${doc.internal.pages.length - 1}`,
+            pageW / 2,
+            pageH - 6,
+            { align: "center" }
+          )
+        },
+      })
+
+      // Signature on last page
+      const finalY = (doc as any).lastAutoTable?.finalY || infoY + 20
+      const sigY = finalY + 20
+
+      if (sigY + 40 > pageH - 20) {
+        doc.addPage()
+      }
+
+      const sigTopY = sigY + 20 > pageH - 20 ? 30 : sigY
+      const leftX = pageW * 0.25
+      const rightX = pageW * 0.72
+
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(50, 50, 50)
+
+      // Left: Kepala Sekolah
+      doc.text("Mengetahui,", leftX, sigTopY, { align: "center" })
+      doc.setFont("helvetica", "bold")
+      doc.text("Kepala Sekolah / Madin", leftX, sigTopY + 5, { align: "center" })
+      doc.setFont("helvetica", "normal")
+      doc.text("( ............................................ )", leftX, sigTopY + 25, { align: "center" })
+      doc.setFontSize(7)
+      doc.text("NIP: ....................................", leftX, sigTopY + 30, { align: "center" })
+
+      // Right: Penanggung Jawab
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text("Penanggung Jawab Absensi,", rightX, sigTopY, { align: "center" })
+      doc.setFont("helvetica", "bold")
+      doc.text(isSiswa ? "Wali Kelas" : "Staff Tata Usaha", rightX, sigTopY + 5, { align: "center" })
+      doc.setFont("helvetica", "normal")
+      doc.text("( ............................................ )", rightX, sigTopY + 25, { align: "center" })
+      doc.setFontSize(7)
+      doc.text("NIP: ....................................", rightX, sigTopY + 30, { align: "center" })
+
+      const filename = `rekap-presensi-${activeTab}-${dateRangeLabel.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`
+      doc.save(filename)
+
+      toast.success("PDF berhasil diunduh!")
+    } catch (err) {
+      console.error("PDF export error:", err)
+      toast.error("Gagal generate PDF")
+    }
   }
 
   return (
-    <div className="space-y-6 text-left pb-10 print:p-0 print:m-0 print:space-y-0 print:w-full">
-      <style>{`
-        @page {
-          size: A4 landscape;
-          margin: 10mm 12mm 10mm 12mm;
-        }
-        @media print {
-          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
-          .print-container { padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
-          .print-header { display: block !important; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #000; }
-          .print-header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px 0; }
-          .print-header p { font-size: 11px; margin: 2px 0; }
-          .print-header .date-range { font-weight: 600; }
-          .print-header .print-info { font-size: 9px; color: #666; }
-          .print-table { width: 100%; border-collapse: collapse; font-size: 9px; }
-          .print-table th, .print-table td { border: 1px solid #333; padding: 4px 6px; }
-          .print-table th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 800; font-size: 8px; text-transform: uppercase; }
-          .print-table td { font-size: 9px; }
-          .print-table .col-no { width: 30px; text-align: center; }
-          .print-table .col-num { width: 35px; text-align: center; }
-          .print-table .col-pct { width: 55px; text-align: center; }
-          .print-signature { display: grid !important; grid-template-columns: 1fr 1fr; gap: 40px; padding-top: 20px; page-break-inside: avoid; }
-          .print-signature .sig-block { text-align: center; font-size: 10px; }
-          .print-signature .sig-name { font-weight: 900; text-decoration: underline; margin-top: 4px; }
-          .print-signature .sig-nip { font-size: 8px; color: #666; margin-top: 2px; }
-          .print-page-break { page-break-before: always; }
-        }
-      `}</style>
-
-      {/* Printable Header (Hidden on screen, visible on print) */}
-      <div className="hidden print-header">
-        <h1>LAPORAN REKAP PRESENSI {activeTab === "siswa" ? "SISWA" : "GURU"}</h1>
-        <p className="date-range">{dateRangeLabel}</p>
-        <p className="print-info">Dicetak pada: {new Date().toLocaleDateString("id-ID")} — Sistem Informasi Pesantren & Sekolah</p>
-      </div>
-
-      {/* Top Header Controls (Hidden on print) */}
-      <div className="print:hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="space-y-6 text-left pb-10">
+      {/* Top Header Controls */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <ClipboardCheck className="w-5 h-5 text-emerald-600" />
@@ -321,17 +474,17 @@ export default function RekapPresensiPage() {
             <span>Export Excel</span>
           </Button>
           <Button
-            onClick={handlePrint}
+            onClick={handleExportPDF}
             className="bg-slate-800 hover:bg-slate-900 text-white rounded-2xl h-10 text-xs font-bold gap-2 cursor-pointer shadow-sm"
           >
-            <Printer className="w-4 h-4" />
+            <Download className="w-4 h-4" />
             <span>Cetak PDF</span>
           </Button>
         </div>
       </div>
 
       {/* Main Tab Switcher (Hidden on print) */}
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSearchQuery(""); }} className="print:hidden w-full">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSearchQuery(""); }} className="w-full">
         <div className="flex justify-center mb-6">
           <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
             <TabsTrigger value="siswa" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
@@ -347,7 +500,7 @@ export default function RekapPresensiPage() {
       </Tabs>
 
       {/* Filter Card Section (Hidden on print) */}
-      <div className="print:hidden neumo-card bg-background rounded-[24px] p-5 space-y-4">
+      <div className="neumo-card bg-background rounded-[24px] p-5 space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <Filter className="w-4 h-4 text-emerald-600" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -521,7 +674,7 @@ export default function RekapPresensiPage() {
       </div>
 
       {/* Stat Metric Cards */}
-      <div className="no-print print:hidden grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="neumo-card bg-background rounded-2xl p-4 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
@@ -576,7 +729,7 @@ export default function RekapPresensiPage() {
       {/* Table Section */}
       <div className="neumo-card bg-background rounded-[24px] overflow-hidden">
         {/* Search Bar (Hidden on print) */}
-        <div className="print:hidden p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <div className="relative w-full sm:w-[280px]">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -597,8 +750,8 @@ export default function RekapPresensiPage() {
         </div>
 
         {/* Data Table */}
-        <div className="print:overflow-visible overflow-x-auto">
-          <table className="print-table w-full text-left text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="py-3.5 px-4 w-12 text-center">No</th>
@@ -701,24 +854,6 @@ export default function RekapPresensiPage() {
         </div>
       </div>
 
-      {/* Printable Signature Section (Visible on print) */}
-      <div className="hidden print-signature">
-        <div className="sig-block">
-          <p>Mengetahui,</p>
-          <p className="font-bold">Kepala Sekolah / Madin</p>
-          <div style={{ height: "60px" }} />
-          <p className="sig-name">( ............................................ )</p>
-          <p className="sig-nip">NIP: ....................................</p>
-        </div>
-
-        <div className="sig-block">
-          <p>Penanggung Jawab Absensi,</p>
-          <p className="font-bold">{activeTab === "siswa" ? "Wali Kelas" : "Staff Tata Usaha"}</p>
-          <div style={{ height: "60px" }} />
-          <p className="sig-name">( ............................................ )</p>
-          <p className="sig-nip">NIP: ....................................</p>
-        </div>
-      </div>
     </div>
   )
 }
