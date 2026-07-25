@@ -607,8 +607,7 @@ export default function KelasPage() {
                   {exporting ? "Mengekspor..." : "Cetak PDF"}
                 </Button>
                 <Button
-                  className="gap-2 text-white font-semibold cursor-pointer shadow-md shadow-emerald-500/10 hover:brightness-105 active:scale-95 transition-all"
-                  style={{ backgroundColor: "hsl(142 72% 40%)" }}
+                   className="gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95"
                   onClick={() => {
                     setEditData(null)
                     setFormOpen(true)
