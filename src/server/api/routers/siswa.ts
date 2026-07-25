@@ -230,9 +230,9 @@ export const siswaRouter = router({
     }),
 
   bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({
+    .input(sanitized(z.object({
       data: z.array(siswaCreateSchema.omit({ sekolahId: true })),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
@@ -290,7 +290,7 @@ export const siswaRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: siswaUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: siswaUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
@@ -484,13 +484,13 @@ export const siswaRouter = router({
     }),
 
   createMutasi: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({
+    .input(sanitized(z.object({
       siswaId: z.string(),
       tanggalMutasi: z.coerce.date(),
       jenisMutasi: z.enum(["Pindah Sekolah", "Mengundurkan Diri", "Dikeluarkan", "Meninggal Dunia"]),
       alasanMutasi: z.string().min(1),
       sekolahTujuan: z.string().optional().nullable(),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })

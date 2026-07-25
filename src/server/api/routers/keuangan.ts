@@ -68,7 +68,7 @@ export const keuanganRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(tagihanCreateSchema)
+    .input(sanitized(tagihanCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const siswaRecord = await db.query.siswa.findFirst({

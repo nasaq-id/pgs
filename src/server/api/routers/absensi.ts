@@ -104,7 +104,7 @@ export const absensiRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
-    .input(absensiBulkCreateSchema)
+    .input(sanitized(absensiBulkCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
@@ -120,7 +120,7 @@ export const absensiRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
-    .input(absensiUpdateSchema)
+    .input(sanitized(absensiUpdateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.absensiSiswa.findFirst({
@@ -177,7 +177,7 @@ export const absensiRouter = router({
 
   savePengaturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(
-      z.object({
+      sanitized(z.object({
         sekolahId: z.string().optional(),
         jamMasuk: z.string(),
         jamPulang: z.string(),
@@ -185,7 +185,7 @@ export const absensiRouter = router({
         latitude: z.string().nullable().optional(),
         longitude: z.string().nullable().optional(),
         radius: z.number().optional().default(100),
-      }),
+      })),
     )
     .mutation(async ({ ctx, input }) => {
       const { sekolahId: inputSekolahId, ...rest } = input

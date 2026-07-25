@@ -90,7 +90,7 @@ export const kelasRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(kelasCreateSchema)
+    .input(sanitized(kelasCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       const id = input.id || crypto.randomUUID()

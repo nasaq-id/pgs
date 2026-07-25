@@ -328,7 +328,7 @@ export const jadwalRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(jadwalCreateSchema)
+    .input(sanitized(jadwalCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       if (sekolahIdFilter) {

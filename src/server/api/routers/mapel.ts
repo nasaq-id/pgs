@@ -90,7 +90,7 @@ export const mapelRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(mapelCreateSchema)
+    .input(sanitized(mapelCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
       const id = input.id || crypto.randomUUID()

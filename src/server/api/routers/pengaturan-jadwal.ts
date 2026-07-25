@@ -20,11 +20,11 @@ export const pengaturanJadwalRouter = router({
     }),
 
   upsert: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({
+    .input(sanitized(z.object({
       id: z.string().optional(),
       durasiJP: z.number().min(15).max(120),
       jamMulai: z.string(),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
@@ -72,7 +72,7 @@ export const pengaturanJadwalRouter = router({
     }),
 
   upsertTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({
+    .input(sanitized(z.object({
       id: z.string().optional(),
       hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
       tipe: z.enum(["jp", "pembiasaan", "upacara", "istirahat", "sholat", "lainnya"]),
@@ -81,7 +81,7 @@ export const pengaturanJadwalRouter = router({
       jamSelesai: z.string(),
       urutan: z.number(),
       warna: z.string().optional(),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })

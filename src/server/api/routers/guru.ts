@@ -148,9 +148,9 @@ export const guruRouter = router({
     }),
 
   bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({
+    .input(sanitized(z.object({
       data: z.array(guruCreateSchema.omit({ sekolahId: true })),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
@@ -200,7 +200,7 @@ export const guruRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: guruUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: guruUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]

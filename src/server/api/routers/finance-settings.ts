@@ -48,7 +48,7 @@ export const settingsRouter = router({
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-      .input(billingTypeSchema)
+      .input(sanitized(billingTypeSchema))
       .mutation(async ({ ctx, input }) => {
         const sekolahId = ctx.session.user.sekolahId
         if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
@@ -98,7 +98,7 @@ export const settingsRouter = router({
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-      .input(feeStructureSchema)
+      .input(sanitized(feeStructureSchema))
       .mutation(async ({ ctx, input }) => {
         const sekolahId = ctx.session.user.sekolahId
         if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })
@@ -142,7 +142,7 @@ export const settingsRouter = router({
       }),
 
     create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-      .input(lateFeeRuleSchema)
+      .input(sanitized(lateFeeRuleSchema))
       .mutation(async ({ ctx, input }) => {
         const sekolahId = ctx.session.user.sekolahId
         if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah tidak ditemukan" })

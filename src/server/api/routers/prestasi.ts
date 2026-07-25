@@ -88,7 +88,7 @@ export const prestasiRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: prestasiUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: prestasiUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const whereClause = sekolahIdFilter

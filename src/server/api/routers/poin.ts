@@ -84,7 +84,7 @@ export const poinRouter = router({
     }),
 
   updateKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({ id: z.string(), data: kategoriUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: kategoriUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinKategori.id, input.id)]
@@ -139,7 +139,7 @@ export const poinRouter = router({
     }),
 
   updateTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({ id: z.string(), data: tindakLanjutUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: tindakLanjutUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinTindakLanjut.id, input.id)]
@@ -188,7 +188,7 @@ export const poinRouter = router({
     }),
 
   updateAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
-    .input(z.object({ id: z.string(), data: aturanUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: aturanUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
       const conditions = [eq(poinAturan.id, input.id)]

@@ -157,7 +157,7 @@ export const pengumumanRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: pengumumanUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: pengumumanUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(pengumuman.id, input.id)]

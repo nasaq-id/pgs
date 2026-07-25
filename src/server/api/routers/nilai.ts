@@ -86,7 +86,7 @@ export const nilaiRouter = router({
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(nilaiCreateSchema)
+    .input(sanitized(nilaiCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
@@ -239,7 +239,7 @@ export const nilaiRouter = router({
     }),
 
   saveBukuNilai: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(saveBukuNilaiSchema)
+    .input(sanitized(saveBukuNilaiSchema))
     .mutation(async ({ ctx, input }) => {
       const { kelasId, mataPelajaranId, tahunAjaranId, records } = input
       

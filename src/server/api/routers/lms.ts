@@ -195,7 +195,7 @@ export const lmsRouter = router({
     }),
 
   updateJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(z.object({ id: z.string(), data: jurnalUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: jurnalUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jurnalMengajar.findFirst({

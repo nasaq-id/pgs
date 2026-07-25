@@ -58,7 +58,7 @@ export const profilRouter = router({
   }),
 
   updateProfilePhoto: protectedProcedure
-    .input(z.object({ photo: z.string() }))
+    .input(sanitized(z.object({ photo: z.string() })))
     .mutation(async ({ ctx, input }) => {
       const user = ctx.session.user
       await db
@@ -70,13 +70,13 @@ export const profilRouter = router({
 
   updateProfile: protectedProcedure
     .input(
-      z.object({
+      sanitized(z.object({
         email: z.string().email().optional(),
         phone: z.string().optional(),
         alamat: z.string().optional(),
         noHpOrtu: z.string().optional(),
         pendidikanTerakhir: z.string().optional(),
-      })
+      }))
     )
     .mutation(async ({ ctx, input }) => {
       const user = ctx.session.user

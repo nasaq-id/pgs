@@ -80,7 +80,7 @@ export const superAdminRouter = router({
     }),
 
   registerSekolah: roleProtectedProcedure(["super_admin"])
-    .input(registerSekolahSchema)
+    .input(sanitized(registerSekolahSchema))
     .mutation(async ({ ctx, input }) => {
       // 1. Check if email/username already exists
       const existingUser = await db.query.users.findFirst({
@@ -197,13 +197,13 @@ export const superAdminRouter = router({
     }),
 
   updateSekolah: roleProtectedProcedure(["super_admin"])
-    .input(z.object({
+    .input(sanitized(z.object({
       id: z.string(),
       namaSekolah: z.string().min(1, "Nama sekolah wajib diisi"),
       namaSingkat: z.string().nullable().optional(),
       npsn: z.string().nullable().optional(),
       jenjang: z.enum(["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const existing = await db.query.sekolah.findFirst({
         where: eq(sekolah.id, input.id),
@@ -302,10 +302,10 @@ export const superAdminRouter = router({
     }),
 
   resetAdminPassword: roleProtectedProcedure(["super_admin"])
-    .input(z.object({
+    .input(sanitized(z.object({
       userId: z.string(),
       newPassword: z.string().min(6, "Password minimal 6 karakter"),
-    }))
+    })))
     .mutation(async ({ ctx, input }) => {
       const userToReset = await db.query.users.findFirst({
         where: eq(users.id, input.userId),
