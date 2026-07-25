@@ -59,7 +59,7 @@ export const settingsRouter = router({
       }),
 
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-      .input(z.object({ id: z.string(), data: billingTypeSchema.partial() }))
+      .input(sanitized(z.object({ id: z.string(), data: billingTypeSchema.partial() })))
       .mutation(async ({ ctx, input }) => {
         const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter
@@ -114,7 +114,7 @@ export const settingsRouter = router({
       }),
 
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-      .input(z.object({ id: z.string(), data: feeStructureSchema.partial() }))
+      .input(sanitized(z.object({ id: z.string(), data: feeStructureSchema.partial() })))
       .mutation(async ({ ctx, input }) => {
         const sekolahIdFilter = getSekolahIdFilter(ctx)
         const whereClause = sekolahIdFilter

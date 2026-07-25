@@ -4,7 +4,7 @@ import { eq, and, like, or, desc, asc, count } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { guru, users } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 

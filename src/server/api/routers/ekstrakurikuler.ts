@@ -85,7 +85,7 @@ export const ekstrakurikulerRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: ekstrakurikulerUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: ekstrakurikulerUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(ekstrakurikuler.id, input.id)]

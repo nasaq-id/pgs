@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure } from "@/server/api/trpc"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 
@@ -417,7 +417,7 @@ export const jadwalRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
-    .input(z.object({ id: z.string(), data: jadwalUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: jadwalUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.jadwalPelajaran.findFirst({

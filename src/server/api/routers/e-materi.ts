@@ -137,7 +137,7 @@ export const eMateriRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
-    .input(z.object({ id: z.string(), data: eMateriSchema.partial() }))
+    .input(sanitized(z.object({ id: z.string(), data: eMateriSchema.partial() })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(eMateri.id, input.id)]

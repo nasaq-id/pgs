@@ -63,8 +63,10 @@ const hasRole = (roles: string[]) =>
 export const roleProtectedProcedure = (roles: string[]) =>
   t.procedure.use(isAuthenticated).use(hasRole(roles))
 
+const MAX_STRING_LENGTH = 10000
+
 function deepSanitize(obj: unknown): unknown {
-  if (typeof obj === "string") return stripHtml(obj)
+  if (typeof obj === "string") return stripHtml(obj).slice(0, MAX_STRING_LENGTH)
   if (Array.isArray(obj)) return obj.map(deepSanitize)
   if (obj && typeof obj === "object") {
     return Object.fromEntries(
@@ -77,3 +79,45 @@ function deepSanitize(obj: unknown): unknown {
 export function sanitized<T extends z.ZodTypeAny>(schema: T) {
   return schema.transform((val) => deepSanitize(val) as z.infer<T>)
 }
+
+type RateLimitBucket = { count: number; resetAt: number }
+const rateLimitBuckets = new Map<string, RateLimitBucket>()
+
+function rateLimit(key: string, max: number, windowMs: number): boolean {
+  const now = Date.now()
+  const bucket = rateLimitBuckets.get(key)
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+
+  if (bucket.count >= max) return false
+
+  bucket.count++
+  return true
+}
+
+export function createRateLimitedProcedure(max: number, windowMs: number) {
+  return t.middleware(({ next, ctx }) => {
+    const userId = ctx.session?.user?.id || "anonymous"
+    const key = `rl:${userId}`
+
+    if (!rateLimit(key, max, windowMs)) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Terlalu banyak permintaan. Coba lagi nanti.",
+      })
+    }
+
+    return next({
+      ctx: {
+        session: { ...ctx.session, user: ctx.session?.user },
+      },
+    })
+  })
+}
+
+export const strictRateLimit = createRateLimitedProcedure(10, 60 * 1000)
+export const moderateRateLimit = createRateLimitedProcedure(30, 60 * 1000)
+export const lenientRateLimit = createRateLimitedProcedure(100, 60 * 1000)

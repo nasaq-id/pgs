@@ -109,7 +109,7 @@ export const nilaiRouter = router({
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
-    .input(z.object({ id: z.string(), data: nilaiUpdateSchema }))
+    .input(sanitized(z.object({ id: z.string(), data: nilaiUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const existing = await db.query.nilai.findFirst({
