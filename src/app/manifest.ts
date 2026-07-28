@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Sistem Informasi Manajemen Sekolah",
     start_url: "/",
     display: "standalone",
-    background_color: "#10b981cc", // Green with 80% opacity (transparent 80%)
-    theme_color: "#10b981",
+    background_color: "#f5f3f8",
+    theme_color: "#f5f3f8",
     orientation: "portrait-primary",
     categories: ["education", "productivity"],
     lang: "id",

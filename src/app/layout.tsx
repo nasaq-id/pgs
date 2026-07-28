@@ -26,17 +26,21 @@ export const metadata: Metadata = {
   manifest: "/manifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Sistem Manajemen Lembaga",
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f3f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#242429" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 }
 
 export default function RootLayout({
@@ -48,6 +52,15 @@ export default function RootLayout({
     <html lang="id" className={`h-full antialiased ${fontSans.variable} ${fontMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        {/* iOS Splash Screens */}
+        <link rel="apple-touch-startup-image" href="/icon-512.png" />
+        <meta name="screen-orientation" content="portrait" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#f5f3f8" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#242429" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="min-h-full flex flex-col">
         <TRPCProvider>
