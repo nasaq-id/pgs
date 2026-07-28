@@ -395,15 +395,17 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
             {/* Cutout square */}
             <div className="relative w-[280px] h-[280px]">
-              {/* Corner brackets */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-[3.5px] border-l-[3.5px] rounded-tl-lg transition-colors duration-200"
-                style={{ borderColor: state === "detecting" ? "#10b981" : "rgba(255,255,255,0.6)" }} />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-[3.5px] border-r-[3.5px] rounded-tr-lg transition-colors duration-200"
-                style={{ borderColor: state === "detecting" ? "#10b981" : "rgba(255,255,255,0.6)" }} />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3.5px] border-l-[3.5px] rounded-bl-lg transition-colors duration-200"
-                style={{ borderColor: state === "detecting" ? "#10b981" : "rgba(255,255,255,0.6)" }} />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3.5px] border-r-[3.5px] rounded-br-lg transition-colors duration-200"
-                style={{ borderColor: state === "detecting" ? "#10b981" : "rgba(255,255,255,0.6)" }} />
+              {/* Modern rounded corner frame via SVG */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 280 280" fill="none">
+                {/* Top-left */}
+                <path d="M4 40 Q4 4 40 4" stroke={state === "detecting" ? "#10b981" : "white"} strokeWidth="4" strokeLinecap="round" opacity={state === "detecting" ? 1 : 0.7} />
+                {/* Top-right */}
+                <path d="M240 4 Q276 4 276 40" stroke={state === "detecting" ? "#10b981" : "white"} strokeWidth="4" strokeLinecap="round" opacity={state === "detecting" ? 1 : 0.7} />
+                {/* Bottom-right */}
+                <path d="M276 240 Q276 276 240 276" stroke={state === "detecting" ? "#10b981" : "white"} strokeWidth="4" strokeLinecap="round" opacity={state === "detecting" ? 1 : 0.7} />
+                {/* Bottom-left */}
+                <path d="M40 276 Q4 276 4 240" stroke={state === "detecting" ? "#10b981" : "white"} strokeWidth="4" strokeLinecap="round" opacity={state === "detecting" ? 1 : 0.7} />
+              </svg>
 
               {/* Scanning line — only when scanning, not detecting */}
               {state === "scanning" && (
