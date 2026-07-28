@@ -455,8 +455,12 @@ export default function AsesmenPage() {
                 const mapelLabel = mapel ? mapel.namaMapel : "-"
 
                 const entries = a.siswaEntries || []
+                const totalSiswa = entries.length
                 const dinilaiCount = entries.filter((e: any) => e.status === "sudah_dinilai").length
                 const butuhPenilaianCount = entries.filter((e: any) => e.status === "sudah_mengumpulkan").length
+                const tuntasCount = entries.filter((e: any) => e.statusKetuntasan === "tuntas").length
+                const remedialCount = entries.filter((e: any) => e.statusKetuntasan === "belum_tuntas").length
+                const persentaseDinilai = totalSiswa > 0 ? Math.round((dinilaiCount / totalSiswa) * 100) : 0
 
                 const isSumatif = a.kategori === "sumatif"
 
@@ -493,7 +497,7 @@ export default function AsesmenPage() {
                         </p>
                       </div>
 
-                      <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 p-3.5 rounded-2xl space-y-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 p-3.5 rounded-2xl space-y-2 text-xs font-bold text-slate-700 dark:text-slate-300">
                         <div className="flex items-center gap-1.5">
                           <span>🎯</span>
                           <span>Target KKTP: <strong className="text-teal-600 dark:text-teal-400">{a.kktp}</strong></span>
@@ -508,15 +512,28 @@ export default function AsesmenPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs pt-1">
-                        <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          Dinilai: {dinilaiCount}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold">
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          Butuh Penilaian: {butuhPenilaianCount}
-                        </span>
+                      {/* Status Ringkasan Penilaian */}
+                      <div className="bg-muted/30 border border-border/40 p-3.5 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Status Dinilai Guru</span>
+                          <span className="text-[10px] font-extrabold text-foreground">{dinilaiCount} / {totalSiswa} Murid ({persentaseDinilai}%)</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-teal-500 rounded-full transition-all"
+                            style={{ width: `${persentaseDinilai}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-4 text-[10px] font-bold">
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Tuntas: {tuntasCount} Murid
+                          </span>
+                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                            <AlertCircle className="h-3 w-3" />
+                            Remedial: {remedialCount} Murid
+                          </span>
+                        </div>
                       </div>
                     </div>
 
