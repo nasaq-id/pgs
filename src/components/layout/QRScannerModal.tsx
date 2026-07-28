@@ -343,14 +343,11 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const ringDashoffset = circumference * (1 - dwellProgress)
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-black">
+    <div className="fixed inset-0 z-[100] flex flex-col">
       {/* ─── Camera Feed ─── */}
       <div className="absolute inset-0">
         <div id="qr-scanner-feed" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
       </div>
-
-      {/* ─── Dark Scrim with Cutout ─── */}
-      <div className="absolute inset-0 scrim-cutout bg-black/60" />
 
       {/* ─── Top Bar ─── */}
       <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] py-4">
@@ -543,10 +540,6 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
       {/* ─── CSS Animations ─── */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .scrim-cutout {
-          -webkit-mask-image: radial-gradient(circle 160px at center, transparent 100%, black 101%);
-          mask-image: radial-gradient(circle 160px at center, transparent 100%, black 101%);
-        }
         .scan-line {
           animation: scan-sweep 2s ease-in-out infinite;
         }
