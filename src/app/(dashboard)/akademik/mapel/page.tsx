@@ -45,6 +45,15 @@ import { api } from "@/lib/trpc/client"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
 
+interface PengampuItem {
+  id: string
+  guruId: string
+  kelasId: string
+  jumlahJam: number
+  guru: { id: string; namaLengkap: string } | null
+  kelas: { id: string; namaKelas: string; tingkat: string | null } | null
+}
+
 interface MapelRecord {
   id: string
   namaMapel: string
@@ -52,6 +61,7 @@ interface MapelRecord {
   kelompok: string | null
   aktif: boolean
   urutan: number | null
+  pengampu?: PengampuItem[]
 }
 
 const KELOMPOK_LABEL: Record<string, string> = {
@@ -393,6 +403,44 @@ export default function MapelPage() {
                     </span>
                   </div>
 
+                  {/* Guru Pengampu Section */}
+                  <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Guru Pengampu</span>
+                    {(!r.pengampu || r.pengampu.length === 0) ? (
+                      <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 italic">Belum Ditunjuk</span>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {(() => {
+                          const guruMap = new Map<string, { guruNama: string; kelasNama: string[]; jumlahJam: number }>()
+                          for (const p of r.pengampu!) {
+                            const gName = p.guru?.namaLengkap ?? "—"
+                            if (!guruMap.has(p.guruId)) {
+                              guruMap.set(p.guruId, { guruNama: gName, kelasNama: [], jumlahJam: p.jumlahJam })
+                            }
+                            guruMap.get(p.guruId)!.kelasNama.push(p.kelas?.namaKelas ?? "—")
+                          }
+                          return Array.from(guruMap.entries()).map(([gId, info]) => (
+                            <div key={gId} className="flex items-start space-x-2 bg-slate-50/70 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 rounded-xl p-2">
+                              <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-150 dark:border-indigo-800/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-[9px] flex-shrink-0 mt-0.5">
+                                {info.guruNama.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block leading-tight truncate">{info.guruNama}</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {info.kelasNama.map((kn, i) => (
+                                    <span key={i} className="text-[8px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-100/50 dark:border-indigo-800/30">
+                                      {kn}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
                     <div>
                       <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kelompok</span>
@@ -479,6 +527,7 @@ export default function MapelPage() {
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Nama Mata Pelajaran</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Kelompok</TableHead>
                 <TableHead className="text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Guru Pengampu</TableHead>
                 <TableHead className="text-center w-24 text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -486,14 +535,14 @@ export default function MapelPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
+                    {Array.from({ length: 7 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : localRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
+                  <TableCell colSpan={7} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
                     Tidak ada data mata pelajaran ditemukan
                   </TableCell>
                 </TableRow>
@@ -543,6 +592,36 @@ export default function MapelPage() {
                         >
                           {r.aktif ? "Aktif" : "Tidak Aktif"}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {(!r.pengampu || r.pengampu.length === 0) ? (
+                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 italic">Belum Ditunjuk</span>
+                        ) : (
+                          <div className="flex flex-col gap-1.5 max-w-[280px]">
+                            {(() => {
+                              const guruMap = new Map<string, { guruNama: string; kelasNama: string[] }>()
+                              for (const p of r.pengampu!) {
+                                const gName = p.guru?.namaLengkap ?? "—"
+                                if (!guruMap.has(p.guruId)) {
+                                  guruMap.set(p.guruId, { guruNama: gName, kelasNama: [] })
+                                }
+                                guruMap.get(p.guruId)!.kelasNama.push(p.kelas?.namaKelas ?? "—")
+                              }
+                              return Array.from(guruMap.entries()).map(([gId, info]) => (
+                                <div key={gId} className="flex items-center space-x-2 text-xs bg-slate-50/70 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 rounded-lg p-1.5">
+                                  <span className="font-extrabold text-slate-800 dark:text-slate-200 leading-none whitespace-nowrap">{info.guruNama}</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {info.kelasNama.map((kn, i) => (
+                                      <span key={i} className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/30 px-1.5 py-0.5 rounded border border-indigo-100/40 dark:border-indigo-800/30">
+                                        {kn}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))
+                            })()}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="relative text-center">
                         <button
