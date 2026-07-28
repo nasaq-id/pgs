@@ -349,6 +349,11 @@ export default function QRScannerModal({ open, onClose }: Props) {
         <div id="qr-scanner-feed" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
       </div>
 
+      {/* ─── Dark Scrim (hanya saat hasil/verifikasi) ─── */}
+      {(state === "verifying" || state === "success" || state === "error" || state === "permission_denied") && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10" />
+      )}
+
       {/* ─── Top Bar ─── */}
       <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] py-4">
         <button
