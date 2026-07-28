@@ -36,6 +36,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner"
 import AsesmenFormDialog from "@/components/asesmen/AsesmenFormDialog"
 import AsesmenDetailDialog from "@/components/asesmen/AsesmenDetailDialog"
+import AsesmenGradingView from "@/components/asesmen/AsesmenGradingView"
 
 const KATEGORI_LABEL: Record<string, string> = {
   formatif_awal: "FORMATIF",
@@ -77,6 +78,7 @@ export default function AsesmenPage() {
   const [editItem, setEditItem] = useState<any>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [gradingId, setGradingId] = useState<string | null>(null)
 
   const [rekapKelasId, setRekapKelasId] = useState("")
 
@@ -217,6 +219,18 @@ export default function AsesmenPage() {
 
     return items
   }, [siswaRekapList, rekapAsesmenList, rekapEntries, mapelMap])
+
+  // If grading view is active, show it instead of the main page
+  if (gradingId) {
+    return (
+      <div className="text-left pb-10">
+        <AsesmenGradingView
+          asesmenId={gradingId}
+          onBack={() => setGradingId(null)}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 text-left pb-10">
@@ -507,23 +521,41 @@ export default function AsesmenPage() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setDetailId(a.id)}
-                        className="flex-1 bg-[#1e293b] hover:bg-[#0f172a] text-white font-extrabold text-xs rounded-xl h-11 flex items-center justify-center cursor-pointer shadow-sm transition-all active:scale-95"
-                      >
-                        Detail & Nilai
-                      </button>
-
                       {canManage && (
                         <button
                           type="button"
-                          onClick={() => setDeleteId(a.id)}
-                          className="w-11 h-11 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 dark:text-rose-400 flex items-center justify-center cursor-pointer border border-rose-100 dark:border-rose-900/40 transition-all shrink-0 active:scale-95"
-                          title="Hapus Asesmen"
+                          onClick={() => setGradingId(a.id)}
+                          className="flex-1 bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-xs rounded-xl h-11 flex items-center justify-center cursor-pointer shadow-sm transition-all active:scale-95"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          Nilai
                         </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setDetailId(a.id)}
+                        className={cn(
+                          "bg-[#1e293b] hover:bg-[#0f172a] text-white font-extrabold text-xs rounded-xl h-11 flex items-center justify-center cursor-pointer shadow-sm transition-all active:scale-95",
+                          canManage ? "w-11" : "flex-1"
+                        )}
+                      >
+                        {canManage ? <MoreVertical className="h-4 w-4" /> : "Detail & Nilai"}
+                      </button>
+
+                      {canManage && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="w-11 h-11 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground flex items-center justify-center cursor-pointer border border-border/50 transition-all shrink-0 active:scale-95">
+                            <MoreVertical className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => { setEditItem(a); setFormOpen(true) }} className="gap-2 text-xs font-semibold cursor-pointer">
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDeleteId(a.id)} className="gap-2 text-xs font-semibold text-rose-600 cursor-pointer">
+                              <Trash2 className="h-3.5 w-3.5" /> Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
