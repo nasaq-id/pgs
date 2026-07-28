@@ -17,7 +17,14 @@ const STATUS_LABELS: Record<StatusAbsensi, string> = {
   terlambat: "Terlambat",
 }
 
-type ScannerState = "idle" | "scanning" | "processing" | "success" | "error" | "cooldown"
+type ScannerState =
+  | "idle"
+  | "scanning"
+  | "detecting"
+  | "processing"
+  | "success"
+  | "error"
+  | "cooldown"
 
 interface Props {
   open: boolean
@@ -51,6 +58,10 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null)
   const cooldownEndTimerRef = useRef<NodeJS.Timeout | null>(null)
   const resultTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const detectedCodeRef = useRef<string | null>(null)
+  const [dwellProgress, setDwellProgress] = useState(0)
+  const dwellIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
   const guruScanMutation = api.absensi.scanSingleQrGuru.useMutation()
@@ -90,12 +101,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     if (!navigator.geolocation) return null
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-        },
+        (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
         () => resolve(null),
         { enableHighAccuracy: true, timeout: 5000 }
       )
@@ -114,6 +120,19 @@ export default function QRScannerModal({ open, onClose }: Props) {
       } catch {}
       html5QrcodeRef.current = null
     }
+  }, [])
+
+  const clearDwellTimer = useCallback(() => {
+    if (dwellTimerRef.current) {
+      clearTimeout(dwellTimerRef.current)
+      dwellTimerRef.current = null
+    }
+    if (dwellIntervalRef.current) {
+      clearInterval(dwellIntervalRef.current)
+      dwellIntervalRef.current = null
+    }
+    detectedCodeRef.current = null
+    setDwellProgress(0)
   }, [])
 
   const startCooldown = useCallback(() => {
@@ -146,11 +165,12 @@ export default function QRScannerModal({ open, onClose }: Props) {
     }, 2500)
   }, [])
 
-  const handleScanSuccess = useCallback(
+  const handleValidate = useCallback(
     async (decodedText: string) => {
-      if (processingLockRef.current || stateRef.current !== "scanning") return
+      if (processingLockRef.current || stateRef.current !== "detecting") return
       processingLockRef.current = true
 
+      clearDwellTimer()
       setState("processing")
 
       await stopScanner()
@@ -217,7 +237,39 @@ export default function QRScannerModal({ open, onClose }: Props) {
         }, 3000)
       }
     },
-    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, startCooldown, getGeolocation],
+    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, startCooldown, getGeolocation, clearDwellTimer],
+  )
+
+  const handleQrDetected = useCallback(
+    (decodedText: string) => {
+      if (processingLockRef.current || stateRef.current !== "scanning") return
+
+      if (detectedCodeRef.current === decodedText && dwellTimerRef.current) {
+        return
+      }
+
+      clearDwellTimer()
+      detectedCodeRef.current = decodedText
+      setState("detecting")
+      setDwellProgress(0)
+
+      const startTime = Date.now()
+      const DWELL_MS = 1000
+
+      dwellIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / DWELL_MS, 1)
+        setDwellProgress(progress)
+        if (progress >= 1) {
+          if (dwellIntervalRef.current) clearInterval(dwellIntervalRef.current)
+        }
+      }, 30)
+
+      dwellTimerRef.current = setTimeout(() => {
+        handleValidate(decodedText)
+      }, DWELL_MS)
+    },
+    [clearDwellTimer, handleValidate],
   )
 
   const handleLateReasonSubmit = useCallback(async () => {
@@ -280,6 +332,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) {
       stopScanner()
+      clearDwellTimer()
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
       if (cooldownEndTimerRef.current) clearTimeout(cooldownEndTimerRef.current)
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
@@ -301,9 +354,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
         scanner
           .start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { fps: 10, qrbox: { width: 280, height: 280 } },
             (decodedText: string) => {
-              handleScanSuccess(decodedText)
+              handleQrDetected(decodedText)
             },
             () => {},
           )
@@ -320,6 +373,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
     return () => {
       clearTimeout(timer)
+      clearDwellTimer()
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
       if (cooldownEndTimerRef.current) clearTimeout(cooldownEndTimerRef.current)
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
@@ -329,123 +383,155 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
   if (!open) return null
 
+  const ringRadius = 90
+  const ringStroke = 4
+  const circumference = 2 * Math.PI * ringRadius
+  const strokeDashoffset = circumference * (1 - dwellProgress)
+
   return (
-    <div className="fixed inset-0 z-[100] lg:hidden">
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+      <div className="absolute inset-0">
+        <div id="mobile-qr-reader" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
+      </div>
 
-      <div className="absolute inset-0 flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-5 pb-2">
-          <div className="flex items-center gap-2">
-            <QrCode className="h-5 w-5 text-white" />
-            <h3 className="text-white font-bold text-base">Scan QR Absensi</h3>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60" />
+
+      <div className="relative z-10 flex items-center justify-between px-5 pt-[env(safe-area-inset-top)] pt-5 pb-3">
+        <div className="flex items-center gap-2">
+          <QrCode className="h-5 w-5 text-white" />
+          <h3 className="text-white font-bold text-base">Scan QR Absensi</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center text-white active:scale-90 transition-transform"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="relative z-10 flex-1 flex items-center justify-center">
+        {(state === "idle" || (state === "scanning" && !cameraReady)) && (
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-10 w-10 animate-spin text-white/50" />
+            <p className="text-white/50 text-sm font-semibold">Memuat kamera...</p>
           </div>
-          <button
-            onClick={onClose}
-            className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-transform"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        )}
 
-        <div className="flex-1 flex items-center justify-center px-6">
-          <div className="relative w-full max-w-xs aspect-square rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/50">
-            {!cameraReady && state === "idle" && (
-              <div className="absolute inset-0 flex items-center justify-center z-10">
-                <Loader2 className="h-8 w-8 animate-spin text-white/50" />
-              </div>
-            )}
+        {(state === "scanning" || state === "detecting") && (
+          <div className="relative flex items-center justify-center">
+            <svg
+              width={ringRadius * 2 + 20}
+              height={ringRadius * 2 + 20}
+              className="absolute"
+              style={{ transform: "rotate(-90deg)" }}
+            >
+              <circle
+                cx={ringRadius + 10}
+                cy={ringRadius + 10}
+                r={ringRadius}
+                fill="none"
+                stroke="rgba(255,255,255,0.15)"
+                strokeWidth={ringStroke}
+              />
+              <circle
+                cx={ringRadius + 10}
+                cy={ringRadius + 10}
+                r={ringRadius}
+                fill="none"
+                stroke={state === "detecting" ? "#2dd4bf" : "rgba(255,255,255,0.25)"}
+                strokeWidth={ringStroke}
+                strokeDasharray={circumference}
+                strokeDashoffset={state === "detecting" ? strokeDashoffset : circumference}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dashoffset 0.03s linear" }}
+              />
+            </svg>
 
-            <div id="mobile-qr-reader" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
+            <div className="w-[180px] h-[180px] rounded-3xl border-2 border-white/20 relative">
+              <div className="absolute -top-px -left-px w-10 h-10 border-t-[3px] border-l-[3px] border-white/60 rounded-tl-2xl" />
+              <div className="absolute -top-px -right-px w-10 h-10 border-t-[3px] border-r-[3px] border-white/60 rounded-tr-2xl" />
+              <div className="absolute -bottom-px -left-px w-10 h-10 border-b-[3px] border-l-[3px] border-white/60 rounded-bl-2xl" />
+              <div className="absolute -bottom-px -right-px w-10 h-10 border-b-[3px] border-r-[3px] border-white/60 rounded-br-2xl" />
 
-            {state === "scanning" && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-                <div className="relative w-52 h-52">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/60 rounded-tl-xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/60 rounded-tr-xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/60 rounded-bl-xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/60 rounded-br-xl" />
+              {state === "detecting" && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Scan className="h-10 w-10 text-teal-400 animate-pulse" />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
+        )}
 
-            {state === "processing" && (
-              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 gap-3">
-                <Loader2 className="h-10 w-10 animate-spin text-white" />
-                <p className="text-white text-sm font-bold">Memverifikasi absensi...</p>
-              </div>
-            )}
+        {state === "processing" && (
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-14 w-14 animate-spin text-white" />
+            <p className="text-white text-base font-bold">Memverifikasi absensi...</p>
+          </div>
+        )}
 
-            {(state === "success" || state === "error") && result && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
-                <div className="text-center px-4 space-y-3">
-                  {result.success ? (
-                    <>
-                      <div className="h-14 w-14 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-                      </div>
-                      <p className="text-white font-bold text-lg">{result.name}</p>
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
-                          {result.action}
-                        </span>
-                        <span className="text-[11px] font-bold text-white/70">{result.status}</span>
-                      </div>
-                      <p className="text-white/50 text-xs">{result.message}</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="h-14 w-14 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
-                        <ShieldAlert className="h-8 w-8 text-red-400" />
-                      </div>
-                      <p className="text-red-300 text-sm font-medium">{result.message}</p>
-                    </>
-                  )}
+        {(state === "success" || state === "error") && result && (
+          <div className="flex flex-col items-center gap-4 px-8">
+            {result.success ? (
+              <>
+                <div className="h-20 w-20 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-400" />
                 </div>
-              </div>
-            )}
-
-            {state === "cooldown" && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-                <div className="text-center space-y-2">
-                  <Loader2 className="h-6 w-6 animate-spin text-white/50 mx-auto" />
-                  <p className="text-white/50 text-xs font-semibold">Menyiapkan kamera...</p>
+                <p className="text-white font-bold text-2xl">{result.name}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full">
+                    {result.action}
+                  </span>
+                  <span className="text-xs font-bold text-white/70">{result.status}</span>
                 </div>
-              </div>
+                <p className="text-white/50 text-sm text-center">{result.message}</p>
+              </>
+            ) : (
+              <>
+                <div className="h-20 w-20 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <ShieldAlert className="h-10 w-10 text-red-400" />
+                </div>
+                <p className="text-red-300 text-base font-medium text-center">{result.message}</p>
+              </>
             )}
           </div>
-        </div>
+        )}
 
-        <div className="px-6 pb-8 pt-4">
-          {state === "scanning" && (
-            <div className="text-center space-y-1">
-              <Scan className="h-5 w-5 text-white/30 mx-auto" />
-              <p className="text-white/40 text-xs">Arahkan kamera ke QR Code siswa atau guru</p>
+        {state === "cooldown" && (
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+            <p className="text-white/50 text-sm font-semibold">Menyiapkan kamera...</p>
+          </div>
+        )}
+      </div>
+
+      <div className="relative z-10 px-6 pb-[env(safe-area-inset-bottom)] pb-8 pt-4">
+        {state === "scanning" && (
+          <div className="text-center">
+            <p className="text-white/50 text-sm font-semibold">Arahkan kamera ke QR Code</p>
+            <p className="text-white/30 text-xs mt-1">Tahan stabil selama 1 detik untuk memvalidasi</p>
+          </div>
+        )}
+        {state === "detecting" && (
+          <div className="text-center">
+            <p className="text-teal-400 text-sm font-bold">QR terdeteksi, tahan stabil...</p>
+            <div className="mt-2 h-1 w-48 bg-white/10 rounded-full mx-auto overflow-hidden">
+              <div
+                className="h-full bg-teal-400 rounded-full transition-none"
+                style={{ width: `${dwellProgress * 100}%` }}
+              />
             </div>
-          )}
-          {state === "processing" && (
-            <div className="text-center">
-              <p className="text-white/50 text-xs font-semibold">Harap tunggu, sedang memproses...</p>
-            </div>
-          )}
-          {(state === "success" || state === "error") && (
-            <div className="text-center">
-              <p className="text-white/50 text-xs font-semibold">
-                {state === "success" ? "Absensi berhasil dicatat" : "Terjadi kesalahan"}
-              </p>
-            </div>
-          )}
-          {state === "cooldown" && (
-            <div className="text-center">
-              <p className="text-white/50 text-xs font-semibold">Menyiapkan kamera...</p>
-            </div>
-          )}
-          {state === "idle" && (
-            <div className="text-center space-y-1">
-              <Scan className="h-5 w-5 text-white/30 mx-auto" />
-              <p className="text-white/40 text-xs">Memuat kamera...</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+        {state === "processing" && (
+          <div className="text-center">
+            <p className="text-white/50 text-sm font-semibold">Memproses...</p>
+          </div>
+        )}
+        {state === "cooldown" && (
+          <div className="text-center">
+            <p className="text-white/50 text-sm font-semibold">Menyiapkan kamera...</p>
+          </div>
+        )}
       </div>
 
       <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setLateData(null); } }}>
