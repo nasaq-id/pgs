@@ -371,33 +371,27 @@ export default function QRScannerModal({ open, onClose }: Props) {
         {(state === "idle" || state === "scanning" || state === "detecting") && (
           <div className="relative flex items-center justify-center">
             {/* SVG progress ring */}
-            <svg
-              width={ringR * 2 + 20}
-              height={ringR * 2 + 20}
-              className="absolute"
-              style={{ transform: "rotate(-90deg)" }}
-            >
-              <circle
-                cx={ringR + 10}
-                cy={ringR + 10}
-                r={ringR}
-                fill="none"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth={ringStroke}
-              />
-              <circle
-                cx={ringR + 10}
-                cy={ringR + 10}
-                r={ringR}
-                fill="none"
-                stroke={state === "detecting" ? "#10b981" : "transparent"}
-                strokeWidth={ringStroke}
-                strokeDasharray={circumference}
-                strokeDashoffset={state === "detecting" ? ringDashoffset : circumference}
-                strokeLinecap="round"
-                className="transition-none"
-              />
-            </svg>
+            {state === "detecting" && (
+              <svg
+                width={ringR * 2 + 20}
+                height={ringR * 2 + 20}
+                className="absolute"
+                style={{ transform: "rotate(-90deg)" }}
+              >
+                <circle
+                  cx={ringR + 10}
+                  cy={ringR + 10}
+                  r={ringR}
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth={ringStroke}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={ringDashoffset}
+                  strokeLinecap="round"
+                  className="transition-none"
+                />
+              </svg>
+            )}
 
             {/* Cutout square */}
             <div className="relative w-[280px] h-[280px]">
@@ -506,36 +500,33 @@ export default function QRScannerModal({ open, onClose }: Props) {
       </div>
 
       {/* ─── Bottom Sheet ─── */}
-      <div className="absolute bottom-0 inset-x-0 z-30 pb-[env(safe-area-inset-bottom)]">
-        <div className="backdrop-blur-lg bg-black/30 rounded-t-3xl px-6 pt-5 pb-8">
-          <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-          {(state === "idle" || state === "scanning") && (
-            <div className="text-center space-y-1 animate-fade-in">
-              <p className="text-white/80 text-sm font-medium">Arahkan kamera ke QR Code absensi</p>
-              <p className="text-white/35 text-xs">Tahan stabil selama 1 detik untuk memvalidasi</p>
+      <div className="absolute bottom-0 inset-x-0 z-30 pb-[env(safe-area-inset-bottom)] px-6 pb-8">
+        {(state === "idle" || state === "scanning") && (
+          <div className="text-center space-y-1 animate-fade-in">
+            <p className="text-white text-sm font-semibold drop-shadow-lg">Arahkan kamera ke QR Code absensi</p>
+            <p className="text-white/70 text-xs drop-shadow-lg">Tahan stabil selama 1 detik untuk memvalidasi</p>
+          </div>
+        )}
+        {state === "detecting" && (
+          <div className="text-center space-y-2 animate-fade-in">
+            <p className="text-emerald-400 text-sm font-bold drop-shadow-lg">QR terdeteksi — tahan stabil...</p>
+            <div className="h-1 w-52 bg-white/20 rounded-full mx-auto overflow-hidden">
+              <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${dwellProgress * 100}%` }} />
             </div>
-          )}
-          {state === "detecting" && (
-            <div className="text-center space-y-2 animate-fade-in">
-              <p className="text-emerald-400 text-sm font-bold">QR terdeteksi — tahan stabil...</p>
-              <div className="h-1 w-52 bg-white/10 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${dwellProgress * 100}%` }} />
-              </div>
-            </div>
-          )}
-          {state === "verifying" && (
-            <p className="text-white/50 text-sm font-medium text-center">Memproses absensi ke server...</p>
-          )}
-          {state === "success" && (
-            <p className="text-emerald-400/70 text-sm font-medium text-center animate-fade-in">Mengalihkan ke dashboard...</p>
-          )}
-          {state === "error" && (
-            <p className="text-red-300/60 text-sm font-medium text-center animate-fade-in">Periksa koneksi lalu coba lagi</p>
-          )}
-          {state === "permission_denied" && (
-            <p className="text-white/40 text-sm font-medium text-center animate-fade-in">Atau gunakan absensi manual</p>
-          )}
-        </div>
+          </div>
+        )}
+        {state === "verifying" && (
+          <p className="text-white text-sm font-semibold text-center drop-shadow-lg">Memproses absensi ke server...</p>
+        )}
+        {state === "success" && (
+          <p className="text-emerald-400 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Mengalihkan ke dashboard...</p>
+        )}
+        {state === "error" && (
+          <p className="text-red-300 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Periksa koneksi lalu coba lagi</p>
+        )}
+        {state === "permission_denied" && (
+          <p className="text-white/70 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Atau gunakan absensi manual</p>
+        )}
       </div>
 
       {/* ─── CSS Animations ─── */}
