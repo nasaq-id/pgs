@@ -533,6 +533,14 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
       {/* ─── CSS Animations ─── */}
       <style dangerouslySetInnerHTML={{ __html: `
+        #qr-shaded-region {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        #qr-scanner-feed > div {
+          background: transparent !important;
+        }
         .scan-line {
           animation: scan-sweep 2s ease-in-out infinite;
         }
