@@ -462,6 +462,7 @@ export default function AsesmenPage() {
                 const tuntasCount = entries.filter((e: any) => e.statusKetuntasan === "tuntas").length
                 const remedialCount = entries.filter((e: any) => e.statusKetuntasan === "belum_tuntas").length
                 const adaBerkasCount = entries.filter((e: any) => e.berkasUrl).length
+                const persentaseDinilai = totalSiswa > 0 ? Math.round((dinilaiCount / totalSiswa) * 100) : 0
                 const semuanyaDiperiksa = totalSiswa > 0 && butuhPeriksaCount === 0 && belumKumpulCount === 0
 
                 const isSumatif = a.kategori === "sumatif"
@@ -516,13 +517,38 @@ export default function AsesmenPage() {
 
                       {/* Status Ringkasan Penilaian */}
                       <div className="bg-muted/30 border border-border/40 p-3.5 rounded-2xl space-y-2">
+                        {/* Status Dinilai Guru */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Status Dinilai Guru</span>
+                          <span className="text-[10px] font-extrabold text-foreground">{dinilaiCount} / {totalSiswa} Murid ({persentaseDinilai}%)</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-teal-500 rounded-full transition-all"
+                            style={{ width: `${persentaseDinilai}%` }}
+                          />
+                        </div>
+
+                        {/* Tuntas & Remedial */}
+                        <div className="flex items-center gap-4 text-[10px] font-bold">
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Tuntas: {tuntasCount} Murid
+                          </span>
+                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                            <AlertCircle className="h-3 w-3" />
+                            Remedial: {remedialCount} Murid
+                          </span>
+                        </div>
+
+                        {/* Butuh Periksa & Belum Kumpul */}
                         {semuanyaDiperiksa ? (
-                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider">
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider pt-1 border-t border-border/30">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Semua diperiksa
                           </div>
                         ) : (
-                          <div className="space-y-1.5">
+                          <div className="space-y-1 pt-1 border-t border-border/30">
                             {butuhPeriksaCount > 0 && (
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -543,10 +569,7 @@ export default function AsesmenPage() {
                             )}
                           </div>
                         )}
-                        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground pt-1 border-t border-border/30">
-                          <span>Tuntas: {tuntasCount} Murid</span>
-                          <span>Remedial: {remedialCount} Murid</span>
-                        </div>
+
                         {adaBerkasCount > 0 && (
                           <div className="text-[9px] font-semibold text-muted-foreground">
                             {adaBerkasCount} berkas terlampir
