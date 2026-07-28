@@ -331,6 +331,14 @@ export const absensiRouter = router({
             }
           }
 
+          // Defensive re-check to prevent race condition duplicates
+          const recheckAbsen = await db.query.absensiSiswa.findFirst({
+            where: and(eq(absensiSiswa.siswaId, student.id), between(absensiSiswa.tanggal, startOfToday, endOfToday)),
+          })
+          if (recheckAbsen) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Absensi sudah dicatat. Silakan refresh halaman." })
+          }
+
           const [created] = await db
             .insert(absensiSiswa)
             .values({
@@ -1004,6 +1012,15 @@ export const absensiRouter = router({
 
       if (!existingAbsen) {
         const status = now > limitTime ? "terlambat" : "hadir"
+
+        // Defensive re-check to prevent race condition duplicates
+        const recheckAbsen = await db.query.absensiGuru.findFirst({
+          where: and(eq(absensiGuru.guruId, teacherId), between(absensiGuru.tanggal, startOfToday, endOfToday)),
+        })
+        if (recheckAbsen) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Presensi sudah dicatat. Silakan refresh halaman." })
+        }
+
         const [created] = await db
           .insert(absensiGuru)
           .values({

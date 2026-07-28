@@ -66,6 +66,11 @@ export default function AbsensiPage() {
 
   const [isScannerActive, setIsScannerActive] = useState(false)
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; name?: string; action?: string; status?: string } | null>(null)
+  type ScanState = "idle" | "scanning" | "processing" | "cooldown"
+  const [scannerState, setScannerState] = useState<ScanState>("idle")
+  const scannerStateRef = useRef<ScanState>("idle")
+  const scanProcessingLockRef = useRef(false)
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Late reason states
   const [lateDialogOpen, setLateDialogOpen] = useState(false)
@@ -491,6 +496,19 @@ export default function AbsensiPage() {
   }
 
   const handleScanSuccess = async (decodedText: string) => {
+    if (scanProcessingLockRef.current || scannerStateRef.current !== "scanning") return
+    scanProcessingLockRef.current = true
+    setScannerState("processing")
+    scannerStateRef.current = "processing"
+
+    const scanner = scannerRef.current
+    if (scanner.instance && !scanner.stopped) {
+      try {
+        await scanner.instance.stop()
+        scanner.stopped = true
+      } catch {}
+    }
+
     try {
       let coords: { latitude: number; longitude: number } | null = null
       if (navigator.geolocation) {
@@ -528,6 +546,15 @@ export default function AbsensiPage() {
         setLateDialogOpen(true)
         playBeep("error")
         toast.warning(`Terlambat: Harap masukkan alasan keterlambatan.`)
+        setScannerState("cooldown")
+        scannerStateRef.current = "cooldown"
+        if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+        cooldownTimerRef.current = setTimeout(() => {
+          scanProcessingLockRef.current = false
+          setScannerState("scanning")
+          scannerStateRef.current = "scanning"
+          setIsScannerActive(true)
+        }, 2500)
         return
       }
 
@@ -540,6 +567,16 @@ export default function AbsensiPage() {
         message: `Absensi ${result.action === "masuk" ? "Masuk" : "Pulang"} untuk ${result.name} berhasil dicatat dengan status ${STATUS_LABELS[result.status as StatusAbsensi]}.`,
       })
       toast.success(`Scan Berhasil: ${result.name} (${result.action === "masuk" ? "Masuk" : "Pulang"})`)
+
+      setScannerState("cooldown")
+      scannerStateRef.current = "cooldown"
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+      cooldownTimerRef.current = setTimeout(() => {
+        scanProcessingLockRef.current = false
+        setScannerState("scanning")
+        scannerStateRef.current = "scanning"
+        setIsScannerActive(true)
+      }, 2500)
     } catch (err: any) {
       playBeep("error")
       setScanResult({
@@ -547,6 +584,16 @@ export default function AbsensiPage() {
         message: err.message || "Gagal memproses absensi barcode",
       })
       toast.error(err.message || "Scan Gagal")
+
+      setScannerState("cooldown")
+      scannerStateRef.current = "cooldown"
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+      cooldownTimerRef.current = setTimeout(() => {
+        scanProcessingLockRef.current = false
+        setScannerState("scanning")
+        scannerStateRef.current = "scanning"
+        setIsScannerActive(true)
+      }, 2500)
     }
   }
 
@@ -984,12 +1031,16 @@ export default function AbsensiPage() {
 
   useEffect(() => {
     mountedRef.current = true
-    return () => { mountedRef.current = false }
+    return () => {
+      mountedRef.current = false
+      scanProcessingLockRef.current = false
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+    }
   }, [])
 
   useEffect(() => {
     const scanner = scannerRef.current
-    if (activeTab !== "scan" || !isScannerActive) {
+    if (activeTab !== "scan" || !isScannerActive || scannerState === "processing" || scannerState === "cooldown") {
       if (scanner.instance && !scanner.stopped) {
         scanner.instance.stop().then(() => {
           scanner.instance.clear()
@@ -1015,6 +1066,12 @@ export default function AbsensiPage() {
             },
             () => {},
           )
+          .then(() => {
+            if (scannerStateRef.current !== "processing" && scannerStateRef.current !== "cooldown") {
+              setScannerState("scanning")
+              scannerStateRef.current = "scanning"
+            }
+          })
           .catch((err: any) => {
             console.error("Camera scanner start failed:", err)
           })
@@ -1034,7 +1091,7 @@ export default function AbsensiPage() {
         }
       }
     }
-  }, [activeTab, isScannerActive])
+  }, [activeTab, isScannerActive, scannerState])
 
   return (
     <ErrorBoundary>
@@ -1448,11 +1505,27 @@ export default function AbsensiPage() {
                   <Scan className="h-16 w-16 mb-3 stroke-[1.5]" />
                   <p className="text-sm font-bold">Kamera tidak aktif</p>
                   <button
-                    onClick={() => setIsScannerActive(true)}
+                    onClick={() => { setIsScannerActive(true); setScannerState("scanning"); scannerStateRef.current = "scanning"; }}
                     className="mt-4 bg-teal-650 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none shadow-sm"
                   >
                     Aktifkan Kamera
                   </button>
+                </div>
+              )}
+
+              {scannerState === "processing" && (
+                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20 gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-white" />
+                  <p className="text-white text-sm font-bold">Memverifikasi absensi...</p>
+                </div>
+              )}
+
+              {scannerState === "cooldown" && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+                  <div className="text-center space-y-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-white/50 mx-auto" />
+                    <p className="text-white/50 text-xs font-semibold">Menyiapkan kamera...</p>
+                  </div>
                 </div>
               )}
             </div>
