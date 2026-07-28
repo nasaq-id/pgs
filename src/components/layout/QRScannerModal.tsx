@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { X, CheckCircle2, ShieldAlert, Loader2, Scan, QrCode } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export default function QRScannerModal({ open, onClose }: Props) {
+  const router = useRouter()
   const [state, setState] = useState<ScannerState>("idle")
   const [cameraReady, setCameraReady] = useState(false)
   const [result, setResult] = useState<{
@@ -219,8 +221,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
         setState("success")
 
         resultTimerRef.current = setTimeout(() => {
-          startCooldown()
-        }, 3000)
+          onClose()
+          router.push("/dashboard")
+        }, 2000)
       } catch (err: any) {
         playSound("error")
         hapticFeedback("error")
@@ -237,7 +240,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
         }, 3000)
       }
     },
-    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, startCooldown, getGeolocation, clearDwellTimer],
+    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, startCooldown, getGeolocation, clearDwellTimer, onClose, router],
   )
 
   const handleQrDetected = useCallback(
@@ -300,8 +303,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
       toast.success(`Scan Berhasil: ${result.name} (Masuk - Terlambat)`)
 
       resultTimerRef.current = setTimeout(() => {
-        startCooldown()
-      }, 3000)
+        onClose()
+        router.push("/dashboard")
+      }, 2000)
     } catch (err: any) {
       playSound("error")
       hapticFeedback("error")
@@ -323,7 +327,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     } finally {
       setSubmittingLateReason(false)
     }
-  }, [lateData, lateReason, barcodeScanMutation, playSound, hapticFeedback, startCooldown])
+  }, [lateData, lateReason, barcodeScanMutation, playSound, hapticFeedback, startCooldown, onClose, router])
 
   useEffect(() => {
     stateRef.current = state
