@@ -555,8 +555,9 @@ export default function AsesmenPage() {
                           "bg-[#1e293b] hover:bg-[#0f172a] text-white font-extrabold text-xs rounded-xl h-11 flex items-center justify-center cursor-pointer shadow-sm transition-all active:scale-95",
                           canManage ? "w-11" : "flex-1"
                         )}
+                        title="Detail & Nilai"
                       >
-                        {canManage ? <MoreVertical className="h-4 w-4" /> : "Detail & Nilai"}
+                        {canManage ? <ClipboardCheck className="h-4 w-4" /> : "Detail & Nilai"}
                       </button>
 
                       {canManage && (
