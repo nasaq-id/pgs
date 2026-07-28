@@ -457,10 +457,12 @@ export default function AsesmenPage() {
                 const entries = a.siswaEntries || []
                 const totalSiswa = entries.length
                 const dinilaiCount = entries.filter((e: any) => e.status === "sudah_dinilai").length
-                const butuhPenilaianCount = entries.filter((e: any) => e.status === "sudah_mengumpulkan").length
+                const butuhPeriksaCount = entries.filter((e: any) => e.status === "sudah_mengumpulkan").length
+                const belumKumpulCount = entries.filter((e: any) => e.status === "belum_dikerjakan").length
                 const tuntasCount = entries.filter((e: any) => e.statusKetuntasan === "tuntas").length
                 const remedialCount = entries.filter((e: any) => e.statusKetuntasan === "belum_tuntas").length
-                const persentaseDinilai = totalSiswa > 0 ? Math.round((dinilaiCount / totalSiswa) * 100) : 0
+                const adaBerkasCount = entries.filter((e: any) => e.berkasUrl).length
+                const semuanyaDiperiksa = totalSiswa > 0 && butuhPeriksaCount === 0 && belumKumpulCount === 0
 
                 const isSumatif = a.kategori === "sumatif"
 
@@ -514,26 +516,42 @@ export default function AsesmenPage() {
 
                       {/* Status Ringkasan Penilaian */}
                       <div className="bg-muted/30 border border-border/40 p-3.5 rounded-2xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Status Dinilai Guru</span>
-                          <span className="text-[10px] font-extrabold text-foreground">{dinilaiCount} / {totalSiswa} Murid ({persentaseDinilai}%)</span>
+                        {semuanyaDiperiksa ? (
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Semua diperiksa
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {butuhPeriksaCount > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                  Butuh Periksa:
+                                </span>
+                                <span className="text-[10px] font-extrabold text-foreground">{butuhPeriksaCount} Tugas</span>
+                              </div>
+                            )}
+                            {belumKumpulCount > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  Belum Kumpul:
+                                </span>
+                                <span className="text-[10px] font-extrabold text-foreground">{belumKumpulCount} Murid</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground pt-1 border-t border-border/30">
+                          <span>Tuntas: {tuntasCount} Murid</span>
+                          <span>Remedial: {remedialCount} Murid</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-teal-500 rounded-full transition-all"
-                            style={{ width: `${persentaseDinilai}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-4 text-[10px] font-bold">
-                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Tuntas: {tuntasCount} Murid
-                          </span>
-                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                            <AlertCircle className="h-3 w-3" />
-                            Remedial: {remedialCount} Murid
-                          </span>
-                        </div>
+                        {adaBerkasCount > 0 && (
+                          <div className="text-[9px] font-semibold text-muted-foreground">
+                            {adaBerkasCount} berkas terlampir
+                          </div>
+                        )}
                       </div>
                     </div>
 
