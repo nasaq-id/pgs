@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sistem Manajemen Lembaga - PGS",
-    short_name: "SML",
+    name: "Portal Guna Sekolah",
+    short_name: "PGS",
     description: "Sistem Informasi Manajemen Sekolah",
     start_url: "/",
     display: "standalone",

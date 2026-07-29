@@ -83,7 +83,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
-      <title>Masuk Sistem | Portal Garda Sekolah</title>
+      <title>Masuk Sistem | Portal Guna Sekolah</title>
       {/* ── Brand Nav ── */}
       <nav className="glass py-4 px-6 md:px-12 flex items-center justify-between sticky top-2 z-50 mx-4 rounded-2xl">
         <div className="flex items-center gap-3">
@@ -92,7 +92,7 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-sm md:text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight leading-none">
-              Portal Garda Sekolah
+              Portal Guna Sekolah
             </h1>
             <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5 block">
               Sistem Informasi Manajemen

@@ -771,7 +771,7 @@ export default function AbsensiPage() {
       const layout = printLayouts[limitPerPage] || { cols: 2, rows: 3, gap: "15px", cardH: "80mm", logoFz: "0.75rem", titleFz: "0.7rem", nameFz: "1rem", descFz: "0.8rem" }
       const { cols: gridCols, rows: gridRows, gap: gapSize, cardH: cardHeight, logoFz: logoFontSize, titleFz: titleFontSize, nameFz: nameFontSize, descFz: descFontSize } = layout
 
-      const schoolName = sekolah?.namaSekolah || "PORTAL GARDA SEKOLAH"
+      const schoolName = sekolah?.namaSekolah || "PORTAL GUNA SEKOLAH"
 
       let htmlContent = `
         <html>
