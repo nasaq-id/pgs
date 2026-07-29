@@ -105,7 +105,7 @@ export default function AbsensiPage() {
     enabled: role === "guru",
   })
   const { data: classes } = api.kelas.getAll.useQuery({})
-  const { data: siswaAll } = api.siswa.getAll.useQuery({})
+  const { data: siswaAll } = api.siswa.getAll.useQuery({ limit: 10000 })
   const { data: guruAll } = api.guru.getAll.useQuery({}, {
     enabled: role === "super_admin" || role === "admin_sekolah" || role === "tu",
   })
