@@ -2014,7 +2014,7 @@ export default function AbsensiPage() {
                   type="button"
                   onClick={handleBulkDownloadBarcodes}
                   disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
-                  className="flex-1 h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+                  className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-blue-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
                 >
                   {bulkDownloading ? (
                     <>
