@@ -947,25 +947,31 @@ export default function SiswaPage() {
         {/* Row 2: CSV Operations & Add Student */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <button
+            <Button
+              variant="outline"
               onClick={() => setImportModalOpen(true)}
               disabled={importing}
-              className="flex-1 sm:flex-initial bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+              className="gap-2 flex-1 sm:flex-initial cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
             >
-              {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2 text-slate-500" />}
+              {importing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 text-teal-600" />
+              )}
               <span>Impor</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
               onClick={() => setExportModalOpen(true)}
-              className="flex-1 sm:flex-initial bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shadow-sm"
+              className="gap-2 flex-1 sm:flex-initial cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="h-4 w-4 text-teal-600" />
               <span>Ekspor</span>
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             onClick={() => {
               if (activeTab === "mutasi_keluar") {
                 setMutasiOpen(true)
@@ -973,11 +979,11 @@ export default function SiswaPage() {
                 handleCreate()
               }
             }}
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95"
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="h-4 w-4 mr-1.5" />
             <span>{activeTab === "mutasi_keluar" ? "Catat Mutasi" : activeTab === "tidak_aktif" ? "Catat Alumni" : "Tambah Siswa"}</span>
-          </button>
+          </Button>
         </div>
 
         {/* Bulk Actions Bar */}

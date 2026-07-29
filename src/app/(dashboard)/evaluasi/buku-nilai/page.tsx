@@ -1073,22 +1073,24 @@ export default function BukuNilaiPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={handleExportLegerExcel}
                     disabled={legerQuery.isLoading || !legerQuery.data}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-80"
+                    variant="outline"
+                    className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
                   >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    <span>Export Excel</span>
-                  </button>
-                  <button
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                    <span>Ekspor Excel</span>
+                  </Button>
+                  <Button
                     onClick={handleCetakLegerPdf}
                     disabled={legerQuery.isLoading || !legerQuery.data}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-80 transition-all duration-300 transform active:scale-95"
+                    variant="outline"
+                    className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
                   >
-                    <Printer className="h-4 w-4" />
+                    <Printer className="h-4 w-4 text-teal-600" />
                     <span>Cetak PDF Leger</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 

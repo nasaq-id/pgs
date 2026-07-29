@@ -308,13 +308,17 @@ export default function JadwalPage() {
           {!isSiswa && !isGuru && (
             <div className="w-full sm:w-auto">
               <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
-              <Select value={kelasId} onValueChange={(v) => v && setKelasId(v)}>
-                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold text-white focus:ring-1 focus:ring-teal-500">
-                  <SelectValue placeholder="Pilih Kelas">{selectedKelasMain || "Pilih Kelas"}</SelectValue>
+              <Select
+                value={kelasId}
+                onValueChange={(v) => v && setKelasId(v)}
+                options={kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
+              >
+                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
+                  <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground">
                   {kelasRecords.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
+                    <SelectItem key={k.id} value={k.id} label={formatKelasLabel(k)} className="!text-slate-800 dark:!text-slate-200 focus:!text-slate-900 dark:focus:!text-white focus:!bg-slate-100 dark:focus:!bg-slate-800">
                       {formatKelasLabel(k)}
                     </SelectItem>
                   ))}
@@ -334,16 +338,18 @@ export default function JadwalPage() {
                   setSelectedDays([val])
                 }
               }}
+              options={[
+                { value: "all", label: "Semua Hari" },
+                ...DAYS.map((day) => ({ value: day, label: DAY_LABEL[day] })),
+              ]}
             >
-              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl text-xs font-bold text-white focus:ring-1 focus:ring-teal-500">
-                <SelectValue placeholder="Pilih Hari">
-                  {selectedDays.length === 0 ? "Semua Hari" : DAY_LABEL[selectedDays[0]]}
-                </SelectValue>
+              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
+                <SelectValue placeholder="Pilih Hari" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Hari</SelectItem>
+              <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground">
+                <SelectItem value="all" label="Semua Hari" className="!text-slate-800 dark:!text-slate-200 focus:!text-slate-900 dark:focus:!text-white focus:!bg-slate-100 dark:focus:!bg-slate-800">Semua Hari</SelectItem>
                 {DAYS.map((day) => (
-                  <SelectItem key={day} value={day}>
+                  <SelectItem key={day} value={day} label={DAY_LABEL[day]} className="!text-slate-800 dark:!text-slate-200 focus:!text-slate-900 dark:focus:!text-white focus:!bg-slate-100 dark:focus:!bg-slate-800">
                     {DAY_LABEL[day]}
                   </SelectItem>
                 ))}

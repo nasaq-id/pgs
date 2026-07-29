@@ -512,16 +512,17 @@ export default function RekapPresensiPage() {
           <Button
             onClick={handleExportCSV}
             variant="outline"
-            className="h-10 px-4 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40 text-xs font-bold gap-2 cursor-pointer shadow-sm"
+            className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Export Excel</span>
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            <span>Ekspor Excel</span>
           </Button>
           <Button
             onClick={handleExportPDF}
-            className="h-10 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold gap-2 cursor-pointer shadow-sm"
+            variant="outline"
+            className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
           >
-            <Download className="w-4 h-4" />
+            <Download className="h-4 w-4 text-teal-600" />
             <span>Cetak PDF</span>
           </Button>
         </div>

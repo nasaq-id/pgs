@@ -18,6 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {
   Camera,
   QrCode,
@@ -31,7 +33,10 @@ import {
   Sparkles,
   Lock,
   RefreshCw,
-  Maximize2
+  Maximize2,
+  ShieldAlert,
+  X,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -46,6 +51,10 @@ export default function PresensiGuruPage() {
   const [isScanning, setIsScanning] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
+  const [lateDialogOpen, setLateDialogOpen] = useState(false)
+  const [lateReason, setLateReason] = useState("")
+  const [pendingQrCode, setPendingQrCode] = useState("")
+
   const { data: staticQrData, isLoading: isLoadingStaticQr } = api.absensi.getStaticQrGuru.useQuery()
   const { data: guruLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = api.absensi.getGuruAbsensi.useQuery({
     tanggal: new Date(),
@@ -53,6 +62,9 @@ export default function PresensiGuruPage() {
 
   const scanMutation = api.absensi.scanSingleQrGuru.useMutation({
     onSuccess: (res) => {
+      if ("requireReason" in res && res.requireReason) {
+        return
+      }
       setScanResult(res)
       toast.success(
         res.action === "masuk"
@@ -66,10 +78,32 @@ export default function PresensiGuruPage() {
     },
   })
 
-  const handleScanSubmit = async (codeToSubmit: string) => {
+  const handleScanSubmit = async (codeToSubmit: string, reason?: string) => {
     if (!codeToSubmit.trim()) return
     setScanResult(null)
-    await scanMutation.mutateAsync({ qrCode: codeToSubmit.trim() })
+    try {
+      const res = await scanMutation.mutateAsync({
+        qrCode: codeToSubmit.trim(),
+        alasan: reason,
+      })
+      if (res && 'requireReason' in res && res.requireReason) {
+        setPendingQrCode(codeToSubmit.trim())
+        setLateReason("")
+        setLateDialogOpen(true)
+        toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+      } else {
+        setLateDialogOpen(false)
+        setLateReason("")
+        setPendingQrCode("")
+      }
+    } catch (err) {
+      // Handled in onError of scanMutation
+    }
+  }
+
+  const handleLateReasonSubmit = async () => {
+    if (!pendingQrCode || !lateReason.trim()) return
+    await handleScanSubmit(pendingQrCode, lateReason.trim())
   }
 
   // Camera simulation / video stream trigger
@@ -521,6 +555,70 @@ export default function PresensiGuruPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog Alasan Keterlambatan */}
+      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); } }}>
+        <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
+          <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
+                Konfirmasi Keterlambatan
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); }}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="px-6 py-5 space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 text-xs font-semibold text-amber-800 dark:text-amber-300">
+              <p className="font-bold">⚠️ Perhatian:</p>
+              <p className="mt-1">
+                Waktu pemindaian absensi masuk telah melewati batas toleransi keterlambatan 15 menit dari jam pelajaran (JP) Anda. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="block text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest mb-1">
+                Alasan Terlambat (Wajib)
+              </Label>
+              <textarea
+                value={lateReason}
+                onChange={(e) => setLateReason(e.target.value)}
+                placeholder="Masukkan alasan keterlambatan (misalnya: macet di jalan, kendala kendaraan, dll)..."
+                rows={3}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50 dark:bg-slate-900/50 text-xs p-3 font-semibold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); }}
+              disabled={scanMutation.isPending}
+              className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleLateReasonSubmit}
+              disabled={scanMutation.isPending || !lateReason.trim()}
+              className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl text-xs font-bold gap-2 cursor-pointer shadow-md shadow-teal-500/5 transition-all"
+            >
+              {scanMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              <span>Kirim & Absen</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Global CSS for Print Media */}
       <style dangerouslySetInnerHTML={{ __html: `
