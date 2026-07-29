@@ -1135,6 +1135,12 @@ export default function AbsensiPage() {
               <User className="w-4 h-4" />
               <span>Presensi Saya</span>
             </TabsTrigger>
+            {canManageGlobal && (
+              <TabsTrigger value="qrmassal" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <QrCode className="w-4 h-4" />
+                <span>QR Massal</span>
+              </TabsTrigger>
+            )}
             {canTakeAttendance && (
               <>
                 <button
@@ -1821,118 +1827,6 @@ export default function AbsensiPage() {
             )}
           </div>
 
-          {/* Bulk Barcode Download Card */}
-          {(role === "super_admin" || role === "admin_sekolah" || role === "tu") && (
-            <div className="neumo-card bg-background rounded-[26px] p-6 space-y-4 text-left">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
-                  <Printer className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-tight">Cetak & Unduh QR Siswa</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Cetak massal QR Code presensi untuk mading/kartu</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-1">
-                <div className="space-y-1">
-                  <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
-                    Filter Rombel (Kelas)
-                  </Label>
-                  <Select
-                    value={bulkFilterClassId}
-                    onValueChange={(v) => setBulkFilterClassId(v ?? "semua")}
-                    options={[
-                      { value: "semua", label: "Semua Kelas & Siswa" },
-                      ...(classes?.map((c) => ({ value: c.id, label: c.namaKelas })) || [])
-                    ]}
-                  >
-                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
-                      <SelectValue placeholder="Semua Kelas" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
-                      <SelectItem value="semua" className="text-xs font-semibold">Semua Kelas & Siswa</SelectItem>
-                      {classes?.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                          {c.namaKelas}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
-                    Jumlah QR per Halaman
-                  </Label>
-                  <Select
-                    value={qrPerPage}
-                    onValueChange={(v) => setQrPerPage(v ?? "6")}
-                    options={[
-                      { value: "4", label: "4 QR / Halaman (2x2)" },
-                      { value: "6", label: "6 QR / Halaman (2x3)" },
-                      { value: "8", label: "8 QR / Halaman (2x4)" },
-                      { value: "9", label: "9 QR / Halaman (3x3)" },
-                      { value: "12", label: "12 QR / Halaman (3x4)" },
-                      { value: "16", label: "16 QR / Halaman (4x4)" }
-                    ]}
-                  >
-                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
-                      <SelectValue placeholder="6 QR / Halaman" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
-                      <SelectItem value="4" className="text-xs font-semibold">4 QR / Halaman (2x2)</SelectItem>
-                      <SelectItem value="6" className="text-xs font-semibold">6 QR / Halaman (2x3)</SelectItem>
-                      <SelectItem value="8" className="text-xs font-semibold">8 QR / Halaman (2x4)</SelectItem>
-                      <SelectItem value="9" className="text-xs font-semibold">9 QR / Halaman (3x3)</SelectItem>
-                      <SelectItem value="12" className="text-xs font-semibold">12 QR / Halaman (3x4)</SelectItem>
-                      <SelectItem value="16" className="text-xs font-semibold">16 QR / Halaman (4x4)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleBulkPrintQR}
-                    disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
-                    className="flex-1 h-10 rounded-xl bg-gradient-to-r from-teal-650 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
-                  >
-                    {bulkPrinting ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                        <span className="truncate max-w-[90px]">{bulkProgress || "Membuat..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Printer className="h-3.5 w-3.5 shrink-0" />
-                        <span>Cetak Massal</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleBulkDownloadBarcodes}
-                    disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
-                    className="flex-1 h-10 rounded-xl border border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
-                  >
-                    {bulkDownloading ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                        <span className="truncate max-w-[90px]">{bulkProgress || "ZIP..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-3.5 w-3.5 shrink-0" />
-                        <span>Unduh ZIP</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="neumo-card bg-background rounded-[26px] p-5 md:col-span-2 space-y-4 text-left">
@@ -2022,6 +1916,126 @@ export default function AbsensiPage() {
                 </TableBody>
               </Table>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "qrmassal" && canManageGlobal && (
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="neumo-card bg-background rounded-[26px] p-6 space-y-5 text-left">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
+                <Printer className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-tight">Cetak & Unduh QR Siswa</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Cetak massal QR Code presensi untuk mading/kartu</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                  Filter Rombel (Kelas)
+                </Label>
+                <Select
+                  value={bulkFilterClassId}
+                  onValueChange={(v) => setBulkFilterClassId(v ?? "semua")}
+                  options={[
+                    { value: "semua", label: "Semua Kelas & Siswa" },
+                    ...(classes?.map((c) => ({ value: c.id, label: c.namaKelas })) || [])
+                  ]}
+                >
+                  <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                    <SelectValue placeholder="Semua Kelas" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
+                    <SelectItem value="semua" className="text-xs font-semibold">Semua Kelas & Siswa</SelectItem>
+                    {classes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
+                        {c.namaKelas}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                  Jumlah QR per Halaman
+                </Label>
+                <Select
+                  value={qrPerPage}
+                  onValueChange={(v) => setQrPerPage(v ?? "6")}
+                  options={[
+                    { value: "4", label: "4 QR / Halaman (2x2)" },
+                    { value: "6", label: "6 QR / Halaman (2x3)" },
+                    { value: "8", label: "8 QR / Halaman (2x4)" },
+                    { value: "9", label: "9 QR / Halaman (3x3)" },
+                    { value: "12", label: "12 QR / Halaman (3x4)" },
+                    { value: "16", label: "16 QR / Halaman (4x4)" }
+                  ]}
+                >
+                  <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                    <SelectValue placeholder="6 QR / Halaman" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
+                    <SelectItem value="4" className="text-xs font-semibold">4 QR / Halaman (2x2)</SelectItem>
+                    <SelectItem value="6" className="text-xs font-semibold">6 QR / Halaman (2x3)</SelectItem>
+                    <SelectItem value="8" className="text-xs font-semibold">8 QR / Halaman (2x4)</SelectItem>
+                    <SelectItem value="9" className="text-xs font-semibold">9 QR / Halaman (3x3)</SelectItem>
+                    <SelectItem value="12" className="text-xs font-semibold">12 QR / Halaman (3x4)</SelectItem>
+                    <SelectItem value="16" className="text-xs font-semibold">16 QR / Halaman (4x4)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleBulkPrintQR}
+                  disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
+                  className="flex-1 h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+                >
+                  {bulkPrinting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span className="truncate max-w-[90px]">{bulkProgress || "Membuat..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-3.5 w-3.5 shrink-0" />
+                      <span>Cetak Massal</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBulkDownloadBarcodes}
+                  disabled={bulkPrinting || bulkDownloading || !siswaAll || siswaAll.length === 0}
+                  className="flex-1 h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-1.5"
+                >
+                  {bulkDownloading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span className="truncate max-w-[90px]">{bulkProgress || "ZIP..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5 shrink-0" />
+                      <span>Unduh ZIP</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {(bulkPrinting || bulkDownloading) && bulkProgress && (
+                <div className="pt-2">
+                  <div className="text-[10px] text-muted-foreground font-semibold text-center">{bulkProgress}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
