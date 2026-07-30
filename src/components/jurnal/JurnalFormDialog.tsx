@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, BookOpen, Activity, AlertTriangle, Users, CheckCircle2, FileText, Check } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate, parseLocalTime } from "@/lib/utils"
 
 interface JurnalItem {
   id: string
@@ -206,7 +206,7 @@ export default function JurnalFormDialog({
     if (!finalJudul) {
       const kelasName = kelasList?.find((k) => k.id === kelasId)?.namaKelas || ""
       const mapelName = mapelList?.find((m) => m.id === mataPelajaranId)?.namaMapel || ""
-      const formattedDate = tanggal ? new Date(tanggal + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""
+      const formattedDate = tanggal ? parseLocalDate(tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""
       finalJudul = `${kelasName} - ${mapelName} - ${formattedDate}`.trim()
       if (finalJudul.startsWith(" - ")) finalJudul = finalJudul.slice(3)
       if (!finalJudul) finalJudul = "Tanpa Judul"
@@ -214,9 +214,9 @@ export default function JurnalFormDialog({
 
     setSaving(true)
     try {
-      const tanggalDate = tanggal ? new Date(tanggal + "T00:00:00") : new Date()
-      const jamMulaiDate = jamMulai ? new Date(`${tanggal}T${jamMulai}:00`) : null
-      const jamSelesaiDate = jamSelesai ? new Date(`${tanggal}T${jamSelesai}:00`) : null
+      const tanggalDate = tanggal ? parseLocalDate(tanggal) : new Date()
+      const jamMulaiDate = jamMulai ? parseLocalTime(tanggal, jamMulai) : null
+      const jamSelesaiDate = jamSelesai ? parseLocalTime(tanggal, jamSelesai) : null
 
       const detailKehadiran = JSON.stringify(
         Object.entries(attendance).map(([siswaId, st]) => ({ siswaId, status: st })),

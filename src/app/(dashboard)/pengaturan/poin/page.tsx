@@ -145,9 +145,9 @@ function KategoriTab() {
             </Button>
           </div>
           <Select value={filterJenis} onValueChange={(v) => setFilterJenis(v || "")}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="Semua" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder="Semua Jenis" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value=" ">Semua</SelectItem>
+              <SelectItem value=" ">Semua Jenis</SelectItem>
               <SelectItem value="positif">Positif</SelectItem>
               <SelectItem value="negatif">Negatif</SelectItem>
             </SelectContent>
@@ -325,9 +325,9 @@ function TindakLanjutTab() {
             </Button>
           </div>
           <Select value={filterJenis} onValueChange={(v) => setFilterJenis(v || "")}>
-            <SelectTrigger className="w-32"><SelectValue placeholder="Semua" /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue placeholder="Semua Jenis" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value=" ">Semua</SelectItem>
+              <SelectItem value=" ">Semua Jenis</SelectItem>
               <SelectItem value="positif">Positif</SelectItem>
               <SelectItem value="negatif">Negatif</SelectItem>
             </SelectContent>

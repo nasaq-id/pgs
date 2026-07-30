@@ -45,6 +45,25 @@ function timeStringToMinutes(timeStr: string): number {
   return h * 60 + m
 }
 
+function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
+  if (!date) return null
+  return date.getHours() * 60 + date.getMinutes()
+}
+
+function getSchoolDayDate(date: Date): Date {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric"
+  })
+  const parts = formatter.formatToParts(date)
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '1970', 10)
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '1', 10)
+  const day = parseInt(parts.find(p => p.type === 'day')?.value || '1', 10)
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+}
+
 const absensiBulkCreateSchema = z.object({
   absensi: z.array(
     z.object({
@@ -78,12 +97,7 @@ async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]
   return rows.map((r) => r.id)
 }
 
-function parseTimeStringToTodayDate(timeStr: string): Date {
-  const [h, m] = timeStr.split(":").map(Number)
-  const d = new Date()
-  d.setHours(h, m, 0, 0)
-  return d
-}
+
 
 export const absensiRouter = router({
   getByKelas: protectedProcedure
@@ -107,14 +121,16 @@ export const absensiRouter = router({
       }
       const conditions = [eq(absensiSiswa.kelasId, input.kelasId)]
       if (input.tanggal) {
-        const start = new Date(input.tanggal)
-        start.setHours(0, 0, 0, 0)
-        const end = new Date(input.tanggal)
-        end.setHours(23, 59, 59, 999)
+        const start = getSchoolDayDate(new Date(input.tanggal))
+        const end = getSchoolDayDate(new Date(input.tanggal))
+        end.setUTCHours(23, 59, 59, 999)
         conditions.push(between(absensiSiswa.tanggal, start, end))
       }
       if (input.tanggalMulai && input.tanggalSelesai) {
-        conditions.push(between(absensiSiswa.tanggal, input.tanggalMulai, input.tanggalSelesai))
+        const start = getSchoolDayDate(new Date(input.tanggalMulai))
+        const end = getSchoolDayDate(new Date(input.tanggalSelesai))
+        end.setUTCHours(23, 59, 59, 999)
+        conditions.push(between(absensiSiswa.tanggal, start, end))
       }
       const data = await db
         .select()
@@ -191,6 +207,7 @@ export const absensiRouter = router({
             jamPulang: "14:00",
             toleransi: 15,
             radius: 100,
+            aturanGuru: "per_jp",
           })
           .returning()
         settings = newSettings
@@ -208,6 +225,7 @@ export const absensiRouter = router({
         latitude: z.string().nullable().optional(),
         longitude: z.string().nullable().optional(),
         radius: z.number().optional().default(100),
+        aturanGuru: z.enum(["per_jp", "umum"]).optional().default("per_jp"),
       })),
     )
     .mutation(async ({ ctx, input }) => {
@@ -254,10 +272,10 @@ export const absensiRouter = router({
 
       const code = input.barcode.trim()
       const now = new Date()
-      const startOfToday = new Date()
-      startOfToday.setHours(0, 0, 0, 0)
-      const endOfToday = new Date()
-      endOfToday.setHours(23, 59, 59, 999)
+      const schoolToday = getSchoolDayDate(now)
+      const startOfToday = new Date(schoolToday)
+      const endOfToday = new Date(schoolToday)
+      endOfToday.setUTCHours(23, 59, 59, 999)
 
       const student = await db.query.siswa.findFirst({
         where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.nisn, code), eq(siswa.id, code), eq(siswa.nisLokal, code))),
@@ -314,8 +332,9 @@ export const absensiRouter = router({
         const jamPulangStr = settings?.jamPulang ?? "14:00"
         const toleransi = settings?.toleransi ?? 15
 
-        const limitMasuk = parseTimeStringToTodayDate(jamMasukStr)
-        limitMasuk.setMinutes(limitMasuk.getMinutes() + toleransi)
+        const nowMinutes = getMinutesSinceMidnightInSchoolTime(now)
+        const limitMasukMinutes = timeStringToMinutes(jamMasukStr) + toleransi
+        const limitPulangMinutes = timeStringToMinutes(jamPulangStr)
 
         const existingAbsen = await db.query.absensiSiswa.findFirst({
           where: and(eq(absensiSiswa.siswaId, student.id), between(absensiSiswa.tanggal, startOfToday, endOfToday)),
@@ -340,7 +359,7 @@ export const absensiRouter = router({
           }
 
           // Check-in (Masuk)
-          const isLate = now > limitMasuk
+          const isLate = nowMinutes > limitMasukMinutes
           const status = isLate ? "terlambat" : "hadir"
 
           if (isLate && !input.alasan) {
@@ -369,7 +388,7 @@ export const absensiRouter = router({
               sekolahId,
               siswaId: student.id,
               kelasId: student.kelasId,
-              tanggal: now,
+              tanggal: schoolToday,
               status,
               jamMasuk: now,
               keterangan: input.alasan ?? null,
@@ -395,8 +414,7 @@ export const absensiRouter = router({
           })
 
           if (!approvedIzinPulangCepat) {
-            const limitPulang = parseTimeStringToTodayDate(jamPulangStr)
-            if (now < limitPulang) {
+            if (nowMinutes < limitPulangMinutes) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `Belum waktunya absen pulang. Jam pulang hari ini pukul ${jamPulangStr}`,
@@ -421,7 +439,7 @@ export const absensiRouter = router({
 
       if (teacher) {
         const days = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
-        const todayDay = days[now.getDay()]
+        const todayDay = days[schoolToday.getUTCDay()]
 
         // Get schedules for this teacher today
         const schedules = await db.query.jadwalPelajaran.findMany({
@@ -432,58 +450,6 @@ export const absensiRouter = router({
           where: and(eq(absensiGuru.guruId, teacher.id), between(absensiGuru.tanggal, startOfToday, endOfToday)),
         })
 
-        if (schedules.length === 0) {
-          // No schedule, but still allowed to check-in/out
-          if (!existingAbsen) {
-            const [created] = await db
-              .insert(absensiGuru)
-              .values({
-                id: crypto.randomUUID(),
-                sekolahId,
-                guruId: teacher.id,
-                tanggal: now,
-                status: "hadir",
-                jamMasuk: now,
-              })
-              .returning()
-
-            await logAudit(ctx, { action: "scan_checkin_guru_no_schedule", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } })
-            return { success: true, type: "guru", name: teacher.namaLengkap, action: "masuk", status: "hadir" }
-          } else {
-            if (existingAbsen.jamPulang) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: "Guru sudah melakukan absensi pulang hari ini" })
-            }
-
-            await db
-              .update(absensiGuru)
-              .set({ jamPulang: now })
-              .where(eq(absensiGuru.id, existingAbsen.id))
-
-            await logAudit(ctx, { action: "scan_checkout_guru_no_schedule", entity: "absensi_guru", entityId: existingAbsen.id, metadata: { name: teacher.namaLengkap } })
-            return { success: true, type: "guru", name: teacher.namaLengkap, action: "pulang", status: "hadir" }
-          }
-        }
-
-        // Has schedule, find bounds
-        // schedules jamMulai and jamSelesai are Dates (with 1970-01-01 time portions)
-        let earliestMasukMinutes: number | null = null
-        let latestPulangMinutes: number | null = null
-
-        for (const s of schedules) {
-          if (s.jamMulai) {
-            const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamMulai))
-            if (earliestMasukMinutes === null || m < earliestMasukMinutes) {
-              earliestMasukMinutes = m
-            }
-          }
-          if (s.jamSelesai) {
-            const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamSelesai))
-            if (latestPulangMinutes === null || m > latestPulangMinutes) {
-              latestPulangMinutes = m
-            }
-          }
-        }
-
         const settings = await db.query.pengaturanAbsensi.findFirst({
           where: eq(pengaturanAbsensi.sekolahId, sekolahId),
         })
@@ -491,6 +457,35 @@ export const absensiRouter = router({
         const jamMasukStr = settings?.jamMasuk || "07:00"
         const jamPulangStr = settings?.jamPulang || "14:00"
         const toleransiMin = settings?.toleransi || 15
+        const aturanGuru = settings?.aturanGuru || "per_jp"
+
+        if (aturanGuru === "per_jp" && schedules.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Presensi ditolak karena guru bersangkutan tidak memiliki jadwal mengajar (JP) hari ini.",
+          })
+        }
+
+        // Has schedule or rule is 'umum', find bounds
+        let earliestMasukMinutes: number | null = null
+        let latestPulangMinutes: number | null = null
+
+        if (aturanGuru === "per_jp") {
+          for (const s of schedules) {
+            const mMulai = getMinutesSinceMidnightOfSchedule(s.jamMulai)
+            if (mMulai !== null) {
+              if (earliestMasukMinutes === null || mMulai < earliestMasukMinutes) {
+                earliestMasukMinutes = mMulai
+              }
+            }
+            const mSelesai = getMinutesSinceMidnightOfSchedule(s.jamSelesai)
+            if (mSelesai !== null) {
+              if (latestPulangMinutes === null || mSelesai > latestPulangMinutes) {
+                latestPulangMinutes = mSelesai
+              }
+            }
+          }
+        }
 
         const nowMinutes = getMinutesSinceMidnightInSchoolTime(now)
 
@@ -524,7 +519,7 @@ export const absensiRouter = router({
               id: crypto.randomUUID(),
               sekolahId,
               guruId: teacher.id,
-              tanggal: now,
+              tanggal: schoolToday,
               status,
               jamMasuk: now,
               keterangan: input.alasan ?? null,
@@ -577,10 +572,9 @@ export const absensiRouter = router({
       const conditions = [eq(absensiGuru.sekolahId, sekolahId)]
 
       if (input.tanggal) {
-        const start = new Date(input.tanggal)
-        start.setHours(0, 0, 0, 0)
-        const end = new Date(input.tanggal)
-        end.setHours(23, 59, 59, 999)
+        const start = getSchoolDayDate(new Date(input.tanggal))
+        const end = getSchoolDayDate(new Date(input.tanggal))
+        end.setUTCHours(23, 59, 59, 999)
         conditions.push(between(absensiGuru.tanggal, start, end))
       }
 
@@ -708,10 +702,9 @@ export const absensiRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
 
-      const start = new Date(input.tanggalMulai)
-      start.setHours(0, 0, 0, 0)
-      const end = new Date(input.tanggalSelesai)
-      end.setHours(23, 59, 59, 999)
+      const start = getSchoolDayDate(new Date(input.tanggalMulai))
+      const end = getSchoolDayDate(new Date(input.tanggalSelesai))
+      end.setUTCHours(23, 59, 59, 999)
 
       const siswaConditions = [eq(siswa.sekolahId, sekolahId)]
       if (input.kelasId && input.kelasId !== "all") {
@@ -816,10 +809,9 @@ export const absensiRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
 
-      const start = new Date(input.tanggalMulai)
-      start.setHours(0, 0, 0, 0)
-      const end = new Date(input.tanggalSelesai)
-      end.setHours(23, 59, 59, 999)
+      const start = getSchoolDayDate(new Date(input.tanggalMulai))
+      const end = getSchoolDayDate(new Date(input.tanggalSelesai))
+      end.setUTCHours(23, 59, 59, 999)
 
       const guruConditions = [eq(guru.sekolahId, sekolahId)]
       if (input.guruId && input.guruId !== "all") {
@@ -919,10 +911,12 @@ export const absensiRouter = router({
       let jamPulang = settings?.jamPulang || "14:00"
       const toleransi = settings?.toleransi || 15
 
-      // Check if user is a Guru and load their schedule for today
+      const aturanGuru = settings?.aturanGuru || "per_jp"
+
+      // Check if user is a Guru and load their schedule for today (only if aturanGuru is per_jp)
       const userRole = ctx.session.user.role
       const userEmail = ctx.session.user.email
-      if (userRole === "guru" && userEmail) {
+      if (userRole === "guru" && userEmail && aturanGuru === "per_jp") {
         const teacher = await db.query.guru.findFirst({
           where: and(
             eq(guru.sekolahId, sekolahId),
@@ -937,7 +931,8 @@ export const absensiRouter = router({
         if (teacher) {
           const daysOfWeek = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
           const now = new Date()
-          const todayDay = daysOfWeek[now.getDay()]
+          const schoolToday = getSchoolDayDate(now)
+          const todayDay = daysOfWeek[schoolToday.getUTCDay()]
 
           const schedules = await db.query.jadwalPelajaran.findMany({
             where: and(
@@ -951,16 +946,16 @@ export const absensiRouter = router({
             let latestPulangMinutes: number | null = null
 
             for (const s of schedules) {
-              if (s.jamMulai) {
-                const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamMulai))
-                if (earliestMasukMinutes === null || m < earliestMasukMinutes) {
-                  earliestMasukMinutes = m
+              const mMulai = getMinutesSinceMidnightOfSchedule(s.jamMulai)
+              if (mMulai !== null) {
+                if (earliestMasukMinutes === null || mMulai < earliestMasukMinutes) {
+                  earliestMasukMinutes = mMulai
                 }
               }
-              if (s.jamSelesai) {
-                const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamSelesai))
-                if (latestPulangMinutes === null || m > latestPulangMinutes) {
-                  latestPulangMinutes = m
+              const mSelesai = getMinutesSinceMidnightOfSchedule(s.jamSelesai)
+              if (mSelesai !== null) {
+                if (latestPulangMinutes === null || mSelesai > latestPulangMinutes) {
+                  latestPulangMinutes = mSelesai
                 }
               }
             }
@@ -1042,10 +1037,10 @@ export const absensiRouter = router({
       }
 
       const now = new Date()
-      const startOfToday = new Date(now)
-      startOfToday.setHours(0, 0, 0, 0)
-      const endOfToday = new Date(now)
-      endOfToday.setHours(23, 59, 59, 999)
+      const schoolToday = getSchoolDayDate(now)
+      const startOfToday = new Date(schoolToday)
+      const endOfToday = new Date(schoolToday)
+      endOfToday.setUTCHours(23, 59, 59, 999)
 
       const existingAbsen = await db.query.absensiGuru.findFirst({
         where: and(eq(absensiGuru.guruId, teacherId), between(absensiGuru.tanggal, startOfToday, endOfToday)),
@@ -1053,7 +1048,7 @@ export const absensiRouter = router({
 
       // Get teacher schedule for today to determine jamMasuk and jamPulang bounds
       const daysOfWeek = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
-      const todayDay = daysOfWeek[now.getDay()]
+      const todayDay = daysOfWeek[schoolToday.getUTCDay()]
 
       const schedules = await db.query.jadwalPelajaran.findMany({
         where: and(
@@ -1069,23 +1064,33 @@ export const absensiRouter = router({
       const jamMasukStr = settings?.jamMasuk || "07:00"
       const jamPulangStr = settings?.jamPulang || "14:00"
       const toleransiMin = settings?.toleransi || 15
+      const aturanGuru = settings?.aturanGuru || "per_jp"
 
       let earliestMasukMinutes: number | null = null
       let latestPulangMinutes: number | null = null
 
-      for (const s of schedules) {
-        if (s.jamMulai) {
-          const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamMulai))
-          if (earliestMasukMinutes === null || m < earliestMasukMinutes) {
-            earliestMasukMinutes = m
+      if (aturanGuru === "per_jp") {
+        for (const s of schedules) {
+          const mMulai = getMinutesSinceMidnightOfSchedule(s.jamMulai)
+          if (mMulai !== null) {
+            if (earliestMasukMinutes === null || mMulai < earliestMasukMinutes) {
+              earliestMasukMinutes = mMulai
+            }
+          }
+          const mSelesai = getMinutesSinceMidnightOfSchedule(s.jamSelesai)
+          if (mSelesai !== null) {
+            if (latestPulangMinutes === null || mSelesai > latestPulangMinutes) {
+              latestPulangMinutes = mSelesai
+            }
           }
         }
-        if (s.jamSelesai) {
-          const m = getMinutesSinceMidnightInSchoolTime(new Date(s.jamSelesai))
-          if (latestPulangMinutes === null || m > latestPulangMinutes) {
-            latestPulangMinutes = m
-          }
-        }
+      }
+
+      if (aturanGuru === "per_jp" && earliestMasukMinutes === null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Presensi ditolak karena Anda tidak memiliki jadwal mengajar (JP) hari ini.",
+        })
       }
 
       const nowMinutes = getMinutesSinceMidnightInSchoolTime(now)
@@ -1126,7 +1131,7 @@ export const absensiRouter = router({
             id: crypto.randomUUID(),
             sekolahId,
             guruId: teacherId,
-            tanggal: now,
+            tanggal: schoolToday,
             status,
             jamMasuk: now,
             keterangan: input.alasan ?? null,

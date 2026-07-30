@@ -17,6 +17,7 @@ import type { Column } from "@/components/ui/responsive-table"
 import { toast } from "sonner"
 import { Loader2, Plus, Calendar, Check, X, FileText, Upload, Eye, History, FilePlus, CheckSquare } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
+import { parseLocalDate } from "@/lib/utils"
 
 const JENIS_IZIN_LABEL: Record<string, string> = {
   terlambat: "Izin Terlambat",
@@ -136,7 +137,7 @@ export default function IzinPage() {
     submitMutation.mutate({
       jenisIzin,
       alasan: alasan.trim(),
-      tanggalMulai: new Date(tanggalMulai + "T00:00:00"),
+      tanggalMulai: parseLocalDate(tanggalMulai),
       jumlahHari: jenisIzin === "tidak_masuk" ? jumlahHari : 1,
       jamPulang: jenisIzin === "pulang_cepat" ? jamPulang : undefined,
       bukti: buktiUrl || undefined,

@@ -344,7 +344,7 @@ export default function PengumumanPage() {
                   value={formData.target} 
                   onValueChange={(v) => setFormData({ ...formData, target: v || "semua" })}
                   options={[
-                    { value: "semua", label: "Semua" },
+                    { value: "semua", label: "Semua Role" },
                     { value: "guru", label: "Guru" },
                     { value: "siswa", label: "Siswa" },
                     { value: "orang_tua", label: "Orang Tua" }
@@ -352,7 +352,7 @@ export default function PengumumanPage() {
                 >
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="semua">Semua</SelectItem>
+                    <SelectItem value="semua">Semua Role</SelectItem>
                     <SelectItem value="guru">Guru</SelectItem>
                     <SelectItem value="siswa">Siswa</SelectItem>
                     <SelectItem value="orang_tua">Orang Tua</SelectItem>
@@ -693,14 +693,14 @@ function AdminView({
               value={filterStatus} 
               onValueChange={(v) => setFilterStatus(v || "all")}
               options={[
-                { value: "all", label: "Semua" },
+                { value: "all", label: "Semua Status" },
                 { value: "published", label: "Published" },
                 { value: "draft", label: "Draft" }
               ]}
             >
               <SelectTrigger className="rounded-xl border-slate-200"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
@@ -713,7 +713,7 @@ function AdminView({
               value={filterTarget} 
               onValueChange={(v) => setFilterTarget(v || "")}
               options={[
-                { value: " ", label: "Semua" },
+                { value: " ", label: "Semua Target" },
                 { value: "semua", label: "Semua Role" },
                 { value: "guru", label: "Guru" },
                 { value: "siswa", label: "Siswa" },
@@ -722,7 +722,7 @@ function AdminView({
             >
               <SelectTrigger className="rounded-xl border-slate-200"><SelectValue placeholder="Target" /></SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value=" ">Semua</SelectItem>
+                <SelectItem value=" ">Semua Target</SelectItem>
                 <SelectItem value="semua">Semua Role</SelectItem>
                 <SelectItem value="guru">Guru</SelectItem>
                 <SelectItem value="siswa">Siswa</SelectItem>

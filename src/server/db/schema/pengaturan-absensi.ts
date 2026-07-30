@@ -11,6 +11,7 @@ export const pengaturanAbsensi = pgTable("pengaturan_absensi", {
   latitude: text("latitude"),
   longitude: text("longitude"),
   radius: integer("radius").notNull().default(100),
+  aturanGuru: text("aturan_guru").notNull().default("per_jp"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [

@@ -166,9 +166,9 @@ export default function LaporanPoinPage() {
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Jenis Sikap</label>
                 <Select value={filterJenis} onValueChange={(v) => setFilterJenis(v || "")}>
-                  <SelectTrigger><SelectValue placeholder="Semua" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Semua Jenis" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=" ">Semua</SelectItem>
+                    <SelectItem value=" ">Semua Jenis</SelectItem>
                     <SelectItem value="positif">Positif</SelectItem>
                     <SelectItem value="negatif">Negatif</SelectItem>
                   </SelectContent>

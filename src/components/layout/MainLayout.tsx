@@ -32,6 +32,7 @@ const routeTitles: Record<string, string> = {
   "/absensi/guru": "Presensi Guru",
   "/absensi/izin": "Pengajuan Izin",
   "/absensi/rekap": "Rekap Presensi",
+  "/absensi/pengaturan": "Pengaturan Presensi",
   "/evaluasi/buku-nilai": "Buku Nilai",
   "/kesiswaan/ekstrakurikuler": "Ekstrakurikuler",
   "/kesiswaan/prestasi": "Prestasi Siswa",

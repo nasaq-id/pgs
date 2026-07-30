@@ -16,8 +16,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, Settings, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, Compass, Shield, X, User } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User } from "lucide-react"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
+import { parseLocalDate } from "@/lib/utils"
 
 type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
 
@@ -55,14 +56,7 @@ export default function AbsensiPage() {
   const [siswaRecords, setSiswaRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }>>({})
   const [guruRecords, setGuruRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }>>({})
 
-  // Settings states
-  const [jamMasukSetting, setJamMasukSetting] = useState("07:00")
-  const [jamPulangSetting, setJamPulangSetting] = useState("14:00")
-  const [toleransiSetting, setToleransiSetting] = useState(15)
-  const [latitudeSetting, setLatitudeSetting] = useState("")
-  const [longitudeSetting, setLongitudeSetting] = useState("")
-  const [radiusSetting, setRadiusSetting] = useState(100)
-  const [isUkurLoading, setIsUkurLoading] = useState(false)
+
 
   const [isScannerActive, setIsScannerActive] = useState(false)
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; name?: string; action?: string; status?: string } | null>(null)
@@ -135,21 +129,7 @@ export default function AbsensiPage() {
     }
   }, [canTakeAttendance])
 
-  const settingsQuery = api.absensi.getPengaturan.useQuery(undefined, {
-    enabled: canTakeAttendance,
-  })
 
-  // Load settings into state
-  useEffect(() => {
-    if (settingsQuery.data) {
-      setJamMasukSetting(settingsQuery.data.jamMasuk)
-      setJamPulangSetting(settingsQuery.data.jamPulang)
-      setToleransiSetting(settingsQuery.data.toleransi)
-      setLatitudeSetting(settingsQuery.data.latitude || "")
-      setLongitudeSetting(settingsQuery.data.longitude || "")
-      setRadiusSetting(settingsQuery.data.radius ?? 100)
-    }
-  }, [settingsQuery.data])
 
   const siswaDiKelas = useMemo(() => {
     if (!siswaAll) return []
@@ -170,13 +150,13 @@ export default function AbsensiPage() {
 
   // Get student attendance
   const studentAttendanceQuery = api.absensi.getByKelas.useQuery(
-    { kelasId, tanggal: new Date(tanggal + "T00:00:00") },
+    { kelasId, tanggal: parseLocalDate(tanggal) },
     { enabled: !!kelasId && !!tanggal && targetType === "siswa" && canTakeAttendance },
   )
 
   // Get guru attendance
   const guruAttendanceQuery = api.absensi.getGuruAbsensi.useQuery(
-    { tanggal: new Date(tanggal + "T00:00:00") },
+    { tanggal: parseLocalDate(tanggal) },
     { enabled: !!tanggal && targetType === "guru" && canTakeAttendance },
   )
 
@@ -266,64 +246,7 @@ export default function AbsensiPage() {
   const createAbsensiSiswa = api.absensi.create.useMutation()
   const updateAbsensiSiswa = api.absensi.update.useMutation()
   const saveGuruAbsensi = api.absensi.createOrUpdateGuruAbsensi.useMutation()
-  const saveSettings = api.absensi.savePengaturan.useMutation()
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
-
-  const handleSaveSettings = async () => {
-    try {
-      await saveSettings.mutateAsync({
-        jamMasuk: jamMasukSetting,
-        jamPulang: jamPulangSetting,
-        toleransi: toleransiSetting,
-        latitude: latitudeSetting.trim() || null,
-        longitude: longitudeSetting.trim() || null,
-        radius: radiusSetting,
-      })
-      toast.success("Pengaturan absensi berhasil disimpan")
-      settingsQuery.refetch()
-    } catch {
-      toast.error("Gagal menyimpan pengaturan")
-    }
-  }
-
-  const handleSaveGeofence = async () => {
-    try {
-      await saveSettings.mutateAsync({
-        jamMasuk: jamMasukSetting,
-        jamPulang: jamPulangSetting,
-        toleransi: toleransiSetting,
-        latitude: latitudeSetting.trim() || null,
-        longitude: longitudeSetting.trim() || null,
-        radius: radiusSetting,
-      })
-      toast.success("Pengaturan geofencing berhasil disimpan")
-      settingsQuery.refetch()
-    } catch {
-      toast.error("Gagal menyimpan pengaturan geofencing")
-    }
-  }
-
-  const handleUkurPosisi = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolokasi tidak didukung oleh browser Anda")
-      return
-    }
-    setIsUkurLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitudeSetting(position.coords.latitude.toString())
-        setLongitudeSetting(position.coords.longitude.toString())
-        setIsUkurLoading(false)
-        toast.success("Berhasil mendapatkan koordinat GPS terbaru!")
-      },
-      (error) => {
-        setIsUkurLoading(false)
-        console.error("GPS Error:", error)
-        toast.error("Gagal mendapatkan lokasi GPS: " + (error.message || "Izin ditolak"))
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }
 
   const handleManualSave = async () => {
     if (!tanggal) {
@@ -332,7 +255,7 @@ export default function AbsensiPage() {
     }
 
     try {
-      const tanggalDate = new Date(tanggal + "T00:00:00")
+      const tanggalDate = parseLocalDate(tanggal)
 
       if (targetType === "siswa") {
         if (!kelasId) {
@@ -1113,12 +1036,6 @@ export default function AbsensiPage() {
       }} className="w-full">
         <div className="flex justify-center mb-6">
           <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-4xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-            {canManageGlobal && (
-              <TabsTrigger value="setting" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                <Settings className="w-4 h-4" />
-                <span>Pengaturan Presensi</span>
-              </TabsTrigger>
-            )}
             {canTakeAttendance && (
               <TabsTrigger value="manual" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <ClipboardCheck className="w-4 h-4" />
@@ -1592,164 +1509,7 @@ export default function AbsensiPage() {
         </div>
       )}
 
-      {activeTab === "setting" && canManageGlobal && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-4xl text-left">
-          {/* Main Setting Card */}
-          <div className="neumo-card bg-background rounded-[26px] p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-teal-600" />
-              <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Konfigurasi Absensi & Geofencing</h3>
-            </div>
 
-            {settingsQuery.isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {/* Section 1: Waktu & Toleransi */}
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2 uppercase tracking-wide">1. Waktu Kehadiran</h4>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Masuk Wajib</Label>
-                      <input
-                        type="time"
-                        value={jamMasukSetting}
-                        onChange={(e) => setJamMasukSetting(e.target.value)}
-                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi (Menit)</Label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={toleransiSetting}
-                        onChange={(e) => setToleransiSetting(parseInt(e.target.value) || 0)}
-                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Pulang (Lock Checkout)</Label>
-                    <input
-                      type="time"
-                      value={jamPulangSetting}
-                      onChange={(e) => setJamPulangSetting(e.target.value)}
-                      className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Section 2: Geofencing */}
-                <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800/40">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2 uppercase tracking-wide">2. Koordinat & Geofencing</h4>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Latitude Sekolah</Label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: -6.9175"
-                        value={latitudeSetting}
-                        onChange={(e) => setLatitudeSetting(e.target.value)}
-                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Longitude Sekolah</Label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: 107.6191"
-                        value={longitudeSetting}
-                        onChange={(e) => setLongitudeSetting(e.target.value)}
-                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Radius Toleransi (Meter)</Label>
-                      <input
-                        type="number"
-                        min={10}
-                        value={radiusSetting}
-                        onChange={(e) => setRadiusSetting(parseInt(e.target.value) || 100)}
-                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleUkurPosisi}
-                      disabled={isUkurLoading}
-                      className="h-10 px-3 rounded-xl text-[10.5px] font-black uppercase tracking-wider border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 w-full"
-                    >
-                      {isUkurLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Compass className="h-4 w-4" />
-                      )}
-                      <span>Dapatkan Koordinat GPS</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Save Buttons */}
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 flex justify-end">
-                  <button
-                    className="h-10 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-6 flex items-center justify-center shadow-md shadow-teal-500/5 transition-all disabled:opacity-50"
-                    onClick={handleSaveSettings}
-                    disabled={saveSettings.isPending}
-                  >
-                    {saveSettings.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    <span>Simpan Pengaturan</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Status Info Box */}
-          <div className="space-y-4">
-            <div className="neumo-card bg-background rounded-[26px] border border-emerald-500/20 bg-emerald-500/[0.01] p-5 space-y-4">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                <Shield className="h-4 w-4" />
-                <h4 className="text-xs font-black uppercase tracking-wider">Geofence Multi-Tenancy</h4>
-              </div>
-              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
-                Lembaga <strong className="text-slate-800 dark:text-slate-200">{sekolah?.namaSekolah || "Sekolah Anda"}</strong> diproteksi secara terenkripsi menggunakan koordinat global terisolasi. Seluruh log absensi di luar geofence akan ditolak secara otomatis untuk mengantisipasi manipulasi kehadiran.
-              </p>
-              
-              <div className="border-t border-emerald-500/10 pt-3.5 space-y-2">
-                <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400">Konfigurasi Aktif:</h5>
-                <div className="space-y-1.5 font-mono text-[10.5px] text-slate-600 dark:text-slate-350">
-                  <div className="flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">NPSN:</span>
-                    <span className="font-bold">{sekolah?.npsn || "—"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">Koordinat:</span>
-                    <span className="font-bold">
-                      {settingsQuery.data?.latitude && settingsQuery.data?.longitude 
-                        ? `${parseFloat(settingsQuery.data.latitude).toFixed(4)}, ${parseFloat(settingsQuery.data.longitude).toFixed(4)}` 
-                        : "Belum diset"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase font-sans font-bold">Radius:</span>
-                    <span className="font-bold">{settingsQuery.data?.radius ? `${settingsQuery.data.radius} meter` : "150 meter"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {activeTab === "pribadi" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">

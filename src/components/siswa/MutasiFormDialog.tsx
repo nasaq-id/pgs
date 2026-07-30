@@ -11,6 +11,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Loader2, Calendar, ClipboardList, Info, Landmark } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
+import { parseLocalDate } from "@/lib/utils"
 
 interface MutasiFormDialogProps {
   open: boolean
@@ -95,7 +96,7 @@ export default function MutasiFormDialog({ open, onOpenChange, onSuccess }: Muta
     try {
       await createMutasiMutation.mutateAsync({
         siswaId,
-        tanggalMutasi: new Date(tanggalMutasi + "T00:00:00"),
+        tanggalMutasi: parseLocalDate(tanggalMutasi),
         jenisMutasi,
         alasanMutasi,
         sekolahTujuan: jenisMutasi === "Pindah Sekolah" ? sekolahTujuan.trim() : null,

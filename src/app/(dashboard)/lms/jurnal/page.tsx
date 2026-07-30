@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,7 +53,7 @@ export default function JurnalMengajarPage() {
   const hariIndoMap: Record<string, string> = {
     senin: "Senin", selasa: "Selasa", rabu: "Rabu", kamis: "Kamis", jumat: "Jumat", sabtu: "Sabtu", minggu: "Minggu"
   }
-  const selectedDate = tanggal ? new Date(tanggal + "T00:00:00") : new Date()
+  const selectedDate = tanggal ? parseLocalDate(tanggal) : new Date()
   const hariName = hariList[selectedDate.getDay()]
   const hariIndoName = hariIndoMap[hariName] || "Senin"
 

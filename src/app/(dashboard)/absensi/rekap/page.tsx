@@ -32,6 +32,7 @@ import {
   ChevronsRight,
 } from "lucide-react"
 import { toast } from "sonner"
+import { parseLocalDate } from "@/lib/utils"
 
 function getPaginationPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
@@ -125,8 +126,14 @@ export default function RekapPresensiPage() {
         label = `Semester Genap ${year - 1}/${year}`
       }
     } else {
-      start = customStart ? new Date(customStart + "T00:00:00") : new Date()
-      end = customEnd ? new Date(customEnd + "T23:59:59") : new Date()
+      start = customStart ? parseLocalDate(customStart) : new Date()
+      if (customEnd) {
+        const e = parseLocalDate(customEnd)
+        e.setHours(23, 59, 59, 999)
+        end = e
+      } else {
+        end = new Date()
+      }
       label = `Periode ${start.toLocaleDateString("id-ID")} - ${end.toLocaleDateString("id-ID")}`
     }
 
