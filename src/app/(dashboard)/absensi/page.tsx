@@ -52,9 +52,8 @@ export default function AbsensiPage() {
   const [kelasId, setKelasId] = useState("")
   const [tanggal, setTanggal] = useState("")
 
-  // Form states for manual attendance
-  const [siswaRecords, setSiswaRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }>>({})
-  const [guruRecords, setGuruRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }>>({})
+  const [siswaRecords, setSiswaRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }>>({})
+  const [guruRecords, setGuruRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }>>({})
 
 
 
@@ -223,20 +222,21 @@ export default function AbsensiPage() {
   // Populate manual records for siswa
   useEffect(() => {
     if (studentAttendanceQuery.data && studentAttendanceQuery.data.length > 0) {
-      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
+      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }> = {}
       for (const r of studentAttendanceQuery.data) {
         map[r.siswaId] = {
           status: r.status as StatusAbsensi,
           jamMasuk: r.jamMasuk ? new Date(r.jamMasuk).toTimeString().slice(0, 5) : "",
           jamPulang: r.jamPulang ? new Date(r.jamPulang).toTimeString().slice(0, 5) : "",
+          keterangan: r.keterangan || "",
         }
       }
       setSiswaRecords(map)
       initializedSiswaKelasRef.current = kelasId
     } else if (studentAttendanceQuery.isFetched && initializedSiswaKelasRef.current !== kelasId) {
-      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
+      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }> = {}
       for (const s of siswaDiKelas) {
-        map[s.id] = { status: "hadir", jamMasuk: "", jamPulang: "" }
+        map[s.id] = { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
       }
       setSiswaRecords(map)
       initializedSiswaKelasRef.current = kelasId
@@ -246,20 +246,21 @@ export default function AbsensiPage() {
   // Populate manual records for guru
   useEffect(() => {
     if (guruAttendanceQuery.data && guruAttendanceQuery.data.length > 0 && guruAll) {
-      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
+      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }> = {}
       for (const r of guruAttendanceQuery.data) {
         map[r.guruId] = {
           status: r.status as StatusAbsensi,
           jamMasuk: r.jamMasuk ? new Date(r.jamMasuk).toTimeString().slice(0, 5) : "",
           jamPulang: r.jamPulang ? new Date(r.jamPulang).toTimeString().slice(0, 5) : "",
+          keterangan: r.keterangan || "",
         }
       }
       setGuruRecords(map)
       initializedGuruRef.current = true
     } else if (guruAttendanceQuery.isFetched && guruAll && !initializedGuruRef.current) {
-      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string }> = {}
+      const map: Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }> = {}
       for (const g of guruAll) {
-        map[g.id] = { status: "hadir", jamMasuk: "", jamPulang: "" }
+        map[g.id] = { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
       }
       setGuruRecords(map)
       initializedGuruRef.current = true
@@ -287,11 +288,11 @@ export default function AbsensiPage() {
         }
 
         const existingMap = new Map((studentAttendanceQuery.data || []).map((r) => [r.siswaId, r]))
-        const toCreate: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null }[] = []
-        const toUpdate: { id: string; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null }[] = []
+        const toCreate: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null; keterangan: string | null }[] = []
+        const toUpdate: { id: string; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null; keterangan: string | null }[] = []
 
         for (const s of siswaDiKelas) {
-          const rec = siswaRecords[s.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+          const rec = siswaRecords[s.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
           const existing = existingMap.get(s.id)
 
           const jamMasukDate = rec.jamMasuk ? new Date(tanggal + "T" + rec.jamMasuk + ":00") : null
@@ -303,13 +304,15 @@ export default function AbsensiPage() {
               (existing.jamMasuk && new Date(existing.jamMasuk).toTimeString().slice(0, 5) !== rec.jamMasuk) ||
               (!existing.jamMasuk && rec.jamMasuk) ||
               (existing.jamPulang && new Date(existing.jamPulang).toTimeString().slice(0, 5) !== rec.jamPulang) ||
-              (!existing.jamPulang && rec.jamPulang)
+              (!existing.jamPulang && rec.jamPulang) ||
+              existing.keterangan !== rec.keterangan
             ) {
               toUpdate.push({
                 id: existing.id,
                 status: rec.status,
                 jamMasuk: jamMasukDate,
                 jamPulang: jamPulangDate,
+                keterangan: rec.keterangan || null,
               })
             }
           } else {
@@ -320,6 +323,7 @@ export default function AbsensiPage() {
               status: rec.status,
               jamMasuk: jamMasukDate,
               jamPulang: jamPulangDate,
+              keterangan: rec.keterangan || null,
             })
           }
         }
@@ -339,7 +343,7 @@ export default function AbsensiPage() {
         const guruPromises: Promise<any>[] = []
 
         for (const g of guruAll) {
-          const rec = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+          const rec = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
           const existing = (guruAttendanceQuery.data || []).find((r) => r.guruId === g.id)
 
           const jamMasukDate = rec.jamMasuk ? new Date(tanggal + "T" + rec.jamMasuk + ":00") : null
@@ -351,7 +355,8 @@ export default function AbsensiPage() {
               (existing.jamMasuk && new Date(existing.jamMasuk).toTimeString().slice(0, 5) !== rec.jamMasuk) ||
               (!existing.jamMasuk && rec.jamMasuk) ||
               (existing.jamPulang && new Date(existing.jamPulang).toTimeString().slice(0, 5) !== rec.jamPulang) ||
-              (!existing.jamPulang && rec.jamPulang)
+              (!existing.jamPulang && rec.jamPulang) ||
+              existing.keterangan !== rec.keterangan
             ) {
               guruPromises.push(saveGuruAbsensi.mutateAsync({
                 id: existing.id,
@@ -360,6 +365,7 @@ export default function AbsensiPage() {
                 status: rec.status,
                 jamMasuk: jamMasukDate,
                 jamPulang: jamPulangDate,
+                keterangan: rec.keterangan || null,
               }))
             }
           } else {
@@ -369,6 +375,7 @@ export default function AbsensiPage() {
               status: rec.status,
               jamMasuk: jamMasukDate,
               jamPulang: jamPulangDate,
+              keterangan: rec.keterangan || null,
             }))
           }
         }
@@ -388,24 +395,24 @@ export default function AbsensiPage() {
     if (targetType === "siswa") {
       const updated = { ...siswaRecords }
       for (const s of siswaDiKelas) {
-        updated[s.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "" }
+        updated[s.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "", keterangan: "" }
       }
       setSiswaRecords(updated)
     } else if (guruAll) {
       const updated = { ...guruRecords }
       for (const g of guruAll) {
-        updated[g.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "" }
+        updated[g.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "", keterangan: "" }
       }
       setGuruRecords(updated)
     }
     toast.info("Status diset Hadir Semua dengan jam masuk saat ini")
   }
 
-  const updateManualRecord = (id: string, field: "status" | "jamMasuk" | "jamPulang", value: string) => {
+  const updateManualRecord = (id: string, field: "status" | "jamMasuk" | "jamPulang" | "keterangan", value: string) => {
     const records = targetType === "siswa" ? siswaRecords : guruRecords
     const setRecords = targetType === "siswa" ? setSiswaRecords : setGuruRecords
 
-    const current = records[id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+    const current = records[id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
     const updated = { ...current, [field]: value }
 
     // Auto set time if status changes to hadir or terlambat and time is empty
@@ -1234,11 +1241,12 @@ export default function AbsensiPage() {
                       <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
                       <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
                       <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
+                      <TableHead className="w-[180px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Keterangan / Alasan</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {siswaDiKelas.map((std, idx) => {
-                      const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                      const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
                       return (
                         <TableRow key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                           <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
@@ -1276,6 +1284,16 @@ export default function AbsensiPage() {
                               className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                             />
                           </TableCell>
+                          <TableCell>
+                            <input
+                              type="text"
+                              value={record.keterangan || ""}
+                              onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
+                              placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
+                              disabled={record.status === "hadir" || record.status === "alpha"}
+                              className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
+                            />
+                          </TableCell>
                         </TableRow>
                       )
                     })}
@@ -1285,7 +1303,7 @@ export default function AbsensiPage() {
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
                 {siswaDiKelas.map((std, idx) => {
-                  const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                  const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
                   return (
                     <div key={std.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -1332,6 +1350,17 @@ export default function AbsensiPage() {
                           />
                         </div>
                       </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
+                        <input
+                          type="text"
+                          value={record.keterangan || ""}
+                          onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
+                          placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
+                          disabled={record.status === "hadir" || record.status === "alpha"}
+                          className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
+                        />
+                      </div>
                     </div>
                   )
                 })}
@@ -1360,11 +1389,12 @@ export default function AbsensiPage() {
                       <TableHead className="text-center w-[300px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Status Absensi</TableHead>
                       <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Datang</TableHead>
                       <TableHead className="w-[120px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Jam Pulang</TableHead>
+                      <TableHead className="w-[180px] text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-wider py-3">Keterangan / Alasan</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {guruAll.map((g, idx) => {
-                      const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                      const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
                       return (
                         <TableRow key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                           <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
@@ -1402,6 +1432,16 @@ export default function AbsensiPage() {
                               className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                             />
                           </TableCell>
+                          <TableCell>
+                            <input
+                              type="text"
+                              value={record.keterangan || ""}
+                              onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
+                              placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
+                              disabled={record.status === "hadir" || record.status === "alpha"}
+                              className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
+                            />
+                          </TableCell>
                         </TableRow>
                       )
                     })}
@@ -1411,7 +1451,7 @@ export default function AbsensiPage() {
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
                 {guruAll.map((g, idx) => {
-                  const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "" }
+                  const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
                   return (
                     <div key={g.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -1457,6 +1497,17 @@ export default function AbsensiPage() {
                             className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
                         </div>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
+                        <input
+                          type="text"
+                          value={record.keterangan || ""}
+                          onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
+                          placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
+                          disabled={record.status === "hadir" || record.status === "alpha"}
+                          className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
+                        />
                       </div>
                     </div>
                   )
