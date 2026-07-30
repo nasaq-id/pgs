@@ -50,6 +50,7 @@ export default function PresensiGuruPage() {
   const [scanResult, setScanResult] = useState<any | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const activeStreamRef = useRef<MediaStream | null>(null)
 
   const [lateDialogOpen, setLateDialogOpen] = useState(false)
   const [lateReason, setLateReason] = useState("")
@@ -106,35 +107,60 @@ export default function PresensiGuruPage() {
     await handleScanSubmit(pendingQrCode, lateReason.trim())
   }
 
-  // Camera simulation / video stream trigger
-  useEffect(() => {
-    let stream: MediaStream | null = null
-    if (activeTab === "scan" && isScanning) {
-      navigator.mediaDevices?.getUserMedia({ video: { facingMode: "environment" } })
-        .then((s) => {
-          stream = s
-          if (videoRef.current) {
-            videoRef.current.srcObject = s
-          }
-        })
-        .catch(() => {
-          toast.error("Tidak dapat mengakses kamera device")
-          setIsScanning(false)
-        })
-    } else {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const s = videoRef.current.srcObject as MediaStream
-        s.getTracks().forEach((t) => t.stop())
-        videoRef.current.srcObject = null
+  const startCamera = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } }
+      })
+      activeStreamRef.current = s
+      if (videoRef.current) {
+        videoRef.current.srcObject = s
       }
+      setIsScanning(true)
+    } catch (err: any) {
+      console.error("Error accessing camera:", err)
+      let msg = "Tidak dapat mengakses kamera device."
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        msg = "Akses kamera ditolak. Silakan izinkan kamera di pengaturan browser/iOS Anda."
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        msg = "Kamera tidak ditemukan pada perangkat Anda."
+      } else if (err.name === "OverconstrainedError") {
+        msg = "Kamera belakang tidak didukung oleh spesifikasi perangkat ini."
+      } else {
+        msg = `Gagal mengakses kamera: ${err.message || err}`
+      }
+      toast.error(msg)
+      setIsScanning(false)
     }
+  }
 
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop())
-      }
+  const stopCamera = () => {
+    if (activeStreamRef.current) {
+      activeStreamRef.current.getTracks().forEach((t) => t.stop())
+      activeStreamRef.current = null
     }
-  }, [activeTab, isScanning])
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    setIsScanning(false)
+  }
+
+  const handleToggleCamera = async () => {
+    if (isScanning) {
+      stopCamera()
+    } else {
+      await startCamera()
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== "scan") {
+      stopCamera()
+    }
+    return () => {
+      stopCamera()
+    }
+  }, [activeTab])
 
   const fmtTime = (d: Date | string | null | undefined) => {
     if (!d) return "-"
@@ -205,7 +231,7 @@ export default function PresensiGuruPage() {
             <div className="relative aspect-square max-w-sm mx-auto rounded-3xl overflow-hidden bg-slate-950 border-2 border-teal-500/40 flex flex-col items-center justify-center shadow-inner">
               {isScanning ? (
                 <>
-                  <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                   <div className="absolute inset-x-8 top-1/2 h-0.5 bg-teal-400 shadow-[0_0_12px_#2dd4bf] animate-pulse" />
                 </>
               ) : (
@@ -224,7 +250,7 @@ export default function PresensiGuruPage() {
             <div className="flex gap-3">
               <Button
                 type="button"
-                onClick={() => setIsScanning(!isScanning)}
+                onClick={handleToggleCamera}
                 className={cn(
                   "flex-1 h-11 rounded-2xl text-xs font-black uppercase tracking-wider gap-2 cursor-pointer shadow-md",
                   isScanning ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-teal-600 hover:bg-teal-700 text-white"

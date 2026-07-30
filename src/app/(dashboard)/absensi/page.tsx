@@ -59,6 +59,7 @@ export default function AbsensiPage() {
 
 
   const [isScannerActive, setIsScannerActive] = useState(false)
+  const [html5QrcodeClass, setHtml5QrcodeClass] = useState<any>(null)
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; name?: string; action?: string; status?: string } | null>(null)
   type ScanState = "idle" | "scanning" | "processing" | "cooldown"
   const [scannerState, setScannerState] = useState<ScanState>("idle")
@@ -984,47 +985,77 @@ export default function AbsensiPage() {
   }, [])
 
   useEffect(() => {
-    const scanner = scannerRef.current
-    if (activeTab !== "scan" || !isScannerActive || scannerState === "processing" || scannerState === "cooldown") {
-      if (scanner.instance && !scanner.stopped) {
-        scanner.instance.stop().then(() => {
-          scanner.instance.clear()
-          scanner.stopped = true
-        }).catch(() => {})
-      }
+    import("html5-qrcode").then(({ Html5Qrcode }) => {
+      setHtml5QrcodeClass(() => Html5Qrcode)
+    }).catch((err) => {
+      console.error("Failed to load html5-qrcode library:", err)
+    })
+  }, [])
+
+  const handleStartCamera = async () => {
+    if (!html5QrcodeClass) {
+      toast.warning("Pemindai kamera sedang disiapkan. Silakan coba beberapa saat lagi.")
       return
     }
 
-    scanner.stopped = false
+    setIsScannerActive(true)
+    setScannerState("scanning")
+    scannerStateRef.current = "scanning"
+    scannerRef.current.stopped = false
+
     const scannerId = "reader"
+    scannerRef.current.instance = new html5QrcodeClass(scannerId)
 
-    const timer = setTimeout(() => {
-      import("html5-qrcode").then(({ Html5Qrcode }) => {
-        if (!mountedRef.current || scanner.stopped) return
-        scanner.instance = new Html5Qrcode(scannerId)
-        scanner.instance
-          .start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            (decodedText: string) => {
-              handleScanSuccess(decodedText)
-            },
-            () => {},
-          )
-          .then(() => {
-            if (scannerStateRef.current !== "processing" && scannerStateRef.current !== "cooldown") {
-              setScannerState("scanning")
-              scannerStateRef.current = "scanning"
-            }
-          })
-          .catch((err: any) => {
-            console.error("Camera scanner start failed:", err)
-          })
-      })
-    }, 300)
+    try {
+      await scannerRef.current.instance.start(
+        { facingMode: { ideal: "environment" } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText: string) => {
+          handleScanSuccess(decodedText)
+        },
+        () => {},
+      )
+    } catch (err: any) {
+      console.error("Camera scanner start failed:", err)
+      let msg = "Gagal mengakses kamera."
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        msg = "Akses kamera ditolak. Silakan izinkan kamera di pengaturan browser/iOS Anda."
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        msg = "Kamera tidak ditemukan pada perangkat Anda."
+      } else if (err.name === "OverconstrainedError") {
+        msg = "Spesifikasi kamera belakang tidak didukung oleh perangkat ini."
+      } else {
+        msg = `Gagal mengakses kamera: ${err.message || err}`
+      }
+      toast.error(msg)
+      setIsScannerActive(false)
+      setScannerState("idle")
+      scannerStateRef.current = "idle"
+    }
+  }
 
+  const handleStopCamera = async () => {
+    const scanner = scannerRef.current
+    scanner.stopped = true
+    if (scanner.instance) {
+      try {
+        await scanner.instance.stop()
+        scanner.instance.clear()
+      } catch (e) {
+        console.error("Cleanup camera failed", e)
+      }
+    }
+    setIsScannerActive(false)
+    setScannerState("idle")
+    scannerStateRef.current = "idle"
+  }
+
+  useEffect(() => {
+    if (activeTab !== "scan") {
+      handleStopCamera()
+    }
     return () => {
-      clearTimeout(timer)
+      const scanner = scannerRef.current
       scanner.stopped = true
       if (scanner.instance) {
         try {
@@ -1036,7 +1067,7 @@ export default function AbsensiPage() {
         }
       }
     }
-  }, [activeTab, isScannerActive, scannerState])
+  }, [activeTab])
 
   return (
     <ErrorBoundary>
@@ -1443,14 +1474,18 @@ export default function AbsensiPage() {
             </div>
 
             <div className="relative w-full max-w-md aspect-square bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800">
-              {isScannerActive ? (
-                <div id="reader" className="w-full h-full" />
-              ) : (
+              <div
+                id="reader"
+                className="w-full h-full"
+                style={{ display: isScannerActive ? "block" : "none" }}
+              />
+
+              {!isScannerActive && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-5 text-slate-400">
                   <Scan className="h-16 w-16 mb-3 stroke-[1.5]" />
                   <p className="text-sm font-bold">Kamera tidak aktif</p>
                   <button
-                    onClick={() => { setIsScannerActive(true); setScannerState("scanning"); scannerStateRef.current = "scanning"; }}
+                    onClick={handleStartCamera}
                     className="mt-4 bg-teal-650 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none shadow-sm"
                   >
                     Aktifkan Kamera
@@ -1477,7 +1512,7 @@ export default function AbsensiPage() {
 
             {isScannerActive && (
               <button
-                onClick={() => setIsScannerActive(false)}
+                onClick={handleStopCamera}
                 className="mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all cursor-pointer border-none shadow-sm"
               >
                 Matikan Kamera

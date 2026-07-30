@@ -141,7 +141,7 @@ export default function PengaturanPresensiPage() {
             <div className="space-y-1">
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Pilih Metode Presensi Guru</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                Tentukan apakah sekolah menerapkan perhitungan kehadiran guru berbasis jam mengajar (Swasta) atau jam kerja seragam (Negeri/PNS).
+                Tentukan apakah sekolah menerapkan perhitungan kehadiran guru berbasis jam mengajar (Sesuai Jam Pelajaran) atau jam kerja seragam (Jam Kerja).
               </p>
             </div>
 
@@ -154,11 +154,13 @@ export default function PengaturanPresensiPage() {
               }}
             >
               <SelectTrigger className="w-full md:w-[280px] h-10 px-3 rounded-xl text-xs font-black uppercase tracking-wider text-teal-650 dark:text-teal-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850">
-                <SelectValue placeholder="Pilih aturan presensi" />
+                <SelectValue>
+                  {aturanGuru === "per_jp" ? "Sesuai Jam Pelajaran" : "Jam Kerja"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
-                <SelectItem value="per_jp" className="text-xs font-semibold">Sekolah Swasta (Jam Pelajaran)</SelectItem>
-                <SelectItem value="umum" className="text-xs font-semibold">Sekolah Negeri/PNS (Jam Kerja Umum)</SelectItem>
+                <SelectItem value="per_jp" className="text-xs font-semibold">Sesuai Jam Pelajaran</SelectItem>
+                <SelectItem value="umum" className="text-xs font-semibold">Jam Kerja</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -186,7 +188,7 @@ export default function PengaturanPresensiPage() {
                     value="swasta" 
                     className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans"
                   >
-                    <span>Guru Swasta (JP)</span>
+                    <span>Sesuai Jam Pelajaran (JP)</span>
                     {aturanGuru === "per_jp" && (
                       <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-emerald-600 dark:bg-emerald-500 rounded-md">AKTIF</span>
                     )}
@@ -195,7 +197,7 @@ export default function PengaturanPresensiPage() {
                     value="negeri" 
                     className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans"
                   >
-                    <span>Guru Negeri/PNS</span>
+                    <span>Jam Kerja</span>
                     {aturanGuru === "umum" && (
                       <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-emerald-600 dark:bg-emerald-500 rounded-md">AKTIF</span>
                     )}
