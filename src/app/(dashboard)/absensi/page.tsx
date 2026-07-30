@@ -1087,49 +1087,51 @@ export default function AbsensiPage() {
         setActiveTab(v);
         setIsScannerActive(v === "scan");
       }} className="w-full">
-        <div className="flex justify-center mb-6">
-          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-4xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-            {canTakeAttendance && (
-              <TabsTrigger value="manual" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                <ClipboardCheck className="w-4 h-4" />
-                <span>Presensi Manual</span>
+        <div className="w-full flex justify-center mb-6">
+          <div className="w-full max-w-4xl overflow-x-auto scrollbar-none pb-1 flex justify-start md:justify-center">
+            <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner w-max min-w-full md:w-full">
+              {canTakeAttendance && (
+                <TabsTrigger value="manual" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                  <ClipboardCheck className="w-4 h-4" />
+                  <span>Presensi Manual</span>
+                </TabsTrigger>
+              )}
+              {canTakeAttendance && (
+                <TabsTrigger value="scan" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                  <Scan className="w-4 h-4" />
+                  <span>Scan Barcode</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="pribadi" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <User className="w-4 h-4" />
+                <span>Presensi Saya</span>
               </TabsTrigger>
-            )}
-            {canTakeAttendance && (
-              <TabsTrigger value="scan" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                <Scan className="w-4 h-4" />
-                <span>Scan Barcode</span>
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="pribadi" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-              <User className="w-4 h-4" />
-              <span>Presensi Saya</span>
-            </TabsTrigger>
-            {canManageGlobal && (
-              <TabsTrigger value="qrmassal" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                <QrCode className="w-4 h-4" />
-                <span>QR Massal</span>
-              </TabsTrigger>
-            )}
-            {canTakeAttendance && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
-                  className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs"
-                >
-                  Sidik Jari <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-                  className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs"
-                >
-                  Face ID <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
-                </button>
-              </>
-            )}
-          </TabsList>
+              {canManageGlobal && (
+                <TabsTrigger value="qrmassal" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                  <QrCode className="w-4 h-4" />
+                  <span>QR Massal</span>
+                </TabsTrigger>
+              )}
+              {canTakeAttendance && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
+                    className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0"
+                  >
+                    Sidik Jari <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
+                    className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0"
+                  >
+                    Face ID <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
+                  </button>
+                </>
+              )}
+            </TabsList>
+          </div>
         </div>
       </Tabs>
 
