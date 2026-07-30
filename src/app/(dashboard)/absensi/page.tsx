@@ -89,6 +89,28 @@ export default function AbsensiPage() {
   const [siswaQrUrl, setSiswaQrUrl] = useState<string | null>(null)
   const [guruQrUrl, setGuruQrUrl] = useState<string | null>(null)
   const [adminQrUrl, setAdminQrUrl] = useState<string | null>(null)
+  const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setGpsCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        })
+      },
+      (error) => {
+        console.warn("Background GPS tracking failed:", error)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+    )
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId)
+    }
+  }, [])
 
   useEffect(() => {
     setTanggal(new Date().toISOString().split("T")[0])
@@ -433,8 +455,8 @@ export default function AbsensiPage() {
     }
 
     try {
-      let coords: { latitude: number; longitude: number } | null = null
-      if (navigator.geolocation) {
+      let coords = gpsCoords
+      if (!coords && navigator.geolocation) {
         coords = await new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -446,7 +468,7 @@ export default function AbsensiPage() {
             () => {
               resolve(null)
             },
-            { enableHighAccuracy: true, timeout: 5000 }
+            { enableHighAccuracy: true, timeout: 1500 }
           )
         })
       }
