@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
-import { Settings, Loader2, Compass, Shield, CheckCircle2, Clock, MapPin, Users } from "lucide-react"
+import { Settings, Loader2, Compass, Shield, CheckCircle2, Clock, MapPin, Users, BookOpen, Briefcase } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
+import { cn } from "@/lib/utils"
 export default function PengaturanPresensiPage() {
   const settingsQuery = api.absensi.getPengaturan.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -137,32 +136,74 @@ export default function PengaturanPresensiPage() {
         {settingsQuery.isLoading ? (
           <Skeleton className="h-16 w-full rounded-2xl" />
         ) : (
-          <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Pilih Metode Presensi Guru</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                Tentukan apakah sekolah menerapkan perhitungan kehadiran guru berbasis jam mengajar (Sesuai Jam Pelajaran) atau jam kerja seragam (Jam Kerja).
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: Sesuai Jam Pelajaran */}
+            <div
+              onClick={() => {
+                setAturanGuru("per_jp")
+                setActiveSubTab("swasta")
+              }}
+              className={cn(
+                "flex gap-4 p-5 rounded-2xl border-2 text-left cursor-pointer transition-all duration-300 select-none",
+                aturanGuru === "per_jp"
+                  ? "border-teal-500 bg-teal-500/[0.02] shadow-md shadow-teal-500/5"
+                  : "border-slate-200/60 dark:border-slate-800/80 bg-background hover:border-slate-350 dark:hover:border-slate-700 hover:scale-[1.01]"
+              )}
+            >
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center border shrink-0",
+                aturanGuru === "per_jp"
+                  ? "bg-teal-500/10 border-teal-500/20 text-teal-600"
+                  : "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+              )}>
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-slate-850 dark:text-slate-150">Sesuai Jam Pelajaran</span>
+                  {aturanGuru === "per_jp" && (
+                    <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-teal-600 dark:bg-teal-500 rounded-md">AKTIF</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed font-semibold">
+                  Presensi guru dihitung otomatis mengikuti jam mulai & selesai JP pertama/terakhir pada jadwal mengajarnya.
+                </p>
+              </div>
             </div>
 
-            <Select
-              value={aturanGuru}
-              onValueChange={(v) => {
-                if (v === "per_jp" || v === "umum") {
-                  setAturanGuru(v)
-                }
+            {/* Card 2: Jam Kerja */}
+            <div
+              onClick={() => {
+                setAturanGuru("umum")
+                setActiveSubTab("negeri")
               }}
+              className={cn(
+                "flex gap-4 p-5 rounded-2xl border-2 text-left cursor-pointer transition-all duration-300 select-none",
+                aturanGuru === "umum"
+                  ? "border-teal-500 bg-teal-500/[0.02] shadow-md shadow-teal-500/5"
+                  : "border-slate-200/60 dark:border-slate-800/80 bg-background hover:border-slate-350 dark:hover:border-slate-700 hover:scale-[1.01]"
+              )}
             >
-              <SelectTrigger className="w-full md:w-[280px] h-10 px-3 rounded-xl text-xs font-black uppercase tracking-wider text-teal-650 dark:text-teal-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850">
-                <SelectValue>
-                  {aturanGuru === "per_jp" ? "Sesuai Jam Pelajaran" : "Jam Kerja"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
-                <SelectItem value="per_jp" className="text-xs font-semibold">Sesuai Jam Pelajaran</SelectItem>
-                <SelectItem value="umum" className="text-xs font-semibold">Jam Kerja</SelectItem>
-              </SelectContent>
-            </Select>
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center border shrink-0",
+                aturanGuru === "umum"
+                  ? "bg-teal-500/10 border-teal-500/20 text-teal-600"
+                  : "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+              )}>
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-slate-850 dark:text-slate-150">Jam Kerja</span>
+                  {aturanGuru === "umum" && (
+                    <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-teal-600 dark:bg-teal-500 rounded-md">AKTIF</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed font-semibold">
+                  Presensi guru dihitung seragam mengikuti jam masuk wajib & jam pulang sekolah, mengabaikan jadwal pelajaran (JP).
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
