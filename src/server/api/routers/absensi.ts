@@ -206,6 +206,9 @@ export const absensiRouter = router({
             jamMasuk: "07:00",
             jamPulang: "14:00",
             toleransi: 15,
+            jamMasukSiswa: "07:00",
+            jamPulangSiswa: "14:00",
+            toleransiSiswa: 15,
             radius: 100,
             aturanGuru: "per_jp",
           })
@@ -222,6 +225,9 @@ export const absensiRouter = router({
         jamMasuk: z.string(),
         jamPulang: z.string(),
         toleransi: z.number(),
+        jamMasukSiswa: z.string().optional(),
+        jamPulangSiswa: z.string().optional(),
+        toleransiSiswa: z.number().optional(),
         latitude: z.string().nullable().optional(),
         longitude: z.string().nullable().optional(),
         radius: z.number().optional().default(100),
@@ -328,9 +334,9 @@ export const absensiRouter = router({
           }
         }
 
-        const jamMasukStr = settings?.jamMasuk ?? "07:00"
-        const jamPulangStr = settings?.jamPulang ?? "14:00"
-        const toleransi = settings?.toleransi ?? 15
+        const jamMasukStr = settings?.jamMasukSiswa ?? "07:00"
+        const jamPulangStr = settings?.jamPulangSiswa ?? "14:00"
+        const toleransi = settings?.toleransiSiswa ?? 15
 
         const nowMinutes = getMinutesSinceMidnightInSchoolTime(now)
         const limitMasukMinutes = timeStringToMinutes(jamMasukStr) + toleransi

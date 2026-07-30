@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
-import { Settings, Loader2, Compass, Shield, CheckCircle2, Clock, MapPin } from "lucide-react"
+import { Settings, Loader2, Compass, Shield, CheckCircle2, Clock, MapPin, Users } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,15 +20,20 @@ export default function PengaturanPresensiPage() {
 
   // Master selection state
   const [aturanGuru, setAturanGuru] = useState<"per_jp" | "umum">("per_jp")
-  const [activeSubTab, setActiveSubTab] = useState<"swasta" | "negeri">("swasta")
+  const [activeSubTab, setActiveSubTab] = useState<"swasta" | "negeri" | "siswa">("swasta")
 
-  // Swasta specific states
+  // Swasta (Guru) specific states
   const [toleransiSwasta, setToleransiSwasta] = useState(15)
 
-  // Negeri/PNS specific states
+  // Negeri/PNS (Guru) specific states
   const [jamMasukNegeri, setJamMasukNegeri] = useState("07:00")
   const [jamPulangNegeri, setJamPulangNegeri] = useState("14:00")
   const [toleransiNegeri, setToleransiNegeri] = useState(15)
+
+  // Siswa specific states
+  const [jamMasukSiswa, setJamMasukSiswa] = useState("07:00")
+  const [jamPulangSiswa, setJamPulangSiswa] = useState("14:00")
+  const [toleransiSiswa, setToleransiSiswa] = useState(15)
 
   // Shared Geofence states
   const [latitudeSetting, setLatitudeSetting] = useState("")
@@ -60,6 +65,11 @@ export default function PengaturanPresensiPage() {
         setToleransiSwasta(15)
       }
 
+      // Siswa states
+      setJamMasukSiswa(settingsQuery.data.jamMasukSiswa || "07:00")
+      setJamPulangSiswa(settingsQuery.data.jamPulangSiswa || "14:00")
+      setToleransiSiswa(settingsQuery.data.toleransiSiswa ?? 15)
+
       setLatitudeSetting(settingsQuery.data.latitude || "")
       setLongitudeSetting(settingsQuery.data.longitude || "")
       setRadiusSetting(settingsQuery.data.radius ?? 100)
@@ -73,6 +83,9 @@ export default function PengaturanPresensiPage() {
         toleransi: aturanGuru === "per_jp" ? toleransiSwasta : toleransiNegeri,
         jamMasuk: jamMasukNegeri,
         jamPulang: jamPulangNegeri,
+        jamMasukSiswa,
+        jamPulangSiswa,
+        toleransiSiswa,
         latitude: latitudeSetting.trim() || null,
         longitude: longitudeSetting.trim() || null,
         radius: radiusSetting,
@@ -110,15 +123,15 @@ export default function PengaturanPresensiPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-1 text-left">
-        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Pengaturan Presensi Guru & Pegawai</h2>
-        <p className="text-xs text-slate-500 font-semibold">Tentukan metode dan toleransi presensi masuk/pulang guru sesuai dengan jenis pengelolaan sekolah.</p>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Pengaturan Presensi Sekolah</h2>
+        <p className="text-xs text-slate-500 font-semibold">Kelola aturan waktu masuk, pulang, toleransi keterlambatan, dan area koordinat untuk Guru & Siswa.</p>
       </div>
 
-      {/* 1. Master Toggle Card */}
+      {/* 1. Master Toggle Card untuk Guru */}
       <div className="neumo-card bg-background rounded-[26px] p-6 space-y-4 text-left">
         <div className="flex items-center gap-3">
           <Settings className="h-5 w-5 text-teal-600" />
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Metode Aturan Aktif</h3>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Metode Aktif Presensi Guru</h3>
         </div>
 
         {settingsQuery.isLoading ? (
@@ -128,7 +141,7 @@ export default function PengaturanPresensiPage() {
             <div className="space-y-1">
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Pilih Metode Presensi Guru</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                Tentukan apakah sekolah menerapkan perhitungan kehadiran berbasis jam mengajar (Swasta) atau jam kerja seragam (Negeri/PNS).
+                Tentukan apakah sekolah menerapkan perhitungan kehadiran guru berbasis jam mengajar (Swasta) atau jam kerja seragam (Negeri/PNS).
               </p>
             </div>
 
@@ -171,37 +184,45 @@ export default function PengaturanPresensiPage() {
                 <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner mb-6">
                   <TabsTrigger 
                     value="swasta" 
-                    className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans"
+                    className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans"
                   >
-                    <span>Sekolah Swasta (JP)</span>
+                    <span>Guru Swasta (JP)</span>
                     {aturanGuru === "per_jp" && (
                       <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-emerald-600 dark:bg-emerald-500 rounded-md">AKTIF</span>
                     )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="negeri" 
-                    className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans"
+                    className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans"
                   >
-                    <span>Sekolah Negeri/PNS</span>
+                    <span>Guru Negeri/PNS</span>
                     {aturanGuru === "umum" && (
                       <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-emerald-600 dark:bg-emerald-500 rounded-md">AKTIF</span>
                     )}
                   </TabsTrigger>
+                  <TabsTrigger 
+                    value="siswa" 
+                    className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Presensi Siswa</span>
+                    <span className="px-1.5 py-0.5 text-[8.5px] font-black tracking-wider text-white bg-blue-600 dark:bg-blue-500 rounded-md">UMUM</span>
+                  </TabsTrigger>
                 </TabsList>
 
-                {/* Tab 1: Sekolah Swasta */}
+                {/* Tab 1: Sekolah Swasta (Guru) */}
                 <TabsContent value="swasta" className="space-y-5 focus-visible:outline-none">
                   <div className="p-4 bg-teal-500/[0.03] border border-teal-500/10 rounded-2xl text-[11.5px] leading-relaxed text-teal-850 dark:text-teal-400 font-semibold space-y-1.5">
                     <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[10.5px]">
                       <CheckCircle2 className="w-4 h-4 text-teal-600" />
-                      <span>Metode Presensi Jam Pelajaran (JP)</span>
+                      <span>Metode Presensi Jam Pelajaran (JP) Guru</span>
                     </div>
                     <p>Batas keterlambatan guru dihitung secara otomatis berdasarkan jam mulai **Jam Pelajaran (JP)** pertama yang diampu masing-masing guru pada hari tersebut. Jam pulang juga dikunci hingga jam selesai JP terakhir.</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi Keterlambatan (Menit)</Label>
+                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi Keterlambatan Guru (Menit)</Label>
                       <input
                         type="number"
                         min={0}
@@ -214,19 +235,19 @@ export default function PengaturanPresensiPage() {
                   </div>
                 </TabsContent>
 
-                {/* Tab 2: Sekolah Negeri */}
+                {/* Tab 2: Sekolah Negeri (Guru) */}
                 <TabsContent value="negeri" className="space-y-5 focus-visible:outline-none">
                   <div className="p-4 bg-teal-500/[0.03] border border-teal-500/10 rounded-2xl text-[11.5px] leading-relaxed text-teal-800 dark:text-teal-400 font-semibold space-y-1.5">
                     <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[10.5px]">
                       <CheckCircle2 className="w-4 h-4 text-teal-600" />
-                      <span>Metode Presensi Jam Kerja Umum PNS</span>
+                      <span>Metode Presensi Jam Kerja Umum Guru</span>
                     </div>
                     <p>Batas keterlambatan dan checkout guru dihitung secara umum sesuai jam masuk wajib & jam pulang sekolah yang telah ditentukan di bawah ini, mengabaikan jadwal pelajaran (JP) guru pada hari bersangkutan.</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Masuk Wajib</Label>
+                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Masuk Wajib Guru</Label>
                       <input
                         type="time"
                         value={jamMasukNegeri}
@@ -235,7 +256,7 @@ export default function PengaturanPresensiPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi (Menit)</Label>
+                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi Guru (Menit)</Label>
                       <input
                         type="number"
                         min={0}
@@ -247,11 +268,54 @@ export default function PengaturanPresensiPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Pulang (Lock Checkout)</Label>
+                    <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Pulang Guru (Lock Checkout)</Label>
                     <input
                       type="time"
                       value={jamPulangNegeri}
                       onChange={(e) => setJamPulangNegeri(e.target.value)}
+                      className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 3: Presensi Siswa */}
+                <TabsContent value="siswa" className="space-y-5 focus-visible:outline-none">
+                  <div className="p-4 bg-blue-500/[0.03] border border-blue-500/10 rounded-2xl text-[11.5px] leading-relaxed text-blue-800 dark:text-blue-400 font-semibold space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[10.5px]">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                      <span>Metode Presensi Siswa Aktif</span>
+                    </div>
+                    <p>Batas waktu masuk, pulang, dan toleransi keterlambatan seragam untuk semua siswa di sekolah (berlaku sama baik di sekolah swasta maupun negeri).</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Masuk Wajib Siswa</Label>
+                      <input
+                        type="time"
+                        value={jamMasukSiswa}
+                        onChange={(e) => setJamMasukSiswa(e.target.value)}
+                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Toleransi Siswa (Menit)</Label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={toleransiSiswa}
+                        onChange={(e) => setToleransiSiswa(parseInt(e.target.value) || 0)}
+                        className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jam Pulang Siswa (Lock Checkout)</Label>
+                    <input
+                      type="time"
+                      value={jamPulangSiswa}
+                      onChange={(e) => setJamPulangSiswa(e.target.value)}
                       className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                     />
                   </div>
