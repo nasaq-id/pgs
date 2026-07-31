@@ -49,8 +49,13 @@ export default function PresensiGuruPage() {
   const [manualCode, setManualCode] = useState("")
   const [scanResult, setScanResult] = useState<any | null>(null)
   const [isScanning, setIsScanning] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const activeStreamRef = useRef<MediaStream | null>(null)
+  const [html5QrcodeClass, setHtml5QrcodeClass] = useState<any>(null)
+
+  const scannerRef = useRef<{ instance: any | null; stopped: boolean }>({
+    instance: null,
+    stopped: false,
+  })
+  const scanProcessingLockRef = useRef(false)
 
   const [lateDialogOpen, setLateDialogOpen] = useState(false)
   const [lateReason, setLateReason] = useState("")
@@ -60,6 +65,14 @@ export default function PresensiGuruPage() {
   const { data: guruLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = api.absensi.getGuruAbsensi.useQuery({
     tanggal: new Date(),
   })
+
+  useEffect(() => {
+    import("html5-qrcode").then(({ Html5Qrcode }) => {
+      setHtml5QrcodeClass(() => Html5Qrcode)
+    }).catch((err) => {
+      console.error("Failed to load html5-qrcode:", err)
+    })
+  }, [])
 
   const scanMutation = api.absensi.scanSingleQrGuru.useMutation({
     onSuccess: (res) => {
@@ -79,6 +92,14 @@ export default function PresensiGuruPage() {
     },
   })
 
+  const resetAndRestartScanner = async () => {
+    scanProcessingLockRef.current = false
+    setIsScanning(true)
+    setTimeout(() => {
+      startCamera()
+    }, 100)
+  }
+
   const handleScanSubmit = async (codeToSubmit: string, reason?: string) => {
     if (!codeToSubmit.trim()) return
     setScanResult(null)
@@ -96,9 +117,12 @@ export default function PresensiGuruPage() {
         setLateDialogOpen(false)
         setLateReason("")
         setPendingQrCode("")
+        // Stop camera on successful attendance to show final result card
+        stopCamera()
       }
     } catch (err) {
       // Handled in onError of scanMutation
+      scanProcessingLockRef.current = false
     }
   }
 
@@ -108,24 +132,48 @@ export default function PresensiGuruPage() {
   }
 
   const startCamera = async () => {
+    if (!html5QrcodeClass) {
+      toast.warning("Pemindai kamera sedang disiapkan. Silakan coba beberapa saat lagi.")
+      return
+    }
+
+    setIsScanning(true)
+    scanProcessingLockRef.current = false
+    scannerRef.current.stopped = false
+
+    const scannerId = "reader"
+    scannerRef.current.instance = new html5QrcodeClass(scannerId)
+
     try {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } }
-      })
-      activeStreamRef.current = s
-      if (videoRef.current) {
-        videoRef.current.srcObject = s
-      }
-      setIsScanning(true)
+      await scannerRef.current.instance.start(
+        { facingMode: { ideal: "environment" } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText: string) => {
+          if (scanProcessingLockRef.current) return
+          scanProcessingLockRef.current = true
+          
+          // Stop camera scanning visually while processing
+          const instance = scannerRef.current.instance
+          if (instance && !scannerRef.current.stopped) {
+            try {
+              await instance.stop()
+              scannerRef.current.stopped = true
+            } catch {}
+          }
+          
+          await handleScanSubmit(decodedText)
+        },
+        () => {},
+      )
     } catch (err: any) {
-      console.error("Error accessing camera:", err)
-      let msg = "Tidak dapat mengakses kamera device."
+      console.error("Camera scanner start failed:", err)
+      let msg = "Gagal mengakses kamera."
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         msg = "Akses kamera ditolak. Silakan izinkan kamera di pengaturan browser/iOS Anda."
       } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
         msg = "Kamera tidak ditemukan pada perangkat Anda."
       } else if (err.name === "OverconstrainedError") {
-        msg = "Kamera belakang tidak didukung oleh spesifikasi perangkat ini."
+        msg = "Spesifikasi kamera belakang tidak didukung oleh perangkat ini."
       } else {
         msg = `Gagal mengakses kamera: ${err.message || err}`
       }
@@ -134,20 +182,22 @@ export default function PresensiGuruPage() {
     }
   }
 
-  const stopCamera = () => {
-    if (activeStreamRef.current) {
-      activeStreamRef.current.getTracks().forEach((t) => t.stop())
-      activeStreamRef.current = null
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
+  const stopCamera = async () => {
+    const scanner = scannerRef.current
+    scanner.stopped = true
+    if (scanner.instance) {
+      try {
+        await scanner.instance.stop()
+        scanner.instance.clear()
+      } catch {}
+      scanner.instance = null
     }
     setIsScanning(false)
   }
 
   const handleToggleCamera = async () => {
     if (isScanning) {
-      stopCamera()
+      await stopCamera()
     } else {
       await startCamera()
     }
@@ -228,13 +278,9 @@ export default function PresensiGuruPage() {
             </div>
 
             {/* Scanner Area */}
-            <div className="relative aspect-square max-w-sm mx-auto rounded-3xl overflow-hidden bg-slate-950 border-2 border-teal-500/40 flex flex-col items-center justify-center shadow-inner">
-              {isScanning ? (
-                <>
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                  <div className="absolute inset-x-8 top-1/2 h-0.5 bg-teal-400 shadow-[0_0_12px_#2dd4bf] animate-pulse" />
-                </>
-              ) : (
+            <div className="relative aspect-square max-w-sm mx-auto rounded-3xl overflow-hidden bg-slate-950 border-2 border-teal-500/40 flex flex-col items-center justify-center shadow-inner w-full">
+              <div id="reader" className="w-full h-full object-cover [&_video]:object-cover" style={{ display: isScanning ? "block" : "none" }} />
+              {!isScanning && (
                 <div className="p-8 text-center space-y-3">
                   <div className="w-16 h-16 rounded-3xl bg-teal-500/10 text-teal-400 flex items-center justify-center mx-auto border border-teal-500/20">
                     <Camera className="w-8 h-8" />
@@ -583,7 +629,7 @@ export default function PresensiGuruPage() {
       </div>
 
       {/* Dialog Alasan Keterlambatan */}
-      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); } }}>
+      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); } }}>
         <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -594,7 +640,7 @@ export default function PresensiGuruPage() {
             </div>
             <button
               type="button"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); }}
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -627,7 +673,7 @@ export default function PresensiGuruPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); }}
               disabled={scanMutation.isPending}
               className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
             >

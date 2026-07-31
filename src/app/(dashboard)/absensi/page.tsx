@@ -448,6 +448,16 @@ export default function AbsensiPage() {
     }
   }
 
+  const resetAndRestartScanner = async () => {
+    scanProcessingLockRef.current = false
+    setScannerState("scanning")
+    scannerStateRef.current = "scanning"
+    setIsScannerActive(true)
+    setTimeout(() => {
+      handleStartCamera()
+    }, 100)
+  }
+
   const handleScanSuccess = async (decodedText: string) => {
     if (scanProcessingLockRef.current || scannerStateRef.current !== "scanning") return
     scanProcessingLockRef.current = true
@@ -502,12 +512,6 @@ export default function AbsensiPage() {
         setScannerState("cooldown")
         scannerStateRef.current = "cooldown"
         if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
-        cooldownTimerRef.current = setTimeout(() => {
-          scanProcessingLockRef.current = false
-          setScannerState("scanning")
-          scannerStateRef.current = "scanning"
-          setIsScannerActive(true)
-        }, 2500)
         return
       }
 
@@ -525,10 +529,7 @@ export default function AbsensiPage() {
       scannerStateRef.current = "cooldown"
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
       cooldownTimerRef.current = setTimeout(() => {
-        scanProcessingLockRef.current = false
-        setScannerState("scanning")
-        scannerStateRef.current = "scanning"
-        setIsScannerActive(true)
+        resetAndRestartScanner()
       }, 2500)
     } catch (err: any) {
       playBeep("error")
@@ -542,10 +543,7 @@ export default function AbsensiPage() {
       scannerStateRef.current = "cooldown"
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
       cooldownTimerRef.current = setTimeout(() => {
-        scanProcessingLockRef.current = false
-        setScannerState("scanning")
-        scannerStateRef.current = "scanning"
-        setIsScannerActive(true)
+        resetAndRestartScanner()
       }, 2500)
     }
   }
@@ -572,6 +570,7 @@ export default function AbsensiPage() {
       setLateDialogOpen(false)
       setLateData(null)
       setLateReason("")
+      resetAndRestartScanner()
     } catch (err: any) {
       playBeep("error")
       setScanResult({
@@ -1911,7 +1910,7 @@ export default function AbsensiPage() {
       )}
 
       {/* Dialog Alasan Keterlambatan */}
-      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setLateData(null); } }}>
+      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setLateData(null); resetAndRestartScanner(); } }}>
         <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1922,7 +1921,7 @@ export default function AbsensiPage() {
             </div>
             <button
               type="button"
-              onClick={() => { setLateDialogOpen(false); setLateData(null); }}
+              onClick={() => { setLateDialogOpen(false); setLateData(null); resetAndRestartScanner(); }}
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -1938,7 +1937,7 @@ export default function AbsensiPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="block text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest mb-1">
+              <Label className="block text-[9px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest mb-1">
                 Alasan Terlambat (Wajib)
               </Label>
               <textarea
@@ -1954,7 +1953,7 @@ export default function AbsensiPage() {
           <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10">
             <button
               type="button"
-              onClick={() => { setLateDialogOpen(false); setLateData(null); }}
+              onClick={() => { setLateDialogOpen(false); setLateData(null); resetAndRestartScanner(); }}
               disabled={submittingLateReason}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-85"
             >

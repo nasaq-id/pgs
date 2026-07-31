@@ -47,7 +47,10 @@ function timeStringToMinutes(timeStr: string): number {
 
 function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
   if (!date) return null
-  return date.getHours() * 60 + date.getMinutes()
+  // PostgreSQL parses timestamp as local time. Since schedules were saved in Jakarta timezone (UTC+7)
+  // as UTC representation in DB (shifting them -7 hours), we add 7 hours (420 minutes) to get the original local minutes.
+  const minutes = date.getHours() * 60 + date.getMinutes() + 420
+  return minutes % 1440
 }
 
 function getSchoolDayDate(date: Date): Date {

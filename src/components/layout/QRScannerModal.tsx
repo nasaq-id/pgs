@@ -178,7 +178,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           /* Store late data in a ref so the parent can handle it, or emit event */
           resultTimerRef.current = setTimeout(() => {
             onClose()
-            router.push("/absensi")
+            router.push(isGuruQr ? "/absensi/guru" : "/absensi")
           }, 3000)
           return
         }
