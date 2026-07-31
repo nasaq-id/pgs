@@ -47,10 +47,8 @@ function timeStringToMinutes(timeStr: string): number {
 
 function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
   if (!date) return null
-  // PostgreSQL parses timestamp as local time. Since schedules were saved in Jakarta timezone (UTC+7)
-  // as UTC representation in DB (shifting them -7 hours), we add 7 hours (420 minutes) to get the original local minutes.
-  const minutes = date.getHours() * 60 + date.getMinutes() + 420
-  return minutes % 1440
+  const { hour, minute } = getSchoolTime(date)
+  return hour * 60 + minute
 }
 
 function getSchoolDayDate(date: Date): Date {
@@ -371,17 +369,6 @@ export const absensiRouter = router({
           const isLate = nowMinutes > limitMasukMinutes
           const status = isLate ? "terlambat" : "hadir"
 
-          if (isLate && !input.alasan) {
-            return {
-              success: true,
-              requireReason: true,
-              type: "siswa" as const,
-              name: student.namaLengkap,
-              action: "masuk" as const,
-              status,
-            }
-          }
-
           // Defensive re-check to prevent race condition duplicates
           const recheckAbsen = await db.query.absensiSiswa.findFirst({
             where: and(eq(absensiSiswa.siswaId, student.id), between(absensiSiswa.tanggal, startOfToday, endOfToday)),
@@ -405,8 +392,32 @@ export const absensiRouter = router({
             .returning()
 
           await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } })
+
+          if (isLate && !input.alasan) {
+            return {
+              success: true,
+              requireReason: true,
+              type: "siswa" as const,
+              name: student.namaLengkap,
+              action: "masuk" as const,
+              status,
+            }
+          }
+
           return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status }
         } else {
+          // Check if updating reason for existing late check-in
+          if (input.alasan && existingAbsen.status === "terlambat") {
+            const [updated] = await db
+              .update(absensiSiswa)
+              .set({ keterangan: input.alasan })
+              .where(eq(absensiSiswa.id, existingAbsen.id))
+              .returning()
+
+            await logAudit(ctx, { action: "update_reason_siswa", entity: "absensi_siswa", entityId: updated.id, metadata: { name: student.namaLengkap } })
+            return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status: "terlambat" as const }
+          }
+
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Siswa sudah melakukan absensi pulang hari ini" })
@@ -511,17 +522,6 @@ export const absensiRouter = router({
           const isLate = nowMinutes > limitMasukMinutes
           const status = isLate ? "terlambat" : "hadir"
 
-          if (isLate && !input.alasan) {
-            return {
-              success: true,
-              requireReason: true,
-              type: "guru" as const,
-              name: teacher.namaLengkap,
-              action: "masuk" as const,
-              status,
-            }
-          }
-
           const [created] = await db
             .insert(absensiGuru)
             .values({
@@ -536,8 +536,32 @@ export const absensiRouter = router({
             .returning()
 
           await logAudit(ctx, { action: "scan_checkin_guru", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } })
+
+          if (isLate && !input.alasan) {
+            return {
+              success: true,
+              requireReason: true,
+              type: "guru" as const,
+              name: teacher.namaLengkap,
+              action: "masuk" as const,
+              status,
+            }
+          }
+
           return { success: true, type: "guru" as const, name: teacher.namaLengkap, action: "masuk" as const, status }
         } else {
+          // Check if updating reason for existing late check-in
+          if (input.alasan && existingAbsen.status === "terlambat") {
+            const [updated] = await db
+              .update(absensiGuru)
+              .set({ keterangan: input.alasan })
+              .where(eq(absensiGuru.id, existingAbsen.id))
+              .returning()
+
+            await logAudit(ctx, { action: "update_reason_guru", entity: "absensi_guru", entityId: updated.id, metadata: { name: teacher.namaLengkap } })
+            return { success: true, type: "guru" as const, name: teacher.namaLengkap, action: "masuk" as const, status: "terlambat" as const }
+          }
+
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Guru sudah melakukan absensi pulang hari ini" })
@@ -1115,17 +1139,6 @@ export const absensiRouter = router({
       if (!existingAbsen) {
         const status = nowMinutes > limitTimeMinutes ? "terlambat" : "hadir"
 
-        if (status === "terlambat" && !input.alasan) {
-          return {
-            success: true,
-            requireReason: true,
-            type: "guru" as const,
-            name: teacherRecord.namaLengkap,
-            action: "masuk" as const,
-            status,
-          }
-        }
-
         // Defensive re-check to prevent race condition duplicates
         const recheckAbsen = await db.query.absensiGuru.findFirst({
           where: and(eq(absensiGuru.guruId, teacherId), between(absensiGuru.tanggal, startOfToday, endOfToday)),
@@ -1154,6 +1167,17 @@ export const absensiRouter = router({
           metadata: { name: teacherRecord.namaLengkap, status },
         })
 
+        if (status === "terlambat" && !input.alasan) {
+          return {
+            success: true,
+            requireReason: true,
+            type: "guru" as const,
+            name: teacherRecord.namaLengkap,
+            action: "masuk" as const,
+            status,
+          }
+        }
+
         return {
           success: true,
           action: "masuk",
@@ -1162,6 +1186,29 @@ export const absensiRouter = router({
           time: now,
         }
       } else {
+        // Check if updating reason for existing late check-in
+        if (input.alasan && existingAbsen.status === "terlambat") {
+          await db
+            .update(absensiGuru)
+            .set({ keterangan: input.alasan })
+            .where(eq(absensiGuru.id, existingAbsen.id))
+
+          await logAudit(ctx, {
+            action: "update_reason_single_qr_guru",
+            entity: "absensi_guru",
+            entityId: existingAbsen.id,
+            metadata: { name: teacherRecord.namaLengkap },
+          })
+
+          return {
+            success: true,
+            action: "masuk",
+            name: teacherRecord.namaLengkap,
+            status: "terlambat",
+            time: now,
+          }
+        }
+
         if (existingAbsen.jamPulang) {
           throw new TRPCError({
             code: "BAD_REQUEST",

@@ -547,7 +547,7 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
       )}
 
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 z-[110] shadow-xl">
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
           <DialogHeader className="text-center space-y-3">
             <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30 flex items-center justify-center text-red-500 mx-auto">
               <LogOut className="w-6 h-6 stroke-[2.5]" />
