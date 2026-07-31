@@ -113,12 +113,13 @@ export default function PresensiGuruPage() {
         setLateReason("")
         setLateDialogOpen(true)
         toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+        await stopCamera()
       } else {
         setLateDialogOpen(false)
         setLateReason("")
         setPendingQrCode("")
         // Stop camera on successful attendance to show final result card
-        stopCamera()
+        await stopCamera()
       }
     } catch (err) {
       // Handled in onError of scanMutation

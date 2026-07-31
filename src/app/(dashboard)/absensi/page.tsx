@@ -512,6 +512,7 @@ export default function AbsensiPage() {
         setScannerState("cooldown")
         scannerStateRef.current = "cooldown"
         if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+        await handleStopCamera()
         return
       }
 
