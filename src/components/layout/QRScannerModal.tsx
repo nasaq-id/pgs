@@ -207,7 +207,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
         resultTimerRef.current = setTimeout(() => {
           onClose()
-          router.push("/dashboard")
+          router.push("/")
         }, 1800)
       } catch (err: any) {
         playSound("error")
