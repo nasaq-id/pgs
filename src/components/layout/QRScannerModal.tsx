@@ -24,6 +24,7 @@ type ScannerState =
   | "success"
   | "error"
   | "permission_denied"
+  | "require_reason"
 
 interface Props {
   open: boolean
@@ -44,6 +45,10 @@ export default function QRScannerModal({ open, onClose }: Props) {
     status?: string
     message: string
   } | null>(null)
+
+  const [pendingQrCode, setPendingQrCode] = useState("")
+  const [lateReason, setLateReason] = useState("")
+  const [lateName, setLateName] = useState("")
 
   const html5QrcodeRef = useRef<any>(null)
   const stateRef = useRef<ScannerState>("idle")
@@ -145,13 +150,17 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
   /* ─── Validate QR ─── */
   const handleValidate = useCallback(
-    async (decodedText: string) => {
-      if (processingLockRef.current || stateRef.current !== "detecting") return
-      processingLockRef.current = true
-      clearDwellTimer()
-      setState("verifying")
-
-      await stopScanner()
+    async (decodedText: string, reason?: string) => {
+      const isSubmittingReason = !!reason
+      if (!isSubmittingReason) {
+        if (processingLockRef.current || stateRef.current !== "detecting") return
+        processingLockRef.current = true
+        clearDwellTimer()
+        setState("verifying")
+        await stopScanner()
+      } else {
+        setState("verifying")
+      }
 
       try {
         const coords = await getGeolocation()
@@ -159,12 +168,16 @@ export default function QRScannerModal({ open, onClose }: Props) {
         let resultData: any
 
         if (isGuruQr) {
-          resultData = await guruScanMutation.mutateAsync({ qrCode: decodedText })
+          resultData = await guruScanMutation.mutateAsync({
+            qrCode: decodedText,
+            alasan: reason,
+          })
         } else {
           resultData = await barcodeScanMutation.mutateAsync({
             barcode: decodedText,
             latitude: coords?.latitude ?? null,
             longitude: coords?.longitude ?? null,
+            alasan: reason,
           })
         }
 
@@ -173,13 +186,10 @@ export default function QRScannerModal({ open, onClose }: Props) {
           processingLockRef.current = false
           playSound("error")
           hapticFeedback("error")
-          setErrorMessage(`Terlambat — ${resultData.name} sudah melewati batas toleransi. Alasan diperlukan.`)
-          setState("error")
-          /* Store late data in a ref so the parent can handle it, or emit event */
-          resultTimerRef.current = setTimeout(() => {
-            onClose()
-            router.push(isGuruQr ? "/absensi/guru" : "/absensi")
-          }, 3000)
+          setPendingQrCode(decodedText)
+          setLateName(resultData.name || "")
+          setLateReason("")
+          setState("require_reason")
           return
         }
 
@@ -208,6 +218,11 @@ export default function QRScannerModal({ open, onClose }: Props) {
     },
     [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, getGeolocation, clearDwellTimer, onClose, router],
   )
+
+  const handleReasonSubmit = async () => {
+    if (!pendingQrCode || !lateReason.trim()) return
+    await handleValidate(pendingQrCode, lateReason.trim())
+  }
 
   /* ─── QR Detected → Dwell Timer ─── */
   const handleQrDetected = useCallback(
@@ -349,8 +364,8 @@ export default function QRScannerModal({ open, onClose }: Props) {
         <div id="qr-scanner-feed" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
       </div>
 
-      {/* ─── Dark Scrim (hanya saat hasil/verifikasi) ─── */}
-      {(state === "verifying" || state === "success" || state === "error" || state === "permission_denied") && (
+      {/* ─── Dark Scrim (hanya saat hasil/verifikasi/alasan) ─── */}
+      {(state === "verifying" || state === "success" || state === "error" || state === "permission_denied" || state === "require_reason") && (
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10" />
       )}
 
@@ -502,6 +517,50 @@ export default function QRScannerModal({ open, onClose }: Props) {
             >
               Absen Manual
             </button>
+          </div>
+        )}
+        {state === "require_reason" && (
+          <div className="w-full max-w-sm mx-4 bg-slate-900/90 dark:bg-slate-950/95 p-6 rounded-[28px] border border-white/10 shadow-2xl flex flex-col gap-4 text-left z-30 animate-fade-in">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+              <span className="text-sm font-black text-white uppercase tracking-wider">
+                ⚠️ Konfirmasi Keterlambatan
+              </span>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs font-semibold text-amber-300">
+              Waktu presensi masuk untuk <strong>{lateName}</strong> telah melewati batas toleransi 15 menit. Harap isi alasan keterlambatan Anda.
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Alasan Terlambat (Wajib)
+              </span>
+              <textarea
+                value={lateReason}
+                onChange={(e) => setLateReason(e.target.value)}
+                placeholder="Misalnya: macet di jalan, kendala kendaraan, dll..."
+                rows={3}
+                className="w-full rounded-xl border border-white/10 focus:ring-teal-500/10 focus:border-teal-500 bg-white/5 text-xs p-3 font-semibold text-white placeholder-slate-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-white/10 text-white text-xs font-black uppercase tracking-wider cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleReasonSubmit}
+                disabled={!lateReason.trim()}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-teal-500/5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Kirim & Absen
+              </button>
+            </div>
           </div>
         )}
       </div>
