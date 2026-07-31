@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
 import jsPDF from "jspdf"
 import { autoTable } from "jspdf-autotable"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
   ClipboardCheck,
   Users,
@@ -30,6 +31,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  X,
 } from "lucide-react"
 import { toast } from "sonner"
 import { parseLocalDate } from "@/lib/utils"
@@ -84,6 +86,12 @@ export default function RekapPresensiPage() {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState(0)
   const [limit, setLimit] = useState(25)
+
+  const [selectedPerson, setSelectedPerson] = useState<{
+    id: string
+    name: string
+    type: "siswa" | "guru"
+  } | null>(null)
 
   // Queries for options
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 200 })
@@ -189,6 +197,13 @@ export default function RekapPresensiPage() {
   const totalPages = Math.ceil(activeList.length / limit)
   const paginatedData = activeList.slice(page * limit, (page + 1) * limit)
   const hasMore = activeList.length > (page + 1) * limit
+
+  const selectedPersonLogs = useMemo(() => {
+    if (!selectedPerson) return []
+    const logs = selectedPerson.type === "siswa" ? rekapSiswaData?.logs : rekapGuruData?.logs
+    if (!logs) return []
+    return logs.filter((log: any) => (log.siswaId || log.guruId) === selectedPerson.id)
+  }, [selectedPerson, rekapSiswaData, rekapGuruData])
 
   // Calculate Overall Statistics
   const stats = useMemo(() => {
@@ -823,7 +838,11 @@ export default function RekapPresensiPage() {
                   const isMedAtt = item.persentaseHadir >= 75 && item.persentaseHadir < 90
 
                   return (
-                    <tr key={item.siswaId || item.guruId} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                    <tr
+                      key={item.siswaId || item.guruId}
+                      onClick={() => setSelectedPerson({ id: item.siswaId || item.guruId, name: item.namaLengkap, type: activeTab })}
+                      className="hover:bg-slate-55/60 dark:hover:bg-slate-900/30 transition-colors cursor-pointer"
+                    >
                       <td className="py-3 px-4 text-center text-slate-400">{page * limit + idx + 1}</td>
                       <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
                         {item.namaLengkap}
@@ -922,6 +941,85 @@ export default function RekapPresensiPage() {
         )}
       </div>
 
+      {/* Dialog Detail Log Kehadiran */}
+      <Dialog open={!!selectedPerson} onOpenChange={(v) => { if (!v) setSelectedPerson(null); }}>
+        <DialogContent className="max-w-2xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left z-[9999]">
+          <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
+                Detail Log Kehadiran
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 animate-pulse">
+                {selectedPerson?.name} ({selectedPerson?.type === "siswa" ? "Siswa" : "Guru"})
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedPerson(null)}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer border border-slate-200/20"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-4">
+            {/* List log */}
+            {selectedPersonLogs.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8 font-semibold">
+                Tidak ada log presensi detail untuk periode ini.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedPersonLogs.map((log: any) => {
+                  const logDate = new Date(log.tanggal).toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                  
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1.5 flex-1 text-left">
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{logDate}</p>
+                        <p className="text-slate-450 dark:text-slate-400 font-semibold text-[11px]">
+                          Jam Masuk: <span className="font-mono text-slate-600 dark:text-slate-400">{log.jamMasuk ? new Date(log.jamMasuk).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}</span>
+                          {" • "}
+                          Jam Pulang: <span className="font-mono text-slate-600 dark:text-slate-400">{log.jamPulang ? new Date(log.jamPulang).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}</span>
+                        </p>
+                        {log.keterangan && (
+                          <div className="mt-2 p-2.5 rounded-xl bg-slate-100/50 dark:bg-slate-850/50 text-slate-600 dark:text-slate-350 border border-slate-200/20 font-semibold leading-relaxed">
+                            <span className="font-bold block text-[10px] text-slate-450 dark:text-slate-500 uppercase tracking-wide mb-0.5">Alasan/Keterangan:</span>
+                            {log.keterangan}
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0 flex items-center">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${
+                            log.status === "hadir"
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                              : log.status === "terlambat"
+                              ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                              : log.status === "izin" || log.status === "sakit"
+                              ? "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border border-blue-500/20"
+                              : "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border border-rose-500/20"
+                          }`}
+                        >
+                          {log.status === "hadir" ? "Hadir" : log.status === "terlambat" ? "Terlambat" : log.status === "izin" ? "Izin" : log.status === "sakit" ? "Sakit" : "Alpha"}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
