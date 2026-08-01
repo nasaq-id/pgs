@@ -66,7 +66,7 @@ function minutesToTime(min: number): string {
 
 function timeStringToDate(time: string): Date {
   const [h, m] = time.split(":").map(Number)
-  return new Date(1970, 0, 1, h, m, 0)
+  return new Date(Date.UTC(1970, 0, 1, h, m, 0))
 }
 
 async function computeTimesForJadwal(

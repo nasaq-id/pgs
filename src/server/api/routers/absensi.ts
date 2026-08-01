@@ -47,8 +47,7 @@ function timeStringToMinutes(timeStr: string): number {
 
 function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
   if (!date) return null
-  const { hour, minute } = getSchoolTime(date)
-  return hour * 60 + minute
+  return date.getUTCHours() * 60 + date.getUTCMinutes()
 }
 
 function getSchoolDayDate(date: Date): Date {
