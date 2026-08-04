@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
+import { toast } from "sonner"
 import EMateriFormDialog, { type EMateriFormData, formatTingkatLabel } from "@/components/lms/EMateriFormDialog"
 
 export default function EMateriPage() {
@@ -395,6 +396,8 @@ export default function EMateriPage() {
                       if (materiCount > 0) {
                         setActiveTab("semua_materi")
                         setMapelFilter(m.id)
+                      } else if (!canManage) {
+                        toast.info("E-Materi untuk mata pelajaran ini belum tersedia")
                       } else {
                         handleOpenAddForMapel(m.id)
                       }

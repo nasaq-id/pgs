@@ -100,7 +100,7 @@ const menuItems: MenuItem[] = [
       { label: "Presensi Harian", path: "/absensi" },
       { label: "Presensi Guru", path: "/absensi/guru", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
       { label: "Pengajuan Izin", path: "/absensi/izin" },
-      { label: "Rekap Presensi", path: "/absensi/rekap" },
+      { label: "Rekap Presensi", path: "/absensi/rekap", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
       { label: "Pengaturan Presensi", path: "/absensi/pengaturan", allowedRoles: ["super_admin", "admin_sekolah"] },
     ]
   },
@@ -128,7 +128,7 @@ const menuItems: MenuItem[] = [
       { label: "Input & Data Poin", path: "/kesiswaan/poin-siswa/input-data", allowedRoles: ["super_admin", "admin_sekolah", "guru"] },
       { label: "Monitoring, SP & Apresiasi", path: "/kesiswaan/poin-siswa/monitoring-sp", allowedRoles: ["super_admin", "admin_sekolah", "guru"] },
       { label: "Pengaturan E-Poin", path: "/kesiswaan/poin-siswa/pengaturan", allowedRoles: ["super_admin", "admin_sekolah"] },
-      { label: "SOP E-Poin", path: "/kesiswaan/poin-siswa/sop" },
+      { label: "SOP E-Poin", path: "/kesiswaan/poin-siswa/sop", allowedRoles: ["super_admin", "admin_sekolah", "guru"] },
     ]
   },
   { 
