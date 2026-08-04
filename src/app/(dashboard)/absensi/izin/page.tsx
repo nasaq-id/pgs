@@ -37,7 +37,7 @@ export default function IzinPage() {
   const utils = api.useUtils()
 
   const [activeTab, setActiveTab] = useState<"form" | "riwayat" | "approval" | "riwayat_approval">("form")
-  const [jenisIzin, setJenisIzin] = useState<"terlambat" | "pulang_cepat" | "tidak_masuk">("tidak_masuk")
+  const [jenisIzin, setJenisIzin] = useState<string>("")
   const [alasan, setAlasan] = useState("")
   const [tanggalMulai, setTanggalMulai] = useState(new Date().toISOString().split("T")[0])
   const [jumlahHari, setJumlahHari] = useState(1)
@@ -208,9 +208,9 @@ export default function IzinPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Jenis Izin</Label>
-              <Select value={jenisIzin} onValueChange={(v: any) => setJenisIzin(v)}>
+              <Select value={jenisIzin || undefined} onValueChange={(v: any) => setJenisIzin(v)}>
                 <SelectTrigger className="w-full !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
-                  <SelectValue placeholder="Pilih jenis izin" />
+                  <SelectValue placeholder="Silahkan pilih jenis pengajuan izin terlebih dahulu" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="tidak_masuk">Sakit / Izin Tidak Masuk</SelectItem>
