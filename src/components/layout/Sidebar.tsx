@@ -90,7 +90,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "e-Materi", path: "/lms/e-materi", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"] },
       { label: "Jurnal Mengajar", path: "/lms/jurnal", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
-      { label: "Asesmen", path: "/lms/asesmen" },
+      { label: "Asesmen", path: "/lms/asesmen", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
     ]
   },
   { 
