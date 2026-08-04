@@ -404,7 +404,7 @@ export default function AsesmenPage() {
               <SelectContent>
                 <SelectItem value="all">Semua Kelas</SelectItem>
                 {kelasList?.map((k) => (
-                  <SelectItem key={k.id} value={k.id}>Kelas {k.namaKelas}</SelectItem>
+                  <SelectItem key={k.id} value={k.id} label={`Kelas ${k.namaKelas}`}>Kelas {k.namaKelas}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -645,7 +645,7 @@ export default function AsesmenPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {kelasList?.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>Kelas {k.namaKelas}</SelectItem>
+                    <SelectItem key={k.id} value={k.id} label={`Kelas ${k.namaKelas}`}>Kelas {k.namaKelas}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
