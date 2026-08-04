@@ -152,6 +152,7 @@ export const absensiRouter = router({
         ...a,
         id: a.id || crypto.randomUUID(),
         sekolahId,
+        tanggal: getSchoolDayDate(new Date(a.tanggal)),
       }))
       const result = await db.insert(absensiSiswa).values(values as any).returning()
       await logAudit(ctx, { action: "bulk_create", entity: "absensi_siswa", metadata: { count: result.length } })
@@ -292,21 +293,8 @@ export const absensiRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Siswa belum memiliki rombongan belajar (kelas)" })
         }
 
-        const role = ctx.session.user.role
-        const email = ctx.session.user.email ?? ""
-        if (role === "guru") {
-          const teacher = await db.query.guru.findFirst({
-            where: and(eq(guru.sekolahId, sekolahId), or(eq(guru.usernameGuru, email), eq(guru.email, email), eq(guru.nipnuptk, email))),
-          })
-          if (teacher) {
-            const isWali = await db.query.kelas.findFirst({
-              where: and(eq(kelas.id, student.kelasId), eq(kelas.waliKelasId, teacher.id)),
-            })
-            if (!isWali) {
-              throw new TRPCError({ code: "FORBIDDEN", message: "Anda bukan Wali Kelas dari siswa ini" })
-            }
-          }
-        }
+        // Guru dapat memindai QR siswa seperti admin (semua kelas di sekolahnya).
+        // Isolasi multi-tenant tetap dijaga via `sekolahId` di atas.
 
         const settings = await db.query.pengaturanAbsensi.findFirst({
           where: eq(pengaturanAbsensi.sekolahId, sekolahId),
@@ -709,7 +697,7 @@ export const absensiRouter = router({
             id: crypto.randomUUID(),
             sekolahId,
             guruId: input.guruId,
-            tanggal: input.tanggal,
+            tanggal: getSchoolDayDate(new Date(input.tanggal)),
             status: input.status,
             jamMasuk: input.jamMasuk,
             jamPulang: input.jamPulang,

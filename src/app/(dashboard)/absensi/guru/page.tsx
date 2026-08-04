@@ -61,6 +61,10 @@ export default function PresensiGuruPage() {
   const [lateReason, setLateReason] = useState("")
   const [pendingQrCode, setPendingQrCode] = useState("")
 
+  // Menyimpan koordinat GPS dari percobaan scan pertama siswa, agar bisa
+  // dipakai ulang saat mengirim alasan keterlambatan (requireReason).
+  const pendingCoordsRef = useRef<{ latitude: number | null; longitude: number | null } | null>(null)
+
   const { data: staticQrData, isLoading: isLoadingStaticQr } = api.absensi.getStaticQrGuru.useQuery()
   const { data: guruLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = api.absensi.getGuruAbsensi.useQuery({
     tanggal: new Date(),
@@ -92,6 +96,25 @@ export default function PresensiGuruPage() {
     },
   })
 
+  // Mutation untuk absensi SISWA via barcode (dual-fungsi scanner guru)
+  const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation({
+    onError: (err) => {
+      toast.error(err.message || "Gagal memproses absensi siswa")
+    },
+  })
+
+  /* ─── Geolocation (diperlukan untuk absensi siswa / geofencing) ─── */
+  const getGeolocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    if (!navigator.geolocation) return null
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 5000 }
+      )
+    })
+  }
+
   const resetAndRestartScanner = async () => {
     scanProcessingLockRef.current = false
     setIsScanning(true)
@@ -104,25 +127,67 @@ export default function PresensiGuruPage() {
     if (!codeToSubmit.trim()) return
     setScanResult(null)
     try {
-      const res = await scanMutation.mutateAsync({
-        qrCode: codeToSubmit.trim(),
-        alasan: reason,
-      })
-      if (res && 'requireReason' in res && res.requireReason) {
-        setPendingQrCode(codeToSubmit.trim())
-        setLateReason("")
-        setLateDialogOpen(true)
-        toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
-        await stopCamera()
+      const code = codeToSubmit.trim()
+      const isGuruQr = code.startsWith("PGS-PRESENSI-GURU-")
+
+      if (isGuruQr) {
+        // ── Path 1: Absensi guru diri sendiri (scan QR statik sekolah) ──
+        const res = await scanMutation.mutateAsync({ qrCode: code, alasan: reason })
+        if (res && 'requireReason' in res && res.requireReason) {
+          setPendingQrCode(code)
+          setLateReason("")
+          setLateDialogOpen(true)
+          toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+          await stopCamera()
+        } else {
+          setLateDialogOpen(false)
+          setLateReason("")
+          setPendingQrCode("")
+          // Stop camera on successful attendance to show final result card
+          await stopCamera()
+        }
       } else {
-        setLateDialogOpen(false)
-        setLateReason("")
-        setPendingQrCode("")
-        // Stop camera on successful attendance to show final result card
-        await stopCamera()
+        // ── Path 2: Absensi SISWA (scan QR/kartu siswa = NISN/id) ──
+        // Ambil GPS hanya pada percobaan pertama (reason kosong);
+        // saat mengirim alasan keterlambatan, pakai ulang koordinat tersimpan.
+        let coords: { latitude: number | null; longitude: number | null } | null = pendingCoordsRef.current
+        if (!reason) {
+          coords = await getGeolocation()
+          pendingCoordsRef.current = coords
+        }
+
+        const res = await barcodeScanMutation.mutateAsync({
+          barcode: code,
+          latitude: coords?.latitude ?? null,
+          longitude: coords?.longitude ?? null,
+          alasan: reason,
+        })
+
+        if (res && 'requireReason' in res && res.requireReason) {
+          setPendingQrCode(code)
+          setLateReason("")
+          setLateDialogOpen(true)
+          toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+          await stopCamera()
+        } else {
+          // Sukses — tampilkan kartu hasil absensi siswa
+          setScanResult({
+            success: true,
+            name: res.name,
+            action: res.action,
+            status: res.status,
+            time: new Date(),
+          })
+          toast.success(`Absensi Siswa: ${res.name} (${res.action === "masuk" ? "Masuk" : "Pulang"})`)
+          setLateDialogOpen(false)
+          setLateReason("")
+          setPendingQrCode("")
+          pendingCoordsRef.current = { latitude: null, longitude: null }
+          await stopCamera()
+        }
       }
     } catch (err) {
-      // Handled in onError of scanMutation
+      // Handled in onError of scanMutation / barcodeScanMutation
       scanProcessingLockRef.current = false
     }
   }
@@ -231,10 +296,10 @@ export default function PresensiGuruPage() {
             MODUL PRESENSI GURU & TENDIK
           </span>
           <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100">
-            Presensi Single Scan QR Guru
+            Presensi Guru &amp; Scan Siswa
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Sistem presensi digital guru menggunakan Single Scan QR Statik Sekolah
+            Sistem presensi digital guru (QR Statik) sekaligus pemindai kehadiran siswa via QR kartu
           </p>
         </div>
       </div>
@@ -403,6 +468,12 @@ export default function PresensiGuruPage() {
                       3
                     </span>
                     <span>Saat hendak pulang, guru menscan QR yang sama sekali lagi untuk presensi <strong>Pulang</strong>.</span>
+                  </div>
+                  <div className="flex items-start gap-2 pt-1 mt-1 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                      4
+                    </span>
+                    <span><strong>Scan Siswa:</strong> Arahkan kamera ke QR Code kartu siswa (NISN) untuk mencatat kehadiran siswa secara langsung — sama seperti admin. Sistem otomatis mendeteksi apakah QR milik guru atau siswa.</span>
                   </div>
                 </div>
               </Card>
