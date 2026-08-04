@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check } from "lucide-react"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -58,6 +58,8 @@ export default function AbsensiPage() {
 
 
   const [isScannerActive, setIsScannerActive] = useState(false)
+  const [searchSiswa, setSearchSiswa] = useState("")
+  const [searchGuru, setSearchGuru] = useState("")
   const [html5QrcodeClass, setHtml5QrcodeClass] = useState<any>(null)
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; name?: string; action?: string; status?: string } | null>(null)
   type ScanState = "idle" | "scanning" | "processing" | "cooldown"
@@ -161,6 +163,30 @@ export default function AbsensiPage() {
     }
     return (siswaAll || []).filter((s) => s.kelasId === kelasId)
   }, [siswaAll, kelasId, role, isWaliKelas, ownGuru, classes, canManageGlobal])
+
+  const filteredSiswa = useMemo(() => {
+    if (!searchSiswa.trim()) return siswaDiKelas
+    const q = searchSiswa.toLowerCase()
+    return siswaDiKelas.filter((s) => s.namaLengkap.toLowerCase().includes(q) || s.nisn?.toLowerCase().includes(q))
+  }, [siswaDiKelas, searchSiswa])
+
+  const filteredGuru = useMemo(() => {
+    if (!searchGuru.trim() || !guruAll) return guruAll || []
+    const q = searchGuru.toLowerCase()
+    return guruAll.filter((g) => g.namaLengkap.toLowerCase().includes(q) || g.nipnuptk?.toLowerCase().includes(q))
+  }, [guruAll, searchGuru])
+
+  const summaryStats = useMemo(() => {
+    const records = targetType === "siswa" ? siswaRecords : guruRecords
+    const ids = targetType === "siswa" ? siswaDiKelas.map((s) => s.id) : (guruAll || []).map((g) => g.id)
+    const counts: Record<StatusAbsensi, number> = { hadir: 0, izin: 0, sakit: 0, alpha: 0, terlambat: 0 }
+    for (const id of ids) {
+      const rec = records[id]
+      if (rec) counts[rec.status]++
+      else counts.hadir++
+    }
+    return counts
+  }, [targetType, siswaRecords, guruRecords, siswaDiKelas, guruAll])
 
   // Automatically lock Wali Kelas to their class
   useEffect(() => {
@@ -421,6 +447,64 @@ export default function AbsensiPage() {
     }
 
     setRecords({ ...records, [id]: updated })
+  }
+
+  const handleSetAllStatus = (status: StatusAbsensi) => {
+    const nowTime = new Date().toTimeString().slice(0, 5)
+    if (targetType === "siswa") {
+      const updated = { ...siswaRecords }
+      for (const s of siswaDiKelas) {
+        const existing = siswaRecords[s.id]
+        updated[s.id] = {
+          status,
+          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || nowTime) : "",
+          jamPulang: existing?.jamPulang || "",
+          keterangan: existing?.keterangan || "",
+        }
+      }
+      setSiswaRecords(updated)
+    } else if (guruAll) {
+      const updated = { ...guruRecords }
+      for (const g of guruAll) {
+        const existing = guruRecords[g.id]
+        updated[g.id] = {
+          status,
+          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || nowTime) : "",
+          jamPulang: existing?.jamPulang || "",
+          keterangan: existing?.keterangan || "",
+        }
+      }
+      setGuruRecords(updated)
+    }
+    toast.info(`Status semua diset ke ${STATUS_LABELS[status]}`)
+  }
+
+  const handleSetAllTimeNow = (field: "jamMasuk" | "jamPulang") => {
+    const nowTime = new Date().toTimeString().slice(0, 5)
+    if (targetType === "siswa") {
+      const updated = { ...siswaRecords }
+      for (const s of siswaDiKelas) {
+        const existing = siswaRecords[s.id] || { status: "hadir" as StatusAbsensi, jamMasuk: "", jamPulang: "", keterangan: "" }
+        updated[s.id] = { ...existing, [field]: nowTime }
+      }
+      setSiswaRecords(updated)
+    } else if (guruAll) {
+      const updated = { ...guruRecords }
+      for (const g of guruAll) {
+        const existing = guruRecords[g.id] || { status: "hadir" as StatusAbsensi, jamMasuk: "", jamPulang: "", keterangan: "" }
+        updated[g.id] = { ...existing, [field]: nowTime }
+      }
+      setGuruRecords(updated)
+    }
+    toast.info(`${field === "jamMasuk" ? "Jam masuk" : "Jam pulang"} semua diisi jam sekarang`)
+  }
+
+  const handleSetSingleTimeNow = (id: string, field: "jamMasuk" | "jamPulang") => {
+    const nowTime = new Date().toTimeString().slice(0, 5)
+    const records = targetType === "siswa" ? siswaRecords : guruRecords
+    const setRecords = targetType === "siswa" ? setSiswaRecords : setGuruRecords
+    const current = records[id] || { status: "hadir" as StatusAbsensi, jamMasuk: "", jamPulang: "", keterangan: "" }
+    setRecords({ ...records, [id]: { ...current, [field]: nowTime } })
   }
 
   // Audio beep simulation for barcode scans
@@ -1204,6 +1288,47 @@ export default function AbsensiPage() {
               >
                 Hadir Semua
               </Button>
+              <div className="relative group">
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                  disabled={targetType === "siswa" && !kelasId}
+                >
+                  Set Status Semua ▾
+                </Button>
+                <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-1 min-w-[140px]">
+                    {(["alpha", "izin", "sakit"] as StatusAbsensi[]).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => handleSetAllStatus(st)}
+                        className="w-full text-left px-3 py-2 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        {STATUS_LABELS[st]} Semua
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                onClick={() => handleSetAllTimeNow("jamMasuk")}
+                disabled={targetType === "siswa" && !kelasId}
+              >
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Jam Masuk Semua
+              </Button>
+              <Button
+                variant="outline"
+                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                onClick={() => handleSetAllTimeNow("jamPulang")}
+                disabled={targetType === "siswa" && !kelasId}
+              >
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Jam Pulang Semua
+              </Button>
               <button
                 className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-teal-600 hover:bg-teal-700 text-white border-none px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleManualSave}
@@ -1216,6 +1341,36 @@ export default function AbsensiPage() {
             </div>
           </div>
 
+          {/* Summary Bar */}
+          {((targetType === "siswa" && kelasId) || targetType === "guru") && (
+            <div className="flex items-center gap-3 flex-wrap px-1">
+              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                <div key={st} className="flex items-center gap-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-full ${
+                    st === "hadir" ? "bg-emerald-500" : st === "terlambat" ? "bg-amber-500" : st === "izin" ? "bg-blue-500" : st === "sakit" ? "bg-orange-500" : "bg-red-500"
+                  }`} />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                    {STATUS_LABELS[st]}: <span className="font-extrabold text-slate-800 dark:text-slate-200">{summaryStats[st]}</span>
+                  </span>
+                </div>
+              ))}
+              <div className="ml-auto flex items-center gap-2">
+                {(targetType === "siswa" ? filteredSiswa : filteredGuru).length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari nama..."
+                      value={targetType === "siswa" ? searchSiswa : searchGuru}
+                      onChange={(e) => targetType === "siswa" ? setSearchSiswa(e.target.value) : setSearchGuru(e.target.value)}
+                      className="h-8 pl-8 pr-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-[160px] focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {targetType === "siswa" && !kelasId ? (
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
               Silakan pilih rombongan belajar (kelas) terlebih dahulu.
@@ -1224,7 +1379,7 @@ export default function AbsensiPage() {
             <div className="space-y-3">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ) : targetType === "siswa" && siswaDiKelas.length === 0 ? (
+          ) : targetType === "siswa" && filteredSiswa.length === 0 ? (
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
               Tidak ada siswa terdaftar di kelas ini.
             </div>
@@ -1245,13 +1400,22 @@ export default function AbsensiPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {siswaDiKelas.map((std, idx) => {
+                    {filteredSiswa.map((std, idx) => {
                       const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
+                      const hasExistingData = !!studentAttendanceQuery.data?.find((r) => r.siswaId === std.id)
+                      const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
                       return (
-                        <TableRow key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                        <TableRow key={std.id} className={`transition-colors border-b border-slate-100 dark:border-slate-800/60 ${
+                          hasExistingData ? "bg-emerald-50/30 dark:bg-emerald-950/10" : "hover:bg-slate-50/50 dark:hover:bg-slate-900/20"
+                        }`}>
                           <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
                           <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{std.nisn}</TableCell>
-                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{std.namaLengkap}</TableCell>
+                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-1.5">
+                              {hasExistingData && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {std.namaLengkap}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-1 justify-center flex-wrap">
                               {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
@@ -1269,30 +1433,53 @@ export default function AbsensiPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="time"
-                              value={record.jamMasuk}
-                              onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
-                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="time"
+                                value={record.jamMasuk}
+                                onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
+                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSetSingleTimeNow(std.id, "jamMasuk")}
+                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Isi jam sekarang"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="time"
-                              value={record.jamPulang}
-                              onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
-                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="time"
+                                value={record.jamPulang}
+                                onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
+                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSetSingleTimeNow(std.id, "jamPulang")}
+                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Isi jam sekarang"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="text"
-                              value={record.keterangan || ""}
-                              onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
-                              placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
-                              disabled={record.status === "hadir" || record.status === "alpha"}
-                              className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
-                            />
+                            {needsKeterangan ? (
+                              <input
+                                type="text"
+                                value={record.keterangan || ""}
+                                onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
+                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                                className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -1302,14 +1489,21 @@ export default function AbsensiPage() {
               </div>
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
-                {siswaDiKelas.map((std, idx) => {
+                {filteredSiswa.map((std, idx) => {
                   const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
+                  const hasExistingData = !!studentAttendanceQuery.data?.find((r) => r.siswaId === std.id)
+                  const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
                   return (
-                    <div key={std.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
+                    <div key={std.id} className={`neumo-card bg-background rounded-2xl p-4 space-y-3 ${
+                      hasExistingData ? "ring-1 ring-emerald-300 dark:ring-emerald-700" : ""
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{std.nisn}</p>
+                        <div className="flex items-center gap-1.5">
+                          {hasExistingData && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          <div>
+                            <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{std.nisn}</p>
+                          </div>
                         </div>
                         <span className="text-[10px] text-slate-400 font-bold">#{idx + 1}</span>
                       </div>
@@ -1333,34 +1527,55 @@ export default function AbsensiPage() {
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
-                          <input
-                            type="time"
-                            value={record.jamMasuk}
-                            onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                          />
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={record.jamMasuk}
+                              onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSetSingleTimeNow(std.id, "jamMasuk")}
+                              className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Isi jam sekarang"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={record.jamPulang}
+                              onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSetSingleTimeNow(std.id, "jamPulang")}
+                              className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Isi jam sekarang"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {needsKeterangan && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
                           <input
-                            type="time"
-                            value={record.jamPulang}
-                            onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
+                            type="text"
+                            value={record.keterangan || ""}
+                            onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
+                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
                             className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
                         </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
-                        <input
-                          type="text"
-                          value={record.keterangan || ""}
-                          onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
-                          placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
-                          disabled={record.status === "hadir" || record.status === "alpha"}
-                          className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
-                        />
-                      </div>
+                      )}
                     </div>
                   )
                 })}
@@ -1371,6 +1586,10 @@ export default function AbsensiPage() {
           {targetType === "guru" && guruAttendanceQuery.isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : targetType === "guru" && (!guruAll || guruAll.length === 0) ? (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
+              Tidak ada guru terdaftar.
             </div>
           ) : targetType === "guru" && (!guruAll || guruAll.length === 0) ? (
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
@@ -1393,13 +1612,22 @@ export default function AbsensiPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {guruAll.map((g, idx) => {
+                    {filteredGuru.map((g, idx) => {
                       const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
+                      const hasExistingData = !!guruAttendanceQuery.data?.find((r) => r.guruId === g.id)
+                      const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
                       return (
-                        <TableRow key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                        <TableRow key={g.id} className={`transition-colors border-b border-slate-100 dark:border-slate-800/60 ${
+                          hasExistingData ? "bg-emerald-50/30 dark:bg-emerald-950/10" : "hover:bg-slate-50/50 dark:hover:bg-slate-900/20"
+                        }`}>
                           <TableCell className="text-center text-slate-450 dark:text-slate-500 text-xs font-semibold">{idx + 1}</TableCell>
                           <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{g.nipnuptk || "-"}</TableCell>
-                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{g.namaLengkap}</TableCell>
+                          <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-1.5">
+                              {hasExistingData && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {g.namaLengkap}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-1 justify-center flex-wrap">
                               {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
@@ -1417,30 +1645,53 @@ export default function AbsensiPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="time"
-                              value={record.jamMasuk}
-                              onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
-                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="time"
+                                value={record.jamMasuk}
+                                onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
+                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSetSingleTimeNow(g.id, "jamMasuk")}
+                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Isi jam sekarang"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="time"
-                              value={record.jamPulang}
-                              onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
-                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="time"
+                                value={record.jamPulang}
+                                onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
+                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSetSingleTimeNow(g.id, "jamPulang")}
+                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                title="Isi jam sekarang"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <input
-                              type="text"
-                              value={record.keterangan || ""}
-                              onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
-                              placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
-                              disabled={record.status === "hadir" || record.status === "alpha"}
-                              className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
-                            />
+                            {needsKeterangan ? (
+                              <input
+                                type="text"
+                                value={record.keterangan || ""}
+                                onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
+                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                                className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -1450,14 +1701,21 @@ export default function AbsensiPage() {
               </div>
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
-                {guruAll.map((g, idx) => {
+                {filteredGuru.map((g, idx) => {
                   const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
+                  const hasExistingData = !!guruAttendanceQuery.data?.find((r) => r.guruId === g.id)
+                  const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
                   return (
-                    <div key={g.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
+                    <div key={g.id} className={`neumo-card bg-background rounded-2xl p-4 space-y-3 ${
+                      hasExistingData ? "ring-1 ring-emerald-300 dark:ring-emerald-700" : ""
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{g.namaLengkap}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{g.nipnuptk || "-"}</p>
+                        <div className="flex items-center gap-1.5">
+                          {hasExistingData && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          <div>
+                            <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{g.namaLengkap}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{g.nipnuptk || "-"}</p>
+                          </div>
                         </div>
                         <span className="text-[10px] text-slate-400 font-bold">#{idx + 1}</span>
                       </div>
@@ -1481,34 +1739,55 @@ export default function AbsensiPage() {
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
-                          <input
-                            type="time"
-                            value={record.jamMasuk}
-                            onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
-                            className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
-                          />
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={record.jamMasuk}
+                              onChange={(e) => updateManualRecord(g.id, "jamMasuk", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSetSingleTimeNow(g.id, "jamMasuk")}
+                              className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Isi jam sekarang"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex-1">
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={record.jamPulang}
+                              onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
+                              className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSetSingleTimeNow(g.id, "jamPulang")}
+                              className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                              title="Isi jam sekarang"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {needsKeterangan && (
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
                           <input
-                            type="time"
-                            value={record.jamPulang}
-                            onChange={(e) => updateManualRecord(g.id, "jamPulang", e.target.value)}
+                            type="text"
+                            value={record.keterangan || ""}
+                            onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
+                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
                             className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
                         </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
-                        <input
-                          type="text"
-                          value={record.keterangan || ""}
-                          onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
-                          placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" || record.status === "sakit" ? "Keterangan izin..." : "-"}
-                          disabled={record.status === "hadir" || record.status === "alpha"}
-                          className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950/20"
-                        />
-                      </div>
+                      )}
                     </div>
                   )
                 })}

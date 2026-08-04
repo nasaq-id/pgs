@@ -135,7 +135,7 @@ export default function IzinPage() {
     }
 
     submitMutation.mutate({
-      jenisIzin,
+      jenisIzin: jenisIzin as "terlambat" | "pulang_cepat" | "tidak_masuk",
       alasan: alasan.trim(),
       tanggalMulai: parseLocalDate(tanggalMulai),
       jumlahHari: jenisIzin === "tidak_masuk" ? jumlahHari : 1,
