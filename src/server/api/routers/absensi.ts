@@ -6,6 +6,7 @@ import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwa
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSchoolDayDate, getMinutesSinceMidnightInSchoolTime } from "@/server/datetime"
 
 function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3 // Earth radius in meters
@@ -22,24 +23,6 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c // in meters
 }
 
-function getSchoolTime(date: Date) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Jakarta",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false
-  })
-  const parts = formatter.formatToParts(date)
-  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10)
-  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10)
-  return { hour, minute }
-}
-
-function getMinutesSinceMidnightInSchoolTime(date: Date): number {
-  const { hour, minute } = getSchoolTime(date)
-  return hour * 60 + minute
-}
-
 function timeStringToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(":").map(Number)
   return h * 60 + m
@@ -48,20 +31,6 @@ function timeStringToMinutes(timeStr: string): number {
 function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
   if (!date) return null
   return date.getUTCHours() * 60 + date.getUTCMinutes()
-}
-
-function getSchoolDayDate(date: Date): Date {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric"
-  })
-  const parts = formatter.formatToParts(date)
-  const year = parseInt(parts.find(p => p.type === 'year')?.value || '1970', 10)
-  const month = parseInt(parts.find(p => p.type === 'month')?.value || '1', 10)
-  const day = parseInt(parts.find(p => p.type === 'day')?.value || '1', 10)
-  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
 }
 
 const absensiBulkCreateSchema = z.object({
@@ -496,11 +465,11 @@ export const absensiRouter = router({
 
         const nowMinutes = getMinutesSinceMidnightInSchoolTime(now)
 
-        let limitMasukMinutes = earliestMasukMinutes !== null 
+        const limitMasukMinutes = earliestMasukMinutes !== null
           ? earliestMasukMinutes + toleransiMin
           : timeStringToMinutes(jamMasukStr) + toleransiMin
 
-        let limitPulangMinutes = latestPulangMinutes !== null
+        const limitPulangMinutes = latestPulangMinutes !== null
           ? latestPulangMinutes
           : timeStringToMinutes(jamPulangStr)
 

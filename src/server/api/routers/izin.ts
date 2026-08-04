@@ -6,6 +6,7 @@ import { pengajuanIzin, siswa, guru, absensiSiswa, absensiGuru, kelas } from "@/
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
+import { getSchoolDayDate } from "@/server/datetime"
 
 export const izinRouter = router({
   submitIzin: protectedProcedure
@@ -319,17 +320,21 @@ export const izinRouter = router({
 
       // Auto-update attendance if approved
       if (input.status === "disetujui" && row.jenisIzin === "tidak_masuk") {
-        const start = new Date(row.tanggalMulai)
-        const end = new Date(row.tanggalSelesai)
+        // Normalise the izin date range to Jakarta-calendar days stored as
+        // UTC-midnight (the canonical "tanggal" format used by every absensi
+        // query/rekap). Without this, server/browser timezone differences can
+        // shift the recorded day and make auto-attendance miss /rekap.
+        const start = getSchoolDayDate(new Date(row.tanggalMulai))
+        const end = getSchoolDayDate(new Date(row.tanggalSelesai))
+        end.setUTCHours(23, 59, 59, 999)
 
-        // Loop dates
+        // Loop dates (UTC-midnight increments keep us in the canonical domain)
         const current = new Date(start)
         while (current <= end) {
-          const dateToSet = new Date(current)
-          const startOfDay = new Date(dateToSet)
-          startOfDay.setHours(0, 0, 0, 0)
-          const endOfDay = new Date(dateToSet)
-          endOfDay.setHours(23, 59, 59, 999)
+          const schoolDay = getSchoolDayDate(new Date(current))
+          const startOfDay = new Date(schoolDay)
+          const endOfDay = new Date(schoolDay)
+          endOfDay.setUTCHours(23, 59, 59, 999)
 
           const statusToSet = row.alasan.toLowerCase().includes("sakit") ? "sakit" : "izin"
 
@@ -351,7 +356,7 @@ export const izinRouter = router({
                   sekolahId,
                   siswaId: row.siswaId,
                   kelasId: std.kelasId,
-                  tanggal: dateToSet,
+                  tanggal: schoolDay,
                   status: statusToSet,
                 })
               }
@@ -371,13 +376,13 @@ export const izinRouter = router({
                 id: crypto.randomUUID(),
                 sekolahId,
                 guruId: row.guruId,
-                tanggal: dateToSet,
+                tanggal: schoolDay,
                 status: statusToSet,
               })
             }
           }
 
-          current.setDate(current.getDate() + 1)
+          current.setUTCDate(current.getUTCDate() + 1)
         }
       }
 

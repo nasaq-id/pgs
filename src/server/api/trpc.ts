@@ -67,6 +67,7 @@ const MAX_STRING_LENGTH = 10000
 
 function deepSanitize(obj: unknown): unknown {
   if (typeof obj === "string") return stripHtml(obj).slice(0, MAX_STRING_LENGTH)
+  if (obj instanceof Date) return obj
   if (Array.isArray(obj)) return obj.map(deepSanitize)
   if (obj && typeof obj === "object") {
     return Object.fromEntries(
