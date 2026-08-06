@@ -69,6 +69,7 @@ export default function AbsensiPage() {
 
   // Bulk download barcode states
   const [bulkFilterClassId, setBulkFilterClassId] = useState<string>("semua")
+  const [selectedSiswaSingleId, setSelectedSiswaSingleId] = useState<string>("")
   const [bulkDownloading, setBulkDownloading] = useState(false)
   const [bulkProgress, setBulkProgress] = useState("")
   const [qrPerPage, setQrPerPage] = useState<string>("6")
@@ -134,7 +135,6 @@ export default function AbsensiPage() {
     enabled: canTakeAttendance,
   })
 
-  // Load appropriate default tab
   useEffect(() => {
     if (!canTakeAttendance) {
       setActiveTab("pribadi")
@@ -142,6 +142,16 @@ export default function AbsensiPage() {
       setActiveTab("manual")
     }
   }, [canTakeAttendance])
+
+  const bulkFilteredSiswaList = useMemo(() => {
+    if (!siswaAll) return []
+    if (bulkFilterClassId === "semua") return siswaAll
+    return siswaAll.filter((s) => s.kelasId === bulkFilterClassId)
+  }, [siswaAll, bulkFilterClassId])
+
+  useEffect(() => {
+    setSelectedSiswaSingleId("")
+  }, [bulkFilterClassId])
 
 
 
@@ -656,6 +666,16 @@ export default function AbsensiPage() {
       return
     }
 
+    if (selectedSiswaSingleId) {
+      const std = siswaAll.find((s) => s.id === selectedSiswaSingleId)
+      if (!std) {
+        toast.error("Siswa tidak ditemukan.")
+        return
+      }
+      handleDownloadQR(std.nisn || std.nisLokal || std.id, std.namaLengkap)
+      return
+    }
+
     let filteredSiswa = siswaAll
     let filterName = "semua"
 
@@ -725,6 +745,24 @@ export default function AbsensiPage() {
   const handleBulkPrintQR = async () => {
     if (!siswaAll || siswaAll.length === 0) {
       toast.error("Data siswa tidak tersedia atau belum dimuat.")
+      return
+    }
+
+    if (selectedSiswaSingleId) {
+      const std = siswaAll.find((s) => s.id === selectedSiswaSingleId)
+      if (!std) {
+        toast.error("Siswa tidak ditemukan.")
+        return
+      }
+      const classObj = classes?.find((c) => c.id === std.kelasId)
+      const className = classObj ? classObj.namaKelas : "Siswa"
+      handlePrintQR(
+        std.nisn || std.nisLokal || std.id,
+        std.namaLengkap,
+        "SISWA",
+        `NIS/NISN: ${std.nisn || std.nisLokal || ""}`,
+        className
+      )
       return
     }
 
@@ -956,17 +994,20 @@ export default function AbsensiPage() {
     }
   }
 
-  const handlePrintQR = async (data: string, name: string, roleName: string, identifier: string) => {
+  const handlePrintQR = async (data: string, name: string, roleName: string, identifier: string, className?: string) => {
     const printWindow = window.open("", "_blank", "width=600,height=600")
     if (!printWindow) return
 
     let qrDataUrl = ""
     try {
-      qrDataUrl = await QRCode.toDataURL(data, { width: 250, margin: 2, errorCorrectionLevel: "M" })
+      qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
     } catch {
       toast.error("Gagal membuat QR Code")
       return
     }
+
+    const schoolName = sekolah?.namaSekolah || "PORTAL GUNA SEKOLAH"
+    const displayClass = className || (roleName === "SISWA" ? "Siswa" : roleName)
 
     printWindow.document.write(`
       <html>
@@ -974,63 +1015,98 @@ export default function AbsensiPage() {
           <title>Cetak QR Code - ${escapeHtml(name)}</title>
           <style>
             body {
-              font-family: system-ui, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #ffffff;
               display: flex;
-              flex-direction: column;
               align-items: center;
               justify-content: center;
               height: 100vh;
-              margin: 0;
-              text-align: center;
+              font-family: system-ui, -apple-system, sans-serif;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             .card {
-              border: 2px solid #ddd;
-              border-radius: 16px;
-              padding: 30px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-              max-width: 320px;
+              border: 1.5px solid #e2e8f0;
+              border-radius: 20px;
+              padding: 24px;
               display: flex;
               flex-direction: column;
               align-items: center;
+              justify-content: space-between;
+              box-sizing: border-box;
+              width: 320px;
+              height: 400px;
+              text-align: center;
+              background-color: #fff;
+              position: relative;
+              overflow: hidden;
+              box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            }
+            .card-accent {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 6px;
+              background: linear-gradient(90deg, #14b8a6, #10b981);
             }
             .logo {
               font-weight: 800;
-              font-size: 1.1rem;
-              color: #10b981;
-              margin-bottom: 10px;
+              font-size: 0.85rem;
+              color: #0f766e;
+              margin-top: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
+              line-height: 1.2;
             }
-            img {
+            .card-title {
+              font-weight: 700;
+              text-transform: uppercase;
+              font-size: 0.75rem;
+              letter-spacing: 0.05em;
+              color: #10b981;
+              margin: 4px 0;
+            }
+            .qr-img {
               width: 180px;
               height: 180px;
-              margin: 15px 0;
+              object-fit: contain;
+              margin: 12px 0;
             }
-            h2 {
-              margin: 10px 0 5px 0;
-              font-size: 1.1rem;
+            .student-name {
+              font-weight: 850;
+              font-size: 1.15rem;
+              color: #1e293b;
+              margin: 2px 0;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
             }
-            p {
-              margin: 0;
-              color: #666;
-              font-size: 0.85rem;
-            }
-            .identifier {
+            .identifier-badge {
               font-family: monospace;
-              background: #f3f4f6;
-              padding: 4px 8px;
-              border-radius: 4px;
-              display: inline-block;
-              margin-top: 8px;
+              background: #f1f5f9;
+              padding: 4px 10px;
+              border-radius: 8px;
               font-size: 0.75rem;
+              font-weight: 700;
+              color: #475569;
+              display: inline-block;
+              margin-top: 6px;
             }
           </style>
         </head>
         <body>
           <div class="card">
-            <div class="logo">E-PRESENSI SEKOLAH</div>
-            <p style="font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #10b981;">KARTU PRESENSI ${escapeHtml(roleName)}</p>
-            <img src="${qrDataUrl}" alt="QR" />
-            <h2>${escapeHtml(name)}</h2>
-            <span class="identifier">${escapeHtml(identifier)}</span>
+            <div class="card-accent"></div>
+            <div class="logo">${escapeHtml(displayClass)} &middot; ${escapeHtml(schoolName)}</div>
+            <div class="card-title">Kartu Presensi ${roleName === "SISWA" ? "Siswa" : roleName === "GURU" ? "Guru" : "Staff"}</div>
+            <img class="qr-img" src="${qrDataUrl}" alt="QR Code" />
+            <div>
+              <div class="student-name">${escapeHtml(name)}</div>
+              <span class="identifier-badge">${escapeHtml(identifier)}</span>
+            </div>
           </div>
           <script>
             window.onload = function() {
@@ -1956,7 +2032,7 @@ export default function AbsensiPage() {
                     <button className="flex-1 text-[10px] font-black uppercase tracking-wider h-9 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 transition-all flex items-center justify-center" onClick={() => handleDownloadQR(currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id, currentSiswaInfo.namaLengkap)}>
                       <Download className="h-3.5 w-3.5 mr-1" /> Unduh
                     </button>
-                    <button className="flex-1 text-[10px] font-black uppercase tracking-wider h-9 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 transition-all flex items-center justify-center" onClick={() => handlePrintQR(currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id, currentSiswaInfo.namaLengkap, "SISWA", `NIS/NISN: ${currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || ""}`)}>
+                    <button className="flex-1 text-[10px] font-black uppercase tracking-wider h-9 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 transition-all flex items-center justify-center" onClick={() => handlePrintQR(currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id, currentSiswaInfo.namaLengkap, "SISWA", `NIS/NISN: ${currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || ""}`, classes?.find((c) => c.id === currentSiswaInfo.kelasId)?.namaKelas || "Siswa")}>
                       <Printer className="h-3.5 w-3.5 mr-1" /> Cetak
                     </button>
                   </div>
@@ -2120,7 +2196,10 @@ export default function AbsensiPage() {
                 </Label>
                 <Select
                   value={bulkFilterClassId}
-                  onValueChange={(v) => setBulkFilterClassId(v ?? "semua")}
+                  onValueChange={(v) => {
+                    setBulkFilterClassId(v ?? "semua")
+                    setSelectedSiswaSingleId("")
+                  }}
                   options={[
                     { value: "semua", label: "Semua Kelas & Siswa" },
                     ...(classes?.map((c) => ({ value: c.id, label: c.namaKelas })) || [])
@@ -2134,6 +2213,32 @@ export default function AbsensiPage() {
                     {classes?.map((c) => (
                       <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
                         {c.namaKelas}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                  Pilih Siswa Spesifik (Opsional)
+                </Label>
+                <Select
+                  value={selectedSiswaSingleId}
+                  onValueChange={(v) => setSelectedSiswaSingleId(v ?? "")}
+                  options={[
+                    { value: "", label: "Cetak Semua Siswa di Kelas" },
+                    ...(bulkFilteredSiswaList?.map((s) => ({ value: s.id, label: `${s.namaLengkap} (${s.nisn || s.nisLokal || "Tanpa NIS"})` })) || [])
+                  ]}
+                >
+                  <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                    <SelectValue placeholder="Cetak Semua Siswa di Kelas" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <SelectItem value="" className="text-xs font-semibold">Cetak Semua Siswa di Kelas</SelectItem>
+                    {bulkFilteredSiswaList?.map((s) => (
+                      <SelectItem key={s.id} value={s.id} className="text-xs font-semibold">
+                        {s.namaLengkap} ({s.nisn || s.nisLokal || "-"})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -2185,7 +2290,7 @@ export default function AbsensiPage() {
                   ) : (
                     <>
                       <Printer className="h-3.5 w-3.5 shrink-0" />
-                      <span>Cetak Massal</span>
+                      <span>{selectedSiswaSingleId ? "Cetak QR Siswa" : "Cetak Massal"}</span>
                     </>
                   )}
                 </button>
@@ -2204,7 +2309,7 @@ export default function AbsensiPage() {
                   ) : (
                     <>
                       <Download className="h-3.5 w-3.5 shrink-0" />
-                      <span>Unduh ZIP</span>
+                      <span>{selectedSiswaSingleId ? "Unduh QR Siswa" : "Unduh ZIP"}</span>
                     </>
                   )}
                 </button>
