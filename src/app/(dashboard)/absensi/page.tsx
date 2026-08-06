@@ -1258,26 +1258,27 @@ export default function AbsensiPage() {
         setIsScannerActive(v === "scan");
       }} className="w-full">
         <div className="w-full flex justify-center mb-6">
-          <div className="w-full max-w-4xl overflow-x-auto scrollbar-none pb-1 flex justify-start md:justify-center">
+          <div className="relative w-full max-w-4xl overflow-x-auto scrollbar-none pb-1 flex justify-start md:justify-center">
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background via-background/60 to-transparent md:hidden" />
             <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner w-max min-w-full md:w-full">
               {canTakeAttendance && (
-                <TabsTrigger value="manual" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="manual" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
                   <ClipboardCheck className="w-4 h-4" />
                   <span>Presensi Manual</span>
                 </TabsTrigger>
               )}
               {canTakeAttendance && (
-                <TabsTrigger value="scan" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="scan" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
                   <Scan className="w-4 h-4" />
                   <span>Scan Barcode</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="pribadi" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+              <TabsTrigger value="pribadi" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
                 <User className="w-4 h-4" />
                 <span>Presensi Saya</span>
               </TabsTrigger>
               {canManageGlobal && (
-                <TabsTrigger value="qrmassal" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="qrmassal" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
                   <QrCode className="w-4 h-4" />
                   <span>QR Massal</span>
                 </TabsTrigger>
@@ -1287,14 +1288,14 @@ export default function AbsensiPage() {
                   <button
                     type="button"
                     onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
-                    className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0"
+                    className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0 whitespace-nowrap"
                   >
                     Sidik Jari <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-                    className="flex-1 rounded-xl px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0"
+                    className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0 whitespace-nowrap"
                   >
                     Face ID <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
                   </button>
@@ -1374,19 +1375,20 @@ export default function AbsensiPage() {
               </div>
 
               {/* Row 2: bulk action + statistik */}
-              <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2.5">
+                <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-2">
                 <Button
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-4 transition-all"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-4 transition-all w-full md:w-auto"
                   onClick={handleHadirSemua}
                   disabled={targetType === "siswa" && !kelasId}
                 >
                   <Check className="h-3.5 w-3.5 mr-1.5" />
                   Hadir Semua
                 </Button>
-                <div className="relative group">
+                <div className="relative group w-full md:w-auto">
                   <Button
                     variant="outline"
-                    className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                    className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full"
                     disabled={targetType === "siswa" && !kelasId}
                   >
                     Set Status Semua ▾
@@ -1408,7 +1410,7 @@ export default function AbsensiPage() {
                 </div>
                 <Button
                   variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
                   onClick={() => handleSetAllTimeNow("jamMasuk")}
                   disabled={targetType === "siswa" && !kelasId}
                 >
@@ -1417,16 +1419,17 @@ export default function AbsensiPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
                   onClick={() => handleSetAllTimeNow("jamPulang")}
                   disabled={targetType === "siswa" && !kelasId}
                 >
                   <Clock className="h-3.5 w-3.5 mr-1.5" />
                   Jam Pulang Semua
                 </Button>
+                </div>
 
                 {((targetType === "siswa" && kelasId) || targetType === "guru") && (
-                  <div className="ml-auto flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap w-full md:w-auto md:ml-auto md:justify-end">
                     {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
                       <div key={st} className="flex items-center gap-1.5">
                         <span className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT_CLASS[st]}`} />
