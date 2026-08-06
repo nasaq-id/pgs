@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs"
 import { siswa, users, kelas, catatanMutasi } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
@@ -292,9 +292,8 @@ export const siswaRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: siswaUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(siswa.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(siswa.id, input.id), eq(siswa.sekolahId, sekolahId)]
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const { passwordSiswa, ...rest } = input.data
@@ -357,9 +356,8 @@ export const siswaRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(siswa.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(siswa.id, input.id), eq(siswa.sekolahId, sekolahId)]
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       await db.delete(siswa).where(and(...conditions))
@@ -370,9 +368,8 @@ export const siswaRouter = router({
   bulkRemove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [inArray(siswa.id, input.ids)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [inArray(siswa.id, input.ids), eq(siswa.sekolahId, sekolahId)]
       await db.delete(siswa).where(and(...conditions))
       return { success: true }
     }),
@@ -383,9 +380,8 @@ export const siswaRouter = router({
       kelasId: z.string().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [inArray(siswa.id, input.ids)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [inArray(siswa.id, input.ids), eq(siswa.sekolahId, sekolahId)]
       
       await db
         .update(siswa)
@@ -406,9 +402,8 @@ export const siswaRouter = router({
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(siswa.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(siswa.id, input.id), eq(siswa.sekolahId, sekolahId)]
       const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)
@@ -492,11 +487,8 @@ export const siswaRouter = router({
       sekolahTujuan: z.string().optional().nullable(),
     })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(siswa.id, input.siswaId)]
-      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)]
       
       const existingSiswa = await db.query.siswa.findFirst({
         where: and(...conditions)

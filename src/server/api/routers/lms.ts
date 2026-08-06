@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { jurnalMengajar, kelas, jadwalPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const jurnalCreateSchema = z.object({
   id: z.string().optional(),
@@ -151,12 +151,10 @@ export const lmsRouter = router({
   createJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sanitized(jurnalCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      if (sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
-        if (!kelasIds.includes(input.kelasId)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
-        }
+      const sekolahIdFilter = requireSekolahId(ctx)
+      const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
+      if (!kelasIds.includes(input.kelasId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
       }
 
       if (ctx.session.user.role === "guru") {
@@ -197,13 +195,13 @@ export const lmsRouter = router({
   updateJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sanitized(z.object({ id: z.string(), data: jurnalUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
       }
 
@@ -237,13 +235,13 @@ export const lmsRouter = router({
   deleteJurnal: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.jurnalMengajar.findFirst({
         where: eq(jurnalMengajar.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jurnal tidak ditemukan" })
       }
 

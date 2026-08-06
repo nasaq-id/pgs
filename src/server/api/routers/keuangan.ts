@@ -10,7 +10,7 @@ import { paymentRouter } from "./finance-payment"
 import { discountRouter } from "./finance-discount"
 import { reportRouter } from "./finance-report"
 import { settingsRouter } from "./finance-settings"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const tagihanCreateSchema = z.object({
   id: z.string().optional(),
@@ -70,7 +70,7 @@ export const keuanganRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(tagihanCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahIdFilter = requireSekolahId(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
       })
@@ -79,7 +79,7 @@ export const keuanganRouter = router({
       }
       const sekolahId = siswaRecord.sekolahId
 
-      if (sekolahIdFilter && sekolahId !== sekolahIdFilter) {
+      if (sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Siswa tidak berada di sekolah Anda" })
       }
 
@@ -95,10 +95,8 @@ export const keuanganRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: tagihanUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const whereClause = sekolahIdFilter
-        ? and(eq(tagihanSpp.id, input.id), eq(tagihanSpp.sekolahId, sekolahIdFilter))
-        : eq(tagihanSpp.id, input.id)
+      const sekolahId = requireSekolahId(ctx)
+      const whereClause = and(eq(tagihanSpp.id, input.id), eq(tagihanSpp.sekolahId, sekolahId))
       const existing = await db.query.tagihanSpp.findFirst({
         where: whereClause,
       })

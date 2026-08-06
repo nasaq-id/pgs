@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { kelas, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const kelasCreateSchema = z.object({
   id: z.string().optional(),
@@ -92,7 +92,7 @@ export const kelasRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(sanitized(kelasCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
+      const sekolahId = requireSekolahId(ctx)
       const id = input.id || crypto.randomUUID()
       const { siswaIds, ...kelasData } = input
       const result = await db.insert(kelas).values({ ...kelasData, id, sekolahId } as any).returning()
@@ -109,9 +109,8 @@ export const kelasRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(sanitized(z.object({ id: z.string(), data: kelasUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(kelas.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(kelas.id, input.id), eq(kelas.sekolahId, sekolahId)]
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
       const { siswaIds, ...kelasData } = input.data
@@ -139,9 +138,8 @@ export const kelasRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(kelas.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(kelas.id, input.id), eq(kelas.sekolahId, sekolahId)]
       const existing = await db.query.kelas.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
       await db

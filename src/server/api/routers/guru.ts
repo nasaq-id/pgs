@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs"
 import { guru, users } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const guruCreateSchema = z.object({
   id: z.string().optional(),
@@ -202,9 +202,8 @@ export const guruRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: guruUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(guru.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(guru.id, input.id), eq(guru.sekolahId, sekolahId)]
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       const { passwordGuru, ...rest } = input.data
@@ -262,9 +261,8 @@ export const guruRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(guru.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(guru.id, input.id), eq(guru.sekolahId, sekolahId)]
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       await db.delete(guru).where(and(...conditions))
@@ -275,9 +273,8 @@ export const guruRouter = router({
   resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(guru.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(guru.id, input.id), eq(guru.sekolahId, sekolahId)]
       const existing = await db.query.guru.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)

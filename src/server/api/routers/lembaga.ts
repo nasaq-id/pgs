@@ -5,7 +5,7 @@ import { router, protectedProcedure, roleProtectedProcedure, publicProcedure, sa
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran, pengaturanKalender } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 import { DEFAULT_KALDIK, resolveSemesterYear, suggestSemesterDates } from "@/server/kaldik"
 
 export const lembagaRouter = router({
@@ -153,10 +153,8 @@ export const lembagaRouter = router({
       active: z.boolean().optional(),
     })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const whereClause = sekolahIdFilter
-        ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
-        : eq(tahunAjaran.id, input.id)
+      const sekolahId = requireSekolahId(ctx)
+      const whereClause = and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahId))
       const existing = await db.query.tahunAjaran.findFirst({
         where: whereClause,
       })
@@ -184,10 +182,8 @@ export const lembagaRouter = router({
   removeTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const whereClause = sekolahIdFilter
-        ? and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahIdFilter))
-        : eq(tahunAjaran.id, input.id)
+      const sekolahId = requireSekolahId(ctx)
+      const whereClause = and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahId))
       const existing = await db.query.tahunAjaran.findFirst({
         where: whereClause,
       })

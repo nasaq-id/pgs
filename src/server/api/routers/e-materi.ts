@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { eMateri, mataPelajaran, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const eMateriSchema = z.object({
   id: z.string().optional(),
@@ -109,8 +109,7 @@ export const eMateriRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(sanitized(eMateriSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId || ctx.session.user.sekolahId
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const sekolahId = requireSekolahId(ctx)
 
       const id = input.id || crypto.randomUUID()
       const pembuatId = input.pembuatId || ctx.session.user.id
@@ -139,9 +138,8 @@ export const eMateriRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(sanitized(z.object({ id: z.string(), data: eMateriSchema.partial() })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(eMateri.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
       const existing = await db.query.eMateri.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Materi pembelajaran tidak ditemukan" })
@@ -167,9 +165,8 @@ export const eMateriRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(eMateri.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(eMateri.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
       const result = await db.delete(eMateri).where(and(...conditions)).returning()
       await logAudit(ctx, {

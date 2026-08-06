@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { prestasi, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const prestasiCreateSchema = z.object({
   id: z.string().optional(),
@@ -70,14 +70,14 @@ export const prestasiRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(prestasiCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahIdFilter = requireSekolahId(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
       })
       if (!siswaRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const sekolahId = siswaRecord.sekolahId
 
-      if (sekolahIdFilter && sekolahId !== sekolahIdFilter) {
+      if (sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Siswa tidak berada di sekolah Anda" })
       }
 
@@ -90,10 +90,8 @@ export const prestasiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: prestasiUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const whereClause = sekolahIdFilter
-        ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
-        : eq(prestasi.id, input.id)
+      const sekolahId = requireSekolahId(ctx)
+      const whereClause = and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahId))
 
       const updateData = { ...input.data }
       delete (updateData as any).id
@@ -110,10 +108,8 @@ export const prestasiRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const whereClause = sekolahIdFilter
-        ? and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahIdFilter))
-        : eq(prestasi.id, input.id)
+      const sekolahId = requireSekolahId(ctx)
+      const whereClause = and(eq(prestasi.id, input.id), eq(prestasi.sekolahId, sekolahId))
 
       const [deleted] = await db.delete(prestasi).where(whereClause).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Prestasi tidak ditemukan" })

@@ -24,9 +24,12 @@ export function getSekolahIdFilter(ctx: Ctx) {
 export function requireSekolahId(ctx: Ctx) {
   const sekolahId = getSekolahIdFilter(ctx)
   if (!sekolahId) {
+    const isSuperAdmin = ctx.session?.user?.role === "super_admin"
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Sekolah tidak ditemukan",
+      message: isSuperAdmin
+        ? "Pilih sekolah terlebih dahulu (gunakan fitur impersonate) sebelum mengubah data sekolah."
+        : "Sekolah tidak ditemukan",
     })
   }
   return sekolahId

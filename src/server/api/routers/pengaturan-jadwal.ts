@@ -5,7 +5,6 @@ import { db } from "@/server/db"
 import { pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const pengaturanJadwalRouter = router({
   get: protectedProcedure

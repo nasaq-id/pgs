@@ -5,8 +5,8 @@ import { db } from "@/server/db"
 import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
-import { getSchoolDayDate, getMinutesSinceMidnightInSchoolTime } from "@/server/datetime"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { getSchoolDayDate, getMinutesSinceMidnightInSchoolTime, getHariEfektif } from "@/server/datetime"
 
 function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3 // Earth radius in meters
@@ -131,13 +131,13 @@ export const absensiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(sanitized(absensiUpdateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.absensiSiswa.findFirst({
         where: eq(absensiSiswa.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data absensi tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Data absensi tidak ditemukan" })
       }
       const result = await db
@@ -1124,10 +1124,7 @@ export const absensiRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx) || ctx.session.user.sekolahId
-      if (!sekolahId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
-      }
+      const sekolahId = requireSekolahId(ctx)
 
       if (!input.qrCode.startsWith("PGS-PRESENSI-GURU-")) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "QR Code tidak valid untuk Presensi Guru Sekolah." })

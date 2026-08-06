@@ -5,7 +5,6 @@ import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { pengampu, kelas, guru, mataPelajaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
 
 export const pengampuRouter = router({
   getAll: protectedProcedure

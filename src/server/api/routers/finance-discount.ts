@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { discount } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 
 export const discountRouter = router({
@@ -82,8 +82,10 @@ export const discountRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.select().from(discount).where(eq(discount.id, input.id)).limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing[0].sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
       if (existing[0].approvedBy) throw new TRPCError({ code: "BAD_REQUEST", message: "Diskon sudah diapprove" })
 
       await db
@@ -99,8 +101,10 @@ export const discountRouter = router({
   toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.select().from(discount).where(eq(discount.id, input.id)).limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing[0].sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
 
       await db
         .update(discount)

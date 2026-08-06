@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const mapelCreateSchema = z.object({
   id: z.string().optional(),
@@ -92,7 +92,7 @@ export const mapelRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(mapelCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
+      const sekolahId = requireSekolahId(ctx)
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(mataPelajaran).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { namaMapel: input.namaMapel } })
@@ -102,9 +102,8 @@ export const mapelRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: mapelUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(mataPelajaran.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(mataPelajaran.id, input.id), eq(mataPelajaran.sekolahId, sekolahId)]
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       const result = await db
@@ -119,9 +118,8 @@ export const mapelRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(mataPelajaran.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(mataPelajaran.id, input.id), eq(mataPelajaran.sekolahId, sekolahId)]
       const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await db.delete(mataPelajaran).where(and(...conditions))
@@ -134,10 +132,9 @@ export const mapelRouter = router({
       items: z.array(z.object({ id: z.string(), urutan: z.number() })),
     }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       for (const item of input.items) {
-        const conditions = [eq(mataPelajaran.id, item.id)]
-        if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
+        const conditions = [eq(mataPelajaran.id, item.id), eq(mataPelajaran.sekolahId, sekolahId)]
         await db.update(mataPelajaran).set({ urutan: item.urutan }).where(and(...conditions))
       }
       await logAudit(ctx, { action: "reorder", entity: "mata_pelajaran", metadata: { count: input.items.length } })

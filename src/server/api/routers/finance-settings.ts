@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { billingType, feeStructure, lateFeeRule } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 // ─── BILLING TYPE ──────────────────────────────────────────
 
@@ -61,10 +61,8 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(sanitized(z.object({ id: z.string(), data: billingTypeSchema.partial() })))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx)
-        const whereClause = sekolahIdFilter
-          ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
-          : eq(billingType.id, input.id)
+        const sekolahId = requireSekolahId(ctx)
+        const whereClause = and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahId))
         const [updated] = await db.update(billingType).set(input.data).where(whereClause).returning()
         if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Billing type tidak ditemukan" })
         await logAudit(ctx, { action: "update_billing_type", entity: "billing_type", entityId: input.id })
@@ -74,10 +72,8 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx)
-        const whereClause = sekolahIdFilter
-          ? and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahIdFilter))
-          : eq(billingType.id, input.id)
+        const sekolahId = requireSekolahId(ctx)
+        const whereClause = and(eq(billingType.id, input.id), eq(billingType.sekolahId, sekolahId))
         const existing = await db.select().from(billingType).where(whereClause).limit(1)
         if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
         await db.update(billingType).set({ isActive: !existing[0].isActive }).where(whereClause)
@@ -116,10 +112,8 @@ export const settingsRouter = router({
     update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(sanitized(z.object({ id: z.string(), data: feeStructureSchema.partial() })))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx)
-        const whereClause = sekolahIdFilter
-          ? and(eq(feeStructure.id, input.id), eq(feeStructure.sekolahId, sekolahIdFilter))
-          : eq(feeStructure.id, input.id)
+        const sekolahId = requireSekolahId(ctx)
+        const whereClause = and(eq(feeStructure.id, input.id), eq(feeStructure.sekolahId, sekolahId))
         const updateData: any = { ...input.data }
         if (updateData.amount) updateData.amount = String(updateData.amount) as any
         const [updated] = await db.update(feeStructure).set(updateData).where(whereClause).returning()
@@ -155,10 +149,8 @@ export const settingsRouter = router({
     toggle: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
       .input(z.object({ id: z.string() }))
       .mutation(async ({ ctx, input }) => {
-        const sekolahIdFilter = getSekolahIdFilter(ctx)
-        const whereClause = sekolahIdFilter
-          ? and(eq(lateFeeRule.id, input.id), eq(lateFeeRule.sekolahId, sekolahIdFilter))
-          : eq(lateFeeRule.id, input.id)
+        const sekolahId = requireSekolahId(ctx)
+        const whereClause = and(eq(lateFeeRule.id, input.id), eq(lateFeeRule.sekolahId, sekolahId))
         const existing = await db.select().from(lateFeeRule).where(whereClause).limit(1)
         if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
         await db.update(lateFeeRule).set({ isActive: !existing[0].isActive }).where(whereClause)

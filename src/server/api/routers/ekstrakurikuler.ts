@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { ekstrakurikuler, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const ekstrakurikulerCreateSchema = z.object({
   id: z.string().optional(),
@@ -69,15 +69,7 @@ export const ekstrakurikulerRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(ekstrakurikulerCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      let sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
-      if (!sekolahId || sekolahId === "") {
-        const firstSekolah = await db.query.sekolah.findFirst()
-        if (firstSekolah) {
-          sekolahId = firstSekolah.id
-        } else {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada sekolah terdaftar di database." })
-        }
-      }
+      const sekolahId = requireSekolahId(ctx)
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ekstrakurikuler).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { namaEkskul: input.namaEkskul } })
@@ -87,9 +79,8 @@ export const ekstrakurikulerRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: ekstrakurikulerUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(ekstrakurikuler.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(ekstrakurikuler.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(ekstrakurikuler.id, input.id), eq(ekstrakurikuler.sekolahId, sekolahId)]
       const existing = await db.query.ekstrakurikuler.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Ekstrakurikuler tidak ditemukan" })
       const updateData = { ...input.data }
@@ -106,9 +97,8 @@ export const ekstrakurikulerRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(ekstrakurikuler.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(ekstrakurikuler.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(ekstrakurikuler.id, input.id), eq(ekstrakurikuler.sekolahId, sekolahId)]
       const existing = await db.query.ekstrakurikuler.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Ekstrakurikuler tidak ditemukan" })
       await db.delete(ekstrakurikuler).where(and(...conditions))

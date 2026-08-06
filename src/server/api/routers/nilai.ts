@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { nilai, siswa, kelas, mataPelajaran, asesmen, asesmenSiswa, sekolah, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const nilaiCreateSchema = z.object({
   id: z.string().optional(),
@@ -88,7 +88,7 @@ export const nilaiRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sanitized(nilaiCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahIdFilter = requireSekolahId(ctx)
       const siswaRecord = await db.query.siswa.findFirst({
         where: eq(siswa.id, input.siswaId),
         with: { kelas: true },
@@ -98,7 +98,7 @@ export const nilaiRouter = router({
       }
       const sekolahId = siswaRecord.sekolahId
 
-      if (sekolahIdFilter && sekolahId !== sekolahIdFilter) {
+      if (sekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Siswa tidak berada di sekolah Anda" })
       }
 
@@ -111,13 +111,13 @@ export const nilaiRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sanitized(z.object({ id: z.string(), data: nilaiUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.nilai.findFirst({
         where: eq(nilai.id, input.id),
         with: { siswa: { with: { kelas: true } } },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Nilai tidak ditemukan" })
-      if (sekolahIdFilter && existing.siswa?.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.siswa?.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Nilai tidak ditemukan" })
       }
       const result = await db
@@ -249,8 +249,8 @@ export const nilaiRouter = router({
       if (!classRecord) throw new TRPCError({ code: "NOT_FOUND", message: "Kelas tidak ditemukan" })
       
       const targetSekolahId = classRecord.sekolahId
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      if (sekolahIdFilter && targetSekolahId !== sekolahIdFilter) {
+      const sekolahIdFilter = requireSekolahId(ctx)
+      if (targetSekolahId !== sekolahIdFilter) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Akses ke kelas ini ditolak" })
       }
 

@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const jadwalCreateSchema = z.object({
   id: z.string().optional(),
@@ -330,15 +330,12 @@ export const jadwalRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(jadwalCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      if (sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
-        if (!kelasIds.includes(input.kelasId)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
-        }
+      const sekolahId = requireSekolahId(ctx)
+      const kelasIds = await getKelasIdsForSekolah(sekolahId)
+      if (!kelasIds.includes(input.kelasId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
       }
 
-      const sekolahId = sekolahIdFilter ?? ctx.session.user.sekolahId ?? ""
       const pengaturan = await db.query.pengaturanJadwal.findFirst({
         where: eq(pengaturanJadwal.sekolahId, sekolahId),
       })
@@ -419,23 +416,21 @@ export const jadwalRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: jadwalUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.jadwalPelajaran.findFirst({
         where: eq(jadwalPelajaran.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
       }
-      if (input.data.kelasId && sekolahIdFilter) {
-        const kelasIds = await getKelasIdsForSekolah(sekolahIdFilter)
+      if (input.data.kelasId) {
+        const kelasIds = await getKelasIdsForSekolah(sekolahId)
         if (!kelasIds.includes(input.data.kelasId)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Kelas tidak berada di sekolah Anda" })
         }
       }
-
-      const sekolahId = sekolahIdFilter ?? ctx.session.user.sekolahId ?? ""
       const newJpMulai = input.data.jpMulai !== undefined ? input.data.jpMulai : existing.jpMulai
       const newJpCount = input.data.jpCount !== undefined ? input.data.jpCount : existing.jpCount
       const newHari = input.data.hari !== undefined ? input.data.hari : existing.hari
@@ -481,13 +476,13 @@ export const jadwalRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.jadwalPelajaran.findFirst({
         where: eq(jadwalPelajaran.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Jadwal pelajaran tidak ditemukan" })
       }
       await db.delete(jadwalPelajaran).where(eq(jadwalPelajaran.id, input.id))

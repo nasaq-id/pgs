@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { invoice, invoiceStatusHistory, billingType, feeStructure, discount } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const invoiceSchema = z.object({
   studentId: z.string(),
@@ -137,9 +137,7 @@ export const billingRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
-      if (!ctx.session.user.sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const sekolahId = ctx.session.user.sekolahId
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
 
       // Resolve target students
       let targetSiswaIds = input.studentIds || []
@@ -157,13 +155,11 @@ export const billingRouter = router({
       }
 
       // Multi-tenant filter
-      if (sekolahIdFilter) {
-        const validSiswa = await db.query.siswa.findMany({
-          where: (siswa: any, { eq }: any) => and(eq(siswa.sekolahId, sekolahId), inArray(siswa.id, targetSiswaIds)),
-          columns: { id: true },
-        })
-        targetSiswaIds = validSiswa.map((s: any) => s.id)
-      }
+      const validSiswa = await db.query.siswa.findMany({
+        where: (siswa: any, { eq }: any) => and(eq(siswa.sekolahId, sekolahId), inArray(siswa.id, targetSiswaIds)),
+        columns: { id: true },
+      })
+      targetSiswaIds = validSiswa.map((s: any) => s.id)
 
       // Get billing type
       const btResult = await db.select().from(billingType).where(eq(billingType.id, input.billingTypeId)).limit(1)
@@ -270,9 +266,11 @@ export const billingRouter = router({
     .input(sanitized(z.object({ id: z.string(), reason: z.string().min(1, "Alasan wajib diisi") })))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.select().from(invoice).where(eq(invoice.id, input.id)).limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
       const inv = existing[0]
+      if (inv.sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
 
       if (inv.status === "paid" || inv.status === "cancelled") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invoice yang sudah lunas/dibatalkan tidak bisa dibatalkan" })

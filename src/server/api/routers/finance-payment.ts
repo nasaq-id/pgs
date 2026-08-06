@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 import { payment, invoice, invoiceStatusHistory } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 
 async function updateInvoiceStatus(invoiceId: string, userId: string) {
@@ -88,9 +88,11 @@ export const paymentRouter = router({
     .input(z.object({ id: z.string(), receiptNumber: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.select().from(payment).where(eq(payment.id, input.id)).limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
       const pay = existing[0]
+      if (pay.sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
       if (pay.status !== "pending_verification") throw new TRPCError({ code: "BAD_REQUEST", message: "Pembayaran sudah diverifikasi" })
 
       await db
@@ -125,8 +127,10 @@ export const paymentRouter = router({
     .input(sanitized(z.object({ id: z.string(), reason: z.string().min(1, "Alasan reject wajib") })))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.select().from(payment).where(eq(payment.id, input.id)).limit(1)
       if (!existing[0]) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing[0].sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
       if (existing[0].status !== "pending_verification") throw new TRPCError({ code: "BAD_REQUEST", message: "Pembayaran sudah diverifikasi" })
 
       await db
@@ -149,9 +153,11 @@ export const paymentRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id!
+      const sekolahId = requireSekolahId(ctx)
       const invResult = await db.select().from(invoice).where(eq(invoice.id, input.invoiceId)).limit(1)
       if (!invResult[0]) throw new TRPCError({ code: "NOT_FOUND" })
       const inv = invResult[0]
+      if (inv.sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND" })
 
       const payId = crypto.randomUUID()
       await db.insert(payment).values({

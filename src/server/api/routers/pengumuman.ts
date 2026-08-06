@@ -6,7 +6,7 @@ import { pengumuman, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -113,15 +113,7 @@ export const pengumumanRouter = router({
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(pengumumanCreateSchema))
     .mutation(async ({ ctx, input }) => {
-      let sekolahId = getSekolahIdFilter(ctx) || input.sekolahId
-      if (!sekolahId || sekolahId === "") {
-        const firstSekolah = await db.query.sekolah.findFirst()
-        if (firstSekolah) {
-          sekolahId = firstSekolah.id
-        } else {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada sekolah terdaftar di database." })
-        }
-      }
+      const sekolahId = requireSekolahId(ctx)
       const id = input.id || crypto.randomUUID()
       
       let tanggalPublish = new Date()
@@ -159,9 +151,8 @@ export const pengumumanRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(sanitized(z.object({ id: z.string(), data: pengumumanUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(pengumuman.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(pengumuman.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(pengumuman.id, input.id), eq(pengumuman.sekolahId, sekolahId)]
       const existing = await db.query.pengumuman.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
       const { tanggalPublish, ...rest } = input.data
@@ -203,9 +194,8 @@ export const pengumumanRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = [eq(pengumuman.id, input.id)]
-      if (sekolahIdFilter) conditions.push(eq(pengumuman.sekolahId, sekolahIdFilter))
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(pengumuman.id, input.id), eq(pengumuman.sekolahId, sekolahId)]
       const existing = await db.query.pengumuman.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
       await db.delete(pengumuman).where(and(...conditions))

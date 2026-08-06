@@ -6,7 +6,7 @@ import { db } from "@/server/db"
 import { asesmen, asesmenSiswa, asesmenKomentar, kelas, guru, siswa } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
-import { getSekolahIdFilter } from "@/server/api/tenant"
+import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 
 
 async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]> {
@@ -152,13 +152,13 @@ export const asesmenRouter = router({
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(sanitized(z.object({ id: z.string(), data: asesmenUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
       }
       const result = await db
@@ -173,13 +173,13 @@ export const asesmenRouter = router({
   remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const existing = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.id),
         with: { kelas: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
-      if (sekolahIdFilter && existing.kelas?.sekolahId !== sekolahIdFilter) {
+      if (existing.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
       }
       await db.delete(asesmen).where(eq(asesmen.id, input.id))
@@ -246,13 +246,13 @@ export const asesmenRouter = router({
       })),
     )
     .mutation(async ({ ctx, input }) => {
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
       const a = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.asesmenId),
         with: { kelas: true },
       })
       if (!a) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
-      if (sekolahIdFilter && a.kelas?.sekolahId !== sekolahIdFilter) {
+      if (a.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" } as any)
       }
       if (a.status === "ditutup") throw new TRPCError({ code: "BAD_REQUEST", message: "Asesmen sudah ditutup" })
@@ -317,13 +317,13 @@ export const asesmenRouter = router({
       })),
     )
     .mutation(async ({ ctx, input }) => {
-      let entryId = input.asesmenSiswaId
-      let entry = await db.query.asesmenSiswa.findFirst({
+      const entryId = input.asesmenSiswaId
+      const entry = await db.query.asesmenSiswa.findFirst({
         where: eq(asesmenSiswa.id, entryId),
         with: { asesmen: { with: { kelas: true } } },
       })
 
-      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const sekolahId = requireSekolahId(ctx)
 
       if (!entry) {
         // Handle grading mock student entry (temp_asesmenId_siswaId)
@@ -341,7 +341,7 @@ export const asesmenRouter = router({
             with: { kelas: true },
           })
           if (!a) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
-          if (sekolahIdFilter && a.kelas?.sekolahId !== sekolahIdFilter) {
+          if (a.kelas?.sekolahId !== sekolahId) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
           }
 
@@ -377,7 +377,7 @@ export const asesmenRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Entry tidak ditemukan" })
       }
 
-      if (sekolahIdFilter && entry.asesmen.kelas?.sekolahId !== sekolahIdFilter) {
+      if (entry.asesmen.kelas?.sekolahId !== sekolahId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Entry tidak ditemukan" })
       }
 
@@ -431,12 +431,14 @@ export const asesmenRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User tidak ditemukan" })
+      const sekolahId = requireSekolahId(ctx)
 
       const a = await db.query.asesmen.findFirst({
         where: eq(asesmen.id, input.asesmenId),
         columns: { sekolahId: true },
       })
       if (!a) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
+      if (a.sekolahId !== sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Asesmen tidak ditemukan" })
 
       const [created] = await db
         .insert(asesmenKomentar)
