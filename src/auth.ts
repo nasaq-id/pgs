@@ -5,6 +5,7 @@ import { db } from "./server/db"
 import { users } from "./server/db/schema"
 import { eq } from "drizzle-orm"
 import { headers } from "next/headers"
+import { checkRateLimit } from "./server/rate-limit"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -18,8 +19,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
+        const email = String(credentials.email).toLowerCase()
+        // Batasi percobaan login per akun (5x / 15 menit) untuk mencegah brute-force
+        const allowed = await checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000)
+        if (!allowed) return null
+
         const user = await db.query.users.findFirst({
-          where: eq(users.email, credentials.email as string),
+          where: eq(users.email, email),
           with: { sekolah: true },
         })
 

@@ -3,10 +3,11 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc, count } from "drizzle-orm"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { guru, users } from "@/server/db/schema"
+import { guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { syncUserCredentials } from "@/server/credentials"
 
 const guruCreateSchema = z.object({
   id: z.string().optional(),
@@ -107,47 +108,19 @@ export const guruRouter = router({
       let passwordHash = input.passwordGuru || null
       if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
       const result = await db.insert(guru).values({ ...input, id, passwordGuru: passwordHash, sekolahId } as any).returning()
-      const email = input.usernameGuru || input.email || input.nipnuptk || ""
-      if (email) {
-        const nameParts = (input.namaLengkap || "").split(" ")
-        const firstName = nameParts[0] || ""
-        const lastName = nameParts.slice(1).join(" ") || ""
-        const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
-        const userPhoto = input.foto || null
-
-        if (userRecord) {
-          await db
-            .update(users)
-            .set({
-              firstName,
-              lastName,
-              photo: userPhoto,
-              password: passwordHash || userRecord.password,
-            })
-            .where(eq(users.email, email))
-            .execute()
-        } else {
-          await db
-            .insert(users)
-            .values({
-              id: crypto.randomUUID(),
-              email,
-              firstName,
-              lastName,
-              password: passwordHash || "$2b$12$kBIO9Jl5ilOB/vjpf.1NjOzwXIyAiqIkcPs2CN31YZI9/9wF3GIk6",
-              role: "guru",
-              sekolahId,
-              photo: userPhoto,
-              active: true,
-            })
-            .execute()
-        }
-      }
+      await syncUserCredentials({
+        email: input.usernameGuru || input.email || input.nipnuptk || "",
+        role: "guru",
+        sekolahId,
+        namaLengkap: input.namaLengkap,
+        photo: input.foto || null,
+        passwordHash,
+      })
       await logAudit(ctx, { action: "create", entity: "guru", entityId: result[0]?.id, metadata: { namaLengkap: input.namaLengkap } })
       return result[0]
     }),
 
-  bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+  bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"]).use(moderateRateLimit)
     .input(sanitized(z.object({
       data: z.array(guruCreateSchema.omit({ sekolahId: true })),
     })))
@@ -161,24 +134,20 @@ export const guruRouter = router({
         let passwordHash = d.passwordGuru || null
         if (passwordHash) passwordHash = bcrypt.hashSync(passwordHash, 12)
         if (passwordHash) {
-          const email = d.usernameGuru || d.email || d.nipnuptk || ""
-          const nameParts = (d.namaLengkap || "").split(" ")
           usersToCreate.push({
-            id: crypto.randomUUID(),
-            email,
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            password: passwordHash,
-            role: "guru",
+            email: d.usernameGuru || d.email || d.nipnuptk || "",
+            role: "guru" as const,
             sekolahId,
-            active: true,
+            namaLengkap: d.namaLengkap,
+            passwordHash,
+            createIfMissing: true,
           })
         }
         return { ...d, id, passwordGuru: passwordHash, sekolahId, updatedAt: now }
       })
       const result = await db.insert(guru).values(values as any).returning()
       for (const u of usersToCreate) {
-        await db.insert(users).values(u).execute()
+        await syncUserCredentials(u)
       }
       await logAudit(ctx, { action: "bulk_create", entity: "guru", metadata: { count: result.length } })
       return result
@@ -217,42 +186,14 @@ export const guruRouter = router({
         .returning()
       const email = input.data.usernameGuru || existing.email || existing.usernameGuru || existing.nipnuptk || ""
       if (email) {
-        const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
-        const firstName = rest.namaLengkap?.split(" ")[0] || existing.namaLengkap?.split(" ")[0] || ""
-        const lastName = rest.namaLengkap?.split(" ").slice(1).join(" ") || existing.namaLengkap?.split(" ").slice(1).join(" ") || ""
-        const photo = rest.foto !== undefined ? rest.foto : existing.foto
-
-        const dataToUpdate: Record<string, any> = {
-          firstName,
-          lastName,
-          photo,
-        }
-        if (passwordHash) {
-          dataToUpdate.password = passwordHash
-        }
-
-        if (userRecord) {
-          await db
-            .update(users)
-            .set(dataToUpdate)
-            .where(eq(users.email, email))
-            .execute()
-        } else {
-          await db
-            .insert(users)
-            .values({
-              id: crypto.randomUUID(),
-              email,
-              firstName,
-              lastName,
-              password: passwordHash || "$2b$12$kBIO9Jl5ilOB/vjpf.1NjOzwXIyAiqIkcPs2CN31YZI9/9wF3GIk6",
-              role: "guru",
-              sekolahId: existing.sekolahId,
-              photo,
-              active: true,
-            })
-            .execute()
-        }
+        await syncUserCredentials({
+          email,
+          role: "guru",
+          sekolahId: existing.sekolahId,
+          namaLengkap: rest.namaLengkap || existing.namaLengkap,
+          photo: rest.foto !== undefined ? rest.foto : existing.foto,
+          passwordHash,
+        })
       }
       await logAudit(ctx, { action: "update", entity: "guru", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
@@ -270,7 +211,7 @@ export const guruRouter = router({
       return { success: true }
     }),
 
-  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"]).use(strictRateLimit)
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
@@ -279,25 +220,13 @@ export const guruRouter = router({
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)
       await db.update(guru).set({ passwordGuru: passwordHash }).where(and(...conditions))
-       const email = existing.usernameGuru || existing.nipnuptk || ""
-       if (email) {
-         const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
-         if (userRecord) {
-           await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute()
-         } else {
-           const nameParts = (existing.namaLengkap || "").split(" ")
-           await db.insert(users).values({
-             id: crypto.randomUUID(),
-             email,
-             firstName: nameParts[0] || "",
-             lastName: nameParts.slice(1).join(" ") || "",
-             password: passwordHash,
-             role: "guru",
-             sekolahId: existing.sekolahId,
-             active: true,
-           }).execute()
-         }
-       }
+      await syncUserCredentials({
+        email: existing.usernameGuru || existing.nipnuptk || "",
+        role: "guru",
+        sekolahId: existing.sekolahId,
+        namaLengkap: existing.namaLengkap,
+        passwordHash,
+      })
       await logAudit(ctx, { action: "reset_password", entity: "guru", entityId: input.id })
       return { success: true }
     }),

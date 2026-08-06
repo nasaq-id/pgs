@@ -116,7 +116,8 @@
 
 ### D1. Penyimpanan password ganda (dual storage) antara tabel master & `users`
 - **Severity:** 🟡 Medium
-- **Status:** 🟡 In Progress (sync logic sudah ada, dual storage tetap ada)
+- **Status:** ✅ Done (sync terpusat via `src/server/credentials.ts` — `syncUserCredentials()`)
+- **Hasil (2026-08):** Semua path mutasi (create/update/reset/bulk siswa & guru) kini memakai satu helper `syncUserCredentials()` — tidak ada lagi blok sync terduplikasi yang bisa drift. `users` = satu-satunya sumber kredensial yang dibaca auth. Kolom `password_siswa`/`password_guru` ditandai deprecated (masih tersimpan untuk kompatibilitas, tidak pernah dibaca untuk login). Langkah berikut (opsional, setelah produksi stabil): drop kolom tersebut via migration.
 - **Lokasi:**
   - Schema: `src/server/db/schema/siswa.ts` (`usernameSiswa`/`passwordSiswa`), `src/server/db/schema/guru.ts` (`usernameGuru`/`passwordGuru`), `src/server/db/schema/users.ts` (`email`/`password`)
   - Sync logic: `src/server/api/routers/siswa.ts` (create/update/reset), `src/server/api/routers/guru.ts` (`resetPassword` ~baris 275-305)

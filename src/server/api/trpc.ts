@@ -4,6 +4,7 @@ import { db } from "@/server/db"
 import { cookies } from "next/headers"
 import { z } from "zod"
 import { stripHtml } from "@/server/security"
+import { checkRateLimit } from "@/server/rate-limit"
 
 export const createTRPCContext = async () => {
   const session = await auth()
@@ -81,30 +82,13 @@ export function sanitized<T extends z.ZodTypeAny>(schema: T) {
   return schema.transform((val) => deepSanitize(val) as z.infer<T>)
 }
 
-type RateLimitBucket = { count: number; resetAt: number }
-const rateLimitBuckets = new Map<string, RateLimitBucket>()
-
-function rateLimit(key: string, max: number, windowMs: number): boolean {
-  const now = Date.now()
-  const bucket = rateLimitBuckets.get(key)
-
-  if (!bucket || bucket.resetAt <= now) {
-    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs })
-    return true
-  }
-
-  if (bucket.count >= max) return false
-
-  bucket.count++
-  return true
-}
-
 export function createRateLimitedProcedure(max: number, windowMs: number) {
-  return t.middleware(({ next, ctx }) => {
+  return t.middleware(async ({ next, ctx }) => {
     const userId = ctx.session?.user?.id || "anonymous"
     const key = `rl:${userId}`
 
-    if (!rateLimit(key, max, windowMs)) {
+    const allowed = await checkRateLimit(key, max, windowMs)
+    if (!allowed) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "Terlalu banyak permintaan. Coba lagi nanti.",
@@ -113,7 +97,7 @@ export function createRateLimitedProcedure(max: number, windowMs: number) {
 
     return next({
       ctx: {
-        session: { ...ctx.session, user: ctx.session?.user },
+        session: { ...ctx.session, user: ctx.session!.user },
       },
     })
   })

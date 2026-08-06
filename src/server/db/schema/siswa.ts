@@ -91,6 +91,7 @@ export const siswa = pgTable("siswa", {
   transportasiKeSekolah: text("transportasi_ke_sekolah"),
   waktuTempuhKeSekolah: text("waktu_tempuh_ke_sekolah"),
   usernameSiswa: text("username_siswa"),
+  // DEPRECATED: kredensial login hanya di tabel users (sync via syncUserCredentials)
   passwordSiswa: text("password_siswa"),
   sekolahAsal: text("sekolah_asal"),
   diterimaPadaTanggal: timestamp("diterima_pada_tanggal"),

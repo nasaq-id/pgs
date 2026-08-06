@@ -4,10 +4,11 @@ import { eq, and, like, or, desc, asc, inArray, isNull, count } from "drizzle-or
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { siswa, users, kelas, catatanMutasi } from "@/server/db/schema"
+import { siswa, kelas, catatanMutasi } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { syncUserCredentials } from "@/server/credentials"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
@@ -181,42 +182,14 @@ export const siswaRouter = router({
         if (passwordHash) passwordHash = await bcrypt.hash(passwordHash, 12)
         const data = { ...input, id, sekolahId, passwordSiswa: passwordHash, updatedAt: new Date() }
         const result = await db.insert(siswa).values(data as any).returning()
-        const email = input.nisn || input.nisLokal || input.usernameSiswa || ""
-        if (email) {
-          const nameParts = (input.namaLengkap || "").split(" ")
-          const firstName = nameParts[0] || ""
-          const lastName = nameParts.slice(1).join(" ") || ""
-          const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
-          const userPhoto = input.foto || null
-
-          if (userRecord) {
-            await db
-              .update(users)
-              .set({
-                firstName,
-                lastName,
-                photo: userPhoto,
-                password: passwordHash || userRecord.password,
-              })
-              .where(eq(users.email, email))
-              .execute()
-          } else {
-            await db
-              .insert(users)
-              .values({
-                id: crypto.randomUUID(),
-                email,
-                firstName,
-                lastName,
-                password: passwordHash || "$2b$12$kBIO9Jl5ilOB/vjpf.1NjOzwXIyAiqIkcPs2CN31YZI9/9wF3GIk6",
-                role: "siswa",
-                sekolahId,
-                photo: userPhoto,
-                active: true,
-              })
-              .execute()
-          }
-        }
+        await syncUserCredentials({
+          email: input.nisn || input.nisLokal || input.usernameSiswa || "",
+          role: "siswa",
+          sekolahId,
+          namaLengkap: input.namaLengkap,
+          photo: input.foto || null,
+          passwordHash,
+        })
         await logAudit(ctx, { action: "create", entity: "siswa", entityId: result[0]?.id, metadata: { nisn: input.nisn } })
         return result[0]
       } catch (error) {
@@ -229,7 +202,7 @@ export const siswaRouter = router({
       }
     }),
 
-  bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+  bulkCreate: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"]).use(moderateRateLimit)
     .input(sanitized(z.object({
       data: z.array(siswaCreateSchema.omit({ sekolahId: true })),
     })))
@@ -243,24 +216,20 @@ export const siswaRouter = router({
         let passwordHash = d.passwordSiswa || null
         if (passwordHash) passwordHash = bcrypt.hashSync(passwordHash, 12)
         if (passwordHash) {
-          const email = d.nisn || d.usernameSiswa || d.nisLokal
-          const nameParts = (d.namaLengkap || "").split(" ")
           usersToCreate.push({
-            id: crypto.randomUUID(),
-            email,
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            password: passwordHash,
-            role: "siswa",
+            email: d.nisn || d.usernameSiswa || d.nisLokal,
+            role: "siswa" as const,
             sekolahId,
-            active: true,
+            namaLengkap: d.namaLengkap,
+            passwordHash,
+            createIfMissing: true,
           })
         }
         return { ...d, id, sekolahId, passwordSiswa: passwordHash, updatedAt: now }
       })
       const result = await db.insert(siswa).values(values as any).returning()
       for (const u of usersToCreate) {
-        await db.insert(users).values(u).execute()
+        await syncUserCredentials(u)
       }
       await logAudit(ctx, { action: "bulk_create", entity: "siswa", metadata: { count: result.length } })
       return result
@@ -305,49 +274,18 @@ export const siswaRouter = router({
         .set(updateData)
         .where(and(...conditions))
         .returning()
-      const oldEmail = existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
       const newEmail = input.data.nisn || input.data.usernameSiswa || input.data.nisLokal || existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
+      const oldEmail = existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
       if (newEmail) {
-        let userRecord = await db.query.users.findFirst({ where: eq(users.email, newEmail) })
-        if (!userRecord && oldEmail && oldEmail !== newEmail) {
-          userRecord = await db.query.users.findFirst({ where: eq(users.email, oldEmail) })
-        }
-        const firstName = rest.namaLengkap?.split(" ")[0] || existing.namaLengkap?.split(" ")[0] || ""
-        const lastName = rest.namaLengkap?.split(" ").slice(1).join(" ") || existing.namaLengkap?.split(" ").slice(1).join(" ") || ""
-        const photo = rest.foto !== undefined ? rest.foto : existing.foto
-
-        const dataToUpdate: Record<string, any> = {
+        await syncUserCredentials({
           email: newEmail,
-          firstName,
-          lastName,
-          photo,
-        }
-        if (passwordHash) {
-          dataToUpdate.password = passwordHash
-        }
-
-        if (userRecord) {
-          await db
-            .update(users)
-            .set(dataToUpdate)
-            .where(eq(users.id, userRecord.id))
-            .execute()
-        } else {
-          await db
-            .insert(users)
-            .values({
-              id: crypto.randomUUID(),
-              email: newEmail,
-              firstName,
-              lastName,
-              password: passwordHash || "$2b$12$kBIO9Jl5ilOB/vjpf.1NjOzwXIyAiqIkcPs2CN31YZI9/9wF3GIk6",
-              role: "siswa",
-              sekolahId: existing.sekolahId,
-              photo,
-              active: true,
-            })
-            .execute()
-        }
+          prevEmail: oldEmail !== newEmail ? oldEmail : undefined,
+          role: "siswa",
+          sekolahId: existing.sekolahId,
+          namaLengkap: rest.namaLengkap || existing.namaLengkap,
+          photo: rest.foto !== undefined ? rest.foto : existing.foto,
+          passwordHash,
+        })
       }
       await logAudit(ctx, { action: "update", entity: "siswa", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
@@ -399,7 +337,7 @@ export const siswaRouter = router({
       return { success: true }
     }),
 
-  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+  resetPassword: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"]).use(strictRateLimit)
     .input(z.object({ id: z.string(), password: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
@@ -408,25 +346,13 @@ export const siswaRouter = router({
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       const passwordHash = await bcrypt.hash(input.password, 12)
       await db.update(siswa).set({ passwordSiswa: passwordHash, updatedAt: new Date() }).where(and(...conditions))
-      const email = existing.nisn || existing.usernameSiswa || existing.nisLokal || ""
-      if (email) {
-        const userRecord = await db.query.users.findFirst({ where: eq(users.email, email) })
-        if (userRecord) {
-          await db.update(users).set({ password: passwordHash }).where(eq(users.email, email)).execute()
-        } else {
-          const nameParts = (existing.namaLengkap || "").split(" ")
-          await db.insert(users).values({
-            id: crypto.randomUUID(),
-            email,
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            password: passwordHash,
-            role: "siswa",
-            sekolahId: existing.sekolahId,
-            active: true,
-          }).execute()
-        }
-      }
+      await syncUserCredentials({
+        email: existing.nisn || existing.usernameSiswa || existing.nisLokal || "",
+        role: "siswa",
+        sekolahId: existing.sekolahId,
+        namaLengkap: existing.namaLengkap,
+        passwordHash,
+      })
       await logAudit(ctx, { action: "reset_password", entity: "siswa", entityId: input.id })
       return { success: true }
     }),

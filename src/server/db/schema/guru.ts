@@ -26,6 +26,7 @@ export const guru = pgTable("guru", {
   foto: text("foto"),
   active: boolean("active").notNull().default(true),
   usernameGuru: text("username_guru"),
+  // DEPRECATED: kredensial login hanya di tabel users (sync via syncUserCredentials)
   passwordGuru: text("password_guru"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
