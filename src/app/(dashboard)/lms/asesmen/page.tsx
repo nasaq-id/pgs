@@ -396,7 +396,7 @@ export default function AsesmenPage() {
               onValueChange={(v) => setKelasFilter(v ?? "all")}
               options={[
                 { value: "all", label: "Semua Kelas" },
-                ...(kelasList?.map((k) => ({ value: k.id, label: `Kelas ${k.namaKelas}` })) ?? []),
+                ...(kelasList?.map((k) => ({ value: k.id, label: k.namaKelas })) ?? []),
               ]}
             >
               <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
@@ -405,7 +405,7 @@ export default function AsesmenPage() {
               <SelectContent>
                 <SelectItem value="all">Semua Kelas</SelectItem>
                 {kelasList?.map((k) => (
-                  <SelectItem key={k.id} value={k.id} label={`Kelas ${k.namaKelas}`}>Kelas {k.namaKelas}</SelectItem>
+                  <SelectItem key={k.id} value={k.id} label={k.namaKelas}>{k.namaKelas}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -650,14 +650,14 @@ export default function AsesmenPage() {
               <Select
                 value={rekapKelasId}
                 onValueChange={(v) => setRekapKelasId(v ?? "")}
-                options={kelasList?.map((k) => ({ value: k.id, label: `Kelas ${k.namaKelas}` })) ?? []}
+                options={kelasList?.map((k) => ({ value: k.id, label: k.namaKelas })) ?? []}
               >
                 <SelectTrigger className="w-full sm:w-[220px] !h-12 !rounded-2xl text-xs font-extrabold cursor-pointer">
                   <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
                 <SelectContent>
                   {kelasList?.map((k) => (
-                    <SelectItem key={k.id} value={k.id} label={`Kelas ${k.namaKelas}`}>Kelas {k.namaKelas}</SelectItem>
+                    <SelectItem key={k.id} value={k.id} label={k.namaKelas}>{k.namaKelas}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
