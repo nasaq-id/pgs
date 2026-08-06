@@ -855,13 +855,16 @@ export const absensiRouter = router({
 
       const summaryList = Array.from(studentMap.values()).map((item) => {
         const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
+        // Alfa implisit: hari efektif tanpa record apa pun (tidak hadir & tidak ada izin/sakit disetujui)
+        const alphaCount = Math.max(0, hariEfektifCount - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount))
         // Pendekatan A: (Hadir + Terlambat) / Hari Efektif
         const effectiveHadir = item.hadirCount + item.terlambatCount
         const persentase = hariEfektifCount > 0 ? Math.round((effectiveHadir / hariEfektifCount) * 100) : 0
         return {
           ...item,
+          alphaCount,
           hariEfektif: hariEfektifCount,
-          hariTercatat: loggedDays,
+          hariTercatat: loggedDays + (alphaCount - item.alphaCount),
           persentaseHadir: persentase,
         }
       })
@@ -1150,12 +1153,15 @@ export const absensiRouter = router({
 
         // Jam Kerja: Pendekatan B — Sakit/Izin dimaklumi (tidak mengurangi persentase)
         const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
+        // Alfa implisit: hari efektif tanpa record apa pun
+        const alphaCount = Math.max(0, teacherEfektifCount - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount))
         const effectiveHadir = item.hadirCount + item.terlambatCount + item.sakitCount + item.izinCount
         const persentase = teacherEfektifCount > 0 ? Math.round((effectiveHadir / teacherEfektifCount) * 100) : 0
         return {
           ...item,
+          alphaCount,
           hariEfektif: teacherEfektifCount,
-          hariTercatat: loggedDays,
+          hariTercatat: loggedDays + (alphaCount - item.alphaCount),
           persentaseHadir: persentase,
         }
       })
