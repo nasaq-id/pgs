@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, between, or, asc, lte, gte } from "drizzle-orm"
+import { eq, and, desc, between, or, asc, lte, gte, isNull } from "drizzle-orm"
 import { db } from "@/server/db"
-import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah } from "@/server/db/schema"
+import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
@@ -181,11 +181,25 @@ export const absensiRouter = router({
             toleransiSiswa: 15,
             radius: 100,
             aturanGuru: "per_jp",
+            hariLibur: '["sabtu", "minggu"]',
           })
           .returning()
         settings = newSettings
       }
-      return settings
+      
+      let parsedHariLibur: string[] = ["sabtu", "minggu"]
+      if (settings.hariLibur) {
+        try {
+          parsedHariLibur = JSON.parse(settings.hariLibur)
+        } catch (e) {
+          console.error("Failed to parse hariLibur:", e)
+        }
+      }
+
+      return {
+        ...settings,
+        hariLibur: parsedHariLibur,
+      }
     }),
 
   savePengaturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -202,10 +216,11 @@ export const absensiRouter = router({
         longitude: z.string().nullable().optional(),
         radius: z.number().optional().default(100),
         aturanGuru: z.enum(["per_jp", "umum"]).optional().default("per_jp"),
+        hariLibur: z.array(z.string()).optional(),
       })),
     )
     .mutation(async ({ ctx, input }) => {
-      const { sekolahId: inputSekolahId, ...rest } = input
+      const { sekolahId: inputSekolahId, hariLibur, ...rest } = input
       let sekolahId = ctx.session.user.sekolahId || inputSekolahId
       if (!sekolahId && ctx.session.user.role === "super_admin") {
         const first = await db.query.sekolah.findFirst()
@@ -217,16 +232,19 @@ export const absensiRouter = router({
         where: eq(pengaturanAbsensi.sekolahId, sekolahId),
       })
 
+      const serializedHariLibur = hariLibur ? JSON.stringify(hariLibur) : '["sabtu", "minggu"]'
+
       if (existing) {
         await db
           .update(pengaturanAbsensi)
-          .set({ ...rest, updatedAt: new Date() })
+          .set({ ...rest, hariLibur: serializedHariLibur, updatedAt: new Date() })
           .where(eq(pengaturanAbsensi.sekolahId, sekolahId))
       } else {
         await db.insert(pengaturanAbsensi).values({
           id: crypto.randomUUID(),
           sekolahId,
           ...rest,
+          hariLibur: serializedHariLibur,
         })
       }
       await logAudit(ctx, { action: "update_pengaturan_absensi", entity: "pengaturan_absensi", metadata: input })
@@ -677,7 +695,6 @@ export const absensiRouter = router({
         return result
       }
     }),
-
   getRekapSiswa: protectedProcedure
     .input(
       z.object({
@@ -694,6 +711,10 @@ export const absensiRouter = router({
       const start = getSchoolDayDate(new Date(input.tanggalMulai))
       const end = getSchoolDayDate(new Date(input.tanggalSelesai))
       end.setUTCHours(23, 59, 59, 999)
+
+      // Fetch dynamic effective days
+      const { count: hariEfektifCount, dates: hariEfektifDates } = await getHariEfektif(sekolahId, start, end, "siswa")
+      const hariEfektifSet = new Set(hariEfektifDates)
 
       const siswaConditions = [eq(siswa.sekolahId, sekolahId)]
       if (input.kelasId && input.kelasId !== "all") {
@@ -760,9 +781,11 @@ export const absensiRouter = router({
       }
 
       for (const log of attendanceLogs) {
+        const dateKey = log.tanggal.toISOString().split("T")[0]
+        if (!hariEfektifSet.has(dateKey)) continue
+
         const item = studentMap.get(log.siswaId)
         if (item) {
-          item.totalHari++
           if (log.status === "hadir") item.hadirCount++
           else if (log.status === "terlambat") item.terlambatCount++
           else if (log.status === "izin") item.izinCount++
@@ -772,20 +795,23 @@ export const absensiRouter = router({
       }
 
       const summaryList = Array.from(studentMap.values()).map((item) => {
+        const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
         const effectiveHadir = item.hadirCount + item.terlambatCount
-        const persentase = item.totalHari > 0 ? Math.round((effectiveHadir / item.totalHari) * 100) : 0
+        const persentase = loggedDays > 0 ? Math.round((effectiveHadir / loggedDays) * 100) : 0
         return {
           ...item,
+          hariEfektif: hariEfektifCount,
+          hariTercatat: loggedDays,
           persentaseHadir: persentase,
         }
       })
 
       return {
         summary: summaryList,
-        logs: attendanceLogs,
+        logs: attendanceLogs.filter(log => hariEfektifSet.has(log.tanggal.toISOString().split("T")[0])),
+        hariEfektif: hariEfektifCount,
       }
     }),
-
   getRekapGuru: protectedProcedure
     .input(
       z.object({
@@ -802,6 +828,52 @@ export const absensiRouter = router({
       const end = getSchoolDayDate(new Date(input.tanggalSelesai))
       end.setUTCHours(23, 59, 59, 999)
 
+      // 1. Fetch settings to determine Jam Kerja vs Jam Pelajaran (JP) rule
+      const settings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+      const isPerJP = settings?.aturanGuru === "per_jp"
+
+      // 2. Fetch all calendar events representing school/national holidays
+      const holidays = await db.query.kalenderEvent.findMany({
+        where: and(
+          eq(kalenderEvent.sekolahId, sekolahId),
+          or(
+            eq(kalenderEvent.tipe, "libur"),
+            eq(kalenderEvent.isLiburNasional, true)
+          ),
+          lte(kalenderEvent.tanggalMulai, end),
+          or(
+            gte(kalenderEvent.tanggalSelesai, start),
+            isNull(kalenderEvent.tanggalSelesai)
+          )
+        )
+      })
+
+      const calendarHolidays = new Set<string>()
+      for (const h of holidays) {
+        const s = getSchoolDayDate(h.tanggalMulai)
+        const e = h.tanggalSelesai ? getSchoolDayDate(h.tanggalSelesai) : s
+        const curr = new Date(s)
+        while (curr <= e) {
+          calendarHolidays.add(curr.toISOString().split("T")[0])
+          curr.setUTCDate(curr.getUTCDate() + 1)
+        }
+      }
+
+      // 3. Pre-generate list of calendar days in range
+      const DAYS_OF_WEEK = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+      const calendarDays: { dateStr: string; dayName: string }[] = []
+      const currDate = new Date(start)
+      while (currDate <= end) {
+        const dayOfWeek = currDate.getUTCDay()
+        const dayName = DAYS_OF_WEEK[dayOfWeek]
+        const dateStr = currDate.toISOString().split("T")[0]
+        calendarDays.push({ dateStr, dayName })
+        currDate.setUTCDate(currDate.getUTCDate() + 1)
+      }
+
+      // 4. Fetch teachers
       const guruConditions = [eq(guru.sekolahId, sekolahId)]
       if (input.guruId && input.guruId !== "all") {
         guruConditions.push(eq(guru.id, input.guruId))
@@ -812,6 +884,57 @@ export const absensiRouter = router({
         orderBy: [asc(guru.namaLengkap)],
       })
 
+      // 5. Fetch lesson schedules if under per_jp rule
+      const schedules = isPerJP
+        ? await db.query.jadwalPelajaran.findMany({
+            where: eq(jadwalPelajaran.sekolahId, sekolahId),
+          })
+        : []
+
+      const teacherDaysMap = new Map<string, Set<string>>()
+      if (isPerJP) {
+        for (const sched of schedules) {
+          let daySet = teacherDaysMap.get(sched.guruId)
+          if (!daySet) {
+            daySet = new Set<string>()
+            teacherDaysMap.set(sched.guruId, daySet)
+          }
+          daySet.add(sched.hari.toLowerCase())
+        }
+      }
+
+      // 6. Compute individual effective days per teacher
+      const teacherEfektifSets = new Map<string, Set<string>>()
+      const teacherEfektifCounts = new Map<string, number>()
+
+      for (const g of teachers) {
+        const teacherEfektifSet = new Set<string>()
+        
+        if (isPerJP) {
+          const teachingDays = teacherDaysMap.get(g.id) || new Set<string>()
+          for (const day of calendarDays) {
+            const isTeachingDay = teachingDays.has(day.dayName)
+            const isHoliday = calendarHolidays.has(day.dateStr)
+            if (isTeachingDay && !isHoliday) {
+              teacherEfektifSet.add(day.dateStr)
+            }
+          }
+        } else {
+          // jam_kerja: Saturday and Sunday off
+          for (const day of calendarDays) {
+            const isWeekend = day.dayName === "sabtu" || day.dayName === "minggu"
+            const isHoliday = calendarHolidays.has(day.dateStr)
+            if (!isWeekend && !isHoliday) {
+              teacherEfektifSet.add(day.dateStr)
+            }
+          }
+        }
+
+        teacherEfektifSets.set(g.id, teacherEfektifSet)
+        teacherEfektifCounts.set(g.id, teacherEfektifSet.size)
+      }
+
+      // 7. Fetch attendance logs
       const attendanceConditions = [
         eq(absensiGuru.sekolahId, sekolahId),
         between(absensiGuru.tanggal, start, end),
@@ -854,9 +977,12 @@ export const absensiRouter = router({
       }
 
       for (const log of attendanceLogs) {
+        const dateKey = log.tanggal.toISOString().split("T")[0]
+        const teacherEfektifSet = teacherEfektifSets.get(log.guruId)
+        if (!teacherEfektifSet || !teacherEfektifSet.has(dateKey)) continue
+
         const item = teacherMap.get(log.guruId)
         if (item) {
-          item.totalHari++
           if (log.status === "hadir") item.hadirCount++
           else if (log.status === "terlambat") item.terlambatCount++
           else if (log.status === "izin") item.izinCount++
@@ -866,26 +992,43 @@ export const absensiRouter = router({
       }
 
       const summaryList = Array.from(teacherMap.values()).map((item) => {
+        const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
         const effectiveHadir = item.hadirCount + item.terlambatCount
-        const persentase = item.totalHari > 0 ? Math.round((effectiveHadir / item.totalHari) * 100) : 0
+        const persentase = loggedDays > 0 ? Math.round((effectiveHadir / loggedDays) * 100) : 0
+        const teacherEfektifCount = teacherEfektifCounts.get(item.guruId) || 0
         return {
           ...item,
+          hariEfektif: teacherEfektifCount,
+          hariTercatat: loggedDays,
           persentaseHadir: persentase,
         }
       })
 
+      // Generate a baseline count of school days (Saturday and Sunday off, minus calendar holidays) for the response metadata
+      const baselineEfektifDates: string[] = []
+      for (const day of calendarDays) {
+        const isWeekend = day.dayName === "sabtu" || day.dayName === "minggu"
+        const isHoliday = calendarHolidays.has(day.dateStr)
+        if (!isWeekend && !isHoliday) {
+          baselineEfektifDates.push(day.dateStr)
+        }
+      }
+
+      const filteredLogs = attendanceLogs.filter(log => {
+        const dateKey = log.tanggal.toISOString().split("T")[0]
+        const teacherEfektifSet = teacherEfektifSets.get(log.guruId)
+        return teacherEfektifSet ? teacherEfektifSet.has(dateKey) : false
+      })
+
       return {
         summary: summaryList,
-        logs: attendanceLogs,
+        logs: filteredLogs,
+        hariEfektif: baselineEfektifDates.length,
       }
     }),
-
   getStaticQrGuru: protectedProcedure
     .query(async ({ ctx }) => {
-      const sekolahId = getSekolahIdFilter(ctx) || ctx.session.user.sekolahId
-      if (!sekolahId) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID tidak ditemukan" })
-      }
+      const sekolahId = requireSekolahId(ctx)
 
       const schoolRecord = await db.query.sekolah.findFirst({
         where: eq(sekolah.id, sekolahId),

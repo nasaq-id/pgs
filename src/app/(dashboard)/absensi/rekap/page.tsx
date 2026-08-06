@@ -129,9 +129,9 @@ export default function RekapPresensiPage() {
         end = new Date(year, 11, 31) // 31 Des
         label = `Semester Ganjil ${year}/${year + 1}`
       } else {
-        start = new Date(year, 0, 1) // 1 Jan
-        end = new Date(year, 5, 30) // 30 Jun
-        label = `Semester Genap ${year - 1}/${year}`
+        start = new Date(year + 1, 0, 1) // 1 Jan tahun depan
+        end = new Date(year + 1, 5, 30) // 30 Jun tahun depan
+        label = `Semester Genap ${year}/${year + 1}`
       }
     } else {
       start = customStart ? parseLocalDate(customStart) : new Date()
@@ -251,8 +251,8 @@ export default function RekapPresensiPage() {
     }
 
     const headers = isSiswa
-      ? ["No", "NISN", "Nama Siswa", "Kelas", "Total Presensi Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
-      : ["No", "NIP / NUPTK", "Nama Guru", "Total Presensi Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
+      ? ["No", "NISN", "Nama Siswa", "Kelas", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
+      : ["No", "NIP / NUPTK", "Nama Guru", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
 
     const rows = dataList.map((item: any, index: number) => {
       if (isSiswa) {
@@ -261,7 +261,8 @@ export default function RekapPresensiPage() {
           `"${item.nisn || "-"}"`,
           `"${item.namaLengkap}"`,
           `"${item.kelasNama}"`,
-          item.totalHari,
+          item.hariEfektif,
+          item.hariTercatat,
           item.hadirCount,
           item.terlambatCount,
           item.izinCount,
@@ -274,7 +275,8 @@ export default function RekapPresensiPage() {
           index + 1,
           `"${item.nipnuptk || "-"}"`,
           `"${item.namaLengkap}"`,
-          item.totalHari,
+          item.hariEfektif,
+          item.hariTercatat,
           item.hadirCount,
           item.terlambatCount,
           item.izinCount,
@@ -379,8 +381,8 @@ export default function RekapPresensiPage() {
 
       // Table header & body
       const head = isSiswa
-        ? [["No", "NISN", "Nama Siswa", "Kelas", "Total Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
-        : [["No", "NIP/NUPTK", "Nama Guru", "Total Hari", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
+        ? [["No", "NISN", "Nama Siswa", "Kelas", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
+        : [["No", "NIP/NUPTK", "Nama Guru", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
 
       const rows = dataList.map((item: any, i: number) => {
         if (isSiswa) {
@@ -389,7 +391,8 @@ export default function RekapPresensiPage() {
             item.nisn || "-",
             item.namaLengkap,
             item.kelasNama,
-            item.totalHari,
+            item.hariEfektif,
+            item.hariTercatat,
             item.hadirCount,
             item.terlambatCount,
             item.izinCount,
@@ -402,7 +405,8 @@ export default function RekapPresensiPage() {
             i + 1,
             item.nipnuptk || "-",
             item.namaLengkap,
-            item.totalHari,
+            item.hariEfektif,
+            item.hariTercatat,
             item.hadirCount,
             item.terlambatCount,
             item.izinCount,
@@ -808,7 +812,8 @@ export default function RekapPresensiPage() {
                     <th className="py-3.5 px-4">NIP / NUPTK</th>
                   </>
                 )}
-                <th className="py-3.5 px-4 text-center">Total Hari</th>
+                 <th className="py-3.5 px-4 text-center">Hari Efektif</th>
+                 <th className="py-3.5 px-4 text-center text-indigo-600 dark:text-indigo-400">Hari Tercatat</th>
                 <th className="py-3.5 px-4 text-center text-emerald-600 dark:text-emerald-400">Hadir (H)</th>
                 <th className="py-3.5 px-4 text-center text-amber-600 dark:text-amber-400">Terlambat (T)</th>
                 <th className="py-3.5 px-4 text-center text-blue-600 dark:text-blue-400">Izin (I)</th>
@@ -821,14 +826,14 @@ export default function RekapPresensiPage() {
               {(isLoadingSiswa && activeTab === "siswa") || (isLoadingGuru && activeTab === "guru") ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={10} className="p-4">
+                    <td colSpan={12} className="p-4">
                       <Skeleton className="h-6 w-full rounded-xl" />
                     </td>
                   </tr>
                 ))
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-10 text-center text-muted-foreground">
+                  <td colSpan={12} className="p-10 text-center text-muted-foreground">
                     Tidak ada data rekap presensi ditemukan untuk periode dan filter ini.
                   </td>
                 </tr>
@@ -836,6 +841,8 @@ export default function RekapPresensiPage() {
                 paginatedData.map((item: any, idx: number) => {
                   const isHighAtt = item.persentaseHadir >= 90
                   const isMedAtt = item.persentaseHadir >= 75 && item.persentaseHadir < 90
+                  const presentDays = item.hadirCount + item.terlambatCount
+                  const progressPercent = item.hariEfektif > 0 ? Math.min(Math.round((presentDays / item.hariEfektif) * 100), 100) : 0
 
                   return (
                     <tr
@@ -860,7 +867,10 @@ export default function RekapPresensiPage() {
                         <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">{item.nipnuptk || "-"}</td>
                       )}
                       <td className="py-3 px-4 text-center font-extrabold text-slate-700 dark:text-slate-300">
-                        {item.totalHari}
+                        {item.hariEfektif}
+                      </td>
+                      <td className="py-3 px-4 text-center font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50/10 dark:bg-indigo-950/10">
+                        {item.hariTercatat}
                       </td>
                       <td className="py-3 px-4 text-center text-emerald-600 font-bold bg-emerald-50/30 dark:bg-emerald-950/10">
                         {item.hadirCount}
@@ -878,17 +888,32 @@ export default function RekapPresensiPage() {
                         {item.alphaCount}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${
-                            isHighAtt
-                              ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60"
-                              : isMedAtt
-                              ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300/60"
-                              : "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300/60"
-                          }`}
-                        >
-                          {item.persentaseHadir}%
-                        </span>
+                        <div className="flex flex-col items-center justify-center">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${
+                              isHighAtt
+                                ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60"
+                                : isMedAtt
+                                ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-300/60"
+                                : "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300/60"
+                            }`}
+                          >
+                            {item.persentaseHadir}%
+                          </span>
+                          <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
+                            {item.hariEfektif > 0 ? `${presentDays} / ${item.hariEfektif} Hari` : "-"}
+                          </span>
+                          {item.hariEfektif > 0 && (
+                            <div className="mt-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1 overflow-hidden max-w-[80px]">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  isHighAtt ? "bg-emerald-500" : isMedAtt ? "bg-amber-500" : "bg-rose-500"
+                                }`}
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

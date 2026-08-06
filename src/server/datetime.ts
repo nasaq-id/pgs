@@ -1,3 +1,7 @@
+import { db } from "@/server/db"
+import { pengaturanAbsensi, kalenderEvent } from "@/server/db/schema"
+import { eq, and, lte, or, gte, isNull } from "drizzle-orm"
+
 /**
  * Shared server-side datetime helpers for the school domain.
  *
@@ -40,4 +44,88 @@ export function getSchoolTime(date: Date) {
 export function getMinutesSinceMidnightInSchoolTime(date: Date): number {
   const { hour, minute } = getSchoolTime(date)
   return hour * 60 + minute
+}
+
+/** Calculate the count and dates of school effective days, excluding weekly holidays and calendar holiday events. */
+export async function getHariEfektif(
+  sekolahId: string,
+  startDate: Date,
+  endDate: Date,
+  role: "siswa" | "guru" = "siswa"
+): Promise<{ count: number; dates: string[] }> {
+  // 1. Fetch weekly holidays configuration
+  let weeklyHolidays: string[] = ["sabtu", "minggu"]
+
+  if (role === "siswa") {
+    const settings = await db.query.pengaturanAbsensi.findFirst({
+      where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+    })
+
+    if (settings?.hariLibur) {
+      try {
+        weeklyHolidays = JSON.parse(settings.hariLibur)
+      } catch (e) {
+        console.error("Failed to parse weekly holidays:", e)
+      }
+    }
+  }
+
+  // Convert to lowercase
+  weeklyHolidays = weeklyHolidays.map((d) => d.toLowerCase())
+
+  // 2. Fetch calendar holiday events overlapping the range
+  const holidays = await db.query.kalenderEvent.findMany({
+    where: and(
+      eq(kalenderEvent.sekolahId, sekolahId),
+      or(
+        eq(kalenderEvent.tipe, "libur"),
+        eq(kalenderEvent.isLiburNasional, true)
+      ),
+      lte(kalenderEvent.tanggalMulai, endDate),
+      or(
+        gte(kalenderEvent.tanggalSelesai, startDate),
+        isNull(kalenderEvent.tanggalSelesai)
+      )
+    )
+  })
+
+  // Normalize holiday dates
+  const calendarHolidays = new Set<string>()
+  for (const h of holidays) {
+    const s = getSchoolDayDate(h.tanggalMulai)
+    const e = h.tanggalSelesai ? getSchoolDayDate(h.tanggalSelesai) : s
+
+    const curr = new Date(s)
+    while (curr <= e) {
+      calendarHolidays.add(curr.toISOString().split("T")[0])
+      curr.setUTCDate(curr.getUTCDate() + 1)
+    }
+  }
+
+  // 3. Loop calendar days
+  const DAYS_OF_WEEK = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
+  const dates: string[] = []
+
+  const current = new Date(startDate)
+  const limit = new Date(endDate)
+
+  while (current <= limit) {
+    const dayOfWeek = current.getUTCDay()
+    const dayName = DAYS_OF_WEEK[dayOfWeek]
+    const dateStr = current.toISOString().split("T")[0]
+
+    const isWeeklyHoliday = weeklyHolidays.includes(dayName)
+    const isCalendarHoliday = calendarHolidays.has(dateStr)
+
+    if (!isWeeklyHoliday && !isCalendarHoliday) {
+      dates.push(dateStr)
+    }
+
+    current.setUTCDate(current.getUTCDate() + 1)
+  }
+
+  return {
+    count: dates.length,
+    dates,
+  }
 }
