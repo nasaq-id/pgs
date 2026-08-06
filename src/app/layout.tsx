@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   },
   description: "Sistem Informasi Manajemen Sekolah",
   manifest: "/manifest",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -53,8 +58,19 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icon-512.png" />
         <meta name="screen-orientation" content="portrait" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#f5f3f8" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#242429" media="(prefers-color-scheme: dark)" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <TRPCProvider>
