@@ -78,8 +78,6 @@ const HARI_LIST = [
   { value: "sabtu", label: "Sabtu" },
 ] as const
 
-const JP_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
 const MAPEL_COLORS = ["#0d9488", "#6366f1", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#10b981", "#f97316", "#3b82f6", "#14b8a6", "#a855f7", "#e11d48"]
 
 function hashMapel(id: string): number {
@@ -88,6 +86,74 @@ function hashMapel(id: string): number {
     h = (h * 31 + id.charCodeAt(i)) >>> 0
   }
   return h % MAPEL_COLORS.length
+}
+
+/** Replica client-side dari splitJP server (jadwal.ts) — dijaga identik. */
+function splitJPClient(total: number): number[] {
+  if (total <= 0) return []
+  if (total <= 3) return [total]
+  const nBlok = Math.ceil(total / 3)
+  const base = Math.floor(total / nBlok)
+  const sisa = total - base * nBlok
+  const chunks: number[] = []
+  for (let i = 0; i < nBlok; i++) chunks.push(base + (i < sisa ? 1 : 0))
+  return chunks
+}
+
+/**
+ * Replica client-side dari computePackableCapacity server (jadwal.ts):
+ * DP exact bin-packing — kapasitas realistis (JP) yang bisa dikemas blok 1/2/3
+ * ke dalam hari-hari dengan kapasitas slot tertentu.
+ */
+function computePackableCapacityClient(blockSizes: number[], dayCapacities: number[]): number {
+  if (blockSizes.length === 0 || dayCapacities.length === 0) return 0
+  const c1 = blockSizes.filter((b) => b === 1).length
+  const c2 = blockSizes.filter((b) => b === 2).length
+  const c3 = blockSizes.filter((b) => b === 3).length
+  const caps = [...dayCapacities].sort((a, b) => b - a)
+
+  const fillOptions = (cap: number): [number, number, number][] => {
+    const opts: [number, number, number][] = []
+    for (let x3 = 0; x3 * 3 <= cap; x3++) {
+      for (let x2 = 0; x2 * 2 + x3 * 3 <= cap; x2++) {
+        const remaining = cap - x3 * 3 - x2 * 2
+        for (let x1 = 0; x1 <= Math.min(remaining, c1); x1++) opts.push([x1, x2, x3])
+      }
+    }
+    return opts
+  }
+
+  const key = (a: number, b: number, c: number) => `${a}|${b}|${c}`
+  const targetKey = key(c1, c2, c3)
+
+  let frontier = new Set<string>([key(0, 0, 0)])
+  const visited = new Set<string>(frontier)
+
+  for (let day = 0; day < caps.length; day++) {
+    const opts = fillOptions(caps[day] ?? caps[caps.length - 1] ?? 10)
+    const next = new Set<string>()
+    for (const f of frontier) {
+      const [a1, a2, a3] = f.split("|").map(Number)
+      for (const [x1, x2, x3] of opts) {
+        if (a1 + x1 > c1 || a2 + x2 > c2 || a3 + x3 > c3) continue
+        const nk = key(a1 + x1, a2 + x2, a3 + x3)
+        if (nk === targetKey) return c1 + 2 * c2 + 3 * c3
+        if (!visited.has(nk)) {
+          visited.add(nk)
+          next.add(nk)
+        }
+      }
+    }
+    frontier = next
+    if (frontier.size === 0) break
+  }
+
+  let max = 0
+  for (const f of visited) {
+    const [a1, a2, a3] = f.split("|").map(Number)
+    max = Math.max(max, a1 + 2 * a2 + 3 * a3)
+  }
+  return max
 }
 
 interface PreviewBlock {
@@ -114,6 +180,7 @@ interface PreviewKelas {
   namaKelas: string
   bebanJP: number
   kapasitasJP: number
+  kapasitasRealistisJP: number
   terpasangJP: number
   hari: PreviewHari[]
 }
@@ -174,6 +241,13 @@ export default function AiGenerateDialog({
     return map
   }, [timelineList])
 
+  // Opsi "Tidak Bisa JP Ke" dinamis mengikuti jumlah slot JP di timeline (hari aktif)
+  const jpOptions = useMemo(() => {
+    const workDays = HARI_LIST.map((h) => h.value).filter((d) => !hariLibur.includes(d))
+    const maxJp = Math.max(1, ...workDays.map((d) => maxJpPerDay.get(d) || 0))
+    return Array.from({ length: maxJp }, (_, i) => i + 1)
+  }, [maxJpPerDay, hariLibur])
+
   useEffect(() => {
     if (!open) return
     setTargetKelasId("all")
@@ -197,14 +271,48 @@ export default function AiGenerateDialog({
     return filteredPengampu.reduce((acc, p) => acc + (p.jumlahJam || 0), 0)
   }, [filteredPengampu])
 
-  // Kapasitas slot per minggu (hari aktif × slot JP per hari dari timeline)
-  const kapasitasPerMinggu = useMemo(() => {
+  // Kapasitas slot mentah per minggu (hari aktif × slot JP per hari dari timeline)
+  const kapasitasSlotMentah = useMemo(() => {
     let total = 0
     for (const h of HARI_LIST) {
       if (!hariLibur.includes(h.value)) total += maxJpPerDay.get(h.value) || 0
     }
     return total
   }, [maxJpPerDay, hariLibur])
+
+  // Kapasitas realistis per minggu: DP bin-packing (identik dgn server).
+  // Blok 3 JP hanya muat 9 JP/hari (3+3+3), blok 2 JP bisa 10 JP/hari.
+  const kapasitasPerMinggu = useMemo(() => {
+    const dayCaps = HARI_LIST.map((h) => h.value)
+      .filter((d) => !hariLibur.includes(d))
+      .map((d) => maxJpPerDay.get(d) || 0)
+      .filter((c) => c > 0)
+    if (dayCaps.length === 0) return 0
+
+    if (targetKelasId !== "all") {
+      const sizes: number[] = []
+      for (const p of filteredPengampu) {
+        for (const c of splitJPClient(p.jumlahJam || 0)) sizes.push(c)
+      }
+      return computePackableCapacityClient(sizes, dayCaps)
+    }
+
+    // Mode semua kelas: hitung per kelas, pakai kelas dengan beban terbesar
+    // (konsisten dengan bebanCek yang memakai beban tertinggi per kelas).
+    const per = new Map<string, number>()
+    for (const p of pengampuList || []) {
+      per.set(p.kelasId, (per.get(p.kelasId) || 0) + (p.jumlahJam || 0))
+    }
+    const maxBebanKelasId = [...per.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+    if (!maxBebanKelasId) return 0
+    const sizes: number[] = []
+    for (const p of pengampuList || []) {
+      if (p.kelasId === maxBebanKelasId) {
+        for (const c of splitJPClient(p.jumlahJam || 0)) sizes.push(c)
+      }
+    }
+    return computePackableCapacityClient(sizes, dayCaps)
+  }, [pengampuList, filteredPengampu, targetKelasId, maxJpPerDay, hariLibur])
 
   // Beban terbesar per kelas (untuk mode "Semua Kelas" — server memvalidasi per kelas)
   const bebanTerbesarPerKelas = useMemo(() => {
@@ -465,9 +573,14 @@ export default function AiGenerateDialog({
                   {isOverload ? "Overload Deteksi — Generate Akan Dibatalkan" : "Kapasitas Jadwal Mencukupi"}
                 </p>
                 <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  Beban {bebanCek} JP/minggu vs kapasitas {kapasitasPerMinggu} JP/minggu
+                  Beban {bebanCek} JP/minggu vs kapasitas realistis {kapasitasPerMinggu} JP/minggu
                   {targetKelasId === "all" ? " (beban tertinggi per kelas)" : ""}.
                 </p>
+                {kapasitasSlotMentah > kapasitasPerMinggu && (
+                  <p className="text-[10px] font-medium text-slate-400">
+                    Slot mentah {kapasitasSlotMentah} JP — {kapasitasSlotMentah - kapasitasPerMinggu} slot tak bisa diisi blok 2-3 JP (mapel serba 3 JP → maks 9 JP/hari).
+                  </p>
+                )}
                 {isOverload && (
                   <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
                     Solusi: kurangi JP di Plotting Pengajar, tambah slot JP di Pengaturan Jadwal, atau kurangi hari libur yang dipilih.
@@ -578,7 +691,7 @@ export default function AiGenerateDialog({
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 block mb-1">Tidak Bisa JP Ke:</span>
                           <div className="flex flex-wrap gap-1">
-                            {JP_OPTIONS.map((jpNum) => {
+                            {jpOptions.map((jpNum) => {
                               const isExcluded = excludedJPs.includes(jpNum)
                               return (
                                 <button
@@ -665,7 +778,9 @@ export default function AiGenerateDialog({
               {previewData && previewData.ok && previewData.perKelas.length > 0 && (
                 <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                   {previewData.perKelas.map((kelas) => {
-                    const sisa = kelas.kapasitasJP - kelas.terpasangJP
+                    const kapReal = kelas.kapasitasRealistisJP || kelas.kapasitasJP
+                    const sisa = kapReal - kelas.terpasangJP
+                    const slotMentahTakTerpakai = Math.max(0, kelas.kapasitasJP - kapReal)
                     const jpMax = Math.max(
                       ...kelas.hari.map((h) => maxJpPerDay.get(h.hari) || 0),
                       ...kelas.hari.map((h) => h.blocks.reduce((m, b) => Math.max(m, b.jpMulai + b.jpCount - 1), 0)),
@@ -682,11 +797,12 @@ export default function AiGenerateDialog({
                                 ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                                 : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
                             )}>
-                              {kelas.terpasangJP}/{kelas.kapasitasJP} JP terpasang
+                              {kelas.terpasangJP}/{kapReal} JP terpasang
                             </span>
                           </div>
                           <span className="text-[10px] font-bold text-slate-400">
                             Beban {kelas.bebanJP} JP · Sisa {sisa} slot
+                            {slotMentahTakTerpakai > 0 ? ` · ${slotMentahTakTerpakai} slot mentah tak terisi blok 2-3 JP` : ""}
                           </span>
                         </div>
 
@@ -697,6 +813,21 @@ export default function AiGenerateDialog({
                                 <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{h.hari}</span>
                                 {Array.from({ length: Math.max(jpMax, 1) }, (_, i) => {
                                   const jp = i + 1
+                                  const dayJpCount = Math.max(maxJpPerDay.get(h.hari) || 0, 1)
+
+                                  // Slot di luar kapasitas hari ini (hari pendek): placeholder halus
+                                  if (jp > dayJpCount) {
+                                    return (
+                                      <div
+                                        key={jp}
+                                        className="h-9 rounded-lg bg-slate-100/60 dark:bg-slate-900/30 border border-transparent flex items-center justify-center text-[8px] font-bold text-slate-200 dark:text-slate-700"
+                                        style={{ gridColumn: String(jp) }}
+                                      >
+                                        –
+                                      </div>
+                                    )
+                                  }
+
                                   const block = h.blocks.find((b) => jp >= b.jpMulai && jp < b.jpMulai + b.jpCount)
                                   const empty = h.empty.find((e) => e.jp === jp)
 
