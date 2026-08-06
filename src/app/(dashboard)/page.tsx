@@ -104,26 +104,20 @@ export default function Dashboard() {
     }
   }, [role, router])
 
-  if (role === "super_admin" && !isImpersonating) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-      </div>
-    )
-  }
+  const isQueryEnabled = !(role === "super_admin" && !isImpersonating)
 
-  const studentSummary = api.dashboard.getStudentSummary.useQuery(undefined, { staleTime: 30000 })
-  const staffSummary = api.dashboard.getStaffSummary.useQuery(undefined, { staleTime: 30000 })
-  const classSummary = api.dashboard.getClassSummary.useQuery(undefined, { staleTime: 30000 })
-  const pendingPayment = api.dashboard.getPendingPaymentCount.useQuery(undefined, { staleTime: 30000 })
-  const attendance = api.dashboard.getTodayAttendanceRate.useQuery(undefined, { staleTime: 30000 })
-  const receivables = api.dashboard.getOutstandingReceivables.useQuery(undefined, { staleTime: 30000 })
-  const ruangKelas = api.dashboard.getRuangKelasCount.useQuery(undefined, { staleTime: 30000 })
-  const topPoints = api.dashboard.getTopStudentPoints.useQuery(undefined, { staleTime: 30000 })
+  const studentSummary = api.dashboard.getStudentSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const staffSummary = api.dashboard.getStaffSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const classSummary = api.dashboard.getClassSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const pendingPayment = api.dashboard.getPendingPaymentCount.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const attendance = api.dashboard.getTodayAttendanceRate.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const receivables = api.dashboard.getOutstandingReceivables.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const ruangKelas = api.dashboard.getRuangKelasCount.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
+  const topPoints = api.dashboard.getTopStudentPoints.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
 
-  const { data: dashboardSiswa, isLoading: loadingSiswa } = api.poin.getDashboardSiswa.useQuery(undefined, { enabled: role === "siswa" })
-  const { data: dashboardGuruAdmin } = api.poin.getDashboardGuruAdmin.useQuery(undefined, { enabled: role === "guru" || role === "admin_sekolah" || role === "super_admin" })
-  const { data: announcements, isLoading: annLoading } = api.pengumuman.getPublished.useQuery({ limit: 5 })
+  const { data: dashboardSiswa, isLoading: loadingSiswa } = api.poin.getDashboardSiswa.useQuery(undefined, { enabled: role === "siswa" && isQueryEnabled })
+  const { data: dashboardGuruAdmin } = api.poin.getDashboardGuruAdmin.useQuery(undefined, { enabled: (role === "guru" || role === "admin_sekolah" || role === "super_admin") && isQueryEnabled })
+  const { data: announcements, isLoading: annLoading } = api.pengumuman.getPublished.useQuery({ limit: 5 }, { enabled: isQueryEnabled })
 
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
@@ -135,10 +129,18 @@ export default function Dashboard() {
       limit: 200,
     },
     {
-      enabled: role !== "siswa",
+      enabled: role !== "siswa" && isQueryEnabled,
       staleTime: 30000,
     }
   )
+
+  if (role === "super_admin" && !isImpersonating) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    )
+  }
 
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {
