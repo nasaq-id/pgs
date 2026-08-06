@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran } from "@/server/db/schema"
+import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -554,6 +554,16 @@ export const jadwalRouter = router({
       }
 
       // 1. Get allocations from input or automatically from DB plotting pengajar (pengampu)
+      if (input.kelasId && input.kelasId !== "all") {
+        const kelasTarget = await db.query.kelas.findFirst({
+          where: and(eq(kelas.id, input.kelasId), eq(kelas.sekolahId, sekolahId)),
+          columns: { id: true },
+        })
+        if (!kelasTarget) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Kelas yang dipilih tidak berada di sekolah Anda. Generate dibatalkan." })
+        }
+      }
+
       let allocations = input.allocations || []
       if (allocations.length === 0) {
         const pengampuConditions = [eq(pengampu.sekolahId, sekolahId)]
@@ -578,6 +588,27 @@ export const jadwalRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Belum ada data Plotting Pengajar (Pengampu) di database. Silakan isi Plotting Pengajar terlebih dahulu di menu Akademik.",
+        })
+      }
+
+      // ── VALIDASI TENANT: semua kelas/guru/mapel dalam alokasi wajib milik sekolah ini ──
+      // (mencegah generate di sekolah A menghapus/membuat jadwal kelas sekolah B
+      //  bila client mengirim input.allocations dengan id dari sekolah lain)
+      const [kelasIds, guruIds, mapelIds] = await Promise.all([
+        db.query.kelas.findMany({ where: eq(kelas.sekolahId, sekolahId), columns: { id: true } }),
+        db.query.guru.findMany({ where: eq(guru.sekolahId, sekolahId), columns: { id: true } }),
+        db.query.mataPelajaran.findMany({ where: eq(mataPelajaran.sekolahId, sekolahId), columns: { id: true } }),
+      ])
+      const kelasSet = new Set(kelasIds.map((k) => k.id))
+      const guruSet = new Set(guruIds.map((g) => g.id))
+      const mapelSet = new Set(mapelIds.map((m) => m.id))
+      const asing = allocations.filter(
+        (a) => !kelasSet.has(a.kelasId) || !guruSet.has(a.guruId) || !mapelSet.has(a.mataPelajaranId)
+      )
+      if (asing.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Generate dibatalkan: ${asing.length} alokasi mengacu kelas/guru/mata pelajaran di luar sekolah Anda. Periksa kembali data Plotting Pengajar.`,
         })
       }
 
