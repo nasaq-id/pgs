@@ -1,0 +1,1 @@
+ALTER TABLE "mata_pelajaran" ADD COLUMN "jumlah_jam" integer DEFAULT 0 NOT NULL;

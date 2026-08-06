@@ -11,6 +11,7 @@ export const mataPelajaran = pgTable("mata_pelajaran", {
   kodeMapel: text("kode_mapel"),
   kelompok: text("kelompok", { enum: ["A", "B", "C", "muatan_lokal"] }),
   kkm: integer("kkm").default(70),
+  jumlahJam: integer("jumlah_jam").notNull().default(0),
   aktif: boolean("aktif").notNull().default(true),
   urutan: integer("urutan").default(0),
 }, (table) => [

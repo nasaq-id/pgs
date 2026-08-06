@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical, BookOpen, Layers, Clock } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical, BookOpen, Layers, Clock, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api } from "@/lib/trpc/client"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
+import GenerateKurikulumDialog from "@/components/mapel/GenerateKurikulumDialog"
+import ImportExportMapel from "@/components/mapel/ImportExportMapel"
 
 interface PengampuItem {
   id: string
@@ -78,6 +80,7 @@ export default function MapelPage() {
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [pengampuOpen, setPengampuOpen] = useState(false)
+  const [generateOpen, setGenerateOpen] = useState(false)
   const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
@@ -85,6 +88,7 @@ export default function MapelPage() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
+  const { data: sekolah } = api.lembaga.getSekolah.useQuery()
 
   // Dynamic tingkat options from active classes
   const rawTingkatList = Array.from(
@@ -336,16 +340,30 @@ export default function MapelPage() {
             </div>
           </div>
 
-          <button
-            className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
-            onClick={() => {
-              setEditData(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span>Tambah Mapel</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <button
+              type="button"
+              onClick={() => setGenerateOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-indigo-500/5 transition-all cursor-pointer transform active:scale-95"
+            >
+              <Wand2 className="h-4 w-4" />
+              <span>Generate Kurikulum</span>
+            </button>
+            <ImportExportMapel
+              mapelList={(mapelList ?? []) as any}
+              onDone={() => utils.mapel.getAll.invalidate()}
+            />
+            <button
+              className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
+              onClick={() => {
+                setEditData(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              <span>Tambah Mapel</span>
+            </button>
+          </div>
         </div>
 
         {/* Mobile View: Card List (Visible on mobile, hidden on desktop) */}
@@ -750,6 +768,12 @@ export default function MapelPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+          <GenerateKurikulumDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
+        sekolahLevel={sekolah?.jenjang}
+        existingMapel={(mapelList ?? []) as any}
+      />
     </div>
   )
 }
