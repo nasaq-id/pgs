@@ -3,7 +3,10 @@ import { TRPCError } from "@trpc/server"
 import { eq, desc, sql, and } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
-import { sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas } from "@/server/db/schema"
+import {
+  sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas,
+  mataPelajaran, absensiSiswa, invoice, jurnalMengajar, poinSikap
+} from "@/server/db/schema"
 import { router, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 
@@ -42,16 +45,53 @@ export const superAdminRouter = router({
         .from(kelas)
         .groupBy(kelas.sekolahId)
 
+      const mapelCounts = await db
+        .select({ sekolahId: mataPelajaran.sekolahId, count: sql<number>`count(*)` })
+        .from(mataPelajaran)
+        .groupBy(mataPelajaran.sekolahId)
+
+      const absensiCounts = await db
+        .select({ sekolahId: absensiSiswa.sekolahId, count: sql<number>`count(*)` })
+        .from(absensiSiswa)
+        .groupBy(absensiSiswa.sekolahId)
+
+      const invoiceCounts = await db
+        .select({ sekolahId: invoice.sekolahId, count: sql<number>`count(*)` })
+        .from(invoice)
+        .groupBy(invoice.sekolahId)
+
+      const jurnalCounts = await db
+        .select({ sekolahId: jurnalMengajar.sekolahId, count: sql<number>`count(*)` })
+        .from(jurnalMengajar)
+        .groupBy(jurnalMengajar.sekolahId)
+
+      const poinCounts = await db
+        .select({ sekolahId: poinSikap.sekolahId, count: sql<number>`count(*)` })
+        .from(poinSikap)
+        .groupBy(poinSikap.sekolahId)
+
       // Map counts by school ID for O(1) lookups
       const siswaMap = new Map(siswaCounts.map(c => [c.sekolahId, Number(c.count)]))
       const guruMap = new Map(guruCounts.map(c => [c.sekolahId, Number(c.count)]))
       const kelasMap = new Map(kelasCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const mapelMap = new Map(mapelCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const absensiMap = new Map(absensiCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const invoiceMap = new Map(invoiceCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const jurnalMap = new Map(jurnalCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const poinMap = new Map(poinCounts.map(c => [c.sekolahId, Number(c.count)]))
 
       // Compute stats for each school
       return schools.map(s => {
         const totalSiswa = siswaMap.get(s.id) ?? 0
         const totalGuru = guruMap.get(s.id) ?? 0
         const totalKelas = kelasMap.get(s.id) ?? 0
+        const totalMapel = mapelMap.get(s.id) ?? 0
+        const totalAbsensi = absensiMap.get(s.id) ?? 0
+        const totalInvoice = invoiceMap.get(s.id) ?? 0
+        const totalJurnal = jurnalMap.get(s.id) ?? 0
+        const totalPoin = poinMap.get(s.id) ?? 0
+
+        const totalDbRows = totalSiswa + totalGuru + totalKelas + totalMapel + totalAbsensi + totalInvoice + totalJurnal + totalPoin
 
         // Calculate health state:
         // - "abu" : suspended/inactive
@@ -73,6 +113,12 @@ export const superAdminRouter = router({
             siswa: totalSiswa,
             guru: totalGuru,
             kelas: totalKelas,
+            mapel: totalMapel,
+            absensi: totalAbsensi,
+            invoice: totalInvoice,
+            jurnal: totalJurnal,
+            poin: totalPoin,
+            dbRows: totalDbRows,
             health,
           }
         }

@@ -54,6 +54,15 @@ export default function SuperAdminPage() {
   const [selectedSekolahForDelete, setSelectedSekolahForDelete] = useState<any>(null)
   const [deleteConfirmName, setDeleteConfirmName] = useState("")
 
+  // Detail School State
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [selectedSekolahForDetail, setSelectedSekolahForDetail] = useState<any>(null)
+
+  const handleDetailClick = (sekolah: any) => {
+    setSelectedSekolahForDetail(sekolah)
+    setDetailModalOpen(true)
+  }
+
   // Queries & Mutations
   const utils = api.useUtils()
   const { data: sekolahList = [], isLoading } = api.superAdmin.listSekolah.useQuery()
@@ -508,6 +517,7 @@ export default function SuperAdminPage() {
                     <th className="py-4 px-4 text-center">Guru</th>
                     <th className="py-4 px-4 text-center">Kelas</th>
                     <th className="py-4 px-4 text-center">Health</th>
+                    <th className="py-4 px-4 text-center">DB Rows</th>
                     <th className="py-4 px-4 text-center">Status</th>
                     <th className="py-4 px-4 text-center w-60">Aksi</th>
                   </tr>
@@ -515,13 +525,13 @@ export default function SuperAdminPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={11} className="py-12 text-center text-xs font-bold text-slate-455">
+                      <td colSpan={12} className="py-12 text-center text-xs font-bold text-slate-455">
                         Memuat data sekolah...
                       </td>
                     </tr>
                   ) : filteredSchools.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="py-12 text-center text-xs font-bold text-slate-455">
+                      <td colSpan={12} className="py-12 text-center text-xs font-bold text-slate-455">
                         Tidak ada sekolah yang cocok dengan pencarian Anda.
                       </td>
                     </tr>
@@ -532,7 +542,15 @@ export default function SuperAdminPage() {
                         className="border-b border-slate-100/70 hover:bg-slate-50/30 transition-colors duration-200 text-xs font-bold text-slate-650"
                       >
                         <td className="py-4 px-4 text-center text-slate-400 font-mono">{index + 1}</td>
-                        <td className="py-4 px-4 text-slate-800 font-black">{item.namaSekolah}</td>
+                        <td className="py-4 px-4 text-slate-800 font-black">
+                          <button
+                            type="button"
+                            onClick={() => handleDetailClick(item)}
+                            className="text-left font-black text-slate-800 hover:text-teal-650 hover:underline cursor-pointer transition-colors duration-200 outline-none"
+                          >
+                            {item.namaSekolah}
+                          </button>
+                        </td>
                         <td className="py-4 px-4">
                           {item.namaSingkat ? (
                             <span className="text-teal-650 bg-teal-50 border border-teal-100/50 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase">
@@ -554,11 +572,14 @@ export default function SuperAdminPage() {
                             item.stats?.health === "merah" ? "bg-rose-500" : "bg-slate-400"
                           }`} title={`Status: ${item.stats?.health}`} />
                         </td>
+                        <td className="py-4 px-4 text-center font-mono text-slate-700">
+                          {item.stats?.dbRows?.toLocaleString("id-ID") ?? 0}
+                        </td>
                         <td className="py-4 px-4 text-center">
                           <span
                             className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                               item.active
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                ? "bg-emerald-50 text-emerald-650 border border-emerald-100"
                                 : "bg-rose-50 text-rose-600 border border-rose-100"
                             }`}
                           >
@@ -645,7 +666,13 @@ export default function SuperAdminPage() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="text-sm font-black text-slate-800 leading-tight">{item.namaSekolah}</h4>
+                        <button
+                          type="button"
+                          onClick={() => handleDetailClick(item)}
+                          className="text-left text-sm font-black text-slate-800 leading-tight hover:text-teal-650 hover:underline outline-none cursor-pointer"
+                        >
+                          {item.namaSekolah}
+                        </button>
                         <div className="flex flex-wrap items-center gap-2 mt-1.5">
                           <span className="text-[10px] text-slate-400 font-extrabold uppercase">
                             NPSN: {item.npsn || "—"}
@@ -657,6 +684,10 @@ export default function SuperAdminPage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                           <span className="text-[10px] text-slate-500 font-extrabold uppercase">
                             S:{item.stats?.siswa ?? 0} G:{item.stats?.guru ?? 0} K:{item.stats?.kelas ?? 0}
+                          </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                          <span className="text-[10px] text-teal-650 font-extrabold uppercase">
+                            DB: {item.stats?.dbRows?.toLocaleString("id-ID") ?? 0} Rows
                           </span>
                         </div>
                       </div>
@@ -1360,6 +1391,204 @@ export default function SuperAdminPage() {
                         <span>Hapus Permanen</span>
                       </>
                     )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Detail Sekolah Modal ── */}
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent className="max-w-xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="max-h-[85vh] overflow-y-auto p-6 relative text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+            <DialogHeader className="text-left relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-650 flex items-center justify-center mb-4">
+                <School size={20} />
+              </div>
+              <DialogTitle className="text-lg font-black text-slate-800 tracking-tight uppercase">
+                Detail Lembaga & Penggunaan Sumber Daya
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 font-bold">
+                Informasi rinci kapasitas data dan kuota penggunaan database untuk sekolah terpilih.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedSekolahForDetail && (
+              <div className="space-y-6 mt-4 relative z-10">
+                {/* School Profile Card */}
+                <div className="bg-slate-50/50 border border-slate-105 p-4 rounded-2xl space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-base font-black text-slate-800 leading-tight">
+                        {selectedSekolahForDetail.namaSekolah}
+                      </h4>
+                      {selectedSekolahForDetail.namaSingkat && (
+                        <span className="inline-block mt-1 text-[10px] bg-teal-50 text-teal-650 px-2 py-0.5 rounded font-black uppercase">
+                          {selectedSekolahForDetail.namaSingkat}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      selectedSekolahForDetail.active
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        : "bg-rose-50 text-rose-600 border border-rose-100"
+                    }`}>
+                      {selectedSekolahForDetail.active ? "Aktif" : "Suspended"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-200/50 text-xs">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NPSN</p>
+                      <p className="font-mono text-slate-700 font-bold mt-0.5">{selectedSekolahForDetail.npsn || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Jenjang Pendidikan</p>
+                      <p className="uppercase text-slate-700 font-bold mt-0.5">{selectedSekolahForDetail.jenjang}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Database Row Quota Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                    <span className="text-slate-550">Kuota Baris Data (Database Rows)</span>
+                    <span className="text-slate-800 font-black">
+                      {selectedSekolahForDetail.stats?.dbRows?.toLocaleString("id-ID") ?? 0} / 10.000 Rows
+                    </span>
+                  </div>
+                  {/* Progress Bar Container */}
+                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden shadow-inner relative">
+                    <div
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        (selectedSekolahForDetail.stats?.dbRows ?? 0) > 8000 ? "bg-rose-500" :
+                        (selectedSekolahForDetail.stats?.dbRows ?? 0) > 5000 ? "bg-amber-400" : "bg-emerald-500"
+                      }`}
+                      style={{ width: `${Math.min(((selectedSekolahForDetail.stats?.dbRows ?? 0) / 10000) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-bold">
+                    * Batas standar gratis adalah 10.000 baris data database per instansi sekolah.
+                  </p>
+                </div>
+
+                {/* Resource Breakdown Grid */}
+                <div className="space-y-3">
+                  <h5 className="text-[10px] font-black uppercase text-slate-450 tracking-wider">Breakdown Baris Data Database</h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Siswa</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.siswa?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guru & Staff</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.guru?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rombel (Kelas)</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.kelas?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mapel</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.mapel?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Absensi</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.absensi?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Keuangan (Invoice)</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.invoice?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Jurnal Mengajar</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.jurnal?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/20 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">E-Poin (Pelanggaran)</p>
+                      <p className="text-base font-black text-slate-700 font-mono mt-1">
+                        {selectedSekolahForDetail.stats?.poin?.toLocaleString("id-ID") ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setDetailModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    Tutup
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModalOpen(false)
+                      handleEditClick(selectedSekolahForDetail)
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Pencil size={12} />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModalOpen(false)
+                      handleResetPasswordClick(selectedSekolahForDetail)
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Key size={12} />
+                    <span>Reset Pass</span>
+                  </button>
+
+                  {selectedSekolahForDetail.active && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailModalOpen(false)
+                        handleImpersonate(selectedSekolahForDetail.id)
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-650 text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                    >
+                      Kelola
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModalOpen(false)
+                      handleDeleteClick(selectedSekolahForDetail)
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Trash2 size={12} />
+                    <span>Hapus</span>
                   </button>
                 </div>
               </div>
