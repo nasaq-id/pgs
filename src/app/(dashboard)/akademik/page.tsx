@@ -51,8 +51,12 @@ export default function AkademikPage() {
       </div>
 
       <div className="mt-4">
-        {tab === "mata-pelajaran" && <MapelPage />}
-        {tab === "jadwal" && <JadwalPage />}
+        <div className={tab === "mata-pelajaran" ? "block" : "hidden"}>
+          <MapelPage />
+        </div>
+        <div className={tab === "jadwal" ? "block" : "hidden"}>
+          <JadwalPage />
+        </div>
       </div>
     </div>
   )

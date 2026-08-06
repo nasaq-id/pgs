@@ -96,6 +96,55 @@ interface TimelineRecord {
   warna: string | null
 }
 
+function JadwalSkeleton() {
+  return (
+    <div className="space-y-6 text-left animate-pulse">
+      {/* Premium selector panel skeleton */}
+      <div className="bg-slate-200 dark:bg-slate-800 rounded-3xl p-6 lg:p-8 flex flex-col md:flex-row justify-between gap-6">
+        <div className="space-y-3 w-full md:max-w-md">
+          <div className="h-6 w-36 bg-slate-300 dark:bg-slate-700 rounded-full" />
+          <div className="h-8 w-64 bg-slate-300 dark:bg-slate-700 rounded-2xl" />
+          <div className="h-4 w-full bg-slate-300 dark:bg-slate-700 rounded-xl" />
+        </div>
+        <div className="flex gap-3 items-end">
+          <div className="h-10 w-32 bg-slate-300 dark:bg-slate-700 rounded-xl" />
+          <div className="h-10 w-32 bg-slate-300 dark:bg-slate-700 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Quick Actions Bar skeleton */}
+      <div className="flex justify-end gap-3 bg-slate-100 dark:bg-slate-900/40 p-4 rounded-3xl">
+        <div className="h-10 w-36 bg-slate-200 dark:bg-slate-850 rounded-xl" />
+        <div className="h-10 w-36 bg-slate-200 dark:bg-slate-850 rounded-xl" />
+        <div className="h-10 w-28 bg-slate-200 dark:bg-slate-850 rounded-xl" />
+      </div>
+
+      {/* Grid view skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-slate-50 dark:bg-slate-900/30 rounded-3xl p-5 border border-slate-100 dark:border-slate-850 space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            </div>
+            <div className="space-y-3">
+              {[1, 2, 3].map((j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <div className="h-8 w-14 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                    <div className="h-3.5 w-1/2 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function JadwalPage() {
   const { data: session } = useSession()
   const role = session?.user?.role
@@ -287,6 +336,17 @@ export default function JadwalPage() {
 
   const hasData = jadwalRecords.length > 0
 
+  const isInitialLoading =
+    (isGuru && !profile) ||
+    (isSiswa && (!profile || !kelasId)) ||
+    kelasList === undefined ||
+    mapelList === undefined ||
+    timelineList === undefined
+
+  if (isInitialLoading) {
+    return <JadwalSkeleton />
+  }
+
   if (kelasRecords.length === 0) {
     return (
       <div className="space-y-6">
@@ -462,8 +522,26 @@ export default function JadwalPage() {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-slate-50 dark:bg-slate-900/30 rounded-3xl p-5 border border-slate-100 dark:border-slate-850 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="flex items-center gap-3">
+                    <div className="h-8 w-14 bg-slate-200 dark:bg-slate-800 rounded-xl shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                      <div className="h-3.5 w-1/2 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : timelineRecords.length === 0 ? (
         <div className="neumo-card bg-background p-12 rounded-3xl text-center flex flex-col items-center justify-center border-0">
