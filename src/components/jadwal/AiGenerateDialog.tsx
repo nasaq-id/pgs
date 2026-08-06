@@ -133,6 +133,27 @@ export default function AiGenerateDialog({
     return filteredPengampu.reduce((acc, p) => acc + (p.jumlahJam || 0), 0)
   }, [filteredPengampu])
 
+  // Kapasitas slot per minggu (hari aktif × slot JP per hari dari timeline)
+  const kapasitasPerMinggu = useMemo(() => {
+    let total = 0
+    for (const h of HARI_LIST) {
+      if (!hariLibur.includes(h.value)) total += maxJpPerDay.get(h.value) || 0
+    }
+    return total
+  }, [maxJpPerDay, hariLibur])
+
+  // Beban terbesar per kelas (untuk mode "Semua Kelas" — server memvalidasi per kelas)
+  const bebanTerbesarPerKelas = useMemo(() => {
+    const per = new Map<string, number>()
+    for (const p of pengampuList || []) {
+      per.set(p.kelasId, (per.get(p.kelasId) || 0) + (p.jumlahJam || 0))
+    }
+    return Math.max(0, ...per.values())
+  }, [pengampuList])
+
+  const bebanCek = targetKelasId === "all" ? bebanTerbesarPerKelas : totalBebanJP
+  const isOverload = bebanCek > kapasitasPerMinggu
+
   const utils = api.useUtils()
   const generateMutation = api.jadwal.autoGenerate.useMutation()
 
@@ -319,6 +340,38 @@ export default function AiGenerateDialog({
                 <div className="text-[10px] font-bold text-slate-400 bg-slate-200/40 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-250/30 text-center mt-3">
                   Diambil dari data Plotting Pengajar
                 </div>
+              </div>
+            </div>
+
+            {/* Kapasitas vs Beban */}
+            <div
+              className={`p-4 rounded-2xl border flex items-start gap-3 ${
+                isOverload
+                  ? "bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60"
+                  : "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/70 dark:border-emerald-900/50"
+              }`}
+            >
+              {isOverload ? (
+                <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+              )}
+              <div className="text-left space-y-1">
+                <p className={`text-xs font-black uppercase tracking-wider ${isOverload ? "text-rose-700 dark:text-rose-300" : "text-emerald-700 dark:text-emerald-300"}`}>
+                  {isOverload ? "Overload Deteksi — Generate Akan Dibatalkan" : "Kapasitas Jadwal Mencukupi"}
+                </p>
+                <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  Beban {bebanCek} JP/minggu vs kapasitas {kapasitasPerMinggu} JP/minggu
+                  {targetKelasId === "all" ? " (beban tertinggi per kelas)" : ""}.
+                </p>
+                {isOverload && (
+                  <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                    Solusi: kurangi JP di Plotting Pengajar, tambah slot JP di Pengaturan Jadwal, atau kurangi hari libur yang dipilih.
+                  </p>
+                )}
+                <p className="text-[10px] font-medium text-slate-400 pt-1">
+                  Aturan: maksimal 3 JP per pertemuan — mapel 4+ JP otomatis dipecah merata ke hari berbeda (contoh: 4 JP → 2×2 JP, 5 JP → 3+2 JP).
+                </p>
               </div>
             </div>
 

@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu } from "@/server/db/schema"
+import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -62,6 +62,24 @@ function minutesToTime(min: number): string {
   const h = Math.floor(min / 60)
   const m = min % 60
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`
+}
+
+/**
+ * Pecah total JP menjadi blok pertemuan: maks 3 JP per pertemuan,
+ * minimal 2 JP (hindari 1 JP), pecahan merata. Contoh: 4→2+2, 5→3+2,
+ * 6→3+3, 7→3+2+2, 8→3+3+2.
+ */
+function splitJP(total: number): number[] {
+  if (total <= 0) return []
+  if (total <= 3) return [total]
+  const nBlok = Math.ceil(total / 3)
+  const base = Math.floor(total / nBlok)
+  const sisa = total - base * nBlok
+  const chunks: number[] = []
+  for (let i = 0; i < nBlok; i++) {
+    chunks.push(base + (i < sisa ? 1 : 0))
+  }
+  return chunks
 }
 
 function timeStringToDate(time: string): Date {
@@ -575,6 +593,38 @@ export const jadwalRouter = router({
         academicSlotsPerDay.set(day, academicSlots)
       }
 
+      // ── VALIDASI OVERLOAD: beban JP per kelas vs kapasitas slot ──
+      const kapasitasPerKelas = activeDays.reduce(
+        (sum, day) => sum + (academicSlotsPerDay.get(day)?.length || 0),
+        0
+      )
+      const targetKelasAll = Array.from(new Set(allocations.map((a) => a.kelasId)))
+      const overloaded: { kelasId: string; beban: number; kapasitas: number }[] = []
+      for (const kelasId of targetKelasAll) {
+        const beban = allocations
+          .filter((a) => a.kelasId === kelasId)
+          .reduce((s, a) => s + a.jpCount, 0)
+        if (beban > kapasitasPerKelas) {
+          overloaded.push({ kelasId, beban, kapasitas: kapasitasPerKelas })
+        }
+      }
+      if (overloaded.length > 0) {
+        const kelasRows = overloaded.length > 0
+          ? await db.query.kelas.findMany({ where: inArray(kelas.id, overloaded.map((o) => o.kelasId)) })
+          : []
+        const namaKelas = (id: string) => kelasRows.find((k) => k.id === id)?.namaKelas || id.slice(0, 8)
+        const detail = overloaded
+          .map((o) => `${namaKelas(o.kelasId)} (beban ${o.beban} JP > kapasitas ${o.kapasitas} JP)`)
+          .join("; ")
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            `Overload jadwal terdeteksi — generate dibatalkan: ${detail}. ` +
+            `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
+            `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
+        })
+      }
+
       // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
       const teacherExclusions = new Set<string>()
       for (const c of (input.constraints || [])) {
@@ -590,22 +640,19 @@ export const jadwalRouter = router({
         }
       }
 
-      // Split large blocks to max 2 or 3 JP per day
+      // Pecah alokasi JP menjadi blok pertemuan: maks 3 JP, min 2 JP, merata
       const blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
       for (const alloc of allocations) {
-        let remaining = alloc.jpCount
-        let part = 1
-        while (remaining > 0) {
-          const chunk = remaining >= 4 ? 2 : (remaining === 3 ? 2 : remaining)
+        const chunks = splitJP(alloc.jpCount)
+        chunks.forEach((chunk, part) => {
           blocks.push({
-            id: `${alloc.kelasId}-${alloc.mataPelajaranId}-${alloc.guruId}-${part++}`,
+            id: `${alloc.kelasId}-${alloc.mataPelajaranId}-${alloc.guruId}-${part + 1}`,
             kelasId: alloc.kelasId,
             mataPelajaranId: alloc.mataPelajaranId,
             guruId: alloc.guruId,
             jpCount: chunk,
           })
-          remaining -= chunk
-        }
+        })
       }
 
       // Sort by size descending as base ordering
@@ -639,7 +686,7 @@ export const jadwalRouter = router({
           avoidConsecutive: attempt < 10,
         }
 
-        const solverState = { steps: 0, maxSteps: 2000 }
+        const solverState = { steps: 0, maxSteps: 20000 }
         success = runBacktrackingSolver(
           shuffledBlocks,
           0,
@@ -681,7 +728,7 @@ export const jadwalRouter = router({
             avoidConsecutive: attempt < 10,
           }
 
-          const solverState = { steps: 0, maxSteps: 2000 }
+          const solverState = { steps: 0, maxSteps: 20000 }
           success = runBacktrackingSolver(
             shuffledBlocks,
             0,
@@ -702,8 +749,10 @@ export const jadwalRouter = router({
         }
       }
 
-      // ── PHASE 3: Jika masih gagal (mathematically overloaded), jalankan Greedy Placement ──
-      // Ini menjamin jadwal SELALU berhasil di-generate dengan meminimalkan bentrok guru.
+      // ── PHASE 3: Jika masih gagal, jalankan Greedy Placement ──
+      // Tetap menghormati aturan "pecahan mapel beda hari"; blok yang tidak
+      // bisa ditempatkan dikumpulkan dan memicu error (bukan silent drop).
+      const unplaced: { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
       if (!success) {
         assigned.clear()
         teacherBusy.clear()
@@ -711,6 +760,14 @@ export const jadwalRouter = router({
 
         // Urutkan kembali berdasarkan JP terbesar
         blocks.sort((a, b) => b.jpCount - a.jpCount)
+
+        const hasSameMapelOnDay = (kelasId: string, mataPelajaranId: string, day: string) => {
+          for (const [sKey, sVal] of assigned.entries()) {
+            const [kId, d] = sKey.split("|")
+            if (kId === kelasId && d === day && sVal.mataPelajaranId === mataPelajaranId) return true
+          }
+          return false
+        }
 
         for (const block of blocks) {
           const slotsPerDayList = [...activeDays].map(day => ({
@@ -722,6 +779,7 @@ export const jadwalRouter = router({
 
           // Langkah A: Cari slot kosong kelas & guru tidak sedang mengajar
           for (const { day, slots } of slotsPerDayList) {
+            if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
             for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
               let classConflict = false
               let teacherConflict = false
@@ -761,6 +819,7 @@ export const jadwalRouter = router({
           // Langkah B: Jika terpaksa bentrok guru, yang penting kelasnya kosong (bentrok guru minimal)
           if (!placed) {
             for (const { day, slots } of slotsPerDayList) {
+              if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
               for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
                 let classConflict = false
 
@@ -792,8 +851,41 @@ export const jadwalRouter = router({
               if (placed) break
             }
           }
+
+          if (!placed) {
+            unplaced.push({
+              kelasId: block.kelasId,
+              mataPelajaranId: block.mataPelajaranId,
+              guruId: block.guruId,
+              jpCount: block.jpCount,
+            })
+          }
         }
         success = true
+      }
+
+      // ── Jika ada kegiatan yang tidak bisa dijadwalkan: batalkan, jangan simpan partial ──
+      if (unplaced.length > 0) {
+        const kelasIds = Array.from(new Set(unplaced.map((u) => u.kelasId)))
+        const mapelIds = Array.from(new Set(unplaced.map((u) => u.mataPelajaranId)))
+        const [kelasRows, mapelRows] = await Promise.all([
+          db.query.kelas.findMany({ where: inArray(kelas.id, kelasIds) }),
+          db.query.mataPelajaran.findMany({ where: inArray(mataPelajaran.id, mapelIds) }),
+        ])
+        const namaKelas = (id: string) => kelasRows.find((k) => k.id === id)?.namaKelas || id.slice(0, 8)
+        const namaMapel = (id: string) => mapelRows.find((m) => m.id === id)?.namaMapel || id.slice(0, 8)
+        const ringkas = unplaced
+          .slice(0, 5)
+          .map((u) => `${namaMapel(u.mataPelajaranId)} (Kelas ${namaKelas(u.kelasId)}, ${u.jpCount} JP)`)
+          .join("; ")
+        const sisa = unplaced.length > 5 ? `, dan ${unplaced.length - 5} lainnya` : ""
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            `Generate dibatalkan: ${unplaced.length} kegiatan tidak dapat dijadwalkan (${ringkas}${sisa}). ` +
+            `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
+            `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
+        })
       }
 
       // Delete existing schedules for the classes we generated
@@ -837,6 +929,7 @@ export const jadwalRouter = router({
           lastGroup.hari === item.hari &&
           lastGroup.mataPelajaranId === item.mataPelajaranId &&
           lastGroup.guruId === item.guruId &&
+          lastGroup.jpCount < 3 &&
           lastGroup.jpMulai + lastGroup.jpCount === item.academicJp
 
         if (isContiguous) {
@@ -874,8 +967,9 @@ export const jadwalRouter = router({
         await db.insert(jadwalPelajaran).values(insertData)
       }
 
-      await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds } })
-      return { success: true }
+      const totalJpTerjadwal = insertData.reduce((sum, d) => sum + (d.jpCount || 0), 0)
+      await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds, totalJp: totalJpTerjadwal, totalBlocks: insertData.length } })
+      return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length }
     }),
 })
 
