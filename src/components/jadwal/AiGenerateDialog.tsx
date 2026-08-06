@@ -21,9 +21,17 @@ import {
   Check,
   AlertTriangle,
   Info,
+  Eye,
 } from "lucide-react"
 import { formatKelasLabel } from "./constants"
 import { cn } from "@/lib/utils"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 
 interface KelasRecord {
   id: string
@@ -72,6 +80,51 @@ const HARI_LIST = [
 
 const JP_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
+const MAPEL_COLORS = ["#0d9488", "#6366f1", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#10b981", "#f97316", "#3b82f6", "#14b8a6", "#a855f7", "#e11d48"]
+
+function hashMapel(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) >>> 0
+  }
+  return h % MAPEL_COLORS.length
+}
+
+interface PreviewBlock {
+  jpMulai: number
+  jpCount: number
+  mapelId: string
+  mapelNama: string
+  guruNama: string
+}
+
+interface PreviewEmptySlot {
+  jp: number
+  alasan: string | null
+}
+
+interface PreviewHari {
+  hari: string
+  blocks: PreviewBlock[]
+  empty: PreviewEmptySlot[]
+}
+
+interface PreviewKelas {
+  kelasId: string
+  namaKelas: string
+  bebanJP: number
+  kapasitasJP: number
+  terpasangJP: number
+  hari: PreviewHari[]
+}
+
+interface PreviewData {
+  ok: boolean
+  error: string | null
+  totalJp: number
+  perKelas: PreviewKelas[]
+}
+
 export default function AiGenerateDialog({
   open,
   onClose,
@@ -81,6 +134,9 @@ export default function AiGenerateDialog({
   const [targetKelasId, setTargetKelasId] = useState<string>("all")
   const [hariLibur, setHariLibur] = useState<string[]>(["sabtu"])
   const [customRequest, setCustomRequest] = useState<string>("")
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   // Teacher exception states matching reference ZIP structure
   const [teacherExceptions, setTeacherExceptions] = useState<Record<string, string[]>>({})
@@ -126,6 +182,8 @@ export default function AiGenerateDialog({
     setCustomRequest("")
     setTeacherExceptions({})
     setTeacherJPExceptions({})
+    setPreviewData(null)
+    setPreviewError(null)
   }, [open, kaldikSetting])
 
   // Filter plotting pengajar based on selected target kelas
@@ -162,6 +220,7 @@ export default function AiGenerateDialog({
 
   const utils = api.useUtils()
   const generateMutation = api.jadwal.autoGenerate.useMutation()
+  const previewMutation = api.jadwal.previewGenerate.useMutation()
 
   const handleToggleHariLibur = (dayValue: string) => {
     if (hariLibur.includes(dayValue)) {
@@ -191,13 +250,14 @@ export default function AiGenerateDialog({
     })
   }
 
-  const handleGenerate = async () => {
-    if (filteredPengampu.length === 0) {
-      toast.error("Belum ada data Plotting Pengajar (Pengampu) di database untuk kelas yang dipilih.")
-      return
-    }
-
-    // Map the exceptions state to the server-compatible constraints list
+  // Map the exceptions state to the server-compatible constraints list
+  const buildConstraints = (): {
+    guruId: string
+    hari: "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu"
+    jpMulai: number
+    jpSelesai: number
+    isFullDay: boolean
+  }[] => {
     const constraints: {
       guruId: string
       hari: "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu"
@@ -234,6 +294,44 @@ export default function AiGenerateDialog({
         })
       })
     })
+
+    return constraints
+  }
+
+  const handlePreview = async () => {
+    if (filteredPengampu.length === 0) {
+      toast.error("Belum ada data Plotting Pengajar (Pengampu) di database untuk kelas yang dipilih.")
+      return
+    }
+    setPreviewLoading(true)
+    setPreviewError(null)
+    setPreviewData(null)
+    try {
+      const data = await previewMutation.mutateAsync({
+        kelasId: targetKelasId === "all" ? undefined : targetKelasId,
+        hariLibur: hariLibur as any[],
+        constraints: buildConstraints(),
+      })
+      if (!data.ok) {
+        setPreviewError(data.error || "Gagal menyusun preview jadwal.")
+        setPreviewData(null)
+      } else {
+        setPreviewData(data)
+      }
+    } catch (err: any) {
+      setPreviewError(err.message || "Gagal memuat preview jadwal.")
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (filteredPengampu.length === 0) {
+      toast.error("Belum ada data Plotting Pengajar (Pengampu) di database untuk kelas yang dipilih.")
+      return
+    }
+
+    const constraints = buildConstraints()
 
     // Open terminal progress modal
     setProgressModalOpen(true)
@@ -511,6 +609,16 @@ export default function AiGenerateDialog({
             <Button
               type="button"
               variant="outline"
+              onClick={handlePreview}
+              disabled={filteredPengampu.length === 0 || previewLoading}
+              className="rounded-xl font-bold text-xs uppercase cursor-pointer"
+            >
+              {previewLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+              Preview Jadwal
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               className="rounded-xl font-bold text-xs uppercase cursor-pointer"
             >
@@ -526,6 +634,127 @@ export default function AiGenerateDialog({
               Mulai Auto-Scheduler
             </Button>
           </div>
+
+          {/* ================= PREVIEW JADWAL (dry-run per kelas) ================= */}
+          {(previewData || previewError || previewLoading) && (
+            <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-indigo-500" />
+                <Label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Preview Jadwal
+                </Label>
+                <span className="text-[10px] text-muted-foreground font-semibold ml-auto">
+                  Preview identik dengan hasil generate (seeded)
+                </span>
+              </div>
+
+              {previewLoading && (
+                <div className="flex items-center gap-3 text-xs font-bold text-slate-500 py-6 justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                  Menyusun preview jadwal...
+                </div>
+              )}
+
+              {previewError && (
+                <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                  <AlertTriangle className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                  {previewError}
+                </div>
+              )}
+
+              {previewData && previewData.ok && previewData.perKelas.length > 0 && (
+                <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                  {previewData.perKelas.map((kelas) => {
+                    const sisa = kelas.kapasitasJP - kelas.terpasangJP
+                    const jpMax = Math.max(
+                      ...kelas.hari.map((h) => maxJpPerDay.get(h.hari) || 0),
+                      ...kelas.hari.map((h) => h.blocks.reduce((m, b) => Math.max(m, b.jpMulai + b.jpCount - 1), 0)),
+                      1
+                    )
+                    return (
+                      <div key={kelas.kelasId} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-100">{kelas.namaKelas}</span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase",
+                              sisa === 0
+                                ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                                : "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                            )}>
+                              {kelas.terpasangJP}/{kelas.kapasitasJP} JP terpasang
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            Beban {kelas.bebanJP} JP · Sisa {sisa} slot
+                          </span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <div className="min-w-[560px] space-y-1.5">
+                            {kelas.hari.map((h) => (
+                              <div key={h.hari} className="grid items-center gap-1.5" style={{ gridTemplateColumns: `70px repeat(${Math.max(jpMax, 1)}, minmax(0, 1fr))` }}>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{h.hari}</span>
+                                {Array.from({ length: Math.max(jpMax, 1) }, (_, i) => {
+                                  const jp = i + 1
+                                  const block = h.blocks.find((b) => jp >= b.jpMulai && jp < b.jpMulai + b.jpCount)
+                                  const empty = h.empty.find((e) => e.jp === jp)
+
+                                  if (block) {
+                                    // Blok digambar sekali di posisi awal dengan span; sel kontinuasi dilewati
+                                    if (block.jpMulai !== jp) return null
+                                    return (
+                                      <div
+                                        key={jp}
+                                        className="h-9 rounded-lg flex flex-col items-center justify-center overflow-hidden px-1 text-white shadow-sm"
+                                        style={{ gridColumn: `${jp} / span ${block.jpCount}`, backgroundColor: MAPEL_COLORS[hashMapel(block.mapelId)] }}
+                                      >
+                                        <span className="text-[8.5px] font-black leading-tight truncate w-full text-center">{block.mapelNama}</span>
+                                        <span className="text-[7.5px] font-semibold leading-tight opacity-90 truncate w-full text-center">{block.guruNama}</span>
+                                      </div>
+                                    )
+                                  }
+
+                                  if (empty) {
+                                    const cell = (
+                                      <div key={jp} className="h-9 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-background flex items-center justify-center text-[8px] font-bold text-slate-300 dark:text-slate-600" style={{ gridColumn: String(jp) }}>
+                                        JP{jp}
+                                      </div>
+                                    )
+                                    if (empty.alasan) {
+                                      return (
+                                        <Tooltip key={jp}>
+                                          <TooltipTrigger render={cell} />
+                                          <TooltipPortal>
+                                            <TooltipPositioner>
+                                              <TooltipPopup className="max-w-[220px] text-[10px]">{empty.alasan}</TooltipPopup>
+                                            </TooltipPositioner>
+                                          </TooltipPortal>
+                                        </Tooltip>
+                                      )
+                                    }
+                                    return cell
+                                  }
+
+                                  return null
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {previewData && previewData.ok && previewData.perKelas.length === 0 && (
+                <p className="text-xs font-semibold text-slate-500 py-4 text-center">
+                  Tidak ada kelas yang dapat dipreview.
+                </p>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

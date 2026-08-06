@@ -522,425 +522,13 @@ export const jadwalRouter = router({
   autoGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(autoGenerateInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
-      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const { sekolahId, pengaturanJadwalId, activeDays, allocations } = await prepareGenerate(ctx, input)
 
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
-      if (!pengaturan) throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
+      const seedKey = buildSeedKey(sekolahId, input)
+      const result = await solveSchedule({ sekolahId, pengaturanJadwalId, allocations, activeDays, hariLibur: input.hariLibur || [], constraints: input.constraints || [], seedKey })
 
-      const pengaturanJadwalId = pengaturan.id
-
-      // Get active days from timeline items
-      const hariRows = await db
-        .select({ hari: timelineItem.hari })
-        .from(timelineItem)
-        .where(and(
-          eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
-          eq(timelineItem.tipe, "jp"),
-        ))
-        .groupBy(timelineItem.hari)
-
-      const hariLiburSet = new Set(input.hariLibur || [])
-      const DAY_ORDER = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]
-      const activeDays = hariRows
-        .map(r => r.hari)
-        .filter(h => !hariLiburSet.has(h as any))
-        .sort((a, b) => DAY_ORDER.indexOf(a as string) - DAY_ORDER.indexOf(b as string))
-
-      if (activeDays.length === 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif yang tersisa. Silakan sesuaikan pilihan hari libur sekolah." })
-      }
-
-      // 1. Get allocations from input or automatically from DB plotting pengajar (pengampu)
-      if (input.kelasId && input.kelasId !== "all") {
-        const kelasTarget = await db.query.kelas.findFirst({
-          where: and(eq(kelas.id, input.kelasId), eq(kelas.sekolahId, sekolahId)),
-          columns: { id: true },
-        })
-        if (!kelasTarget) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Kelas yang dipilih tidak berada di sekolah Anda. Generate dibatalkan." })
-        }
-      }
-
-      let allocations = input.allocations || []
-      if (allocations.length === 0) {
-        const pengampuConditions = [eq(pengampu.sekolahId, sekolahId)]
-        if (input.kelasId && input.kelasId !== "all") {
-          pengampuConditions.push(eq(pengampu.kelasId, input.kelasId))
-        }
-        const pengampuRows = await db.query.pengampu.findMany({
-          where: and(...pengampuConditions),
-        })
-
-        allocations = pengampuRows
-          .filter((p) => p.jumlahJam > 0)
-          .map((p) => ({
-            kelasId: p.kelasId,
-            mataPelajaranId: p.mataPelajaranId,
-            guruId: p.guruId,
-            jpCount: p.jumlahJam,
-          }))
-      }
-
-      if (allocations.length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Belum ada data Plotting Pengajar (Pengampu) di database. Silakan isi Plotting Pengajar terlebih dahulu di menu Akademik.",
-        })
-      }
-
-      // ── VALIDASI TENANT: semua kelas/guru/mapel dalam alokasi wajib milik sekolah ini ──
-      // (mencegah generate di sekolah A menghapus/membuat jadwal kelas sekolah B
-      //  bila client mengirim input.allocations dengan id dari sekolah lain)
-      const [kelasIds, guruIds, mapelIds] = await Promise.all([
-        db.query.kelas.findMany({ where: eq(kelas.sekolahId, sekolahId), columns: { id: true } }),
-        db.query.guru.findMany({ where: eq(guru.sekolahId, sekolahId), columns: { id: true } }),
-        db.query.mataPelajaran.findMany({ where: eq(mataPelajaran.sekolahId, sekolahId), columns: { id: true } }),
-      ])
-      const kelasSet = new Set(kelasIds.map((k) => k.id))
-      const guruSet = new Set(guruIds.map((g) => g.id))
-      const mapelSet = new Set(mapelIds.map((m) => m.id))
-      const asing = allocations.filter(
-        (a) => !kelasSet.has(a.kelasId) || !guruSet.has(a.guruId) || !mapelSet.has(a.mataPelajaranId)
-      )
-      if (asing.length > 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Generate dibatalkan: ${asing.length} alokasi mengacu kelas/guru/mata pelajaran di luar sekolah Anda. Periksa kembali data Plotting Pengajar.`,
-        })
-      }
-
-      // Get all timeline items for slot mapping
-      const timelineList = await db.query.timelineItem.findMany({
-        where: and(
-          eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
-        ),
-        orderBy: [asc(timelineItem.urutan)],
-      })
-
-      const durasiJP = pengaturan.durasiJP ?? 40
-      const startMinutes = pengaturan.jamMulai ? timeToMinutes(pengaturan.jamMulai) : 420
-
-      // Pre-map academic slots per day
-      const academicSlotsPerDay = new Map<string, number[]>()
-      for (const day of activeDays) {
-        const dayItems = timelineList.filter(t => t.hari === day).sort((a, b) => a.urutan - b.urutan)
-        const academicSlots: number[] = []
-        let academicCounter = 1
-        for (const item of dayItems) {
-          if (item.tipe === "jp") {
-            academicSlots.push(academicCounter++)
-          }
-        }
-        academicSlotsPerDay.set(day, academicSlots)
-      }
-
-      // ── VALIDASI OVERLOAD: beban JP per kelas vs kapasitas slot ──
-      const kapasitasPerKelas = activeDays.reduce(
-        (sum, day) => sum + (academicSlotsPerDay.get(day)?.length || 0),
-        0
-      )
-      const targetKelasAll = Array.from(new Set(allocations.map((a) => a.kelasId)))
-      const overloaded: { kelasId: string; beban: number; kapasitas: number }[] = []
-      for (const kelasId of targetKelasAll) {
-        const beban = allocations
-          .filter((a) => a.kelasId === kelasId)
-          .reduce((s, a) => s + a.jpCount, 0)
-        if (beban > kapasitasPerKelas) {
-          overloaded.push({ kelasId, beban, kapasitas: kapasitasPerKelas })
-        }
-      }
-      if (overloaded.length > 0) {
-        const kelasRows = overloaded.length > 0
-          ? await db.query.kelas.findMany({ where: inArray(kelas.id, overloaded.map((o) => o.kelasId)) })
-          : []
-        const namaKelas = (id: string) => kelasRows.find((k) => k.id === id)?.namaKelas || id.slice(0, 8)
-        const detail = overloaded
-          .map((o) => `${namaKelas(o.kelasId)} (beban ${o.beban} JP > kapasitas ${o.kapasitas} JP)`)
-          .join("; ")
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            `Overload jadwal terdeteksi — generate dibatalkan: ${detail}. ` +
-            `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
-            `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
-        })
-      }
-
-      // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
-      const teacherExclusions = new Set<string>()
-      for (const c of (input.constraints || [])) {
-        const slotsForDay = academicSlotsPerDay.get(c.hari) || []
-        const maxSlotCount = slotsForDay.length || 10
-        const endJp = c.isFullDay ? maxSlotCount : c.jpSelesai
-
-        for (let jp = c.jpMulai; jp <= Math.min(endJp, maxSlotCount); jp++) {
-          const academicJp = slotsForDay[jp - 1]
-          if (academicJp !== undefined) {
-            teacherExclusions.add(`${c.guruId}|${c.hari}|${academicJp}`)
-          }
-        }
-      }
-
-      // Pecah alokasi JP menjadi blok pertemuan: maks 3 JP, min 2 JP, merata
-      const blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
-      for (const alloc of allocations) {
-        const chunks = splitJP(alloc.jpCount)
-        chunks.forEach((chunk, part) => {
-          blocks.push({
-            id: `${alloc.kelasId}-${alloc.mataPelajaranId}-${alloc.guruId}-${part + 1}`,
-            kelasId: alloc.kelasId,
-            mataPelajaranId: alloc.mataPelajaranId,
-            guruId: alloc.guruId,
-            jpCount: chunk,
-          })
-        })
-      }
-
-      // Sort by size descending as base ordering
-      blocks.sort((a, b) => b.jpCount - a.jpCount)
-
-      const assigned = new Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>()
-      const teacherBusy = new Map<string, boolean>()
-      const kelasDaysMap = new Map<string, Set<string>>()
-
-      let success = false
-
-      // ── PHASE 1: Backtracking dengan Pengecualian Guru & Shuffling (Mencari Solusi Sempurna) ──
-      for (let attempt = 0; attempt < 30; attempt++) {
-        assigned.clear()
-        teacherBusy.clear()
-        kelasDaysMap.clear()
-
-        const shuffledBlocks = [...blocks]
-        if (attempt > 0) {
-          // Acak urutan block secara acak untuk meloloskan diri dari search bottleneck
-          for (let i = shuffledBlocks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1))
-            const temp = shuffledBlocks[i]!
-            shuffledBlocks[i] = shuffledBlocks[j]!
-            shuffledBlocks[j] = temp
-          }
-        }
-
-        const options = {
-          avoidSame: attempt < 20,
-          avoidConsecutive: attempt < 10,
-        }
-
-        const solverState = { steps: 0, maxSteps: 20000 }
-        success = runBacktrackingSolver(
-          shuffledBlocks,
-          0,
-          assigned,
-          teacherBusy,
-          [...activeDays],
-          academicSlotsPerDay,
-          teacherExclusions,
-          kelasDaysMap,
-          solverState,
-          options
-        )
-        if (success) {
-          blocks.length = 0
-          blocks.push(...shuffledBlocks)
-          break
-        }
-      }
-
-      // ── PHASE 2: Jika gagal, rileksasikan aturan jam berhalangan guru (Teacher Exclusions) ──
-      if (!success && teacherExclusions.size > 0) {
-        for (let attempt = 0; attempt < 30; attempt++) {
-          assigned.clear()
-          teacherBusy.clear()
-          kelasDaysMap.clear()
-
-          const shuffledBlocks = [...blocks]
-          if (attempt > 0) {
-            for (let i = shuffledBlocks.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1))
-              const temp = shuffledBlocks[i]!
-              shuffledBlocks[i] = shuffledBlocks[j]!
-              shuffledBlocks[j] = temp
-            }
-          }
-
-          const options = {
-            avoidSame: attempt < 20,
-            avoidConsecutive: attempt < 10,
-          }
-
-          const solverState = { steps: 0, maxSteps: 20000 }
-          success = runBacktrackingSolver(
-            shuffledBlocks,
-            0,
-            assigned,
-            teacherBusy,
-            [...activeDays],
-            academicSlotsPerDay,
-            new Set(), // Rileksasikan pengecualian guru
-            kelasDaysMap,
-            solverState,
-            options
-          )
-          if (success) {
-            blocks.length = 0
-            blocks.push(...shuffledBlocks)
-            break
-          }
-        }
-      }
-
-      // ── PHASE 3: Jika masih gagal, jalankan Greedy Placement ──
-      // Tetap menghormati aturan "pecahan mapel beda hari"; blok yang tidak
-      // bisa ditempatkan dikumpulkan dan memicu error (bukan silent drop).
-      const unplaced: { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
-      if (!success) {
-        assigned.clear()
-        teacherBusy.clear()
-        kelasDaysMap.clear()
-
-        // Urutkan kembali berdasarkan JP terbesar
-        blocks.sort((a, b) => b.jpCount - a.jpCount)
-
-        const hasSameMapelOnDay = (kelasId: string, mataPelajaranId: string, day: string) => {
-          for (const [sKey, sVal] of assigned.entries()) {
-            const [kId, d] = sKey.split("|")
-            if (kId === kelasId && d === day && sVal.mataPelajaranId === mataPelajaranId) return true
-          }
-          return false
-        }
-
-        const dayLoad = (kelasId: string, day: string) => {
-          let load = 0
-          for (const [sKey, sVal] of assigned.entries()) {
-            const [kId, d] = sKey.split("|")
-            if (kId === kelasId && d === day) load += sVal.jpCount || 1
-          }
-          return load
-        }
-
-        for (const block of blocks) {
-          const slotsPerDayList = [...activeDays]
-            .map(day => ({
-              day,
-              slots: academicSlotsPerDay.get(day) || []
-            }))
-            .sort((a, b) => dayLoad(block.kelasId, a.day) - dayLoad(block.kelasId, b.day))
-
-          let placed = false
-
-          // Langkah A: Cari slot kosong kelas & guru tidak sedang mengajar
-          for (const { day, slots } of slotsPerDayList) {
-            if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
-            for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
-              let classConflict = false
-              let teacherConflict = false
-
-              for (let offset = 0; offset < block.jpCount; offset++) {
-                const slotJp = slots[startIdx + offset]
-                if (slotJp === undefined) { classConflict = true; break; }
-
-                const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                if (assigned.has(slotKey)) { classConflict = true; break; }
-
-                const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
-                if (teacherBusy.get(teacherDayKey)) {
-                  teacherConflict = true;
-                }
-              }
-
-              if (!classConflict && !teacherConflict) {
-                for (let offset = 0; offset < block.jpCount; offset++) {
-                  const slotJp = slots[startIdx + offset]
-                  const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                  assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
-
-                  const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
-                  teacherBusy.set(teacherDayKey, true)
-                }
-                const kDays = kelasDaysMap.get(block.kelasId) || new Set()
-                kDays.add(day)
-                kelasDaysMap.set(block.kelasId, kDays)
-                placed = true
-                break
-              }
-            }
-            if (placed) break
-          }
-
-          // Langkah B: Jika terpaksa bentrok guru, yang penting kelasnya kosong (bentrok guru minimal)
-          if (!placed) {
-            for (const { day, slots } of slotsPerDayList) {
-              if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
-              for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
-                let classConflict = false
-
-                for (let offset = 0; offset < block.jpCount; offset++) {
-                  const slotJp = slots[startIdx + offset]
-                  if (slotJp === undefined) { classConflict = true; break; }
-
-                  const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                  if (assigned.has(slotKey)) { classConflict = true; break; }
-                }
-
-                if (!classConflict) {
-                  for (let offset = 0; offset < block.jpCount; offset++) {
-                    const slotJp = slots[startIdx + offset]
-                    const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                    assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
-
-                    // Tandai guru tetap mengajar (walau bentrok) agar sistem mencatat
-                    const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
-                    teacherBusy.set(teacherDayKey, true)
-                  }
-                  const kDays = kelasDaysMap.get(block.kelasId) || new Set()
-                  kDays.add(day)
-                  kelasDaysMap.set(block.kelasId, kDays)
-                  placed = true
-                  break
-                }
-              }
-              if (placed) break
-            }
-          }
-
-          if (!placed) {
-            unplaced.push({
-              kelasId: block.kelasId,
-              mataPelajaranId: block.mataPelajaranId,
-              guruId: block.guruId,
-              jpCount: block.jpCount,
-            })
-          }
-        }
-        success = true
-      }
-
-      // ── Jika ada kegiatan yang tidak bisa dijadwalkan: batalkan, jangan simpan partial ──
-      if (unplaced.length > 0) {
-        const kelasIds = Array.from(new Set(unplaced.map((u) => u.kelasId)))
-        const mapelIds = Array.from(new Set(unplaced.map((u) => u.mataPelajaranId)))
-        const [kelasRows, mapelRows] = await Promise.all([
-          db.query.kelas.findMany({ where: inArray(kelas.id, kelasIds) }),
-          db.query.mataPelajaran.findMany({ where: inArray(mataPelajaran.id, mapelIds) }),
-        ])
-        const namaKelas = (id: string) => kelasRows.find((k) => k.id === id)?.namaKelas || id.slice(0, 8)
-        const namaMapel = (id: string) => mapelRows.find((m) => m.id === id)?.namaMapel || id.slice(0, 8)
-        const ringkas = unplaced
-          .slice(0, 5)
-          .map((u) => `${namaMapel(u.mataPelajaranId)} (Kelas ${namaKelas(u.kelasId)}, ${u.jpCount} JP)`)
-          .join("; ")
-        const sisa = unplaced.length > 5 ? `, dan ${unplaced.length - 5} lainnya` : ""
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            `Generate dibatalkan: ${unplaced.length} kegiatan tidak dapat dijadwalkan (${ringkas}${sisa}). ` +
-            `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
-            `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
-        })
+      if (!result.ok) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
       }
 
       // Delete existing schedules for the classes we generated
@@ -959,7 +547,7 @@ export const jadwalRouter = router({
         jpCount: number
       }[] = []
 
-      const assignmentsList = Array.from(assigned.entries()).map(([key, val]) => {
+      const assignmentsList = Array.from(result.assigned.entries()).map(([key, val]) => {
         const [kelasId, hari, academicJpStr] = key.split("|")
         return {
           kelasId,
@@ -1026,7 +614,613 @@ export const jadwalRouter = router({
       await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds, totalJp: totalJpTerjadwal, totalBlocks: insertData.length } })
       return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length }
     }),
+
+  previewGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(autoGenerateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { sekolahId, pengaturanJadwalId, activeDays, allocations } = await prepareGenerate(ctx, input)
+
+      const [guruRows, kelasRows, mapelRows] = await Promise.all([
+        db.query.guru.findMany({ where: eq(guru.sekolahId, sekolahId) }),
+        db.query.kelas.findMany({ where: eq(kelas.sekolahId, sekolahId) }),
+        db.query.mataPelajaran.findMany({ where: eq(mataPelajaran.sekolahId, sekolahId) }),
+      ])
+      const namaGuru = new Map(guruRows.map((g) => [g.id, g.namaLengkap]))
+      const namaKelas = new Map(kelasRows.map((k) => [k.id, k.namaKelas]))
+      const namaMapel = new Map(mapelRows.map((m) => [m.id, m.namaMapel]))
+
+      const seedKey = buildSeedKey(sekolahId, input)
+      const result = await solveSchedule({
+        sekolahId,
+        pengaturanJadwalId,
+        allocations,
+        activeDays,
+        hariLibur: input.hariLibur || [],
+        constraints: input.constraints || [],
+        seedKey,
+        namaGuru,
+        namaKelas,
+      })
+
+      if (!result.ok) {
+        return { ok: false, error: result.error ?? null, totalJp: 0, perKelas: [] }
+      }
+
+      const kelasBeban = new Map<string, number>()
+      for (const a of allocations) {
+        kelasBeban.set(a.kelasId, (kelasBeban.get(a.kelasId) || 0) + a.jpCount)
+      }
+
+      const targetKelas = Array.from(new Set(allocations.map((a) => a.kelasId))).sort()
+      const perKelas = targetKelas.map((kId) => {
+        const slotsPerDay = result.academicSlotsPerDay
+        const hari: {
+          hari: string
+          blocks: { jpMulai: number; jpCount: number; mapelId: string; mapelNama: string; guruNama: string }[]
+          empty: { jp: number; alasan: string | null }[]
+        }[] = []
+
+        for (const day of activeDays) {
+          const daySlots = slotsPerDay.get(day) || []
+          const blocks: { jpMulai: number; jpCount: number; mapelId: string; mapelNama: string; guruNama: string }[] = []
+          const empty: { jp: number; alasan: string | null }[] = []
+
+          let cursor = 1
+          while (cursor <= daySlots.length) {
+            const slotKey = `${kId}|${day}|${cursor}`
+            const val = result.assigned.get(slotKey)
+            if (val) {
+              blocks.push({
+                jpMulai: cursor,
+                jpCount: val.jpCount,
+                mapelId: val.mataPelajaranId,
+                mapelNama: namaMapel.get(val.mataPelajaranId) || "-",
+                guruNama: namaGuru.get(val.guruId) || "-",
+              })
+              cursor += val.jpCount
+            } else {
+              empty.push({
+                jp: cursor,
+                alasan: result.reasons.get(slotKey) || null,
+              })
+              cursor += 1
+            }
+          }
+
+          hari.push({ hari: day, blocks, empty })
+        }
+
+        return {
+          kelasId: kId,
+          namaKelas: namaKelas.get(kId) || kId,
+          bebanJP: kelasBeban.get(kId) || 0,
+          kapasitasJP: result.kapasitasPerKelas.get(kId) || 0,
+          terpasangJP: result.blocks.filter((b) => b.kelasId === kId).reduce((s, b) => s + b.jpCount, 0),
+          hari,
+        }
+      })
+
+      return { ok: true, error: null, totalJp: result.totalJp, perKelas }
+    }),
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared helpers for auto-generate & preview (dry-run) jadwal
+// ─────────────────────────────────────────────────────────────────────────────
+
+type GenerateAllocation = { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }
+type GenerateConstraint = { guruId: string; hari: string; jpMulai: number; jpSelesai: number; isFullDay?: boolean }
+
+function hashString(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
+/** PRNG deterministik (mulberry32) agar preview identik dengan hasil generate. */
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function buildSeedKey(sekolahId: string, input: { kelasId?: string; hariLibur?: string[]; constraints?: GenerateConstraint[] }): string {
+  return `${sekolahId}|${input.kelasId ?? "all"}|${(input.hariLibur || []).join(",")}|${JSON.stringify(input.constraints || [])}`
+}
+
+async function prepareGenerate(
+  ctx: { session: { user: { sekolahId: string | null } } },
+  input: { kelasId?: string; hariLibur?: string[]; allocations?: GenerateAllocation[] }
+): Promise<{ sekolahId: string; pengaturanJadwalId: string; activeDays: string[]; allocations: GenerateAllocation[] }> {
+  const sekolahId = ctx.session.user.sekolahId
+  if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+
+  const pengaturan = await db.query.pengaturanJadwal.findFirst({
+    where: eq(pengaturanJadwal.sekolahId, sekolahId),
+  })
+  if (!pengaturan) throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
+
+  const pengaturanJadwalId = pengaturan.id
+
+  // Get active days from timeline items
+  const hariRows = await db
+    .select({ hari: timelineItem.hari })
+    .from(timelineItem)
+    .where(and(
+      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+      eq(timelineItem.tipe, "jp"),
+    ))
+    .groupBy(timelineItem.hari)
+
+  const hariLiburSet = new Set(input.hariLibur || [])
+  const DAY_ORDER = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]
+  const activeDays = hariRows
+    .map(r => r.hari)
+    .filter(h => !hariLiburSet.has(h as any))
+    .sort((a, b) => DAY_ORDER.indexOf(a as string) - DAY_ORDER.indexOf(b as string))
+
+  if (activeDays.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif yang tersisa. Silakan sesuaikan pilihan hari libur sekolah." })
+  }
+
+  // 1. Get allocations from input or automatically from DB plotting pengajar (pengampu)
+  if (input.kelasId && input.kelasId !== "all") {
+    const kelasTarget = await db.query.kelas.findFirst({
+      where: and(eq(kelas.id, input.kelasId), eq(kelas.sekolahId, sekolahId)),
+      columns: { id: true },
+    })
+    if (!kelasTarget) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Kelas yang dipilih tidak berada di sekolah Anda. Generate dibatalkan." })
+    }
+  }
+
+  let allocations = input.allocations || []
+  if (allocations.length === 0) {
+    const pengampuConditions = [eq(pengampu.sekolahId, sekolahId)]
+    if (input.kelasId && input.kelasId !== "all") {
+      pengampuConditions.push(eq(pengampu.kelasId, input.kelasId))
+    }
+    const pengampuRows = await db.query.pengampu.findMany({
+      where: and(...pengampuConditions),
+    })
+
+    allocations = pengampuRows
+      .filter((p) => p.jumlahJam > 0)
+      .map((p) => ({
+        kelasId: p.kelasId,
+        mataPelajaranId: p.mataPelajaranId,
+        guruId: p.guruId,
+        jpCount: p.jumlahJam,
+      }))
+  }
+
+  if (allocations.length === 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Belum ada data Plotting Pengajar (Pengampu) di database. Silakan isi Plotting Pengajar terlebih dahulu di menu Akademik.",
+    })
+  }
+
+  // ── VALIDASI TENANT: semua kelas/guru/mapel dalam alokasi wajib milik sekolah ini ──
+  // (mencegah generate di sekolah A menghapus/membuat jadwal kelas sekolah B
+  //  bila client mengirim input.allocations dengan id dari sekolah lain)
+  const [kelasIds, guruIds, mapelIds] = await Promise.all([
+    db.query.kelas.findMany({ where: eq(kelas.sekolahId, sekolahId), columns: { id: true } }),
+    db.query.guru.findMany({ where: eq(guru.sekolahId, sekolahId), columns: { id: true } }),
+    db.query.mataPelajaran.findMany({ where: eq(mataPelajaran.sekolahId, sekolahId), columns: { id: true } }),
+  ])
+  const kelasSet = new Set(kelasIds.map((k) => k.id))
+  const guruSet = new Set(guruIds.map((g) => g.id))
+  const mapelSet = new Set(mapelIds.map((m) => m.id))
+  const asing = allocations.filter(
+    (a) => !kelasSet.has(a.kelasId) || !guruSet.has(a.guruId) || !mapelSet.has(a.mataPelajaranId)
+  )
+  if (asing.length > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Generate dibatalkan: ${asing.length} alokasi mengacu kelas/guru/mata pelajaran di luar sekolah Anda. Periksa kembali data Plotting Pengajar.`,
+    })
+  }
+
+  return { sekolahId, pengaturanJadwalId, activeDays, allocations }
+}
+
+async function solveSchedule(args: {
+  sekolahId: string
+  pengaturanJadwalId: string
+  allocations: GenerateAllocation[]
+  activeDays: string[]
+  hariLibur: string[]
+  constraints: GenerateConstraint[]
+  seedKey: string
+  namaGuru?: Map<string, string>
+  namaKelas?: Map<string, string>
+}): Promise<{
+  ok: boolean
+  error?: string
+  assigned: Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>
+  reasons: Map<string, string>
+  blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[]
+  academicSlotsPerDay: Map<string, number[]>
+  kapasitasPerKelas: Map<string, number>
+  totalJp: number
+}> {
+  const { pengaturanJadwalId, allocations, activeDays, constraints, seedKey, namaGuru, namaKelas } = args
+
+  // Get all timeline items for slot mapping
+  const timelineList = await db.query.timelineItem.findMany({
+    where: and(
+      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
+    ),
+    orderBy: [asc(timelineItem.urutan)],
+  })
+
+  // Pre-map academic slots per day
+  const academicSlotsPerDay = new Map<string, number[]>()
+  for (const day of activeDays) {
+    const dayItems = timelineList.filter(t => t.hari === day).sort((a, b) => a.urutan - b.urutan)
+    const academicSlots: number[] = []
+    let academicCounter = 1
+    for (const item of dayItems) {
+      if (item.tipe === "jp") {
+        academicSlots.push(academicCounter++)
+      }
+    }
+    academicSlotsPerDay.set(day, academicSlots)
+  }
+
+  // ── VALIDASI OVERLOAD: beban JP per kelas vs kapasitas slot ──
+  const kapasitasPerKelas = new Map<string, number>()
+  const kapasitasTotal = activeDays.reduce(
+    (sum, day) => sum + (academicSlotsPerDay.get(day)?.length || 0),
+    0
+  )
+  const targetKelasAll = Array.from(new Set(allocations.map((a) => a.kelasId)))
+  for (const kelasId of targetKelasAll) {
+    kapasitasPerKelas.set(kelasId, kapasitasTotal)
+  }
+  const overloaded: { kelasId: string; beban: number; kapasitas: number }[] = []
+  for (const kelasId of targetKelasAll) {
+    const beban = allocations
+      .filter((a) => a.kelasId === kelasId)
+      .reduce((s, a) => s + a.jpCount, 0)
+    if (beban > kapasitasTotal) {
+      overloaded.push({ kelasId, beban, kapasitas: kapasitasTotal })
+    }
+  }
+  if (overloaded.length > 0) {
+    const detail = overloaded
+      .map((o) => `${namaKelas?.get(o.kelasId) || o.kelasId.slice(0, 8)} (beban ${o.beban} JP > kapasitas ${o.kapasitas} JP)`)
+      .join("; ")
+    return {
+      ok: false,
+      error:
+        `Overload jadwal terdeteksi — generate dibatalkan: ${detail}. ` +
+        `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
+        `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
+      assigned: new Map(),
+      reasons: new Map(),
+      blocks: [],
+      academicSlotsPerDay,
+      kapasitasPerKelas,
+      totalJp: 0,
+    }
+  }
+
+  // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
+  const teacherExclusions = new Set<string>()
+  for (const c of constraints) {
+    const slotsForDay = academicSlotsPerDay.get(c.hari) || []
+    const maxSlotCount = slotsForDay.length || 10
+    const endJp = c.isFullDay ? maxSlotCount : c.jpSelesai
+
+    for (let jp = c.jpMulai; jp <= Math.min(endJp, maxSlotCount); jp++) {
+      const academicJp = slotsForDay[jp - 1]
+      if (academicJp !== undefined) {
+        teacherExclusions.add(`${c.guruId}|${c.hari}|${academicJp}`)
+      }
+    }
+  }
+
+  // Pecah alokasi JP menjadi blok pertemuan: maks 3 JP, min 2 JP, merata
+  const blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
+  for (const alloc of allocations) {
+    const chunks = splitJP(alloc.jpCount)
+    chunks.forEach((chunk, part) => {
+      blocks.push({
+        id: `${alloc.kelasId}-${alloc.mataPelajaranId}-${alloc.guruId}-${part + 1}`,
+        kelasId: alloc.kelasId,
+        mataPelajaranId: alloc.mataPelajaranId,
+        guruId: alloc.guruId,
+        jpCount: chunk,
+      })
+    })
+  }
+
+  // Sort by size descending as base ordering
+  blocks.sort((a, b) => b.jpCount - a.jpCount)
+
+  const assigned = new Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>()
+  const teacherBusy = new Map<string, boolean>()
+  const kelasDaysMap = new Map<string, Set<string>>()
+  const reasons = new Map<string, string>()
+  const rng = mulberry32(hashString(seedKey))
+
+  const recordReason = (slotKey: string, msg: string) => {
+    reasons.set(slotKey, msg)
+  }
+
+  let success = false
+
+  // ── PHASE 1: Backtracking dengan Pengecualian Guru & Shuffling (Mencari Solusi Sempurna) ──
+  for (let attempt = 0; attempt < 30; attempt++) {
+    assigned.clear()
+    teacherBusy.clear()
+    kelasDaysMap.clear()
+    reasons.clear()
+
+    const shuffledBlocks = [...blocks]
+    if (attempt > 0) {
+      // Acak urutan block dengan PRNG ter-seed agar preview identik dengan generate
+      for (let i = shuffledBlocks.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1))
+        const temp = shuffledBlocks[i]!
+        shuffledBlocks[i] = shuffledBlocks[j]!
+        shuffledBlocks[j] = temp
+      }
+    }
+
+    const options = {
+      avoidSame: attempt < 20,
+      avoidConsecutive: attempt < 10,
+    }
+
+    const solverState = { steps: 0, maxSteps: 20000 }
+    success = runBacktrackingSolver(
+      shuffledBlocks,
+      0,
+      assigned,
+      teacherBusy,
+      [...activeDays],
+      academicSlotsPerDay,
+      teacherExclusions,
+      kelasDaysMap,
+      solverState,
+      options,
+      recordReason,
+      namaGuru,
+      namaKelas
+    )
+    if (success) {
+      blocks.length = 0
+      blocks.push(...shuffledBlocks)
+      break
+    }
+  }
+
+  // ── PHASE 2: Jika gagal, rileksasikan aturan jam berhalangan guru (Teacher Exclusions) ──
+  if (!success && teacherExclusions.size > 0) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      assigned.clear()
+      teacherBusy.clear()
+      kelasDaysMap.clear()
+      reasons.clear()
+
+      const shuffledBlocks = [...blocks]
+      if (attempt > 0) {
+        for (let i = shuffledBlocks.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1))
+          const temp = shuffledBlocks[i]!
+          shuffledBlocks[i] = shuffledBlocks[j]!
+          shuffledBlocks[j] = temp
+        }
+      }
+
+      const options = {
+        avoidSame: attempt < 20,
+        avoidConsecutive: attempt < 10,
+      }
+
+      const solverState = { steps: 0, maxSteps: 20000 }
+      success = runBacktrackingSolver(
+        shuffledBlocks,
+        0,
+        assigned,
+        teacherBusy,
+        [...activeDays],
+        academicSlotsPerDay,
+        new Set(), // Rileksasikan pengecualian guru
+        kelasDaysMap,
+        solverState,
+        options,
+        recordReason,
+        namaGuru,
+        namaKelas
+      )
+      if (success) {
+        blocks.length = 0
+        blocks.push(...shuffledBlocks)
+        break
+      }
+    }
+  }
+
+  // ── PHASE 3: Jika masih gagal, jalankan Greedy Placement ──
+  // Tetap menghormati aturan "pecahan mapel beda hari"; blok yang tidak
+  // bisa ditempatkan dikumpulkan dan memicu error (bukan silent drop).
+  const unplaced: { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
+  if (!success) {
+    assigned.clear()
+    teacherBusy.clear()
+    kelasDaysMap.clear()
+    reasons.clear()
+
+    // Urutkan kembali berdasarkan JP terbesar
+    blocks.sort((a, b) => b.jpCount - a.jpCount)
+
+    const hasSameMapelOnDay = (kelasId: string, mataPelajaranId: string, day: string) => {
+      for (const [sKey, sVal] of assigned.entries()) {
+        const [kId, d] = sKey.split("|")
+        if (kId === kelasId && d === day && sVal.mataPelajaranId === mataPelajaranId) return true
+      }
+      return false
+    }
+
+    const dayLoad = (kelasId: string, day: string) => {
+      let load = 0
+      for (const [sKey, sVal] of assigned.entries()) {
+        const [kId, d] = sKey.split("|")
+        if (kId === kelasId && d === day) load += sVal.jpCount || 1
+      }
+      return load
+    }
+
+    for (const block of blocks) {
+      const slotsPerDayList = [...activeDays]
+        .map(day => ({
+          day,
+          slots: academicSlotsPerDay.get(day) || []
+        }))
+        .sort((a, b) => dayLoad(block.kelasId, a.day) - dayLoad(block.kelasId, b.day))
+
+      let placed = false
+
+      // Langkah A: Cari slot kosong kelas & guru tidak sedang mengajar
+      for (const { day, slots } of slotsPerDayList) {
+        if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
+        for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+          let classConflict = false
+          let teacherConflict = false
+
+          for (let offset = 0; offset < block.jpCount; offset++) {
+            const slotJp = slots[startIdx + offset]
+            if (slotJp === undefined) { classConflict = true; break; }
+
+            const slotKey = `${block.kelasId}|${day}|${slotJp}`
+            if (assigned.has(slotKey)) { classConflict = true; break; }
+
+            const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+            if (teacherBusy.get(teacherDayKey)) {
+              teacherConflict = true;
+              let otherKelasId = ""
+              for (const [sKey, sVal] of assigned.entries()) {
+                const [kId, d, jpS] = sKey.split("|")
+                if (d === day && jpS === String(slotJp) && sVal.guruId === block.guruId) {
+                  otherKelasId = kId
+                  break
+                }
+              }
+              recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} sedang mengajar Kelas ${namaKelas?.get(otherKelasId) || otherKelasId} di slot ini`)
+            }
+          }
+
+          if (!classConflict && !teacherConflict) {
+            for (let offset = 0; offset < block.jpCount; offset++) {
+              const slotJp = slots[startIdx + offset]
+              const slotKey = `${block.kelasId}|${day}|${slotJp}`
+              assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
+
+              const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+              teacherBusy.set(teacherDayKey, true)
+            }
+            const kDays = kelasDaysMap.get(block.kelasId) || new Set()
+            kDays.add(day)
+            kelasDaysMap.set(block.kelasId, kDays)
+            placed = true
+            break
+          }
+        }
+        if (placed) break
+      }
+
+      // Langkah B: Jika terpaksa bentrok guru, yang penting kelasnya kosong (bentrok guru minimal)
+      if (!placed) {
+        for (const { day, slots } of slotsPerDayList) {
+          if (hasSameMapelOnDay(block.kelasId, block.mataPelajaranId, day)) continue
+          for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+            let classConflict = false
+
+            for (let offset = 0; offset < block.jpCount; offset++) {
+              const slotJp = slots[startIdx + offset]
+              if (slotJp === undefined) { classConflict = true; break; }
+
+              const slotKey = `${block.kelasId}|${day}|${slotJp}`
+              if (assigned.has(slotKey)) { classConflict = true; break; }
+            }
+
+            if (!classConflict) {
+              for (let offset = 0; offset < block.jpCount; offset++) {
+                const slotJp = slots[startIdx + offset]
+                const slotKey = `${block.kelasId}|${day}|${slotJp}`
+                assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
+
+                // Tandai guru tetap mengajar (walau bentrok) agar sistem mencatat
+                const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
+                teacherBusy.set(teacherDayKey, true)
+              }
+              const kDays = kelasDaysMap.get(block.kelasId) || new Set()
+              kDays.add(day)
+              kelasDaysMap.set(block.kelasId, kDays)
+              placed = true
+              break
+            }
+          }
+          if (placed) break
+        }
+      }
+
+      if (!placed) {
+        unplaced.push({
+          kelasId: block.kelasId,
+          mataPelajaranId: block.mataPelajaranId,
+          guruId: block.guruId,
+          jpCount: block.jpCount,
+        })
+      }
+    }
+    success = true
+  }
+
+  // ── Jika ada kegiatan yang tidak bisa dijadwalkan: batalkan, jangan simpan partial ──
+  if (unplaced.length > 0) {
+    const ringkas = unplaced
+      .slice(0, 5)
+      .map((u) => `${u.mataPelajaranId.slice(0, 8)} (Kelas ${namaKelas?.get(u.kelasId) || u.kelasId.slice(0, 8)}, ${u.jpCount} JP)`)
+      .join("; ")
+    const sisa = unplaced.length > 5 ? `, dan ${unplaced.length - 5} lainnya` : ""
+    return {
+      ok: false,
+      error:
+        `Generate dibatalkan: ${unplaced.length} kegiatan tidak dapat dijadwalkan (${ringkas}${sisa}). ` +
+        `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
+        `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
+      assigned,
+      reasons,
+      blocks,
+      academicSlotsPerDay,
+      kapasitasPerKelas,
+      totalJp: 0,
+    }
+  }
+
+  const totalJp = blocks.reduce((sum, b) => sum + b.jpCount, 0)
+  return {
+    ok: true,
+    assigned,
+    reasons,
+    blocks,
+    academicSlotsPerDay,
+    kapasitasPerKelas,
+    totalJp,
+  }
+}
 
 // Backtracking solver with smart spacing logic constraints
 function runBacktrackingSolver(
@@ -1039,7 +1233,10 @@ function runBacktrackingSolver(
   teacherExclusions: Set<string>,
   kelasDaysMap: Map<string, Set<string>>,
   state: { steps: number; maxSteps: number } | undefined,
-  options: { avoidSame: boolean; avoidConsecutive: boolean }
+  options: { avoidSame: boolean; avoidConsecutive: boolean },
+  recordReason?: (slotKey: string, msg: string) => void,
+  namaGuru?: Map<string, string>,
+  namaKelas?: Map<string, string>
 ): boolean {
   if (state) {
     state.steps++
@@ -1121,6 +1318,9 @@ function runBacktrackingSolver(
         const teacherKey = `${block.guruId}|${day}|${slotJp}`
         if (teacherExclusions.has(teacherKey)) {
           conflict = true
+          if (recordReason) {
+            recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} tidak tersedia di slot ini (pengecualian)`)
+          }
           break
         }
       }
@@ -1133,6 +1333,18 @@ function runBacktrackingSolver(
         const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
         if (teacherBusy.get(teacherDayKey)) {
           conflict = true
+          if (recordReason) {
+            const slotKey = `${block.kelasId}|${day}|${slotJp}`
+            let otherKelasId = ""
+            for (const [sKey, sVal] of assigned.entries()) {
+              const [kId, d, jpS] = sKey.split("|")
+              if (d === day && jpS === String(slotJp) && sVal.guruId === block.guruId) {
+                otherKelasId = kId
+                break
+              }
+            }
+            recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} sedang mengajar Kelas ${namaKelas?.get(otherKelasId) || otherKelasId} di slot ini`)
+          }
           break
         }
       }
@@ -1151,7 +1363,7 @@ function runBacktrackingSolver(
       kelasDays.add(day)
       kelasDaysMap.set(block.kelasId, kelasDays)
 
-      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state, options)) {
+      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state, options, recordReason, namaGuru, namaKelas)) {
         return true
       }
 
