@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
@@ -224,6 +224,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const { data: session } = useSession()
   const role = session?.user?.role || "siswa"
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [impersonatedId, setImpersonatedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const getImpersonationCookie = () => {
+      const match = document.cookie.match(/(?:^|; )impersonated_sekolah_id=([^;]*)/)
+      return match ? match[1] : null
+    }
+    setImpersonatedId(getImpersonationCookie())
+  }, [])
 
   // Fetch school information
   const { data: sekolahData } = api.lembaga.getSekolah.useQuery(undefined, {
@@ -245,7 +254,8 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const userPhoto = (profile?.photo as string) || session?.user?.photo
 
   const isSuperAdmin = role === "super_admin"
-  const schoolName = isSuperAdmin ? "SaaS Platform" : (sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
+  const isImpersonating = role === "super_admin" && !!impersonatedId
+  const schoolName = isSuperAdmin && !isImpersonating ? "SaaS Platform" : (sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
     .replace(/SMP Negeri/gi, "SMPN")
     .replace(/SMA Negeri/gi, "SMAN")
     .replace(/SMK Negeri/gi, "SMKN"))
@@ -263,7 +273,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
     role === 'yayasan' ? 'Yayasan' : 'User'
   );
 
-  const activeItemsList = isSuperAdmin ? SUPER_ADMIN_MENU_ITEMS : menuItems
+  const activeItemsList = isSuperAdmin && !isImpersonating ? SUPER_ADMIN_MENU_ITEMS : menuItems
 
   // Filter menu items based on role
   const visibleMenuItems = activeItemsList.filter(item => {
