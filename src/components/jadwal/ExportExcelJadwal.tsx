@@ -621,7 +621,7 @@ export default function ExportExcelJadwal() {
   return (
     <Button
       variant="outline"
-      className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer"
+      className="!h-10 !rounded-xl text-xs font-bold uppercase tracking-wider gap-2 hover:bg-slate-50 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 cursor-pointer w-full lg:w-auto"
       onClick={handleExport}
       disabled={exporting}
     >

@@ -471,12 +471,12 @@ export default function JadwalPage() {
 
       {/* Quick Actions Bar - Enhanced with Neumorphism card style */}
       {(canEdit || canViewAll) && (
-        <div className="flex flex-wrap justify-end gap-3 mb-6 neumo-card bg-background p-4 rounded-3xl border-0">
+        <div className="grid grid-cols-2 gap-3 mb-6 neumo-card bg-background p-4 rounded-3xl border-0 lg:flex lg:flex-wrap lg:justify-end">
           {canEdit && (
             <>
               <Button
                 onClick={() => setPengaturanOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Pengaturan Jadwal</span>
@@ -484,7 +484,7 @@ export default function JadwalPage() {
 
               <Button
                 onClick={() => setAiGenerateOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 <span>AI Auto-Generate</span>
@@ -497,7 +497,7 @@ export default function JadwalPage() {
               <Button
                 onClick={() => setCetakOpen(true)}
                 disabled={!kelasId || !hasData}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50 shadow-md neumo-sm"
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50 shadow-md neumo-sm w-full lg:w-auto"
               >
                 <Printer className="w-4 h-4 mr-2" />
                 <span>Cetak Jadwal</span>
@@ -511,7 +511,7 @@ export default function JadwalPage() {
             <Button
               onClick={() => setResetOpen(true)}
               disabled={resetting}
-              className="flex items-center justify-center font-bold px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+              className="flex items-center justify-center font-bold px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 w-full lg:w-auto"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               <span>Reset Jadwal</span>
