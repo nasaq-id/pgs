@@ -28,6 +28,7 @@ export const payment = pgTable("payment", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("payment_sekolah_id_idx").on(table.sekolahId),
+  index("payment_sekolah_id_status_idx").on(table.sekolahId, table.status),
 ])
 
 // ─── RELATIONS ─────────────────────────────────────────────

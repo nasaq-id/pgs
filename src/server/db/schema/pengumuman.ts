@@ -13,6 +13,7 @@ export const pengumuman = pgTable("pengumuman", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("pengumuman_sekolah_id_idx").on(table.sekolahId),
+  index("pengumuman_sekolah_id_published_idx").on(table.sekolahId, table.published),
 ])
 
 export const pengumumanRelations = relations(pengumuman, ({ one }) => ({

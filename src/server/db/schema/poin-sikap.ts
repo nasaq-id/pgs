@@ -20,6 +20,7 @@ export const poinSikap = pgTable("poin_sikap", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("poin_sikap_sekolah_id_idx").on(table.sekolahId),
+  index("poin_sikap_sekolah_id_siswa_idx").on(table.sekolahId, table.siswaId),
 ])
 
 export const poinSikapRelations = relations(poinSikap, ({ one }) => ({

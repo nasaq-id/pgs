@@ -28,6 +28,8 @@ export const jurnalMengajar = pgTable("jurnal_mengajar", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("jurnal_mengajar_sekolah_id_idx").on(table.sekolahId),
+  index("jurnal_mengajar_kelas_id_tanggal_idx").on(table.kelasId, table.tanggal),
+  index("jurnal_mengajar_guru_id_idx").on(table.guruId),
 ])
 
 export const jurnalMengajarRelations = relations(jurnalMengajar, ({ one }) => ({

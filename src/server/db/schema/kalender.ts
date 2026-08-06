@@ -16,6 +16,7 @@ export const kalenderEvent = pgTable("kalender_event", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("kalender_event_sekolah_id_idx").on(table.sekolahId),
+  index("kalender_event_sekolah_id_tanggal_mulai_idx").on(table.sekolahId, table.tanggalMulai),
 ])
 
 export const kalenderEventRelations = relations(kalenderEvent, ({ one }) => ({

@@ -14,6 +14,7 @@ export const tahunAjaran = pgTable("tahun_ajaran", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("tahun_ajaran_sekolah_id_idx").on(table.sekolahId),
+  index("tahun_ajaran_sekolah_id_active_idx").on(table.sekolahId, table.active),
 ])
 
 export const tahunAjaranRelations = relations(tahunAjaran, ({ one }) => ({

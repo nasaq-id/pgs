@@ -32,6 +32,7 @@ export const asesmen = pgTable("asesmen", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("asesmen_sekolah_id_idx").on(table.sekolahId),
+  index("asesmen_kelas_id_mapel_idx").on(table.kelasId, table.mataPelajaranId),
 ])
 
 export const asesmenRelations = relations(asesmen, ({ one, many }) => ({
@@ -66,6 +67,7 @@ export const asesmenSiswa = pgTable("asesmen_siswa", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("asesmen_siswa_sekolah_id_idx").on(table.sekolahId),
+  index("asesmen_siswa_asesmen_id_idx").on(table.asesmenId),
 ])
 
 export const asesmenSiswaRelations = relations(asesmenSiswa, ({ one }) => ({

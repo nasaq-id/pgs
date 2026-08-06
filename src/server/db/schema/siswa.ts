@@ -100,6 +100,10 @@ export const siswa = pgTable("siswa", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("siswa_sekolah_id_idx").on(table.sekolahId),
+  index("siswa_sekolah_id_kelas_id_idx").on(table.sekolahId, table.kelasId),
+  index("siswa_nisn_idx").on(table.nisn),
+  index("siswa_username_siswa_idx").on(table.usernameSiswa),
+  index("siswa_email_siswa_idx").on(table.emailSiswa),
 ])
 
 export const siswaRelations = relations(siswa, ({ one }) => ({

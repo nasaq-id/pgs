@@ -32,6 +32,9 @@ export const guru = pgTable("guru", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("guru_sekolah_id_idx").on(table.sekolahId),
+  index("guru_username_guru_idx").on(table.usernameGuru),
+  index("guru_email_idx").on(table.email),
+  index("guru_nipnuptk_idx").on(table.nipnuptk),
 ])
 
 export const guruRelations = relations(guru, ({ one }) => ({

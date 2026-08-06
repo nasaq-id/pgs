@@ -35,6 +35,7 @@ export const invoice = pgTable("invoice", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("invoice_sekolah_id_idx").on(table.sekolahId),
+  index("invoice_sekolah_id_status_idx").on(table.sekolahId, table.status),
   uniqueIndex("idx_unique_invoice").on(
     table.studentId, table.billingTypeId, table.academicYearId, table.periodMonth, table.periodYear,
   ),

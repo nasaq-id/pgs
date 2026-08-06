@@ -14,6 +14,7 @@ export const notifikasi = pgTable("notifikasi", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("notifikasi_sekolah_id_idx").on(table.sekolahId),
+  index("notifikasi_user_id_idx").on(table.userId),
 ])
 
 export const notifikasiRelations = relations(notifikasi, ({ one }) => ({

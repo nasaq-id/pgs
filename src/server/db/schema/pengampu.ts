@@ -16,6 +16,8 @@ export const pengampu = pgTable("pengampu", {
   jumlahJam: integer("jumlah_jam").notNull().default(4),
 }, (table) => [
   index("pengampu_sekolah_id_idx").on(table.sekolahId),
+  index("pengampu_mata_pelajaran_id_idx").on(table.mataPelajaranId),
+  index("pengampu_kelas_id_idx").on(table.kelasId),
 ])
 
 export const pengampuRelations = relations(pengampu, ({ one }) => ({

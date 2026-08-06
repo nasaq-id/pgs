@@ -1,0 +1,26 @@
+CREATE INDEX "absensi_guru_sekolah_id_tanggal_idx" ON "absensi_guru" USING btree ("sekolah_id","tanggal");--> statement-breakpoint
+CREATE INDEX "absensi_siswa_kelas_id_tanggal_idx" ON "absensi_siswa" USING btree ("kelas_id","tanggal");--> statement-breakpoint
+CREATE INDEX "absensi_siswa_sekolah_id_tanggal_idx" ON "absensi_siswa" USING btree ("sekolah_id","tanggal");--> statement-breakpoint
+CREATE INDEX "asesmen_kelas_id_mapel_idx" ON "asesmen" USING btree ("kelas_id","mata_pelajaran_id");--> statement-breakpoint
+CREATE INDEX "asesmen_siswa_asesmen_id_idx" ON "asesmen_siswa" USING btree ("asesmen_id");--> statement-breakpoint
+CREATE INDEX "guru_username_guru_idx" ON "guru" USING btree ("username_guru");--> statement-breakpoint
+CREATE INDEX "guru_email_idx" ON "guru" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "guru_nipnuptk_idx" ON "guru" USING btree ("nipnuptk");--> statement-breakpoint
+CREATE INDEX "invoice_sekolah_id_status_idx" ON "invoice" USING btree ("sekolah_id","status");--> statement-breakpoint
+CREATE INDEX "jadwal_pelajaran_kelas_id_hari_idx" ON "jadwal_pelajaran" USING btree ("kelas_id","hari");--> statement-breakpoint
+CREATE INDEX "jadwal_pelajaran_guru_id_idx" ON "jadwal_pelajaran" USING btree ("guru_id");--> statement-breakpoint
+CREATE INDEX "jurnal_mengajar_kelas_id_tanggal_idx" ON "jurnal_mengajar" USING btree ("kelas_id","tanggal");--> statement-breakpoint
+CREATE INDEX "jurnal_mengajar_guru_id_idx" ON "jurnal_mengajar" USING btree ("guru_id");--> statement-breakpoint
+CREATE INDEX "kalender_event_sekolah_id_tanggal_mulai_idx" ON "kalender_event" USING btree ("sekolah_id","tanggal_mulai");--> statement-breakpoint
+CREATE INDEX "nilai_siswa_id_mapel_idx" ON "nilai" USING btree ("siswa_id","mata_pelajaran_id");--> statement-breakpoint
+CREATE INDEX "notifikasi_user_id_idx" ON "notifikasi" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "payment_sekolah_id_status_idx" ON "payment" USING btree ("sekolah_id","status");--> statement-breakpoint
+CREATE INDEX "pengampu_mata_pelajaran_id_idx" ON "pengampu" USING btree ("mata_pelajaran_id");--> statement-breakpoint
+CREATE INDEX "pengampu_kelas_id_idx" ON "pengampu" USING btree ("kelas_id");--> statement-breakpoint
+CREATE INDEX "pengumuman_sekolah_id_published_idx" ON "pengumuman" USING btree ("sekolah_id","published");--> statement-breakpoint
+CREATE INDEX "poin_sikap_sekolah_id_siswa_idx" ON "poin_sikap" USING btree ("sekolah_id","siswa_id");--> statement-breakpoint
+CREATE INDEX "siswa_sekolah_id_kelas_id_idx" ON "siswa" USING btree ("sekolah_id","kelas_id");--> statement-breakpoint
+CREATE INDEX "siswa_nisn_idx" ON "siswa" USING btree ("nisn");--> statement-breakpoint
+CREATE INDEX "siswa_username_siswa_idx" ON "siswa" USING btree ("username_siswa");--> statement-breakpoint
+CREATE INDEX "siswa_email_siswa_idx" ON "siswa" USING btree ("email_siswa");--> statement-breakpoint
+CREATE INDEX "tahun_ajaran_sekolah_id_active_idx" ON "tahun_ajaran" USING btree ("sekolah_id","active");

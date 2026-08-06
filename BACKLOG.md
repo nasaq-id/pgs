@@ -128,9 +128,8 @@
 
 ### E1. Indeks & performa query multi-tenant saat data tumbuh
 - **Severity:** 🟢 Low
-- **Status:** ⬜ Open
-- **Masalah:** Semua tabel punya index `sekolah_id_idx` (bagus), tapi beberapa query dengan filter gabungan (mis. `absensi_siswa` by `siswa_id + tanggal`, `invoice` by `student + billing + period`) mungkin butuh composite index tambahan saat volume data besar. `absensi_siswa` & `absensi_guru` sudah punya composite index bagus; `invoice` sudah punya unique composite index.
-- **Saran aksi:** Setelah data real tumbuh, jalankan `EXPLAIN ANALYZE` pada query hot-path (dashboard, list siswa/guru, rekap absensi) dan tambah index sesuai.
+- **Status:** ✅ Done
+- **Hasil (2026-08):** 26 index baru dari analisis hot-path query kode (rekap absensi, jadwal, jurnal, buku nilai, login lookup siswa/guru, dashboard poin, outstanding invoice, pending payment, hari efektif kalender, tahun ajaran aktif, notifikasi per user, dsb.) — migration `0018_add_performance_indexes`. Total 74 index di skema public. Jika data real sudah besar, tetap disarankan `EXPLAIN ANALYZE` untuk validasi lanjutan.
 
 ### E2. Rate limiting in-memory tidak persisten antar instance serverless
 - **Severity:** 🟢 Low

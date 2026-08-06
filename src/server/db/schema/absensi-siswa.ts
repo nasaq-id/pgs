@@ -17,6 +17,8 @@ export const absensiSiswa = pgTable("absensi_siswa", {
 }, (table) => [
   index("absensi_siswa_sekolah_id_idx").on(table.sekolahId),
   index("absensi_siswa_siswa_id_tanggal_idx").on(table.siswaId, table.tanggal),
+  index("absensi_siswa_kelas_id_tanggal_idx").on(table.kelasId, table.tanggal),
+  index("absensi_siswa_sekolah_id_tanggal_idx").on(table.sekolahId, table.tanggal),
 ])
 
 export const absensiSiswaRelations = relations(absensiSiswa, ({ one }) => ({

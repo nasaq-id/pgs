@@ -21,6 +21,7 @@ export const nilai = pgTable("nilai", {
   statusPublish: boolean("status_publish").notNull().default(false),
 }, (table) => [
   index("nilai_sekolah_id_idx").on(table.sekolahId),
+  index("nilai_siswa_id_mapel_idx").on(table.siswaId, table.mataPelajaranId),
 ])
 
 export const nilaiRelations = relations(nilai, ({ one }) => ({

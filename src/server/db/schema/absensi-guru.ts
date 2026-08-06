@@ -17,6 +17,7 @@ export const absensiGuru = pgTable("absensi_guru", {
 }, (table) => [
   index("absensi_guru_sekolah_id_idx").on(table.sekolahId),
   index("absensi_guru_guru_id_tanggal_idx").on(table.guruId, table.tanggal),
+  index("absensi_guru_sekolah_id_tanggal_idx").on(table.sekolahId, table.tanggal),
 ])
 
 export const absensiGuruRelations = relations(absensiGuru, ({ one }) => ({

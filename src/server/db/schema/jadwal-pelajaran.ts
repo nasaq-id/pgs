@@ -18,6 +18,8 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   jpCount: integer("jp_count"),
 }, (table) => [
   index("jadwal_pelajaran_sekolah_id_idx").on(table.sekolahId),
+  index("jadwal_pelajaran_kelas_id_hari_idx").on(table.kelasId, table.hari),
+  index("jadwal_pelajaran_guru_id_idx").on(table.guruId),
 ])
 
 export const jadwalPelajaranRelations = relations(jadwalPelajaran, ({ one }) => ({
