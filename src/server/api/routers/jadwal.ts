@@ -695,6 +695,7 @@ export const jadwalRouter = router({
           namaKelas: namaKelas.get(kId) || kId,
           bebanJP: kelasBeban.get(kId) || 0,
           kapasitasJP: result.kapasitasPerKelas.get(kId) || 0,
+          kapasitasRealistisJP: result.kapasitasRealistisPerKelas.get(kId) || 0,
           terpasangJP: result.blocks.filter((b) => b.kelasId === kId).reduce((s, b) => s + b.jpCount, 0),
           hari,
         }
@@ -733,6 +734,85 @@ function mulberry32(seed: number) {
 
 function buildSeedKey(sekolahId: string, input: { kelasId?: string; hariLibur?: string[]; constraints?: GenerateConstraint[] }): string {
   return `${sekolahId}|${input.kelasId ?? "all"}|${(input.hariLibur || []).join(",")}|${JSON.stringify(input.constraints || [])}`
+}
+
+/**
+ * Hitung kapasitas realistis: minimal jumlah hari untuk mengemas SEMUA blok
+ * (ukuran 1/2/3 JP) ke hari-hari dengan kapasitas slot tertentu, via DP exact
+ * bin-packing (BFS per layer hari). Kapasitas mentah (Σ slot) menyesatkan:
+ * misal 16 mapel × 3 JP = 48 JP < 50 slot, tapi blok 3 JP hanya muat 9 JP/hari
+ * (3+3+3, sisa 1) → butuh 6 hari → tidak mungkin.
+ *
+ * Return:
+ * - totalSlots  : Σ kapasitas slot semua hari (kapasitas mentah)
+ * - packableMax : total JP maksimum yang bisa dikemas dalam semua hari
+ * - minDays     : hari minimum yang dibutuhkan (totalSlots+1 hari = tidak muat)
+ */
+function computePackableCapacity(
+  blockSizes: number[],
+  dayCapacities: number[]
+): { totalSlots: number; packableMax: number; minDays: number } {
+  const totalSlots = dayCapacities.reduce((s, c) => s + c, 0)
+  if (blockSizes.length === 0) return { totalSlots, packableMax: 0, minDays: 0 }
+
+  const c1 = blockSizes.filter((b) => b === 1).length
+  const c2 = blockSizes.filter((b) => b === 2).length
+  const c3 = blockSizes.filter((b) => b === 3).length
+  const maxDays = dayCapacities.length
+  if (maxDays === 0) return { totalSlots, packableMax: 0, minDays: maxDays + 1 }
+
+  const caps = [...dayCapacities].sort((a, b) => b - a)
+
+  // Semua kombinasi isi satu hari: [x1, x2, x3] dengan x1 + 2x2 + 3x3 <= cap
+  const fillOptions = (cap: number): [number, number, number][] => {
+    const opts: [number, number, number][] = []
+    for (let x3 = 0; x3 * 3 <= cap; x3++) {
+      for (let x2 = 0; x2 * 2 + x3 * 3 <= cap; x2++) {
+        const remaining = cap - x3 * 3 - x2 * 2
+        for (let x1 = 0; x1 <= Math.min(remaining, c1); x1++) {
+          opts.push([x1, x2, x3])
+        }
+      }
+    }
+    return opts
+  }
+
+  const key = (a: number, b: number, c: number) => `${a}|${b}|${c}`
+  const targetKey = key(c1, c2, c3)
+
+  // BFS per layer (satu layer = satu hari terpakai)
+  let frontier = new Set<string>([key(0, 0, 0)])
+  const visited = new Set<string>(frontier)
+
+  for (let day = 0; day < maxDays; day++) {
+    const opts = fillOptions(caps[day] ?? caps[caps.length - 1] ?? 10)
+    const next = new Set<string>()
+    for (const f of frontier) {
+      const [a1, a2, a3] = f.split("|").map(Number)
+      for (const [x1, x2, x3] of opts) {
+        if (a1 + x1 > c1 || a2 + x2 > c2 || a3 + x3 > c3) continue
+        const nk = key(a1 + x1, a2 + x2, a3 + x3)
+        if (nk === targetKey) {
+          return { totalSlots, packableMax: c1 + 2 * c2 + 3 * c3, minDays: day + 1 }
+        }
+        if (!visited.has(nk)) {
+          visited.add(nk)
+          next.add(nk)
+        }
+      }
+    }
+    frontier = next
+    if (frontier.size === 0) break
+  }
+
+  // Tidak semua blok muat: laporkan maksimum yang tercapai
+  let packableMax = 0
+  for (const f of visited) {
+    const [a1, a2, a3] = f.split("|").map(Number)
+    const sum = a1 + 2 * a2 + 3 * a3
+    if (sum > packableMax) packableMax = sum
+  }
+  return { totalSlots, packableMax, minDays: maxDays + 1 }
 }
 
 async function prepareGenerate(
@@ -850,6 +930,7 @@ async function solveSchedule(args: {
   blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[]
   academicSlotsPerDay: Map<string, number[]>
   kapasitasPerKelas: Map<string, number>
+  kapasitasRealistisPerKelas: Map<string, number>
   totalJp: number
 }> {
   const { pengaturanJadwalId, allocations, activeDays, constraints, seedKey, namaGuru, namaKelas } = args
@@ -876,40 +957,60 @@ async function solveSchedule(args: {
     academicSlotsPerDay.set(day, academicSlots)
   }
 
-  // ── VALIDASI OVERLOAD: beban JP per kelas vs kapasitas slot ──
+  // ── VALIDASI OVERLOAD: beban JP per kelas vs kapasitas realistis (pakai blok) ──
   const kapasitasPerKelas = new Map<string, number>()
+  const kapasitasRealistisPerKelas = new Map<string, number>()
   const kapasitasTotal = activeDays.reduce(
     (sum, day) => sum + (academicSlotsPerDay.get(day)?.length || 0),
     0
   )
+  const dayCapacities = activeDays.map((day) => academicSlotsPerDay.get(day)?.length || 0)
   const targetKelasAll = Array.from(new Set(allocations.map((a) => a.kelasId)))
+
+  // Pecah blok per kelas dulu untuk validasi kapasitas realistis
+  const blocksPerKelas = new Map<string, { sizes: number[]; beban: number }>()
+  for (const a of allocations) {
+    const entry = blocksPerKelas.get(a.kelasId) || { sizes: [], beban: 0 }
+    entry.beban += a.jpCount
+    for (const chunk of splitJP(a.jpCount)) entry.sizes.push(chunk)
+    blocksPerKelas.set(a.kelasId, entry)
+  }
+
+  const overloaded: { kelasId: string; beban: number; kapasitas: number; slotMentah: number }[] = []
   for (const kelasId of targetKelasAll) {
     kapasitasPerKelas.set(kelasId, kapasitasTotal)
-  }
-  const overloaded: { kelasId: string; beban: number; kapasitas: number }[] = []
-  for (const kelasId of targetKelasAll) {
-    const beban = allocations
-      .filter((a) => a.kelasId === kelasId)
-      .reduce((s, a) => s + a.jpCount, 0)
-    if (beban > kapasitasTotal) {
-      overloaded.push({ kelasId, beban, kapasitas: kapasitasTotal })
+    const entry = blocksPerKelas.get(kelasId) || { sizes: [], beban: 0 }
+    const { packableMax } = computePackableCapacity(entry.sizes, dayCapacities)
+    kapasitasRealistisPerKelas.set(kelasId, packableMax)
+    if (entry.beban > packableMax) {
+      overloaded.push({ kelasId, beban: entry.beban, kapasitas: packableMax, slotMentah: kapasitasTotal })
     }
   }
   if (overloaded.length > 0) {
+    const butuhHari = activeDays.length + 1
     const detail = overloaded
-      .map((o) => `${namaKelas?.get(o.kelasId) || o.kelasId.slice(0, 8)} (beban ${o.beban} JP > kapasitas ${o.kapasitas} JP)`)
+      .map((o) => {
+        const sisaSlot = o.slotMentah - o.kapasitas
+        const nama = namaKelas?.get(o.kelasId) || o.kelasId.slice(0, 8)
+        const core = `${nama}: beban ${o.beban} JP > kapasitas realistis ${o.kapasitas} JP`
+        return sisaSlot > 0
+          ? `${core} (slot mentah ${o.slotMentah}, ${sisaSlot} slot tak bisa diisi blok 2-3 JP — butuh ${butuhHari} hari)`
+          : core
+      })
       .join("; ")
     return {
       ok: false,
       error:
         `Overload jadwal terdeteksi — generate dibatalkan: ${detail}. ` +
         `Solusi: (1) kurangi jumlah JP di Plotting Pengajar, ` +
-        `(2) tambah slot JP di Pengaturan Jadwal, atau (3) kurangi hari libur yang dipilih.`,
+        `(2) tambah slot JP di Pengaturan Jadwal, atau ` +
+        `(3) pecah bobot mapel agar blok pertemuannya lebih kecil (≤ 2 JP).`,
       assigned: new Map(),
       reasons: new Map(),
       blocks: [],
       academicSlotsPerDay,
       kapasitasPerKelas,
+      kapasitasRealistisPerKelas,
       totalJp: 0,
     }
   }
@@ -1206,6 +1307,7 @@ async function solveSchedule(args: {
       blocks,
       academicSlotsPerDay,
       kapasitasPerKelas,
+      kapasitasRealistisPerKelas,
       totalJp: 0,
     }
   }
@@ -1218,6 +1320,7 @@ async function solveSchedule(args: {
     blocks,
     academicSlotsPerDay,
     kapasitasPerKelas,
+    kapasitasRealistisPerKelas,
     totalJp,
   }
 }
