@@ -23,13 +23,17 @@ function Select<Value extends string = string>({
   options?: { value: Value; label: string }[]
   onValueChange?: (value: Value | null) => void
 }) {
-  const [itemLabelsMap] = React.useState(() => new Map<string, string>())
+  const [itemLabelsMap, setItemLabelsMap] = React.useState(() => new Map<string, string>())
 
   const registerItem = React.useCallback((val: string, label: string) => {
-    if (val && label && itemLabelsMap.get(val) !== label) {
-      itemLabelsMap.set(val, label)
-    }
-  }, [itemLabelsMap])
+    if (!val || !label) return
+    setItemLabelsMap((prev) => {
+      if (prev.get(val) === label) return prev
+      const next = new Map(prev)
+      next.set(val, label)
+      return next
+    })
+  }, [])
 
   return (
     <SelectContext.Provider value={{ options: options as any, registerItem, itemLabelsMap }}>
@@ -193,7 +197,7 @@ function SelectItem({
 }: SelectPrimitive.Item.Props & { label?: string }) {
   const { registerItem } = React.useContext(SelectContext)
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (value) {
       const labelText = label || (typeof children === "string" ? children : undefined)
       if (labelText) {
