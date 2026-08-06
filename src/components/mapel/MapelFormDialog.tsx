@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, ChevronDown, Check } from "lucide-react"
+import { ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -150,12 +150,6 @@ export default function MapelFormDialog({ open, onClose, onSubmit, initial, savi
       <div className="glass-dialog rounded-2xl w-full max-w-md mx-4 relative overflow-visible">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/60">
           <h3 className="font-semibold text-foreground">Form Mata Pelajaran</h3>
-          <button
-            onClick={onClose}
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200 cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="px-6 py-5 space-y-4">

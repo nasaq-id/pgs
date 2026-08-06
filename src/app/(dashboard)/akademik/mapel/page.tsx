@@ -340,11 +340,11 @@ export default function MapelPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:items-center lg:gap-2 lg:w-auto lg:shrink-0">
             <button
               type="button"
               onClick={() => setGenerateOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-indigo-500/5 transition-all cursor-pointer transform active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-indigo-500/5 transition-all cursor-pointer transform active:scale-95 w-full"
             >
               <Wand2 className="h-4 w-4" />
               <span>Generate Kurikulum</span>
@@ -354,7 +354,7 @@ export default function MapelPage() {
               onDone={() => utils.mapel.getAll.invalidate()}
             />
             <button
-              className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
+              className="col-span-2 lg:col-span-1 w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
               onClick={() => {
                 setEditData(null)
                 setFormOpen(true)

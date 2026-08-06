@@ -123,14 +123,14 @@ export default function ImportExportMapel({
       <Button
         type="button"
         variant="secondary"
-        className="h-10 px-4"
+        className="h-10 px-4 w-full lg:w-auto"
         onClick={() => fileInputRef.current?.click()}
         disabled={importing}
       >
         {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
         Import
       </Button>
-      <Button type="button" variant="secondary" className="h-10 px-4" onClick={handleExport}>
+      <Button type="button" variant="secondary" className="h-10 px-4 w-full lg:w-auto" onClick={handleExport}>
         <Download className="h-3.5 w-3.5 mr-1.5" />
         Export
       </Button>
