@@ -306,41 +306,40 @@ export default function MapelPage() {
       <div className="neumo-card bg-background rounded-[26px] p-5 md:p-6 mb-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
-            <div className="relative flex-1 sm:max-w-xs lg:max-w-sm">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
-              <Input
-                placeholder="Cari mata pelajaran..."
-                className="pl-9 h-10"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex items-center gap-2 w-full sm:max-w-md">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground shrink-0" />
+                <Input
+                  placeholder="Cari mata pelajaran..."
+                  className="pl-9 h-10"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Button type="button" variant="secondary" className="h-10 px-4 shrink-0">
+                Cari
+              </Button>
             </div>
-            <Button type="button" variant="secondary" className="h-10 px-4">
-              Cari
-            </Button>
 
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground w-full sm:w-auto">
-              <span className="shrink-0 font-medium">Tingkat:</span>
-              <Select
-                options={selectOptions}
-                value={tingkatFilter || "semua"}
-                onValueChange={(v) => setTingkatFilter(!v || v === "semua" ? "" : v)}
-              >
-                <SelectTrigger className="w-full sm:w-44 !h-10 text-xs font-bold !rounded-2xl">
-                  <SelectValue placeholder="Semua Tingkat" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select
+              options={selectOptions}
+              value={tingkatFilter || "semua"}
+              onValueChange={(v) => setTingkatFilter(!v || v === "semua" ? "" : v)}
+            >
+              <SelectTrigger className="w-full sm:w-44 !h-10 text-xs font-bold !rounded-2xl">
+                <SelectValue placeholder="Semua Tingkat" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:items-center lg:gap-2 lg:w-auto lg:shrink-0">
+          <div className="grid grid-cols-2 gap-2 w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center lg:gap-2 lg:w-auto lg:shrink-0">
             <button
               type="button"
               onClick={() => setGenerateOpen(true)}

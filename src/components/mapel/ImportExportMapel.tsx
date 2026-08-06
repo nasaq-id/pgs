@@ -1,8 +1,14 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Upload, Download, Loader2 } from "lucide-react"
+import { Upload, Download, Loader2, FileSpreadsheet, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import * as XLSX from "xlsx"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
@@ -120,20 +126,39 @@ export default function ImportExportMapel({
           if (f) handleFile(f)
         }}
       />
-      <Button
-        type="button"
-        variant="secondary"
-        className="h-10 px-4 w-full lg:w-auto"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={importing}
-      >
-        {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
-        Import
-      </Button>
-      <Button type="button" variant="secondary" className="h-10 px-4 w-full lg:w-auto" onClick={handleExport}>
-        <Download className="h-3.5 w-3.5 mr-1.5" />
-        Export
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-10 px-4 w-full"
+              disabled={importing}
+            >
+              {importing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Data Mapel
+              <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-60" />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuItem
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+          >
+            <Upload />
+            Import dari Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExport}>
+            <Download />
+            Export ke Excel
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   )
 }
