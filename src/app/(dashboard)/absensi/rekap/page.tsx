@@ -689,7 +689,7 @@ export default function RekapPresensiPage() {
 
           {periodeType === "bulanan" && (
             <>
-              <Select value={selectedMonth} onValueChange={(v) => { v && setSelectedMonth(v); setPage(0); }}>
+              <Select value={selectedMonth} onValueChange={(v) => { if (v) setSelectedMonth(v); setPage(0); }}>
                 <SelectTrigger className="w-40 !h-10 !rounded-2xl text-xs font-bold">
                   <SelectValue placeholder="Pilih Bulan" />
                 </SelectTrigger>
@@ -711,7 +711,7 @@ export default function RekapPresensiPage() {
 
           {periodeType === "semester" && (
             <>
-              <Select value={selectedSemester} onValueChange={(v) => { v && setSelectedSemester(v as any); setPage(0); }}>
+              <Select value={selectedSemester} onValueChange={(v) => { if (v) setSelectedSemester(v as any); setPage(0); }}>
                 <SelectTrigger className="w-48 !h-10 !rounded-2xl text-xs font-bold">
                   <SelectValue placeholder="Semester" />
                 </SelectTrigger>
