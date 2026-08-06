@@ -89,13 +89,22 @@ export default function Dashboard() {
   const role = user?.role
   const router = useRouter()
 
+  const [isImpersonating, setIsImpersonating] = useState(false)
+
   useEffect(() => {
-    if (role === "super_admin") {
+    const getImpersonationCookie = () => {
+      const match = document.cookie.match(/(?:^|; )impersonated_sekolah_id=([^;]*)/)
+      return match ? match[1] : null
+    }
+    const impersonating = !!getImpersonationCookie()
+    setIsImpersonating(impersonating)
+
+    if (role === "super_admin" && !impersonating) {
       router.push("/super-admin")
     }
   }, [role, router])
 
-  if (role === "super_admin") {
+  if (role === "super_admin" && !isImpersonating) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-teal-600" />

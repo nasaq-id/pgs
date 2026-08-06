@@ -11,7 +11,9 @@ type Ctx = {
 
 export function getSekolahIdFilter(ctx: Ctx) {
   const { role, sekolahId } = ctx.session?.user ?? {}
-  if (role === "super_admin") return null
+  if (role === "super_admin") {
+    return sekolahId ?? null
+  }
   if (!sekolahId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
