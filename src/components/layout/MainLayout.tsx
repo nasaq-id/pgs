@@ -199,7 +199,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </motion.div>
 
       {pathname === "/" && <DashboardTour />}
-      <MobileBottomNav onMenuClick={() => setSidebarOpen(true)} />
+      <MobileBottomNav />
     </div>
   )
 }

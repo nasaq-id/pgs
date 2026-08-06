@@ -3,15 +3,11 @@
 import { useState, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, QrCode, Menu, ClipboardCheck, Bell } from "lucide-react"
+import { Home, QrCode, ClipboardCheck, Bell, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import QRScannerModal from "./QRScannerModal"
 
-interface Props {
-  onMenuClick: () => void
-}
-
-export default function MobileBottomNav({ onMenuClick }: Props) {
+export default function MobileBottomNav() {
   const pathname = usePathname()
   const [scannerOpen, setScannerOpen] = useState(false)
 
@@ -24,6 +20,7 @@ export default function MobileBottomNav({ onMenuClick }: Props) {
   const isHomeActive = pathname === "/"
   const isAbsensiActive = pathname === "/absensi" || pathname.startsWith("/absensi/")
   const isNotifikasiActive = pathname === "/notifikasi"
+  const isJadwalActive = pathname === "/akademik/jadwal" || pathname.startsWith("/akademik/jadwal/")
 
   return (
     <>
@@ -87,17 +84,20 @@ export default function MobileBottomNav({ onMenuClick }: Props) {
             <span className="text-[9px] font-black uppercase tracking-wide">Notif</span>
           </Link>
 
-          {/* 5. MENU */}
-          <button
-            onClick={() => {
-              hapticFeedback()
-              onMenuClick()
-            }}
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-200 active:scale-90 text-muted-foreground hover:text-foreground"
+          {/* 5. JADWAL PELAJARAN (pengganti tombol Menu — sidebar sudah bisa dibuka via toggle kiri atas) */}
+          <Link
+            href="/akademik/jadwal"
+            onClick={hapticFeedback}
+            className={cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-200 active:scale-90",
+              isJadwalActive
+                ? "neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] text-teal-600 dark:text-teal-400 font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <Menu className="h-5 w-5" />
-            <span className="text-[9px] font-black uppercase tracking-wide">Menu</span>
-          </button>
+            <CalendarDays className="h-5 w-5" />
+            <span className="text-[9px] font-black uppercase tracking-wide">Jadwal</span>
+          </Link>
 
         </div>
       </div>
