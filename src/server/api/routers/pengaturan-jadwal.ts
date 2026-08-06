@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { requireSekolahId } from "@/server/api/tenant"
 
 export const pengaturanJadwalRouter = router({
   get: protectedProcedure
@@ -158,6 +159,45 @@ export const pengaturanJadwalRouter = router({
       await recalculateJpTimes(deleted.pengaturanJadwalId)
       await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
       return { success: true }
+    }),
+
+  /**
+   * Hapus seluruh item timeline dalam satu hari (opsional filter tipe).
+   * Menggantikan pola delete-per-item yang lambat (O(n) round-trip + O(n²) update).
+   */
+  clearTimelineDay: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+      tipe: z.enum(["jp", "pembiasaan", "upacara", "istirahat", "sholat", "lainnya"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
+
+      const conditions = [
+        eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+        eq(timelineItem.hari, input.hari as any),
+      ]
+      if (input.tipe) conditions.push(eq(timelineItem.tipe, input.tipe))
+
+      const deleted = await db.delete(timelineItem).where(and(...conditions)).returning()
+
+      // Recalculate jam JP sekali saja — hanya jika masih ada JP tersisa di hari itu
+      const sisaJp = await db.query.timelineItem.findFirst({
+        where: and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, input.hari as any),
+          eq(timelineItem.tipe, "jp"),
+        ),
+        columns: { id: true },
+      })
+      if (sisaJp) await recalculateJpTimes(pengaturan.id)
+
+      await logAudit(ctx, { action: "clear_timeline_day", entity: "timeline_item", metadata: { hari: input.hari, tipe: input.tipe ?? null, count: deleted.length } })
+      return { success: true, count: deleted.length }
     }),
 
   applyTemplateToDays: roleProtectedProcedure(["super_admin", "admin_sekolah"])

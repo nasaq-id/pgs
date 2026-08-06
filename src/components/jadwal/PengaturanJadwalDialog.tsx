@@ -108,6 +108,14 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
     },
   })
 
+  const clearTimelineDay = api.pengaturanJadwal.clearTimelineDay.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Berhasil menghapus ${res.count} item`)
+      utils.pengaturanJadwal.getTimeline.invalidate()
+    },
+    onError: (err) => toast.error(err.message || "Gagal menghapus item hari ini"),
+  })
+
   const applyTemplate = api.pengaturanJadwal.applyTemplateToDays.useMutation({
     onSuccess: () => {
       utils.pengaturanJadwal.getTimeline.invalidate()
@@ -584,17 +592,10 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                       className="h-8 rounded-xl text-xs gap-1.5 border-slate-200 dark:border-slate-800 font-black uppercase tracking-wider text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                       onClick={async () => {
                         if (confirm(`Hapus seluruh Jam Pelajaran (JP) di hari ${ALL_DAYS.find(d => d.value === timelineHari)?.label}?`)) {
-                          const items = itemsByDay.get(timelineHari) || []
-                          const jpItems = items.filter((item) => item.tipe === "jp")
-                          for (const item of jpItems) {
-                            if (item.id) {
-                              await deleteTimeline.mutateAsync({ id: item.id })
-                            }
-                          }
-                          toast.success(`Seluruh Jam Pelajaran (JP) hari ini berhasil dihapus`)
+                          await clearTimelineDay.mutateAsync({ hari: timelineHari as any, tipe: "jp" })
                         }
                       }}
-                      disabled={deleteTimeline.isPending}
+                      disabled={clearTimelineDay.isPending}
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
                       Reset JP
@@ -609,16 +610,10 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                       className="h-8 rounded-xl text-xs gap-1.5 border-slate-200 dark:border-slate-800 font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20"
                       onClick={async () => {
                         if (confirm(`Hapus seluruh kegiatan hari ${ALL_DAYS.find(d => d.value === timelineHari)?.label}?`)) {
-                          const items = itemsByDay.get(timelineHari) || []
-                          for (const item of items) {
-                            if (item.id) {
-                              await deleteTimeline.mutateAsync({ id: item.id })
-                            }
-                          }
-                          toast.success(`Seluruh kegiatan hari ini berhasil dihapus`)
+                          await clearTimelineDay.mutateAsync({ hari: timelineHari as any })
                         }
                       }}
-                      disabled={deleteTimeline.isPending}
+                      disabled={clearTimelineDay.isPending}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Kosongkan Hari
