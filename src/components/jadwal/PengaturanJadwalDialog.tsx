@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Loader2, Plus, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles, ChevronDown, Settings, Sliders, CalendarDays, Info } from "lucide-react"
+import { Loader2, Plus, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles, ChevronDown, Settings, Sliders, CalendarDays, Info, RotateCcw } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { timeToMinutes, minutesToTime } from "./constants"
 import { toast } from "sonner"
@@ -574,6 +574,31 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  )}
+
+                  {/* Reset JP (Jam Pelajaran) */}
+                  {(itemsByDay.get(timelineHari)?.filter((item) => item.tipe === "jp").length ?? 0) > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-xl text-xs gap-1.5 border-slate-200 dark:border-slate-800 font-black uppercase tracking-wider text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                      onClick={async () => {
+                        if (confirm(`Hapus seluruh Jam Pelajaran (JP) di hari ${ALL_DAYS.find(d => d.value === timelineHari)?.label}?`)) {
+                          const items = itemsByDay.get(timelineHari) || []
+                          const jpItems = items.filter((item) => item.tipe === "jp")
+                          for (const item of jpItems) {
+                            if (item.id) {
+                              await deleteTimeline.mutateAsync({ id: item.id })
+                            }
+                          }
+                          toast.success(`Seluruh Jam Pelajaran (JP) hari ini berhasil dihapus`)
+                        }
+                      }}
+                      disabled={deleteTimeline.isPending}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reset JP
+                    </Button>
                   )}
 
                   {/* Reset/Hapus Hari Ini */}
