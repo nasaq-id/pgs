@@ -71,11 +71,12 @@ export default function KelasDetailDialog({ open, onOpenChange, kelasId }: Kelas
       <!DOCTYPE html>
       <html>
       <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
         <meta charset="utf-8"/>
         <title>Daftar Kelas - ${formatKelasLabel(detail)}</title>
         <style>
           body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             padding: 30px;
             color: #333;
           }

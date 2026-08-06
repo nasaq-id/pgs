@@ -437,7 +437,7 @@ export default function PengaturanPage() {
                     )}
 
                     {/* Kop Center Text */}
-                    <div className="flex-1 text-center font-serif text-slate-800 dark:text-slate-200">
+                    <div className="flex-1 text-center font-sans text-slate-800 dark:text-slate-200">
                       {kopBaris1 && (
                         <h5 className="text-[8px] font-black uppercase leading-tight tracking-wide">
                           {kopBaris1}

@@ -861,6 +861,7 @@ export default function AbsensiPage() {
       let htmlContent = `
         <html>
           <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
             <title>Cetak Massal QR Code Presensi Siswa</title>
             <style>
               @page {
@@ -951,7 +952,7 @@ export default function AbsensiPage() {
                 margin-bottom: 4px;
               }
               .identifier-badge {
-                font-family: monospace;
+                font-family: 'Inter', sans-serif;
                 background: #f1f5f9;
                 padding: 2px 8px;
                 border-radius: 6px;
@@ -1040,6 +1041,7 @@ export default function AbsensiPage() {
     printWindow.document.write(`
       <html>
         <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
           <title>Cetak QR Code - ${escapeHtml(name)}</title>
           <style>
             body {
@@ -1050,7 +1052,7 @@ export default function AbsensiPage() {
               align-items: center;
               justify-content: center;
               height: 100vh;
-              font-family: system-ui, -apple-system, sans-serif;
+              font-family: 'Inter', sans-serif;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
@@ -1113,7 +1115,7 @@ export default function AbsensiPage() {
               overflow: hidden;
             }
             .identifier-badge {
-              font-family: monospace;
+              font-family: 'Inter', sans-serif;
               background: #f1f5f9;
               padding: 4px 10px;
               border-radius: 8px;

@@ -73,11 +73,13 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
     const win = window.open("", "_blank")
     if (!win) return
     win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
+<html><head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<meta charset="utf-8"/>
 <title>Data Guru - ${guru.namaLengkap || ""}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;padding:24px}
+  body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a1a;padding:24px}
   .header{display:flex;align-items:center;gap:20px;padding:20px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;border-radius:12px;margin-bottom:20px}
   .photo{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,0.5);overflow:hidden;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .photo img{width:100%;height:100%;object-fit:cover}

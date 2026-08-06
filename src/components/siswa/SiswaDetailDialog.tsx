@@ -79,11 +79,13 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
       `<div class="sec"><div class="sh ${cls}">${title}</div><div class="sb">${rows}</div></div>`
 
     win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
+<html><head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<meta charset="utf-8"/>
 <title>Buku Induk - ${s.namaLengkap || ""}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;font-size:10px;padding:0}
+  body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a1a;font-size:10px;padding:0}
   .hero{display:flex;gap:12px;align-items:center;padding:14px;background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:12px;margin-bottom:12px}
   .photo{width:64px;height:80px;border-radius:8px;border:2px solid rgba(255,255,255,0.5);overflow:hidden;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .photo img{width:100%;height:100%;object-fit:cover}

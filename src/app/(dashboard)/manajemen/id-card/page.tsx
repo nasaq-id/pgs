@@ -801,7 +801,7 @@ export default function IdCardPage() {
                             
                             {/* Dummy Signature Area */}
                             <div className="h-6 flex items-center justify-end pr-3">
-                              <span className="text-[8px] italic text-slate-300 font-serif">Stempel Sekolah</span>
+                              <span className="text-[8px] italic text-slate-300 font-sans">Stempel Sekolah</span>
                             </div>
                             
                             <p className="font-bold text-slate-800 underline leading-none">

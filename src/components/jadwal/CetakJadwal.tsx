@@ -244,11 +244,12 @@ export default function CetakJadwal({ open, onClose }: Props) {
       <!DOCTYPE html>
       <html>
       <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
         <title>Cetak Jadwal Pelajaran</title>
         <style>
           ${styles}
           @page { size: landscape; margin: 12mm; }
-          body { font-family: Arial, sans-serif; padding: 0; margin: 0; font-size: 10px; color: #000; }
+          body { font-family: 'Inter', sans-serif; padding: 0; margin: 0; font-size: 10px; color: #000; }
           .print-area { padding: 15px; }
           .kop-container { display: flex; align-items: center; justify-content: center; gap: 20px; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; }
           .kop-container h1 { font-size: 18px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
@@ -328,7 +329,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
         )}
 
         {/* Center Text */}
-        <div style={{ flex: 1, textAlign: "center", fontFamily: "serif" }}>
+        <div style={{ flex: 1, textAlign: "center", fontFamily: "'Inter', sans-serif" }}>
           {hasKopBaris ? (
             <>
               {sekolah?.kopBaris1 && (
