@@ -353,242 +353,6 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
     setShowInsertForm(true)
   }
 
-  const renderTimelinePanel = (hari: string, isKhusus: boolean) => {
-    const items = itemsByDay.get(hari) ?? []
-    const jpItems = items.filter((i) => i.tipe === "jp")
-
-    return (
-      <div className="space-y-4">
-        {isKhusus ? (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-3 py-2">
-            <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-xs text-amber-700 dark:text-amber-300">
-              Pengaturan khusus untuk hari ini. Perubahan tidak memengaruhi template utama.
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="ml-auto text-xs h-7"
-              onClick={async () => {
-                await applyTemplate.mutateAsync({
-                  sourceHari: timelineHari as any,
-                  targetHari: [hari as any],
-                })
-              }}
-              disabled={applyTemplate.isPending}
-            >
-              <Copy className="h-3 w-3 mr-1" />
-              Reset dari Template
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
-            <div className="flex items-center gap-2">
-              <Label className="whitespace-nowrap text-xs">Hari:</Label>
-              <Select value={timelineHari} onValueChange={(v) => v && setTimelineHari(v)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_DAYS.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>
-                      {d.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">Terapkan untuk:</span>
-              {ALL_DAYS.map((d) => (
-                <label
-                  key={d.value}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer transition-colors ${
-                    dayChecklist[d.value]
-                      ? "bg-[hsl(142_20%_90%)] text-[hsl(142_72%_30%)] dark:bg-[hsl(142_30%_20%)] dark:text-[hsl(142_60%_70%)]"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={dayChecklist[d.value]}
-                    onChange={(e) =>
-                      setDayChecklist((prev) => ({ ...prev, [d.value]: e.target.checked }))
-                    }
-                    className="sr-only"
-                  />
-                  {d.label.slice(0, 3)}
-                </label>
-              ))}
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1 text-xs h-7"
-                onClick={handleApplyTemplate}
-                disabled={applyTemplate.isPending}
-              >
-                {applyTemplate.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-                Simpan Template
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Timeline items list */}
-        <div className="space-y-1">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                Belum ada item untuk {ALL_DAYS.find((d) => d.value === hari)?.label}.
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Tambah Jam Pelajaran atau Sisipkan Kegiatan untuk memulai.
-              </p>
-            </div>
-          ) : (
-            items.map((item) => {
-              const Icon = TIPE_ICONS[item.tipe] || Clock
-              const jpIndex = jpItems.findIndex((i) => (i.id && item.id ? i.id === item.id : i.urutan === item.urutan))
-              const displayLabel =
-                item.tipe === "pembiasaan" && item.label
-                  ? `Pembiasaan : ${item.label}`
-                  : item.tipe === "jp"
-                    ? `JP ${jpIndex >= 0 ? jpIndex + 1 : item.urutan}`
-                    : item.label || TIPE_LABELS[item.tipe]
-              return (
-                <div
-                  key={item.id}
-                  className={`flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 border-l-4 ${TIPE_COLORS[item.tipe] || "border-l-border"}`}
-                >
-                  <div className="flex items-center gap-3 text-sm min-w-0">
-                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-xs font-mono shrink-0 w-28">
-                      {item.jamMulai} - {item.jamSelesai}
-                    </span>
-                    <span className="font-medium truncate">{displayLabel}</span>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={
-                        <Button
-                          size="icon-xs"
-                          variant="ghost"
-                          className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/20 cursor-pointer"
-                          title="Sisipkan kegiatan setelah ini"
-                          disabled={saving}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      } />
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "jp")} className="cursor-pointer font-medium text-xs">
-                          <Clock className="h-4 w-4 mr-2 text-teal-600" />
-                          Sisip JP Baru
-                        </DropdownMenuItem>
-                        {hari === "senin" && (
-                          <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "upacara")} className="cursor-pointer font-medium text-xs">
-                            <Flag className="h-4 w-4 mr-2 text-amber-500" />
-                            Upacara (Senin)
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "istirahat")} className="cursor-pointer font-medium text-xs">
-                          <Coffee className="h-4 w-4 mr-2 text-blue-400" />
-                          Istirahat
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "sholat")} className="cursor-pointer font-medium text-xs">
-                          <Sparkles className="h-4 w-4 mr-2 text-purple-450" />
-                          Sholat
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleInsertAfter(hari, item, "pembiasaan")} className="cursor-pointer font-medium text-xs">
-                          <BookOpen className="h-4 w-4 mr-2 text-emerald-500" />
-                          Pembiasaan...
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive cursor-pointer"
-                      onClick={() => item.id && handleDeleteItem(item.id)}
-                      disabled={deleteTimeline.isPending || saving}
-                    >
-                      {deleteTimeline.isPending ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3 w-3" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={() => handleAddJp(hari)}
-            disabled={upsertTimeline.isPending || !pengaturan}
-          >
-            {upsertTimeline.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Plus className="h-3.5 w-3.5" />
-            )}
-            Tambah Jam Pelajaran (JP)
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger render={
-              <Button size="sm" variant="outline" className="gap-1.5" disabled={!pengaturan}>
-                <Plus className="h-3.5 w-3.5" />
-                Sisip Kegiatan
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            } />
-            <DropdownMenuContent align="start" className="w-48">
-              {hari === "senin" && (
-                <DropdownMenuItem onClick={() => showInsert(hari, "upacara")}>
-                  <Flag className="h-4 w-4 mr-2" />
-                  Upacara (Senin)
-                </DropdownMenuItem>
-              )}
-              {hari !== "senin" && (
-                <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-                  <Flag className="h-4 w-4 mr-2" />
-                  Upacara (khusus Senin)
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => showInsert(hari, "istirahat")}>
-                <Coffee className="h-4 w-4 mr-2" />
-                Istirahat
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => showInsert(hari, "sholat")}>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Sholat
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => showInsert(hari, "pembiasaan")}>
-                <BookOpen className="h-4 w-4 mr-2" />
-                Pembiasaan...
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto rounded-[32px] p-6 bg-background border-0 shadow-2xl">
@@ -687,7 +451,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                         key={d.value}
                         type="button"
                         onClick={() => setTimelineHari(d.value)}
-                        className={`flex-1 min-w-[90px] flex flex-col items-center justify-center py-2.5 px-3 rounded-xl transition-all duration-300 transform active:scale-95 cursor-pointer ${
+                        className={`flex-shrink-0 min-w-[95px] flex flex-col items-center justify-center py-2.5 px-3 rounded-xl transition-all duration-300 transform active:scale-95 cursor-pointer ${
                           isActive
                             ? "bg-emerald-600 dark:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/15 scale-[1.02]"
                             : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-150 hover:bg-white dark:hover:bg-slate-800 font-medium"
@@ -712,7 +476,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
               </div>
 
               {/* Day Timeline Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                   <span className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -879,9 +643,9 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                           </div>
 
                           {/* Card */}
-                          <div className={`flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 px-4 py-3 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 ${TIPE_COLORS[item.tipe] || "border-l-border"}`}>
-                            <div className="flex items-center gap-3 text-sm min-w-0">
-                              <div className={`p-1.5 rounded-lg shrink-0 ${
+                          <div className={`flex items-start sm:items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 px-4 py-3 shadow-sm hover:shadow-md transition-all duration-200 border-l-4 ${TIPE_COLORS[item.tipe] || "border-l-border"}`}>
+                            <div className="flex items-start sm:items-center gap-3 text-sm min-w-0 flex-1">
+                              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 sm:mt-0 ${
                                 item.tipe === "jp" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600" :
                                 item.tipe === "istirahat" ? "bg-blue-50 dark:bg-blue-950/20 text-blue-500" :
                                 item.tipe === "sholat" ? "bg-purple-50 dark:bg-purple-950/20 text-purple-500" :
@@ -891,10 +655,12 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
                               }`}>
                                 <Icon className="h-4 w-4 shrink-0" />
                               </div>
-                              <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-xl font-bold font-mono text-[11px] tracking-tight shrink-0 shadow-sm">
-                                {item.jamMulai} - {item.jamSelesai}
-                              </span>
-                              <span className="font-extrabold text-slate-800 dark:text-slate-100 truncate">{displayLabel}</span>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
+                                <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 sm:py-1 rounded-xl font-bold font-mono text-[10px] sm:text-[11px] tracking-tight shrink-0 shadow-sm w-fit">
+                                  {item.jamMulai} - {item.jamSelesai}
+                                </span>
+                                <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate">{displayLabel}</span>
+                              </div>
                             </div>
 
                             <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
