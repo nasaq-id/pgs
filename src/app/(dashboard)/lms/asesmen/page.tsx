@@ -139,12 +139,6 @@ export default function AsesmenPage() {
     return `${dateStr} ${timeStr}`
   }
 
-  const selectedKelasLabel = useMemo(() => {
-    if (kelasFilter === "all") return "Semua Kelas"
-    const k = kelasMap.get(kelasFilter)
-    return k ? `Kelas ${k.namaKelas}` : "Semua Kelas"
-  }, [kelasFilter, kelasMap])
-
   const selectedRekapKelas = kelasMap.get(rekapKelasId)
   const rekapKelasName = selectedRekapKelas ? `Kelas ${selectedRekapKelas.namaKelas}` : "Kelas 7 - A"
 
@@ -397,9 +391,16 @@ export default function AsesmenPage() {
               </Button>
             </div>
 
-            <Select value={kelasFilter} onValueChange={(v) => setKelasFilter(v ?? "all")}>
+            <Select
+              value={kelasFilter}
+              onValueChange={(v) => setKelasFilter(v ?? "all")}
+              options={[
+                { value: "all", label: "Semua Kelas" },
+                ...(kelasList?.map((k) => ({ value: k.id, label: `Kelas ${k.namaKelas}` })) ?? []),
+              ]}
+            >
               <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
-                <SelectValue placeholder="Semua Kelas">{selectedKelasLabel || "Semua Kelas"}</SelectValue>
+                <SelectValue placeholder="Semua Kelas" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kelas</SelectItem>
@@ -409,7 +410,14 @@ export default function AsesmenPage() {
               </SelectContent>
             </Select>
 
-            <Select value={mapelFilter} onValueChange={(v) => setMapelFilter(v ?? "all")}>
+            <Select
+              value={mapelFilter}
+              onValueChange={(v) => setMapelFilter(v ?? "all")}
+              options={[
+                { value: "all", label: "Semua Mapel" },
+                ...(mapelList?.map((m) => ({ value: m.id, label: m.namaMapel })) ?? []),
+              ]}
+            >
               <SelectTrigger className="w-full sm:w-[170px] !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
                 <SelectValue placeholder="Semua Mapel" />
               </SelectTrigger>
@@ -639,9 +647,13 @@ export default function AsesmenPage() {
               </div>
 
               {/* Class Dropdown Filter */}
-              <Select value={rekapKelasId} onValueChange={(v) => setRekapKelasId(v ?? "")}>
+              <Select
+                value={rekapKelasId}
+                onValueChange={(v) => setRekapKelasId(v ?? "")}
+                options={kelasList?.map((k) => ({ value: k.id, label: `Kelas ${k.namaKelas}` })) ?? []}
+              >
                 <SelectTrigger className="w-full sm:w-[220px] !h-12 !rounded-2xl text-xs font-extrabold cursor-pointer">
-                  <SelectValue placeholder="Pilih Kelas">{rekapKelasName}</SelectValue>
+                  <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
                 <SelectContent>
                   {kelasList?.map((k) => (
