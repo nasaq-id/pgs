@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Pencil, Trash2, Loader2, Search, X, CalendarDays } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Plus, Pencil, Trash2, Loader2, Search, X, CalendarDays, CalendarOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 import {
   Table,
@@ -106,6 +108,16 @@ const emptyForm: FormState = {
   warna: "#3b82f6",
 }
 
+const HARI_MINGGUAN = [
+  { key: "senin", label: "Senin" },
+  { key: "selasa", label: "Selasa" },
+  { key: "rabu", label: "Rabu" },
+  { key: "kamis", label: "Kamis" },
+  { key: "jumat", label: "Jumat" },
+  { key: "sabtu", label: "Sabtu" },
+  { key: "minggu", label: "Minggu" },
+]
+
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "-"
   try {
@@ -130,12 +142,15 @@ function toDateInputValue(dateStr: string | null) {
 }
 
 export default function KalenderPage() {
+  const [activeTab, setActiveTab] = useState<"agenda" | "libur" | "liburGuru">("agenda")
   const [search, setSearch] = useState("")
   const [filterTahun, setFilterTahun] = useState(new Date().getFullYear().toString())
   const [filterBulan, setFilterBulan] = useState((new Date().getMonth() + 1).toString())
   const [formOpen, setFormOpen] = useState(false)
   const [formData, setFormData] = useState<FormState>(emptyForm)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [hariLibur, setHariLibur] = useState<string[]>(["sabtu", "minggu"])
+  const [hariLiburGuru, setHariLiburGuru] = useState<string[]>(["sabtu", "minggu"])
 
   const tahun = filterTahun ? parseInt(filterTahun) : undefined
   const bulan = filterBulan ? parseInt(filterBulan) : undefined
@@ -179,6 +194,39 @@ export default function KalenderPage() {
     },
     onError: (err) => toast.error(err.message || "Gagal menambahkan libur nasional"),
   })
+
+  const kaldikQuery = api.pengaturanKalender.get.useQuery()
+  const saveHariLibur = api.pengaturanKalender.setHariLiburMingguan.useMutation({
+    onSuccess: () => {
+      toast.success("Hari libur mingguan berhasil disimpan")
+      utils.pengaturanKalender.get.invalidate()
+    },
+    onError: (err) => toast.error(err.message || "Gagal menyimpan hari libur"),
+  })
+
+  const saveHariLiburGuru = api.pengaturanKalender.setHariLiburMingguanGuru.useMutation({
+    onSuccess: () => {
+      toast.success("Hari libur mingguan guru berhasil disimpan")
+      utils.pengaturanKalender.get.invalidate()
+    },
+    onError: (err) => toast.error(err.message || "Gagal menyimpan hari libur guru"),
+  })
+
+  const handleSaveHariLibur = async () => {
+    if (hariLibur.length === 0) {
+      toast.error("Minimal 1 hari libur harus dipilih")
+      return
+    }
+    await saveHariLibur.mutateAsync({ hariLibur: hariLibur as any })
+  }
+
+  const handleSaveHariLiburGuru = async () => {
+    if (hariLiburGuru.length === 0) {
+      toast.error("Minimal 1 hari libur harus dipilih")
+      return
+    }
+    await saveHariLiburGuru.mutateAsync({ hariLibur: hariLiburGuru as any })
+  }
 
   const openCreateForm = () => {
     setFormData(emptyForm)
@@ -227,26 +275,53 @@ export default function KalenderPage() {
     seedMutation.mutate({ tahun: year })
   }
 
+  useEffect(() => {
+    if (kaldikQuery.data?.hariLiburMingguan) {
+      setHariLibur(kaldikQuery.data.hariLiburMingguan as string[])
+    }
+    if (kaldikQuery.data?.hariLiburMingguanGuru) {
+      setHariLiburGuru(kaldikQuery.data.hariLiburMingguanGuru as string[])
+    }
+  }, [kaldikQuery.data])
+
   const records = (eventList ?? []) as KalenderRecord[]
   const saving = createMutation.isPending || updateMutation.isPending
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Kalender Akademik</h2>
-          <p className="text-sm text-muted-foreground">Kelola kegiatan sekolah dan hari libur</p>
-        </div>
-        <Button variant="outline" onClick={handleSeed} disabled={seedMutation.isPending}>
-          {seedMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <CalendarDays className="h-4 w-4 mr-2" />
-          )}
-          Inisialisasi Libur Nasional {new Date().getFullYear()}
-        </Button>
+      <div>
+        <h2 className="text-xl font-bold">Kalender Akademik</h2>
+        <p className="text-sm text-muted-foreground">Kelola kegiatan sekolah dan hari libur</p>
       </div>
 
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <div className="w-full overflow-x-auto scrollbar-none pb-1 flex justify-start mb-6">
+          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-max min-w-full flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+            <TabsTrigger
+              value="agenda"
+              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Agenda & Event</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="libur"
+              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+            >
+              <CalendarOff className="w-3.5 h-3.5" />
+              <span>Libur Mingguan Siswa</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="liburGuru"
+              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+            >
+              <CalendarOff className="w-3.5 h-3.5" />
+              <span>Libur Mingguan Guru</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+      <TabsContent value="agenda" className="focus-visible:outline-none">
       <div className="neumo-card bg-background rounded-2xl p-5">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div className="flex items-center gap-3 flex-wrap">
@@ -282,13 +357,23 @@ export default function KalenderPage() {
               onChange={(e) => setFilterTahun(e.target.value)}
             />
           </div>
-          <Button
-            className="gap-2"
-            style={{ backgroundColor: "hsl(142 72% 40%)" }}
-            onClick={openCreateForm}
-          >
-            <Plus className="h-4 w-4" /> Tambah Event
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={handleSeed} disabled={seedMutation.isPending} className="h-10">
+              {seedMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <CalendarDays className="h-4 w-4 mr-2" />
+              )}
+              Inisialisasi Libur Nasional {new Date().getFullYear()}
+            </Button>
+            <Button
+              className="gap-2 h-10"
+              style={{ backgroundColor: "hsl(142 72% 40%)" }}
+              onClick={openCreateForm}
+            >
+              <Plus className="h-4 w-4" /> Tambah Event
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -424,6 +509,137 @@ export default function KalenderPage() {
           </>
         )}
       </div>
+      </TabsContent>
+
+      <TabsContent value="libur" className="focus-visible:outline-none">
+        <div className="neumo-card bg-background rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <CalendarOff className="h-5 w-5 text-rose-500" />
+            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Hari Libur Mingguan Tetap (Siswa)</h3>
+          </div>
+
+          <div className="p-4 bg-rose-500/[0.03] border border-rose-500/10 rounded-2xl text-[11.5px] leading-relaxed text-rose-800 dark:text-rose-400 font-semibold">
+            <p>
+              Hari yang aktif (berwarna merah) ditetapkan sebagai hari libur mingguan <strong>siswa</strong> dan otomatis
+              mengurangi hari efektif pada halaman rekap siswa.
+            </p>
+          </div>
+
+          {kaldikQuery.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {HARI_MINGGUAN.map((hari) => {
+                  const isSelected = hariLibur.includes(hari.key)
+                  return (
+                    <button
+                      key={hari.key}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setHariLibur(hariLibur.filter((h) => h !== hari.key))
+                        } else {
+                          setHariLibur([...hariLibur, hari.key])
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-250 border cursor-pointer select-none",
+                        isSelected
+                          ? "bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900 text-rose-600 dark:text-rose-400 shadow-sm"
+                          : "bg-background border-slate-200/60 dark:border-slate-800/80 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      )}
+                    >
+                      {hari.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 flex justify-end">
+                <button
+                  className="h-10 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-6 flex items-center justify-center shadow-md shadow-teal-500/5 transition-all disabled:opacity-50"
+                  onClick={handleSaveHariLibur}
+                  disabled={saveHariLibur.isPending || kaldikQuery.isLoading}
+                >
+                  {saveHariLibur.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  <span>Simpan Hari Libur</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="liburGuru" className="focus-visible:outline-none">
+        <div className="neumo-card bg-background rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <CalendarOff className="h-5 w-5 text-teal-500" />
+            <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Hari Libur Mingguan Tetap (Guru)</h3>
+          </div>
+
+          <div className="p-4 bg-teal-500/[0.03] border border-teal-500/10 rounded-2xl text-[11.5px] leading-relaxed text-teal-800 dark:text-teal-400 font-semibold">
+            <p>
+              Hari yang aktif (berwarna hijau) ditetapkan sebagai hari libur mingguan <strong>guru</strong> dan otomatis
+              mengurangi hari efektif pada rekap guru mode <strong>Jam Kerja</strong>. Mode <strong>Jam Pelajaran (JP)</strong> tidak
+              terpengaruh — target JP tetap mengikuti jadwal mengajar.
+            </p>
+          </div>
+
+          {kaldikQuery.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {HARI_MINGGUAN.map((hari) => {
+                  const isSelected = hariLiburGuru.includes(hari.key)
+                  return (
+                    <button
+                      key={hari.key}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setHariLiburGuru(hariLiburGuru.filter((h) => h !== hari.key))
+                        } else {
+                          setHariLiburGuru([...hariLiburGuru, hari.key])
+                        }
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-250 border cursor-pointer select-none",
+                        isSelected
+                          ? "bg-teal-50 border-teal-200 dark:bg-teal-950/20 dark:border-teal-900 text-teal-600 dark:text-teal-400 shadow-sm"
+                          : "bg-background border-slate-200/60 dark:border-slate-800/80 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      )}
+                    >
+                      {hari.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 flex justify-end">
+                <button
+                  className="h-10 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-6 flex items-center justify-center shadow-md shadow-teal-500/5 transition-all disabled:opacity-50"
+                  onClick={handleSaveHariLiburGuru}
+                  disabled={saveHariLiburGuru.isPending || kaldikQuery.isLoading}
+                >
+                  {saveHariLiburGuru.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  <span>Simpan Hari Libur</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </TabsContent>
+      </Tabs>
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">

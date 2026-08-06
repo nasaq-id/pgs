@@ -198,6 +198,9 @@ export default function RekapPresensiPage() {
   const paginatedData = activeList.slice(page * limit, (page + 1) * limit)
   const hasMore = activeList.length > (page + 1) * limit
 
+  // Guru mode Jam Pelajaran (JP): kolom & satuan rekap jadi JP
+  const isGuruJP = activeTab === "guru" && !!rekapGuruData?.isPerJP
+
   const selectedPersonLogs = useMemo(() => {
     if (!selectedPerson) return []
     const logs = selectedPerson.type === "siswa" ? rekapSiswaData?.logs : rekapGuruData?.logs
@@ -252,6 +255,8 @@ export default function RekapPresensiPage() {
 
     const headers = isSiswa
       ? ["No", "NISN", "Nama Siswa", "Kelas", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
+      : isGuruJP
+      ? ["No", "NIP / NUPTK", "Nama Guru", "Target JP", "JP Tercatat", "Hadir (JP)", "Terlambat (JP)", "Izin (JP)", "Sakit (JP)", "Alpha (JP)", "Persentase Kehadiran (%)"]
       : ["No", "NIP / NUPTK", "Nama Guru", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase Kehadiran (%)"]
 
     const rows = dataList.map((item: any, index: number) => {
@@ -262,6 +267,20 @@ export default function RekapPresensiPage() {
           `"${item.namaLengkap}"`,
           `"${item.kelasNama}"`,
           item.hariEfektif,
+          item.hariTercatat,
+          item.hadirCount,
+          item.terlambatCount,
+          item.izinCount,
+          item.sakitCount,
+          item.alphaCount,
+          `"${item.persentaseHadir}%"`,
+        ]
+      } else if (isGuruJP) {
+        return [
+          index + 1,
+          `"${item.nipnuptk || "-"}"`,
+          `"${item.namaLengkap}"`,
+          item.targetJP ?? item.hariEfektif,
           item.hariTercatat,
           item.hadirCount,
           item.terlambatCount,
@@ -382,6 +401,8 @@ export default function RekapPresensiPage() {
       // Table header & body
       const head = isSiswa
         ? [["No", "NISN", "Nama Siswa", "Kelas", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
+        : isGuruJP
+        ? [["No", "NIP/NUPTK", "Nama Guru", "Target JP", "JP Tercatat", "Hadir (JP)", "Terlambat (JP)", "Izin (JP)", "Sakit (JP)", "Alpha (JP)", "Persentase (%)"]]
         : [["No", "NIP/NUPTK", "Nama Guru", "Hari Efektif", "Hari Tercatat", "Hadir (H)", "Terlambat (T)", "Izin (I)", "Sakit (S)", "Alpha (A)", "Persentase (%)"]]
 
       const rows = dataList.map((item: any, i: number) => {
@@ -392,6 +413,20 @@ export default function RekapPresensiPage() {
             item.namaLengkap,
             item.kelasNama,
             item.hariEfektif,
+            item.hariTercatat,
+            item.hadirCount,
+            item.terlambatCount,
+            item.izinCount,
+            item.sakitCount,
+            item.alphaCount,
+            `${item.persentaseHadir}%`,
+          ]
+        } else if (isGuruJP) {
+          return [
+            i + 1,
+            item.nipnuptk || "-",
+            item.namaLengkap,
+            item.targetJP ?? item.hariEfektif,
             item.hariTercatat,
             item.hadirCount,
             item.terlambatCount,
@@ -812,13 +847,13 @@ export default function RekapPresensiPage() {
                     <th className="py-3.5 px-4">NIP / NUPTK</th>
                   </>
                 )}
-                 <th className="py-3.5 px-4 text-center">Hari Efektif</th>
-                 <th className="py-3.5 px-4 text-center text-indigo-600 dark:text-indigo-400">Hari Tercatat</th>
-                <th className="py-3.5 px-4 text-center text-emerald-600 dark:text-emerald-400">Hadir (H)</th>
-                <th className="py-3.5 px-4 text-center text-amber-600 dark:text-amber-400">Terlambat (T)</th>
-                <th className="py-3.5 px-4 text-center text-blue-600 dark:text-blue-400">Izin (I)</th>
-                <th className="py-3.5 px-4 text-center text-orange-600 dark:text-orange-400">Sakit (S)</th>
-                <th className="py-3.5 px-4 text-center text-rose-600 dark:text-rose-400">Alpha (A)</th>
+                 <th className="py-3.5 px-4 text-center">{isGuruJP ? "Target JP" : "Hari Efektif"}</th>
+                 <th className="py-3.5 px-4 text-center text-indigo-600 dark:text-indigo-400">{isGuruJP ? "JP Tercatat" : "Hari Tercatat"}</th>
+                <th className="py-3.5 px-4 text-center text-emerald-600 dark:text-emerald-400">{isGuruJP ? "Hadir (JP)" : "Hadir (H)"}</th>
+                <th className="py-3.5 px-4 text-center text-amber-600 dark:text-amber-400">{isGuruJP ? "Terlambat (JP)" : "Terlambat (T)"}</th>
+                <th className="py-3.5 px-4 text-center text-blue-600 dark:text-blue-400">{isGuruJP ? "Izin (JP)" : "Izin (I)"}</th>
+                <th className="py-3.5 px-4 text-center text-orange-600 dark:text-orange-400">{isGuruJP ? "Sakit (JP)" : "Sakit (S)"}</th>
+                <th className="py-3.5 px-4 text-center text-rose-600 dark:text-rose-400">{isGuruJP ? "Alpha (JP)" : "Alpha (A)"}</th>
                 <th className="py-3.5 px-4 text-center">Persentase</th>
               </tr>
             </thead>
@@ -841,8 +876,12 @@ export default function RekapPresensiPage() {
                 paginatedData.map((item: any, idx: number) => {
                   const isHighAtt = item.persentaseHadir >= 90
                   const isMedAtt = item.persentaseHadir >= 75 && item.persentaseHadir < 90
-                  const presentDays = item.hadirCount + item.terlambatCount
-                  const progressPercent = item.hariEfektif > 0 ? Math.min(Math.round((presentDays / item.hariEfektif) * 100), 100) : 0
+                  const presentCount = isGuruJP
+                    ? item.hadirCount + item.terlambatCount + item.sakitCount + item.izinCount
+                    : item.hadirCount + item.terlambatCount
+                  const denominator = isGuruJP ? (item.targetJP ?? item.hariEfektif) : item.hariEfektif
+                  const unitLabel = isGuruJP ? "JP" : "Hari"
+                  const progressPercent = denominator > 0 ? Math.min(Math.round((presentCount / denominator) * 100), 100) : 0
 
                   return (
                     <tr
@@ -867,7 +906,7 @@ export default function RekapPresensiPage() {
                         <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">{item.nipnuptk || "-"}</td>
                       )}
                       <td className="py-3 px-4 text-center font-extrabold text-slate-700 dark:text-slate-300">
-                        {item.hariEfektif}
+                        {isGuruJP ? (item.targetJP ?? item.hariEfektif) : item.hariEfektif}
                       </td>
                       <td className="py-3 px-4 text-center font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50/10 dark:bg-indigo-950/10">
                         {item.hariTercatat}
@@ -901,9 +940,9 @@ export default function RekapPresensiPage() {
                             {item.persentaseHadir}%
                           </span>
                           <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">
-                            {item.hariEfektif > 0 ? `${presentDays} / ${item.hariEfektif} Hari` : "-"}
+                            {denominator > 0 ? `${presentCount} / ${denominator} ${unitLabel}` : "-"}
                           </span>
-                          {item.hariEfektif > 0 && (
+                          {denominator > 0 && (
                             <div className="mt-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1 overflow-hidden max-w-[80px]">
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${

@@ -1,5 +1,5 @@
 import { db } from "@/server/db"
-import { pengaturanAbsensi, kalenderEvent } from "@/server/db/schema"
+import { pengaturanKalender, kalenderEvent } from "@/server/db/schema"
 import { eq, and, lte, or, gte, isNull } from "drizzle-orm"
 
 /**
@@ -21,14 +21,13 @@ export function getSchoolDayDate(date: Date): Date {
     day: "numeric",
   })
   const parts = formatter.formatToParts(date)
-  const year = parseInt(parts.find((p) => p.type === "year")?.value || "1970", 10)
-  const month = parseInt(parts.find((p) => p.type === "month")?.value || "1", 10)
-  const day = parseInt(parts.find((p) => p.type === "day")?.value || "1", 10)
-  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+  const y = parseInt(parts.find((p) => p.type === "year")?.value || "1970", 10)
+  const m = parseInt(parts.find((p) => p.type === "month")?.value || "1", 10)
+  const d = parseInt(parts.find((p) => p.type === "day")?.value || "1", 10)
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0))
 }
 
-/** Jakarta "HH:mm" of a Date as minutes since midnight. */
-export function getSchoolTime(date: Date) {
+function getSchoolTime(date: Date): { hour: number; minute: number } {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
     hour: "numeric",
@@ -53,17 +52,17 @@ export async function getHariEfektif(
   endDate: Date,
   role: "siswa" | "guru" = "siswa"
 ): Promise<{ count: number; dates: string[] }> {
-  // 1. Fetch weekly holidays configuration
+  // 1. Fetch weekly holidays configuration (siswa only; guru pakai aturannya sendiri)
   let weeklyHolidays: string[] = ["sabtu", "minggu"]
 
   if (role === "siswa") {
-    const settings = await db.query.pengaturanAbsensi.findFirst({
-      where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+    const settings = await db.query.pengaturanKalender.findFirst({
+      where: eq(pengaturanKalender.sekolahId, sekolahId),
     })
 
-    if (settings?.hariLibur) {
+    if (settings?.hariLiburMingguan) {
       try {
-        weeklyHolidays = JSON.parse(settings.hariLibur)
+        weeklyHolidays = JSON.parse(settings.hariLiburMingguan)
       } catch (e) {
         console.error("Failed to parse weekly holidays:", e)
       }

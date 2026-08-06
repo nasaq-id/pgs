@@ -102,6 +102,11 @@ export default function AiGenerateDialog({
     enabled: open,
   })
 
+  // Fetch weekly holiday setting to prefill (still editable per generation)
+  const { data: kaldikSetting } = api.pengaturanKalender.get.useQuery(undefined, {
+    enabled: open,
+  })
+
   const maxJpPerDay = useMemo(() => {
     const map = new Map<string, number>()
     if (!timelineList) return map
@@ -116,11 +121,12 @@ export default function AiGenerateDialog({
   useEffect(() => {
     if (!open) return
     setTargetKelasId("all")
-    setHariLibur(["sabtu"])
+    const stored = kaldikSetting?.hariLiburMingguan
+    setHariLibur(Array.isArray(stored) && stored.length > 0 ? (stored as string[]) : ["sabtu"])
     setCustomRequest("")
     setTeacherExceptions({})
     setTeacherJPExceptions({})
-  }, [open])
+  }, [open, kaldikSetting])
 
   // Filter plotting pengajar based on selected target kelas
   const filteredPengampu = useMemo(() => {

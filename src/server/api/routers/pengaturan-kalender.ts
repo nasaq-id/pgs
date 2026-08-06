@@ -9,6 +9,18 @@ import { DEFAULT_KALDIK, isValidMmDd, resolveSemesterYear, suggestSemesterDates 
 
 const mmDdSchema = z.string().regex(/^\d{2}-\d{2}$/, "Format harus MM-DD")
 
+const HARI_LIBUR_ENUM = z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"])
+
+function parseHariLiburMingguan(raw: string | null | undefined): string[] {
+  if (!raw) return ["sabtu", "minggu"]
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : ["sabtu", "minggu"]
+  } catch {
+    return ["sabtu", "minggu"]
+  }
+}
+
 export const pengaturanKalenderRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
     const sekolahId = ctx.session.user.sekolahId
@@ -16,7 +28,12 @@ export const pengaturanKalenderRouter = router({
     const result = await db.query.pengaturanKalender.findFirst({
       where: eq(pengaturanKalender.sekolahId, sekolahId),
     })
-    return result ?? null
+    if (!result) return null
+    return {
+      ...result,
+      hariLiburMingguan: parseHariLiburMingguan(result.hariLiburMingguan),
+      hariLiburMingguanGuru: parseHariLiburMingguan(result.hariLiburMingguanGuru),
+    }
   }),
 
   upsert: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -71,6 +88,78 @@ export const pengaturanKalenderRouter = router({
         })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
+      return result[0]
+    }),
+
+  setHariLiburMingguan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(sanitized(z.object({
+      hariLibur: z.array(HARI_LIBUR_ENUM).min(1, "Minimal 1 hari libur dipilih"),
+    })))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+
+      const serialized = JSON.stringify(input.hariLibur)
+
+      const existing = await db.query.pengaturanKalender.findFirst({
+        where: eq(pengaturanKalender.sekolahId, sekolahId),
+      })
+
+      if (existing) {
+        const result = await db
+          .update(pengaturanKalender)
+          .set({ hariLiburMingguan: serialized, updatedAt: new Date() })
+          .where(eq(pengaturanKalender.id, existing.id))
+          .returning()
+        await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan" } })
+        return result[0]
+      }
+
+      const result = await db
+        .insert(pengaturanKalender)
+        .values({
+          id: crypto.randomUUID(),
+          sekolahId,
+          hariLiburMingguan: serialized,
+        })
+        .returning()
+      await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan" } })
+      return result[0]
+    }),
+
+  setHariLiburMingguanGuru: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(sanitized(z.object({
+      hariLibur: z.array(HARI_LIBUR_ENUM).min(1, "Minimal 1 hari libur dipilih"),
+    })))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+
+      const serialized = JSON.stringify(input.hariLibur)
+
+      const existing = await db.query.pengaturanKalender.findFirst({
+        where: eq(pengaturanKalender.sekolahId, sekolahId),
+      })
+
+      if (existing) {
+        const result = await db
+          .update(pengaturanKalender)
+          .set({ hariLiburMingguanGuru: serialized, updatedAt: new Date() })
+          .where(eq(pengaturanKalender.id, existing.id))
+          .returning()
+        await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan_guru" } })
+        return result[0]
+      }
+
+      const result = await db
+        .insert(pengaturanKalender)
+        .values({
+          id: crypto.randomUUID(),
+          sekolahId,
+          hariLiburMingguanGuru: serialized,
+        })
+        .returning()
+      await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan_guru" } })
       return result[0]
     }),
 

@@ -40,9 +40,6 @@ export default function PengaturanPresensiPage() {
   const [radiusSetting, setRadiusSetting] = useState(100)
   const [isUkurLoading, setIsUkurLoading] = useState(false)
 
-  // Hari Libur State
-  const [hariLibur, setHariLibur] = useState<string[]>(["sabtu", "minggu"])
-
   // Load settings into state
   useEffect(() => {
     if (settingsQuery.data) {
@@ -75,7 +72,6 @@ export default function PengaturanPresensiPage() {
       setLatitudeSetting(settingsQuery.data.latitude || "")
       setLongitudeSetting(settingsQuery.data.longitude || "")
       setRadiusSetting(settingsQuery.data.radius ?? 100)
-      setHariLibur(settingsQuery.data.hariLibur || ["sabtu", "minggu"])
     }
   }, [settingsQuery.data])
 
@@ -92,7 +88,6 @@ export default function PengaturanPresensiPage() {
         latitude: latitudeSetting.trim() || null,
         longitude: longitudeSetting.trim() || null,
         radius: radiusSetting,
-        hariLibur,
       })
       toast.success("Pengaturan presensi berhasil disimpan")
       settingsQuery.refetch()
@@ -368,46 +363,6 @@ export default function PengaturanPresensiPage() {
                       onChange={(e) => setJamPulangSiswa(e.target.value)}
                       className="h-10 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                     />
-                  </div>
-
-                  {/* Hari Libur Mingguan (Khusus Siswa) */}
-                  <div className="pt-5 border-t border-slate-100 dark:border-slate-800/40 space-y-3">
-                    <Label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Hari Libur Mingguan Tetap (Siswa)</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { key: "senin", label: "Senin" },
-                        { key: "selasa", label: "Selasa" },
-                        { key: "rabu", label: "Rabu" },
-                        { key: "kamis", label: "Kamis" },
-                        { key: "jumat", label: "Jumat" },
-                        { key: "sabtu", label: "Sabtu" },
-                        { key: "minggu", label: "Minggu" },
-                      ].map((hari) => {
-                        const isSelected = hariLibur.includes(hari.key)
-                        return (
-                          <button
-                            key={hari.key}
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                setHariLibur(hariLibur.filter((h) => h !== hari.key))
-                              } else {
-                                setHariLibur([...hariLibur, hari.key])
-                              }
-                            }}
-                            className={cn(
-                              "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-250 border cursor-pointer select-none",
-                              isSelected
-                                ? "bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900 text-rose-600 dark:text-rose-400 shadow-sm"
-                                : "bg-background border-slate-200/60 dark:border-slate-800/80 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
-                            )}
-                          >
-                            {hari.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Hari yang aktif (berwarna merah) akan ditetapkan sebagai hari libur mingguan siswa dan otomatis mengurangi hari efektif pada halaman rekap siswa.</span>
                   </div>
                 </TabsContent>
               </Tabs>

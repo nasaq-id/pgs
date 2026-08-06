@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, between, or, asc, lte, gte, isNull } from "drizzle-orm"
 import { db } from "@/server/db"
-import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent } from "@/server/db/schema"
+import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent, pengaturanKalender } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -181,25 +181,12 @@ export const absensiRouter = router({
             toleransiSiswa: 15,
             radius: 100,
             aturanGuru: "per_jp",
-            hariLibur: '["sabtu", "minggu"]',
           })
           .returning()
         settings = newSettings
       }
-      
-      let parsedHariLibur: string[] = ["sabtu", "minggu"]
-      if (settings.hariLibur) {
-        try {
-          parsedHariLibur = JSON.parse(settings.hariLibur)
-        } catch (e) {
-          console.error("Failed to parse hariLibur:", e)
-        }
-      }
 
-      return {
-        ...settings,
-        hariLibur: parsedHariLibur,
-      }
+      return settings
     }),
 
   savePengaturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -216,11 +203,10 @@ export const absensiRouter = router({
         longitude: z.string().nullable().optional(),
         radius: z.number().optional().default(100),
         aturanGuru: z.enum(["per_jp", "umum"]).optional().default("per_jp"),
-        hariLibur: z.array(z.string()).optional(),
       })),
     )
     .mutation(async ({ ctx, input }) => {
-      const { sekolahId: inputSekolahId, hariLibur, ...rest } = input
+      const { sekolahId: inputSekolahId, ...rest } = input
       let sekolahId = ctx.session.user.sekolahId || inputSekolahId
       if (!sekolahId && ctx.session.user.role === "super_admin") {
         const first = await db.query.sekolah.findFirst()
@@ -232,21 +218,19 @@ export const absensiRouter = router({
         where: eq(pengaturanAbsensi.sekolahId, sekolahId),
       })
 
-      const serializedHariLibur = hariLibur ? JSON.stringify(hariLibur) : '["sabtu", "minggu"]'
-
       if (existing) {
         await db
           .update(pengaturanAbsensi)
-          .set({ ...rest, hariLibur: serializedHariLibur, updatedAt: new Date() })
+          .set({ ...rest, updatedAt: new Date() })
           .where(eq(pengaturanAbsensi.sekolahId, sekolahId))
       } else {
         await db.insert(pengaturanAbsensi).values({
           id: crypto.randomUUID(),
           sekolahId,
           ...rest,
-          hariLibur: serializedHariLibur,
         })
       }
+
       await logAudit(ctx, { action: "update_pengaturan_absensi", entity: "pengaturan_absensi", metadata: input })
       return { success: true }
     }),
@@ -871,8 +855,9 @@ export const absensiRouter = router({
 
       const summaryList = Array.from(studentMap.values()).map((item) => {
         const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
+        // Pendekatan A: (Hadir + Terlambat) / Hari Efektif
         const effectiveHadir = item.hadirCount + item.terlambatCount
-        const persentase = loggedDays > 0 ? Math.round((effectiveHadir / loggedDays) * 100) : 0
+        const persentase = hariEfektifCount > 0 ? Math.round((effectiveHadir / hariEfektifCount) * 100) : 0
         return {
           ...item,
           hariEfektif: hariEfektifCount,
@@ -908,6 +893,20 @@ export const absensiRouter = router({
         where: eq(pengaturanAbsensi.sekolahId, sekolahId),
       })
       const isPerJP = settings?.aturanGuru === "per_jp"
+
+      // Weekly holidays for guru Jam Kerja mode (setting khusus guru di Kalender Akademik)
+      const kaldikSetting = await db.query.pengaturanKalender.findFirst({
+        where: eq(pengaturanKalender.sekolahId, sekolahId),
+      })
+      let weeklyHolidays: string[] = ["sabtu", "minggu"]
+      if (kaldikSetting?.hariLiburMingguanGuru) {
+        try {
+          weeklyHolidays = JSON.parse(kaldikSetting.hariLiburMingguanGuru)
+        } catch (e) {
+          console.error("Failed to parse guru weekly holidays:", e)
+        }
+      }
+      weeklyHolidays = weeklyHolidays.map((d) => d.toLowerCase())
 
       // 2. Fetch all calendar events representing school/national holidays
       const holidays = await db.query.kalenderEvent.findMany({
@@ -967,14 +966,26 @@ export const absensiRouter = router({
         : []
 
       const teacherDaysMap = new Map<string, Set<string>>()
+      // Map guruId -> Map<hari lowercase -> total JP terjadwal per hari>
+      const teacherJpPerDayMap = new Map<string, Map<string, number>>()
       if (isPerJP) {
         for (const sched of schedules) {
+          if (!sched.jpCount) continue
+          const day = sched.hari.toLowerCase()
+
           let daySet = teacherDaysMap.get(sched.guruId)
           if (!daySet) {
             daySet = new Set<string>()
             teacherDaysMap.set(sched.guruId, daySet)
           }
-          daySet.add(sched.hari.toLowerCase())
+          daySet.add(day)
+
+          let jpMap = teacherJpPerDayMap.get(sched.guruId)
+          if (!jpMap) {
+            jpMap = new Map<string, number>()
+            teacherJpPerDayMap.set(sched.guruId, jpMap)
+          }
+          jpMap.set(day, (jpMap.get(day) || 0) + (sched.jpCount || 0))
         }
       }
 
@@ -995,11 +1006,11 @@ export const absensiRouter = router({
             }
           }
         } else {
-          // jam_kerja: Saturday and Sunday off
+          // jam_kerja: weekly holidays off
           for (const day of calendarDays) {
-            const isWeekend = day.dayName === "sabtu" || day.dayName === "minggu"
+            const isWeeklyHoliday = weeklyHolidays.includes(day.dayName)
             const isHoliday = calendarHolidays.has(day.dateStr)
-            if (!isWeekend && !isHoliday) {
+            if (!isWeeklyHoliday && !isHoliday) {
               teacherEfektifSet.add(day.dateStr)
             }
           }
@@ -1007,6 +1018,21 @@ export const absensiRouter = router({
 
         teacherEfektifSets.set(g.id, teacherEfektifSet)
         teacherEfektifCounts.set(g.id, teacherEfektifSet.size)
+      }
+
+      // 6b. Target JP per guru (mode JP): total JP terjadwal pada hari mengajar efektif
+      const teacherTargetJPMap = new Map<string, number>()
+      if (isPerJP) {
+        for (const [guruId, daySet] of teacherEfektifSets) {
+          const jpPerDay = teacherJpPerDayMap.get(guruId)
+          let total = 0
+          for (const dateKey of daySet) {
+            const d = new Date(dateKey + "T00:00:00Z")
+            const dayName = DAYS_OF_WEEK[d.getUTCDay()]
+            total += jpPerDay?.get(dayName) || 0
+          }
+          teacherTargetJPMap.set(guruId, total)
+        }
       }
 
       // 7. Fetch attendance logs
@@ -1051,13 +1077,34 @@ export const absensiRouter = router({
         })
       }
 
+      // Track hari yang sudah tercatat per guru (untuk alpa implisit di mode JP)
+      const loggedKeysByGuru = new Map<string, Set<string>>()
+
       for (const log of attendanceLogs) {
         const dateKey = log.tanggal.toISOString().split("T")[0]
         const teacherEfektifSet = teacherEfektifSets.get(log.guruId)
         if (!teacherEfektifSet || !teacherEfektifSet.has(dateKey)) continue
 
         const item = teacherMap.get(log.guruId)
-        if (item) {
+        if (!item) continue
+
+        let loggedKeys = loggedKeysByGuru.get(log.guruId)
+        if (!loggedKeys) {
+          loggedKeys = new Set<string>()
+          loggedKeysByGuru.set(log.guruId, loggedKeys)
+        }
+        loggedKeys.add(dateKey)
+
+        if (isPerJP) {
+          // Mode JP: akumulasi JP terjadwal pada hari tersebut
+          const d = new Date(dateKey + "T00:00:00Z")
+          const jp = teacherJpPerDayMap.get(log.guruId)?.get(DAYS_OF_WEEK[d.getUTCDay()]) || 0
+          if (log.status === "hadir") item.hadirCount += jp
+          else if (log.status === "terlambat") item.terlambatCount += jp
+          else if (log.status === "izin") item.izinCount += jp
+          else if (log.status === "sakit") item.sakitCount += jp
+          else if (log.status === "alpha") item.alphaCount += jp
+        } else {
           if (log.status === "hadir") item.hadirCount++
           else if (log.status === "terlambat") item.terlambatCount++
           else if (log.status === "izin") item.izinCount++
@@ -1066,11 +1113,45 @@ export const absensiRouter = router({
         }
       }
 
+      // Mode JP: alpa implisit — hari mengajar efektif tanpa log presensi
+      if (isPerJP) {
+        for (const [guruId, daySet] of teacherEfektifSets) {
+          const item = teacherMap.get(guruId)
+          if (!item) continue
+          const loggedKeys = loggedKeysByGuru.get(guruId)
+          if (!loggedKeys) continue
+          const jpPerDay = teacherJpPerDayMap.get(guruId)
+          for (const dateKey of daySet) {
+            if (loggedKeys.has(dateKey)) continue
+            const d = new Date(dateKey + "T00:00:00Z")
+            const jp = jpPerDay?.get(DAYS_OF_WEEK[d.getUTCDay()]) || 0
+            item.alphaCount += jp
+          }
+        }
+      }
+
       const summaryList = Array.from(teacherMap.values()).map((item) => {
-        const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
-        const effectiveHadir = item.hadirCount + item.terlambatCount
-        const persentase = loggedDays > 0 ? Math.round((effectiveHadir / loggedDays) * 100) : 0
         const teacherEfektifCount = teacherEfektifCounts.get(item.guruId) || 0
+
+        if (isPerJP) {
+          // Pendekatan B (JP): akumulasi JP; Sakit/Izin tidak mengurangi
+          const targetJP = teacherTargetJPMap.get(item.guruId) || 0
+          const totalJPHadirKerja = item.hadirCount + item.terlambatCount + item.sakitCount + item.izinCount
+          const jpTercatat = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
+          const persentase = targetJP > 0 ? Math.round((totalJPHadirKerja / targetJP) * 100) : 0
+          return {
+            ...item,
+            hariEfektif: teacherEfektifCount,
+            targetJP,
+            hariTercatat: jpTercatat,
+            persentaseHadir: persentase,
+          }
+        }
+
+        // Jam Kerja: Pendekatan B — Sakit/Izin dimaklumi (tidak mengurangi persentase)
+        const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
+        const effectiveHadir = item.hadirCount + item.terlambatCount + item.sakitCount + item.izinCount
+        const persentase = teacherEfektifCount > 0 ? Math.round((effectiveHadir / teacherEfektifCount) * 100) : 0
         return {
           ...item,
           hariEfektif: teacherEfektifCount,
@@ -1079,12 +1160,12 @@ export const absensiRouter = router({
         }
       })
 
-      // Generate a baseline count of school days (Saturday and Sunday off, minus calendar holidays) for the response metadata
+      // Generate a baseline count of school days (guru weekly holidays off, minus calendar holidays) for the response metadata
       const baselineEfektifDates: string[] = []
       for (const day of calendarDays) {
-        const isWeekend = day.dayName === "sabtu" || day.dayName === "minggu"
+        const isWeeklyHoliday = weeklyHolidays.includes(day.dayName)
         const isHoliday = calendarHolidays.has(day.dateStr)
-        if (!isWeekend && !isHoliday) {
+        if (!isWeeklyHoliday && !isHoliday) {
           baselineEfektifDates.push(day.dateStr)
         }
       }
@@ -1099,6 +1180,7 @@ export const absensiRouter = router({
         summary: summaryList,
         logs: filteredLogs,
         hariEfektif: baselineEfektifDates.length,
+        isPerJP,
       }
     }),
   getStaticQrGuru: protectedProcedure
