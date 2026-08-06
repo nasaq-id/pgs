@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff, Users, UserCheck } from "lucide-react"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -68,8 +68,10 @@ export default function AbsensiPage() {
   const [submittingLateReason, setSubmittingLateReason] = useState(false)
 
   // Bulk download barcode states
+  const [qrPrintMode, setQrPrintMode] = useState<"massal" | "single">("massal")
   const [bulkFilterClassId, setBulkFilterClassId] = useState<string>("semua")
   const [selectedSiswaSingleId, setSelectedSiswaSingleId] = useState<string>("")
+  const [searchSiswaQuery, setSearchSiswaQuery] = useState<string>("")
   const [bulkDownloading, setBulkDownloading] = useState(false)
   const [bulkProgress, setBulkProgress] = useState("")
   const [qrPerPage, setQrPerPage] = useState<string>("6")
@@ -145,9 +147,20 @@ export default function AbsensiPage() {
 
   const bulkFilteredSiswaList = useMemo(() => {
     if (!siswaAll) return []
-    if (bulkFilterClassId === "semua") return siswaAll
-    return siswaAll.filter((s) => s.kelasId === bulkFilterClassId)
-  }, [siswaAll, bulkFilterClassId])
+    let list = siswaAll
+    if (bulkFilterClassId !== "semua") {
+      list = siswaAll.filter((s) => s.kelasId === bulkFilterClassId)
+    }
+    if (searchSiswaQuery.trim() !== "") {
+      const q = searchSiswaQuery.toLowerCase()
+      list = list.filter((s) => 
+        s.namaLengkap.toLowerCase().includes(q) || 
+        (s.nisn && s.nisn.toLowerCase().includes(q)) || 
+        (s.nisLokal && s.nisLokal.toLowerCase().includes(q))
+      )
+    }
+    return list
+  }, [siswaAll, bulkFilterClassId, searchSiswaQuery])
 
   useEffect(() => {
     setSelectedSiswaSingleId("")
@@ -666,7 +679,11 @@ export default function AbsensiPage() {
       return
     }
 
-    if (selectedSiswaSingleId) {
+    if (qrPrintMode === "single") {
+      if (!selectedSiswaSingleId) {
+        toast.error("Pilih siswa terlebih dahulu.")
+        return
+      }
       const std = siswaAll.find((s) => s.id === selectedSiswaSingleId)
       if (!std) {
         toast.error("Siswa tidak ditemukan.")
@@ -748,7 +765,11 @@ export default function AbsensiPage() {
       return
     }
 
-    if (selectedSiswaSingleId) {
+    if (qrPrintMode === "single") {
+      if (!selectedSiswaSingleId) {
+        toast.error("Pilih siswa terlebih dahulu.")
+        return
+      }
       const std = siswaAll.find((s) => s.id === selectedSiswaSingleId)
       if (!std) {
         toast.error("Siswa tidak ditemukan.")
@@ -2190,6 +2211,42 @@ export default function AbsensiPage() {
             </div>
 
             <div className="space-y-3 pt-1">
+              {/* Toggle Mode Cetak QR (Tunggal vs Massal) */}
+              <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQrPrintMode("massal")
+                    setSelectedSiswaSingleId("")
+                    setSearchSiswaQuery("")
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none ${
+                    qrPrintMode === "massal"
+                      ? "bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Cetak Per Kelas (Massal)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQrPrintMode("single")
+                    setSelectedSiswaSingleId("")
+                    setSearchSiswaQuery("")
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none ${
+                    qrPrintMode === "single"
+                      ? "bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm border border-slate-200/20 dark:border-slate-700/50"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Cetak Per Siswa (Tunggal)</span>
+                </button>
+              </div>
+
               <div className="space-y-1">
                 <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
                   Filter Rombel (Kelas)
@@ -2199,6 +2256,7 @@ export default function AbsensiPage() {
                   onValueChange={(v) => {
                     setBulkFilterClassId(v ?? "semua")
                     setSelectedSiswaSingleId("")
+                    setSearchSiswaQuery("")
                   }}
                   options={[
                     { value: "semua", label: "Semua Kelas & Siswa" },
@@ -2219,61 +2277,98 @@ export default function AbsensiPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
-                  Pilih Siswa Spesifik (Opsional)
-                </Label>
-                <Select
-                  value={selectedSiswaSingleId}
-                  onValueChange={(v) => setSelectedSiswaSingleId(v ?? "")}
-                  options={[
-                    { value: "", label: "Cetak Semua Siswa di Kelas" },
-                    ...(bulkFilteredSiswaList?.map((s) => ({ value: s.id, label: `${s.namaLengkap} (${s.nisn || s.nisLokal || "Tanpa NIS"})` })) || [])
-                  ]}
-                >
-                  <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
-                    <SelectValue placeholder="Cetak Semua Siswa di Kelas" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    <SelectItem value="" className="text-xs font-semibold">Cetak Semua Siswa di Kelas</SelectItem>
-                    {bulkFilteredSiswaList?.map((s) => (
-                      <SelectItem key={s.id} value={s.id} className="text-xs font-semibold">
-                        {s.namaLengkap} ({s.nisn || s.nisLokal || "-"})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {qrPrintMode === "single" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                      Cari Nama / NISN Siswa (Opsional)
+                    </Label>
+                    <div className="relative flex items-center">
+                      <Search className="absolute left-3 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      <Input
+                        type="text"
+                        placeholder="Ketik nama atau NISN siswa..."
+                        value={searchSiswaQuery}
+                        onChange={(e) => {
+                          setSearchSiswaQuery(e.target.value)
+                          setSelectedSiswaSingleId("")
+                        }}
+                        className="h-10 pl-9 pr-8 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-350 w-full"
+                      />
+                      {searchSiswaQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchSiswaQuery("")
+                            setSelectedSiswaSingleId("")
+                          }}
+                          className="absolute right-3 hover:text-slate-650 text-slate-400 p-1 rounded-md transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-1">
-                <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
-                  Jumlah QR per Halaman
-                </Label>
-                <Select
-                  value={qrPerPage}
-                  onValueChange={(v) => setQrPerPage(v ?? "6")}
-                  options={[
-                    { value: "4", label: "4 QR / Halaman (2x2)" },
-                    { value: "6", label: "6 QR / Halaman (2x3)" },
-                    { value: "8", label: "8 QR / Halaman (2x4)" },
-                    { value: "9", label: "9 QR / Halaman (3x3)" },
-                    { value: "12", label: "12 QR / Halaman (3x4)" },
-                    { value: "16", label: "16 QR / Halaman (4x4)" }
-                  ]}
-                >
-                  <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
-                    <SelectValue placeholder="6 QR / Halaman" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
-                    <SelectItem value="4" className="text-xs font-semibold">4 QR / Halaman (2x2)</SelectItem>
-                    <SelectItem value="6" className="text-xs font-semibold">6 QR / Halaman (2x3)</SelectItem>
-                    <SelectItem value="8" className="text-xs font-semibold">8 QR / Halaman (2x4)</SelectItem>
-                    <SelectItem value="9" className="text-xs font-semibold">9 QR / Halaman (3x3)</SelectItem>
-                    <SelectItem value="12" className="text-xs font-semibold">12 QR / Halaman (3x4)</SelectItem>
-                    <SelectItem value="16" className="text-xs font-semibold">16 QR / Halaman (4x4)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                      Pilih Siswa Spesifik
+                    </Label>
+                    <Select
+                      value={selectedSiswaSingleId}
+                      onValueChange={(v) => setSelectedSiswaSingleId(v ?? "")}
+                      options={[
+                        { value: "", label: "Pilih Siswa..." },
+                        ...(bulkFilteredSiswaList?.map((s) => ({ value: s.id, label: `${s.namaLengkap} (${s.nisn || s.nisLokal || "Tanpa NIS"})` })) || [])
+                      ]}
+                    >
+                      <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                        <SelectValue placeholder="Pilih Siswa..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        <SelectItem value="" className="text-xs font-semibold">Pilih Siswa...</SelectItem>
+                        {bulkFilteredSiswaList?.map((s) => (
+                          <SelectItem key={s.id} value={s.id} className="text-xs font-semibold">
+                            {s.namaLengkap} ({s.nisn || s.nisLokal || "-"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {qrPrintMode === "massal" && (
+                <div className="space-y-1">
+                  <Label className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-1">
+                    Jumlah QR per Halaman
+                  </Label>
+                  <Select
+                    value={qrPerPage}
+                    onValueChange={(v) => setQrPerPage(v ?? "6")}
+                    options={[
+                      { value: "4", label: "4 QR / Halaman (2x2)" },
+                      { value: "6", label: "6 QR / Halaman (2x3)" },
+                      { value: "8", label: "8 QR / Halaman (2x4)" },
+                      { value: "9", label: "9 QR / Halaman (3x3)" },
+                      { value: "12", label: "12 QR / Halaman (3x4)" },
+                      { value: "16", label: "16 QR / Halaman (4x4)" }
+                    ]}
+                  >
+                    <SelectTrigger className="h-10 px-3 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 font-semibold text-slate-750 dark:text-slate-300 w-full text-left">
+                      <SelectValue placeholder="6 QR / Halaman" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl shadow-lg">
+                      <SelectItem value="4" className="text-xs font-semibold">4 QR / Halaman (2x2)</SelectItem>
+                      <SelectItem value="6" className="text-xs font-semibold">6 QR / Halaman (2x3)</SelectItem>
+                      <SelectItem value="8" className="text-xs font-semibold">8 QR / Halaman (2x4)</SelectItem>
+                      <SelectItem value="9" className="text-xs font-semibold">9 QR / Halaman (3x3)</SelectItem>
+                      <SelectItem value="12" className="text-xs font-semibold">12 QR / Halaman (3x4)</SelectItem>
+                      <SelectItem value="16" className="text-xs font-semibold">16 QR / Halaman (4x4)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-2">
                 <button
@@ -2290,7 +2385,7 @@ export default function AbsensiPage() {
                   ) : (
                     <>
                       <Printer className="h-3.5 w-3.5 shrink-0" />
-                      <span>{selectedSiswaSingleId ? "Cetak QR Siswa" : "Cetak Massal"}</span>
+                      <span>{qrPrintMode === "single" ? "Cetak QR Siswa" : "Cetak Massal"}</span>
                     </>
                   )}
                 </button>
@@ -2309,7 +2404,7 @@ export default function AbsensiPage() {
                   ) : (
                     <>
                       <Download className="h-3.5 w-3.5 shrink-0" />
-                      <span>{selectedSiswaSingleId ? "Unduh QR Siswa" : "Unduh ZIP"}</span>
+                      <span>{qrPrintMode === "single" ? "Unduh QR Siswa" : "Unduh ZIP"}</span>
                     </>
                   )}
                 </button>
