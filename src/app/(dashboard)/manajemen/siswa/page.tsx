@@ -860,16 +860,16 @@ export default function SiswaPage() {
       {/* Tabs Menu */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(0); }} className="w-full">
         <div className="flex justify-center mb-6">
-          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-            <TabsTrigger value="aktif" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+          <TabsList className="w-full max-w-xl">
+            <TabsTrigger value="aktif" className="">
               <UserCheck className="w-4 h-4" />
               <span>Data Siswa Aktif</span>
             </TabsTrigger>
-            <TabsTrigger value="mutasi_keluar" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+            <TabsTrigger value="mutasi_keluar" className="">
               <ArrowUpRight className="w-4 h-4" />
               <span>Mutasi Keluar</span>
             </TabsTrigger>
-            <TabsTrigger value="tidak_aktif" className="flex-1 rounded-xl px-5 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+            <TabsTrigger value="tidak_aktif" className="">
               <GraduationCap className="w-4 h-4" />
               <span>Alumni / Tidak Aktif</span>
             </TabsTrigger>
@@ -902,10 +902,10 @@ export default function SiswaPage() {
           </div>
 
           {/* Filters on the Right (Status/Sub-status, Class, Row Limit) */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-2.5 w-full md:flex md:flex-wrap md:items-center md:gap-2.5 md:w-auto">
             {activeTab === "aktif" && (
               <Select value={subStatus} onValueChange={(v) => { setSubStatus(v as any); setPage(0) }}>
-                <SelectTrigger className="w-40 !h-10 !rounded-2xl text-xs font-bold">
+                <SelectTrigger className="w-full md:w-40 !h-10 !rounded-2xl text-xs font-bold">
                   <SelectValue placeholder="Status Aktif" />
                 </SelectTrigger>
                 <SelectContent>
@@ -916,7 +916,7 @@ export default function SiswaPage() {
             )}
             
             <Select value={kelasFilter} onValueChange={(v) => { setKelasFilter(v ?? ""); setPage(0) }}>
-              <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
+              <SelectTrigger className="w-full md:w-44 !h-10 !rounded-2xl text-xs font-bold">
                 <SelectValue placeholder="Semua Kelas" />
               </SelectTrigger>
               <SelectContent>
@@ -927,7 +927,7 @@ export default function SiswaPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground col-span-2 md:col-span-1 md:ml-2">
               <span>Tampil</span>
               <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(0) }}>
                 <SelectTrigger className="w-16 !h-8 text-xs font-bold !rounded-xl">
@@ -1015,131 +1015,9 @@ export default function SiswaPage() {
         )}
 
         {/* Mobile Card List View (Visible on mobile, hidden on desktop) */}
-        <div className="md:hidden space-y-4">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="neumo-card bg-background rounded-[22px] p-4 space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ))
-          ) : !siswaList || siswaList.length === 0 ? (
-            <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
-              Tidak ada data siswa ditemukan
-            </div>
-          ) : (
-            siswaList.map((s) => {
-              const currentKelas = kelasList?.find(k => k.id === s.kelasId)?.namaKelas
-              return (
-                <div key={s.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(s.id)}
-                      onChange={() => handleSelectItem(s.id)}
-                      className="accent-teal-600 cursor-pointer mt-2 shrink-0"
-                    />
-                    <div className="flex justify-between items-start flex-1 min-w-0">
-                    <div className="flex items-center space-x-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
-                        {s.foto ? (
-                          <img src={s.foto} alt={s.namaLengkap} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">
-                            {s.namaLengkap.substring(0, 2)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-slate-800 dark:text-slate-250 text-xs sm:text-sm leading-tight truncate">{s.namaLengkap}</h4>
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-0.5">NIS: {s.nisLokal || "—"} | NISN: {s.nisn || "—"}</p>
-                      </div>
-                    </div>
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 text-[8px] font-black uppercase rounded-full border shrink-0",
-                        s.status === "aktif"
-                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30"
-                          : s.status === "lulus"
-                          ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/30"
-                          : s.status === "pindah" || s.status === "keluar"
-                          ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/30"
-                          : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-100/50 dark:border-rose-900/30"
-                      )}
-                    >
-                      {s.status === "aktif"
-                        ? "Aktif"
-                        : s.status === "lulus"
-                        ? "Lulus"
-                        : s.status === "pindah"
-                        ? "Pindah"
-                        : s.status === "keluar"
-                        ? "Keluar"
-                        : s.status || "—"}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kelas</span>
-                      <p className="font-bold text-slate-700 dark:text-slate-300 mt-0.5">
-                        {s.kelasId && currentKelas ? currentKelas : (
-                          <span className="text-slate-400 font-medium text-[10px] uppercase">Belum Masuk Kelas</span>
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Kontak Wali</span>
-                      <p className="font-semibold text-slate-700 dark:text-slate-350 mt-0.5 truncate">{s.noHpOrtu || "—"}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-wider">Aksi:</span>
-                    <div className="flex space-x-1.5 items-center">
-                      <button
-                        onClick={() => handleView(s)}
-                        className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
-                        title="Detail"
-                      >
-                        Detail
-                      </button>
-                      <button
-                        onClick={() => handleEdit(s)}
-                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
-                        title="Edit"
-                      >
-                        Edit
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-650 dark:hover:text-slate-300 transition-all cursor-pointer">
-                          <MoreHorizontal size={14} strokeWidth={2.5} />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={() => { setResetId(s.id); setResetName(s.namaLengkap) }} className="gap-2 clickable text-xs">
-                            <KeyRound className="h-3.5 w-3.5" /> Reset Password
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setDeleteId(s.id)}
-                            className="gap-2 clickable text-xs text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Desktop Table View (Visible on desktop, hidden on mobile) */}
-        <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
-          <Table>
+        {/* Table Responsive (semua ukuran layar, scroll horizontal utk tabel saja) */}
+        <div className="rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
+          <Table className="min-w-[1100px]">
             <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
                 <TableHead className="w-10 text-center py-3">

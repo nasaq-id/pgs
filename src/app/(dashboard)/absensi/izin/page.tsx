@@ -173,28 +173,28 @@ export default function IzinPage() {
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
         <div className="flex justify-center mb-6">
-          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-4xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+          <TabsList className=" w-full max-w-4xl flex gap-2 ">
             {isGuruOrSiswa && (
-              <TabsTrigger value="form" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <TabsTrigger value="form" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <FilePlus className="w-4 h-4" />
                 <span>Formulir Pengajuan</span>
               </TabsTrigger>
             )}
             {isGuruOrSiswa && (
-              <TabsTrigger value="riwayat" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <TabsTrigger value="riwayat" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <History className="w-4 h-4" />
                 <span>Riwayat Saya</span>
               </TabsTrigger>
             )}
             {canApprove && (
-              <TabsTrigger value="approval" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <TabsTrigger value="approval" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <CheckSquare className="w-4 h-4" />
                 <span>Persetujuan Izin</span>
                 {approvalList.length > 0 && <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{approvalList.length}</span>}
               </TabsTrigger>
             )}
             {canApprove && (
-              <TabsTrigger value="riwayat_approval" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <TabsTrigger value="riwayat_approval" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <History className="w-4 h-4" />
                 <span>Riwayat Persetujuan</span>
               </TabsTrigger>

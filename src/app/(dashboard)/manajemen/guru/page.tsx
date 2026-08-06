@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, MoreVertical, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, Users, UserCheck, UserX } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, Users, UserCheck, UserX } from "lucide-react"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import GuruFormDialog from "@/components/guru/GuruFormDialog"
@@ -725,159 +724,8 @@ export default function GuruPage() {
           </Button>
         </div>
 
-        <div className="md:hidden space-y-4">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="neumo-card bg-background rounded-[22px] p-4 space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ))
-          ) : !guruList || guruList.length === 0 ? (
-            <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
-              Tidak ada data guru ditemukan
-            </div>
-          ) : (
-            guruList.map((g) => {
-              const isMenuOpen = activeMenuId === g.id
-              return (
-                <div key={g.id} className="neumo-card bg-background rounded-[22px] p-4 space-y-3 relative text-left">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
-                        {g.foto ? (
-                          <img src={g.foto} alt={g.namaLengkap} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">
-                            {g.namaLengkap.substring(0, 2)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-slate-800 dark:text-slate-250 text-xs sm:text-sm leading-tight truncate">{g.namaLengkap}</h4>
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-0.5">NIP/NUPTK: {g.nipnuptk || "—"}</p>
-                      </div>
-                    </div>
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 text-[8px] font-black uppercase rounded-full border shrink-0",
-                        g.active !== false
-                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30"
-                          : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-450 border-rose-100/50 dark:border-rose-900/30"
-                      )}
-                    >
-                      {g.active !== false ? "Aktif" : "Non Aktif"}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-xs">
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tugas Utama</span>
-                      <p className="font-bold text-slate-700 dark:text-slate-350 mt-0.5 truncate">{g.tugasUtama || "—"}</p>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">JP</span>
-                      <p className="font-bold text-slate-750 dark:text-slate-300 mt-0.5">{g.jp ? `${g.jp} JP` : "—"}</p>
-                    </div>
-                  </div>
-
-                  {g.tugasTambahan && (
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tugas Tambahan</span>
-                      <div className="flex flex-wrap gap-1">
-                        {g.tugasTambahan.split(",").map((t, idx) => {
-                          const colors = [
-                            "bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border-purple-100/50 dark:border-purple-900/30",
-                            "bg-pink-50 dark:bg-pink-950/20 text-pink-650 dark:text-pink-400 border-pink-100/50 dark:border-pink-900/30",
-                            "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30",
-                            "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100/50 dark:border-amber-900/30",
-                            "bg-blue-50 dark:bg-blue-950/20 text-blue-650 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/30",
-                          ]
-                          const color = colors[idx % colors.length]
-                          return (
-                            <span key={idx} className={cn("px-1.5 py-0.5 text-[8px] font-black uppercase rounded-md border", color)}>
-                              {t.trim()}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-wider">Aksi:</span>
-                    <div className="flex space-x-1.5 items-center">
-                      <button
-                        onClick={() => handleView(g)}
-                        className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
-                        title="Detail"
-                      >
-                        Detail
-                      </button>
-                      <button
-                        onClick={() => handleEdit(g)}
-                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
-                        title="Edit"
-                      >
-                        Edit
-                      </button>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveMenuId(activeMenuId === g.id ? null : g.id)
-                          }}
-                          className={cn(
-                            "w-7 h-7 flex items-center justify-center border rounded-lg transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/20",
-                            isMenuOpen
-                              ? "border-slate-800 text-slate-800 dark:border-slate-650 dark:text-slate-200"
-                              : "border-slate-200 dark:border-slate-800 text-slate-400 dark:border-slate-500"
-                          )}
-                        >
-                          <MoreHorizontal size={14} strokeWidth={2.5} />
-                        </button>
-                        {isMenuOpen && (
-                          <div
-                            ref={menuRef}
-                            className="absolute right-0 bottom-full mb-2 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xl z-50 min-w-[180px] p-1.5 space-y-1 block animate-fade-in text-left"
-                          >
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setResetId(g.id)
-                                setResetName(g.namaLengkap)
-                                setNewPassword("")
-                                setShowPassword(false)
-                              }}
-                              className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-650 dark:text-slate-355 font-semibold text-xs transition-colors cursor-pointer text-left"
-                            >
-                              <KeyRound size={13} className="text-slate-400 shrink-0" />
-                              <span>Reset Password</span>
-                            </button>
-                            <div className="h-px bg-slate-100 dark:bg-slate-850 my-1"></div>
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setDeleteId(g.id)
-                              }}
-                              className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-450 font-bold text-xs transition-colors cursor-pointer text-left"
-                            >
-                              <Trash2 size={13} className="text-rose-500 shrink-0" />
-                              <span>Hapus Data</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        <div className="hidden md:block rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
-          <Table>
+        <div className="rounded-2xl border border-slate-100 dark:border-slate-800 overflow-x-auto">
+          <Table className="min-w-[1100px]">
             <TableHeader className="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-150 dark:border-slate-800">
               <TableRow>
                 <TableHead className="w-12 text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">No</TableHead>
@@ -908,7 +756,6 @@ export default function GuruPage() {
                 </TableRow>
               ) : (
                 guruList.map((g, index) => {
-                  const isMenuOpen = activeMenuId === g.id
                   return (
                     <TableRow key={g.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                       <TableCell className="text-center font-bold text-slate-400 dark:text-slate-500 text-[11px]">

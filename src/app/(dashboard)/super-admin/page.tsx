@@ -382,16 +382,16 @@ export default function SuperAdminPage() {
       {/* Tab Switcher (Centered & Neomorphic) */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
         <div className="flex justify-center mb-6">
-          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-            <TabsTrigger value="lembaga" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+          <TabsList className=" w-full max-w-xl flex gap-2 ">
+            <TabsTrigger value="lembaga" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
               <School size={14} />
               <span>Daftar Lembaga</span>
             </TabsTrigger>
-            <TabsTrigger value="metrics" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+            <TabsTrigger value="metrics" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
               <Activity size={14} />
               <span>Kesehatan Platform</span>
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex-1 rounded-xl px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
+            <TabsTrigger value="logs" className="rounded-xl px-4 py-2.5 font-bold transition-all  cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
               <ScrollText size={14} />
               <span>Log Audit Global</span>
             </TabsTrigger>

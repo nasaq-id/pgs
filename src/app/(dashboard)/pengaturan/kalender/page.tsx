@@ -295,25 +295,25 @@ export default function KalenderPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <div className="w-full overflow-x-auto scrollbar-none pb-1 flex justify-start mb-6">
-          <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-max min-w-full flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
+        <div className="w-full flex justify-start mb-6">
+          <TabsList className="w-full md:w-fit">
             <TabsTrigger
               value="agenda"
-              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+              className=""
             >
               <CalendarDays className="w-3.5 h-3.5" />
               <span>Agenda & Event</span>
             </TabsTrigger>
             <TabsTrigger
               value="libur"
-              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+              className=""
             >
               <CalendarOff className="w-3.5 h-3.5" />
               <span>Libur Mingguan Siswa</span>
             </TabsTrigger>
             <TabsTrigger
               value="liburGuru"
-              className="flex-1 rounded-xl px-2 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 font-sans shrink-0"
+              className=""
             >
               <CalendarOff className="w-3.5 h-3.5" />
               <span>Libur Mingguan Guru</span>

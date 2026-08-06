@@ -256,12 +256,12 @@ export default function PengumumanPage() {
       {isAdmin && (
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <div className="flex justify-center">
-            <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl w-full max-w-md flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner">
-              <TabsTrigger value="pengumuman" className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+            <TabsList className=" w-full max-w-md flex gap-2 ">
+              <TabsTrigger value="pengumuman" className="">
                 <Megaphone className="w-4 h-4" />
                 <span>Pengumuman</span>
               </TabsTrigger>
-              <TabsTrigger value="kelola" className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-teal-650 data-[state=active]:text-teal-400 data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-slate-200/20 dark:data-[state=active]:border-slate-700/50 cursor-pointer flex items-center justify-center gap-1.5">
+              <TabsTrigger value="kelola" className="">
                 <Settings className="w-4 h-4" />
                 <span>Kelola</span>
                 {counts && (

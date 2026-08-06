@@ -16,7 +16,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff, Users, UserCheck } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff, Users, UserCheck, Info } from "lucide-react"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -1258,27 +1265,25 @@ export default function AbsensiPage() {
         setIsScannerActive(v === "scan");
       }} className="w-full">
         <div className="w-full flex justify-center mb-6">
-          <div className="relative w-full max-w-4xl overflow-x-auto scrollbar-none pb-1 flex justify-start md:justify-center">
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background via-background/60 to-transparent md:hidden" />
-            <TabsList className="bg-slate-100/85 dark:bg-slate-900/60 p-1 rounded-2xl flex gap-2 border border-slate-200/50 dark:border-slate-800 shadow-inner w-max min-w-full md:w-full">
+          <TabsList className="w-full md:w-fit">
               {canTakeAttendance && (
-                <TabsTrigger value="manual" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="manual" className="">
                   <ClipboardCheck className="w-4 h-4" />
                   <span>Presensi Manual</span>
                 </TabsTrigger>
               )}
               {canTakeAttendance && (
-                <TabsTrigger value="scan" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="scan" className="">
                   <Scan className="w-4 h-4" />
                   <span>Scan Barcode</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="pribadi" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+              <TabsTrigger value="pribadi" className="">
                 <User className="w-4 h-4" />
                 <span>Presensi Saya</span>
               </TabsTrigger>
               {canManageGlobal && (
-                <TabsTrigger value="qrmassal" className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-bold transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-teal-650 dark:data-[state=active]:text-teal-400 data-[state=active]:border data-[state=active]:border-slate-200/20 data-[state=active]:border-slate-700/50 cursor-pointer text-[10.5px] sm:text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0">
+                <TabsTrigger value="qrmassal" className="">
                   <QrCode className="w-4 h-4" />
                   <span>QR Massal</span>
                 </TabsTrigger>
@@ -1288,21 +1293,20 @@ export default function AbsensiPage() {
                   <button
                     type="button"
                     onClick={() => toast.info("Modul Sidik Jari akan diintegrasikan pada Fase 2")}
-                    className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0 whitespace-nowrap"
+                    className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed whitespace-nowrap"
                   >
                     Sidik Jari <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => toast.info("Modul Face Recognition akan diintegrasikan pada Fase 2")}
-                    className="md:flex-1 rounded-xl px-2.5 md:px-4 py-2.5 font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed text-[10.5px] sm:text-xs shrink-0 whitespace-nowrap"
+                    className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-600 flex items-center justify-center gap-1 cursor-not-allowed whitespace-nowrap"
                   >
                     Face ID <span className="text-[8px] bg-slate-250 dark:bg-slate-800 text-slate-500 px-1 py-0.2 rounded ml-1 font-bold">Soon</span>
                   </button>
                 </>
               )}
-            </TabsList>
-          </div>
+          </TabsList>
         </div>
       </Tabs>
 
@@ -1376,23 +1380,55 @@ export default function AbsensiPage() {
 
               {/* Row 2: bulk action + statistik */}
               <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2.5">
+                {/* Tips card: tombol bulk action bersifat auto-save */}
+                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-amber-500/[0.05] dark:bg-amber-500/[0.04] border border-amber-200/70 dark:border-amber-900/40">
+                  <Info className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-[10.5px] leading-relaxed text-amber-700 dark:text-amber-300 font-semibold">
+                    <span className="font-black uppercase tracking-wider">Auto-Save!</span> Tombol di bawah langsung
+                    menyimpan perubahan untuk <strong>seluruh siswa sekaligus</strong> tanpa konfirmasi ulang —
+                    periksa kembali pilihan sebelum mengklik.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-2">
-                <Button
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-4 transition-all w-full md:w-auto"
-                  onClick={handleHadirSemua}
-                  disabled={targetType === "siswa" && !kelasId}
-                >
-                  <Check className="h-3.5 w-3.5 mr-1.5" />
-                  Hadir Semua
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-4 transition-all w-full md:w-auto"
+                        onClick={handleHadirSemua}
+                        disabled={targetType === "siswa" && !kelasId}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        Hadir Semua
+                      </Button>
+                    }
+                  />
+                  <TooltipPortal>
+                    <TooltipPositioner>
+                      <TooltipPopup>Auto-save: semua siswa langsung dicatat HADIR</TooltipPopup>
+                    </TooltipPositioner>
+                  </TooltipPortal>
+                </Tooltip>
                 <div className="relative group w-full md:w-auto">
-                  <Button
-                    variant="outline"
-                    className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full"
-                    disabled={targetType === "siswa" && !kelasId}
-                  >
-                    Set Status Semua ▾
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full"
+                          disabled={targetType === "siswa" && !kelasId}
+                        >
+                          Set Status Semua ▾
+                        </Button>
+                      }
+                    />
+                    <TooltipPortal>
+                      <TooltipPositioner>
+                        <TooltipPopup>Auto-save: set status (alpha/izin/sakit/terlambat) untuk semua siswa</TooltipPopup>
+                      </TooltipPositioner>
+                    </TooltipPortal>
+                  </Tooltip>
                   <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-1 min-w-[140px]">
                       {(["alpha", "izin", "sakit", "terlambat"] as StatusAbsensi[]).map((st) => (
@@ -1408,24 +1444,46 @@ export default function AbsensiPage() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
-                  onClick={() => handleSetAllTimeNow("jamMasuk")}
-                  disabled={targetType === "siswa" && !kelasId}
-                >
-                  <Clock className="h-3.5 w-3.5 mr-1.5" />
-                  Jam Masuk Semua
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
-                  onClick={() => handleSetAllTimeNow("jamPulang")}
-                  disabled={targetType === "siswa" && !kelasId}
-                >
-                  <Clock className="h-3.5 w-3.5 mr-1.5" />
-                  Jam Pulang Semua
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
+                        onClick={() => handleSetAllTimeNow("jamMasuk")}
+                        disabled={targetType === "siswa" && !kelasId}
+                      >
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                        Jam Masuk Semua
+                      </Button>
+                    }
+                  />
+                  <TooltipPortal>
+                    <TooltipPositioner>
+                      <TooltipPopup>Auto-save: isi jam masuk sekarang untuk semua siswa</TooltipPopup>
+                    </TooltipPositioner>
+                  </TooltipPortal>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all w-full md:w-auto"
+                        onClick={() => handleSetAllTimeNow("jamPulang")}
+                        disabled={targetType === "siswa" && !kelasId}
+                      >
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                        Jam Pulang Semua
+                      </Button>
+                    }
+                  />
+                  <TooltipPortal>
+                    <TooltipPositioner>
+                      <TooltipPopup>Auto-save: isi jam pulang sekarang untuk semua siswa</TooltipPopup>
+                    </TooltipPositioner>
+                  </TooltipPortal>
+                </Tooltip>
                 </div>
 
                 {((targetType === "siswa" && kelasId) || targetType === "guru") && (
