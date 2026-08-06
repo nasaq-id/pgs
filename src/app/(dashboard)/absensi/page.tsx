@@ -1360,7 +1360,7 @@ export default function AbsensiPage() {
           ) : targetType === "siswa" ? (
             <>
               {/* Desktop table */}
-              <div className="hidden md:block rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+              <div className="hidden md:block neumo-card bg-background rounded-[22px] border border-slate-200/90 dark:border-slate-800 overflow-hidden text-left">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
@@ -1560,7 +1560,7 @@ export default function AbsensiPage() {
           ) : targetType === "guru" && guruAll ? (
             <>
               {/* Desktop table */}
-              <div className="hidden md:block rounded-[22px] border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/40 overflow-hidden shadow-sm text-left">
+              <div className="hidden md:block neumo-card bg-background rounded-[22px] border border-slate-200/90 dark:border-slate-800 overflow-hidden text-left">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-150 dark:border-slate-800">
