@@ -543,9 +543,11 @@ export const jadwalRouter = router({
         .groupBy(timelineItem.hari)
 
       const hariLiburSet = new Set(input.hariLibur || [])
+      const DAY_ORDER = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]
       const activeDays = hariRows
         .map(r => r.hari)
         .filter(h => !hariLiburSet.has(h as any))
+        .sort((a, b) => DAY_ORDER.indexOf(a as string) - DAY_ORDER.indexOf(b as string))
 
       if (activeDays.length === 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tidak ada hari aktif yang tersisa. Silakan sesuaikan pilihan hari libur sekolah." })
@@ -669,7 +671,7 @@ export const jadwalRouter = router({
       // Sort by size descending as base ordering
       blocks.sort((a, b) => b.jpCount - a.jpCount)
 
-      const assigned = new Map<string, { mataPelajaranId: string; guruId: string }>()
+      const assigned = new Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>()
       const teacherBusy = new Map<string, boolean>()
       const kelasDaysMap = new Map<string, Set<string>>()
 
@@ -780,11 +782,22 @@ export const jadwalRouter = router({
           return false
         }
 
+        const dayLoad = (kelasId: string, day: string) => {
+          let load = 0
+          for (const [sKey, sVal] of assigned.entries()) {
+            const [kId, d] = sKey.split("|")
+            if (kId === kelasId && d === day) load += sVal.jpCount || 1
+          }
+          return load
+        }
+
         for (const block of blocks) {
-          const slotsPerDayList = [...activeDays].map(day => ({
-            day,
-            slots: academicSlotsPerDay.get(day) || []
-          }))
+          const slotsPerDayList = [...activeDays]
+            .map(day => ({
+              day,
+              slots: academicSlotsPerDay.get(day) || []
+            }))
+            .sort((a, b) => dayLoad(block.kelasId, a.day) - dayLoad(block.kelasId, b.day))
 
           let placed = false
 
@@ -812,7 +825,7 @@ export const jadwalRouter = router({
                 for (let offset = 0; offset < block.jpCount; offset++) {
                   const slotJp = slots[startIdx + offset]
                   const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                  assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+                  assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
 
                   const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
                   teacherBusy.set(teacherDayKey, true)
@@ -846,7 +859,7 @@ export const jadwalRouter = router({
                   for (let offset = 0; offset < block.jpCount; offset++) {
                     const slotJp = slots[startIdx + offset]
                     const slotKey = `${block.kelasId}|${day}|${slotJp}`
-                    assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+                    assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
 
                     // Tandai guru tetap mengajar (walau bentrok) agar sistem mencatat
                     const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
@@ -988,7 +1001,7 @@ export const jadwalRouter = router({
 function runBacktrackingSolver(
   blocks: { id: string; kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[],
   index: number,
-  assigned: Map<string, { mataPelajaranId: string; guruId: string }>,
+  assigned: Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>,
   teacherBusy: Map<string, boolean>,
   activeDays: string[],
   academicSlotsPerDay: Map<string, number[]>,
@@ -1008,8 +1021,19 @@ function runBacktrackingSolver(
   const key = `${block.kelasId}-${block.mataPelajaranId}-${block.guruId}`
   const kelasDays = kelasDaysMap.get(block.kelasId) || new Set()
 
+  // Least-loaded balancing: coba hari dengan beban JP terendah untuk kelas ini dulu
+  const dayLoad = (day: string) => {
+    let load = 0
+    for (const [sKey, sVal] of assigned.entries()) {
+      const [kId, d] = sKey.split("|")
+      if (kId === block.kelasId && d === day) load += sVal.jpCount || 1
+    }
+    return load
+  }
+  const orderedDays = [...activeDays].sort((a, b) => dayLoad(a) - dayLoad(b))
+
   // Try each active day
-  for (const day of activeDays) {
+  for (const day of orderedDays) {
     const slots: number[] = academicSlotsPerDay.get(day) || []
     if (slots.length === 0) continue
 
@@ -1088,7 +1112,7 @@ function runBacktrackingSolver(
       for (let offset = 0; offset < block.jpCount; offset++) {
         const slotJp = slots[startIdx + offset]
         const slotKey = `${block.kelasId}|${day}|${slotJp}`
-        assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId })
+        assigned.set(slotKey, { mataPelajaranId: block.mataPelajaranId, guruId: block.guruId, jpCount: block.jpCount })
 
         const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
         teacherBusy.set(teacherDayKey, true)
