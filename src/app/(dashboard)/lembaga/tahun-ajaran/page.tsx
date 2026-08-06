@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Pencil, Trash2, CalendarDays, Loader2, CheckCircle2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Plus, Pencil, Trash2, CalendarDays, Loader2, CheckCircle2, Sparkles, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,6 +28,36 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import { DEFAULT_KALDIK } from "@/server/kaldik"
+
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+
+function MmDdPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [bulanStr, tanggalStr] = value.split("-")
+  const bulan = Number(bulanStr)
+  const tanggal = Number(tanggalStr)
+  return (
+    <div className="flex gap-2">
+      <Select value={String(bulan)} onValueChange={(v) => v && onChange(`${v.padStart(2, "0")}-${String(tanggal).padStart(2, "0")}`)}>
+        <SelectTrigger className="rounded-xl w-32"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {BULAN.map((b, i) => (
+            <SelectItem key={i} value={String(i + 1)}>{b}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={String(tanggal)} onValueChange={(v) => v && onChange(`${String(bulan).padStart(2, "0")}-${v.padStart(2, "0")}`)}>
+        <SelectTrigger className="rounded-xl w-20"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+            <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
 
 export default function TahunAjaranPage() {
   const { data: list, isLoading } = api.lembaga.getTahunAjaran.useQuery()
@@ -36,13 +66,40 @@ export default function TahunAjaranPage() {
   const remove = api.lembaga.removeTahunAjaran.useMutation()
   const utils = api.useUtils()
 
+  const { data: pengaturan } = api.pengaturanKalender.get.useQuery()
+  const saveKaldik = api.pengaturanKalender.upsert.useMutation({
+    onSuccess: () => {
+      toast.success("Pengaturan kalender berhasil disimpan")
+      utils.pengaturanKalender.get.invalidate()
+    },
+    onError: (err) => toast.error(err.message || "Gagal menyimpan pengaturan kalender"),
+  })
+
   const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [form, setForm] = useState({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: false })
+  const [form, setForm] = useState({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: true })
+  const [kaldikForm, setKaldikForm] = useState({ ...DEFAULT_KALDIK })
+
+  const suggestQuery = api.pengaturanKalender.suggestTahunAjaran.useQuery(
+    { namaTahunAjaran: form.namaTahunAjaran, semester: form.semester as "ganjil" | "genap" },
+    { enabled: false }
+  )
+
+  useEffect(() => {
+    if (pengaturan) {
+      setKaldikForm({
+        tanggalMulaiGanjil: pengaturan.tanggalMulaiGanjil,
+        tanggalSelesaiGanjil: pengaturan.tanggalSelesaiGanjil,
+        tanggalMulaiGenap: pengaturan.tanggalMulaiGenap,
+        tanggalSelesaiGenap: pengaturan.tanggalSelesaiGenap,
+        selaraskanSenin: pengaturan.selaraskanSenin,
+      })
+    }
+  }, [pengaturan])
 
   const resetForm = () => {
-    setForm({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: false })
+    setForm({ namaTahunAjaran: "", semester: "ganjil", tanggalMulai: "", tanggalSelesai: "", active: true })
     setEditId(null)
   }
 
@@ -57,6 +114,25 @@ export default function TahunAjaranPage() {
     })
     setFormOpen(true)
   }
+
+  const applySuggestion = async (force = false) => {
+    const res = await suggestQuery.refetch()
+    if (!res.data) return
+    setForm((f) => {
+      if (!force && f.tanggalMulai && f.tanggalSelesai) return f
+      return { ...f, tanggalMulai: res.data!.tanggalMulai, tanggalSelesai: res.data!.tanggalSelesai }
+    })
+  }
+
+  const prevSemester = useRef(form.semester)
+  useEffect(() => {
+    if (!formOpen || editId) return
+    const semesterChanged = prevSemester.current !== form.semester
+    prevSemester.current = form.semester
+    if (!semesterChanged && form.tanggalMulai && form.tanggalSelesai) return
+    applySuggestion(semesterChanged)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen, editId, form.semester, form.namaTahunAjaran])
 
   const handleSave = async () => {
     const data = { ...form, semester: form.semester as "ganjil" | "genap" }
@@ -77,6 +153,10 @@ export default function TahunAjaranPage() {
     utils.lembaga.getTahunAjaran.invalidate()
     utils.lembaga.getActiveTahunAjaran.invalidate()
     setDeleteId(null)
+  }
+
+  const handleSaveKaldik = async () => {
+    await saveKaldik.mutateAsync({ id: pengaturan?.id, ...kaldikForm })
   }
 
   return (
@@ -193,6 +273,49 @@ export default function TahunAjaranPage() {
         )}
       </div>
 
+      <div className="neumo-card bg-background rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <CalendarDays className="h-4 w-4 text-teal-600" />
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide">Default Kalender Pendidikan</h3>
+        </div>
+        <p className="text-xs text-slate-500 font-semibold mb-4">
+          Tanggal otomatis terisi saat menambah tahun ajaran baru. Sesuaikan dengan Kaldik Dinas Pendidikan provinsi Anda.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="space-y-1.5 text-left">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Mulai Semester Ganjil</Label>
+            <MmDdPicker value={kaldikForm.tanggalMulaiGanjil} onChange={(v) => setKaldikForm({ ...kaldikForm, tanggalMulaiGanjil: v })} />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Selesai Semester Ganjil</Label>
+            <MmDdPicker value={kaldikForm.tanggalSelesaiGanjil} onChange={(v) => setKaldikForm({ ...kaldikForm, tanggalSelesaiGanjil: v })} />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Mulai Semester Genap</Label>
+            <MmDdPicker value={kaldikForm.tanggalMulaiGenap} onChange={(v) => setKaldikForm({ ...kaldikForm, tanggalMulaiGenap: v })} />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <Label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest mb-1.5">Selesai Semester Genap</Label>
+            <MmDdPicker value={kaldikForm.tanggalSelesaiGenap} onChange={(v) => setKaldikForm({ ...kaldikForm, tanggalSelesaiGenap: v })} />
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 rounded-2xl border border-slate-100 p-3 bg-slate-50/30">
+            <Switch
+              checked={kaldikForm.selaraskanSenin}
+              onCheckedChange={(checked) => setKaldikForm({ ...kaldikForm, selaraskanSenin: checked })}
+            >
+              <SwitchThumb />
+            </Switch>
+            <Label className="font-bold text-xs text-slate-650 cursor-pointer">Selaraskan tanggal mulai ke hari Senin</Label>
+          </div>
+          <Button onClick={handleSaveKaldik} disabled={saveKaldik.isPending} className="gap-2">
+            {saveKaldik.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan Pengaturan
+          </Button>
+        </div>
+      </div>
+
       <Dialog open={formOpen} onOpenChange={(open) => { if (!open) resetForm(); setFormOpen(open) }}>
         <DialogContent className="sm:max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
           <div className="p-6 relative">
@@ -224,6 +347,14 @@ export default function TahunAjaranPage() {
                   <Input type="date" value={form.tanggalSelesai} onChange={(e) => setForm({ ...form, tanggalSelesai: e.target.value })} />
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => applySuggestion(true)}
+                className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-teal-200 dark:border-teal-900 bg-teal-50/60 dark:bg-teal-950/30 hover:bg-teal-100/70 dark:hover:bg-teal-950/50 text-teal-700 dark:text-teal-300 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Isi Otomatis (Kalender Pendidikan)
+              </button>
               <div className="flex items-center justify-between rounded-2xl border border-slate-100 p-3 bg-slate-50/30">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-teal-650" />

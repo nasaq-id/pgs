@@ -16,6 +16,7 @@ import { pengumumanRouter } from "./routers/pengumuman"
 import { notifikasiRouter } from "./routers/notifikasi"
 import { kalenderRouter } from "./routers/kalender"
 import { pengaturanJadwalRouter } from "./routers/pengaturan-jadwal"
+import { pengaturanKalenderRouter } from "./routers/pengaturan-kalender"
 import { asesmenRouter } from "./routers/asesmen"
 import { izinRouter } from "./routers/izin"
 import { profilRouter } from "./routers/profil"
@@ -45,6 +46,7 @@ export const appRouter = router({
   notifikasi: notifikasiRouter,
   kalender: kalenderRouter,
   pengaturanJadwal: pengaturanJadwalRouter,
+  pengaturanKalender: pengaturanKalenderRouter,
   asesmen: asesmenRouter,
   izin: izinRouter,
   profil: profilRouter,

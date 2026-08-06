@@ -3,9 +3,10 @@ import { TRPCError } from "@trpc/server"
 import { eq, and, ne } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure, publicProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
-import { sekolah, tahunAjaran } from "@/server/db/schema"
+import { sekolah, tahunAjaran, pengaturanKalender } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter } from "@/server/api/tenant"
+import { DEFAULT_KALDIK, resolveSemesterYear, suggestSemesterDates } from "@/server/kaldik"
 
 export const lembagaRouter = router({
   getPublicSekolahByDomain: publicProcedure
@@ -115,13 +116,26 @@ export const lembagaRouter = router({
           ))
       }
 
+      let tanggalMulai = input.tanggalMulai ? new Date(input.tanggalMulai) : null
+      let tanggalSelesai = input.tanggalSelesai ? new Date(input.tanggalSelesai) : null
+
+      if (!tanggalMulai || !tanggalSelesai) {
+        const config = await db.query.pengaturanKalender.findFirst({
+          where: eq(pengaturanKalender.sekolahId, sekolahId),
+        })
+        const year = resolveSemesterYear(input.namaTahunAjaran, input.semester)
+        const suggested = suggestSemesterDates(year, input.semester, config ?? DEFAULT_KALDIK)
+        tanggalMulai ??= new Date(suggested.tanggalMulai)
+        tanggalSelesai ??= new Date(suggested.tanggalSelesai)
+      }
+
       const [inserted] = await db.insert(tahunAjaran).values({
         id: crypto.randomUUID(),
         sekolahId,
         namaTahunAjaran: input.namaTahunAjaran,
         semester: input.semester,
-        tanggalMulai: input.tanggalMulai ? new Date(input.tanggalMulai) : null,
-        tanggalSelesai: input.tanggalSelesai ? new Date(input.tanggalSelesai) : null,
+        tanggalMulai,
+        tanggalSelesai,
         active: input.active,
       }).returning()
 
