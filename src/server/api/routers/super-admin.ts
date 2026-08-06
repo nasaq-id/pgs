@@ -340,4 +340,32 @@ export const superAdminRouter = router({
 
       return { success: true, email: updated.email }
     }),
+
+  deleteSekolah: roleProtectedProcedure(["super_admin"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await db.query.sekolah.findFirst({
+        where: eq(sekolah.id, input.id),
+      })
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sekolah tidak ditemukan",
+        })
+      }
+
+      const [deleted] = await db
+        .delete(sekolah)
+        .where(eq(sekolah.id, input.id))
+        .returning()
+
+      await logAudit(ctx, {
+        action: "delete",
+        entity: "sekolah",
+        entityId: input.id,
+        metadata: { namaSekolah: existing.namaSekolah, npsn: existing.npsn },
+      })
+
+      return deleted
+    }),
 })

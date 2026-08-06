@@ -5,7 +5,7 @@ import { api } from "@/lib/trpc/client"
 import {
   School, Search, Plus, Sparkles, Building, Key,
   Mail, User, ShieldAlert, Check, X, ShieldCheck,
-  Activity, ScrollText, Pencil, Users, Shield, Loader2
+  Activity, ScrollText, Pencil, Users, Shield, Loader2, Trash2
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,11 @@ export default function SuperAdminPage() {
   const [selectedAdminId, setSelectedAdminId] = useState("")
   const [newAdminPassword, setNewAdminPassword] = useState("")
 
+  // Delete School State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedSekolahForDelete, setSelectedSekolahForDelete] = useState<any>(null)
+  const [deleteConfirmName, setDeleteConfirmName] = useState("")
+
   // Queries & Mutations
   const utils = api.useUtils()
   const { data: sekolahList = [], isLoading } = api.superAdmin.listSekolah.useQuery()
@@ -63,7 +68,7 @@ export default function SuperAdminPage() {
 
   // List admins for selected school to reset password
   const { data: adminsList = [], isLoading: isLoadingAdmins } = api.superAdmin.listSekolahAdmins.useQuery(
-    { sekolahId: selectedSekolahForReset?.id || "" },
+    { sekolahId: selectedSekolahForReset?.id ?? "" },
     { enabled: !!selectedSekolahForReset }
   )
 
@@ -81,8 +86,8 @@ export default function SuperAdminPage() {
   })
 
   const registerMutation = api.superAdmin.registerSekolah.useMutation({
-    onSuccess: async () => {
-      toast.success("Sekolah baru & Akun Admin berhasil terdaftar!")
+    onSuccess: async (data: any) => {
+      toast.success(`Sekolah ${data.namaSekolah} berhasil didaftarkan!`)
       setModalOpen(false)
       // Reset form
       setNamaSekolah("")
@@ -120,6 +125,34 @@ export default function SuperAdminPage() {
       toast.error(err.message || "Gagal mengubah status aktif sekolah.")
     },
   })
+
+  const deleteSekolahMutation = api.superAdmin.deleteSekolah.useMutation({
+    onSuccess: async (data: any) => {
+      toast.success(`Sekolah ${data.namaSekolah} berhasil dihapus permanen!`)
+      setDeleteModalOpen(false)
+      setSelectedSekolahForDelete(null)
+      setDeleteConfirmName("")
+      await utils.superAdmin.listSekolah.invalidate()
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Gagal menghapus sekolah.")
+    },
+  })
+
+  const handleDeleteClick = (sekolah: any) => {
+    setSelectedSekolahForDelete(sekolah)
+    setDeleteConfirmName("")
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDeleteSekolah = () => {
+    if (!selectedSekolahForDelete) return
+    if (deleteConfirmName !== selectedSekolahForDelete.namaSekolah) {
+      toast.error("Nama sekolah tidak cocok.")
+      return
+    }
+    deleteSekolahMutation.mutate({ id: selectedSekolahForDelete.id })
+  }
 
   // Filter List
   const filteredSchools = (sekolahList ?? []).filter((s: any) => {
@@ -581,6 +614,15 @@ export default function SuperAdminPage() {
                           >
                             {item.active ? "Suspend" : "Unsuspend"}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClick(item)}
+                            className="px-2.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer shadow-sm flex items-center gap-1"
+                            title="Hapus Sekolah Permanen"
+                          >
+                            <Trash2 size={12} />
+                            <span>Hapus</span>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -674,6 +716,14 @@ export default function SuperAdminPage() {
                           }`}
                         >
                           {item.active ? "Suspend" : "Unsuspend"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(item)}
+                          className="px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all bg-red-50 border border-red-200 text-red-600 cursor-pointer flex items-center gap-1 shadow-sm"
+                        >
+                          <Trash2 size={10} />
+                          <span>Hapus</span>
                         </button>
                       </div>
                     </div>
@@ -1241,6 +1291,79 @@ export default function SuperAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete School Modal ── */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+          <div className="max-h-[85vh] overflow-y-auto p-6 relative text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
+            <DialogHeader className="text-left relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center mb-4">
+                <ShieldAlert size={20} className="animate-pulse" />
+              </div>
+              <DialogTitle className="text-lg font-black text-rose-600 tracking-tight uppercase">
+                Hapus Sekolah Permanen
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400 font-bold">
+                Tindakan ini tidak dapat dibatalkan. Menghapus sekolah akan menghapus <span className="text-rose-600">seluruh data terkait</span> (guru, siswa, kelas, tagihan, dll) secara permanen dari database.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedSekolahForDelete && (
+              <div className="space-y-4 mt-4 relative z-10">
+                <div className="bg-rose-50/50 border border-rose-100/50 p-4 rounded-xl text-xs space-y-1">
+                  <p className="font-black text-rose-800 uppercase tracking-wider text-[9px]">Sekolah Yang Akan Dihapus:</p>
+                  <p className="font-mono text-sm text-rose-900 font-black">{selectedSekolahForDelete.namaSekolah}</p>
+                  {selectedSekolahForDelete.npsn && (
+                    <p className="text-[10px] text-rose-700 font-bold">NPSN: {selectedSekolahForDelete.npsn}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[9px] font-black text-slate-455 uppercase tracking-widest">
+                    Tulis kembali nama sekolah untuk konfirmasi <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={selectedSekolahForDelete.namaSekolah}
+                    value={deleteConfirmName}
+                    onChange={(e) => setDeleteConfirmName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-slate-200/50 focus:outline-none focus:ring-2 focus:ring-rose-500/10 focus:border-rose-500 text-xs font-bold text-slate-700 placeholder-slate-350 transition-all duration-300"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteModalOpen(false)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-550 text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDeleteSekolah}
+                    disabled={deleteConfirmName !== selectedSekolahForDelete.namaSekolah || deleteSekolahMutation.isPending}
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deleteSekolahMutation.isPending ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 size={14} className="flex-shrink-0" />
+                        <span>Hapus Permanen</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
