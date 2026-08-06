@@ -349,8 +349,6 @@ export default function QRScannerModal({ open, onClose }: Props) {
     }
   }, [open])
 
-  if (!open) return null
-
   /* ─── Ring geometry for dwell progress ─── */
   const ringR = 100
   const ringStroke = 5
@@ -358,7 +356,12 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const ringDashoffset = circumference * (1 - dwellProgress)
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col">
+    <div
+      className={`fixed inset-0 z-[100] flex flex-col bg-slate-950 transition-all duration-500 ${
+        open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
+      }`}
+      style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+    >
       {/* ─── Camera Feed ─── */}
       <div className="absolute inset-0">
         <div id="qr-scanner-feed" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full" />
@@ -377,19 +380,48 @@ export default function QRScannerModal({ open, onClose }: Props) {
         >
           <X className="w-5 h-5" />
         </button>
-        <button
-          onClick={toggleFlash}
-          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
-        >
-          {flashOn ? <ZapOff className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
-        </button>
+        {cameraReady && (
+          <button
+            onClick={toggleFlash}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+          >
+            {flashOn ? <ZapOff className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+          </button>
+        )}
+      </div>
+
+      {/* ─── Loading Skeleton / Placeholder ─── */}
+      <div className={`absolute inset-0 bg-slate-950 flex flex-col items-center justify-center gap-6 z-25 transition-all duration-500 ease-out ${
+        (!cameraReady && state !== "permission_denied" && state !== "error") ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-teal-500/25 rounded-full blur-2xl animate-pulse" />
+          <div className="w-24 h-24 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center relative shadow-lg">
+            <Camera className="w-10 h-10 text-teal-400 animate-pulse" />
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-md">
+              <Loader2 className="w-4 h-4 text-teal-400 animate-spin" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-center space-y-2 px-6">
+          <h3 className="text-white text-base font-black uppercase tracking-wider animate-pulse">Menyiapkan Kamera</h3>
+          <p className="text-slate-400 text-xs max-w-[260px] leading-relaxed font-semibold">
+            Harap tunggu sebentar, sistem sedang menghubungkan ke modul kamera perangkat Anda...
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 w-32 items-center opacity-30 mt-2">
+          <div className="h-1.5 w-full bg-slate-800 rounded-full animate-pulse" />
+          <div className="h-1.5 w-3/4 bg-slate-800 rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+        </div>
       </div>
 
       {/* ─── Center: Cutout + Scan Animation ─── */}
       <div className="absolute inset-0 flex items-center justify-center z-20">
         {/* Idle / Scanning */}
         {(state === "idle" || state === "scanning" || state === "detecting") && (
-          <div className="relative flex items-center justify-center">
+          <div className={`relative flex items-center justify-center transition-opacity duration-500 ${cameraReady ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
             {/* SVG progress ring */}
             {state === "detecting" && (
               <svg
@@ -566,7 +598,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
       </div>
 
       {/* ─── Bottom Sheet ─── */}
-      <div className="absolute bottom-0 inset-x-0 z-30 pb-[env(safe-area-inset-bottom)] px-6 pb-8">
+      <div className={`absolute bottom-0 inset-x-0 z-30 pb-[env(safe-area-inset-bottom)] px-6 pb-8 transition-all duration-500 ${
+        cameraReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+      }`}>
         {(state === "idle" || state === "scanning") && (
           <div className="text-center space-y-1 animate-fade-in">
             <p className="text-white text-sm font-semibold drop-shadow-lg">Arahkan kamera ke QR Code absensi</p>
