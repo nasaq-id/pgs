@@ -31,10 +31,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f3f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#242429" },
-  ],
+  themeColor: "#f5f3f8",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -58,19 +55,6 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icon-512.png" />
         <meta name="screen-orientation" content="portrait" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-              } catch (_) {}
-            `,
-          }}
-        />
       </head>
       <body className="min-h-full flex flex-col">
         <TRPCProvider>
