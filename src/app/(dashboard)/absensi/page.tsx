@@ -20,23 +20,7 @@ import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCirc
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import { parseLocalDate } from "@/lib/utils"
 
-type StatusAbsensi = "hadir" | "izin" | "sakit" | "alpha" | "terlambat"
-
-const STATUS_LABELS: Record<StatusAbsensi, string> = {
-  hadir: "Hadir",
-  izin: "Izin",
-  sakit: "Sakit",
-  alpha: "Alpha",
-  terlambat: "Terlambat",
-}
-
-const STATUS_COLORS: Record<StatusAbsensi, string> = {
-  hadir: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
-  terlambat: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-  izin: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  sakit: "bg-orange-500/10 text-orange-700 border-orange-500/20",
-  alpha: "bg-destructive/10 text-destructive border-destructive/20",
-}
+import { StatusSegmented, STATUS_LABELS, STATUS_DOT_CLASS, STATUS_ACTIVE_CLASS, type StatusAbsensi } from "@/components/absensi/StatusSegmented"
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
@@ -54,8 +38,10 @@ export default function AbsensiPage() {
 
   const [siswaRecords, setSiswaRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }>>({})
   const [guruRecords, setGuruRecords] = useState<Record<string, { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }>>({})
-
-
+  const [saveStates, setSaveStates] = useState<Record<string, "saving" | "saved" | "error">>({})
+  const saveTimers = useRef<Record<string, NodeJS.Timeout>>({})
+  const [createdSiswaIds, setCreatedSiswaIds] = useState<Set<string>>(new Set())
+  const [createdGuruIds, setCreatedGuruIds] = useState<Set<string>>(new Set())
 
   const [isScannerActive, setIsScannerActive] = useState(false)
   const [searchSiswa, setSearchSiswa] = useState("")
@@ -141,6 +127,9 @@ export default function AbsensiPage() {
   const canTakeAttendance = role === "super_admin" || role === "admin_sekolah" || role === "tu" || isWaliKelas
 
   const { data: sekolah } = api.lembaga.getSekolah.useQuery(undefined, {
+    enabled: canTakeAttendance,
+  })
+  const { data: pengaturanAbsensi } = api.absensi.getPengaturan.useQuery(undefined, {
     enabled: canTakeAttendance,
   })
 
@@ -298,140 +287,109 @@ export default function AbsensiPage() {
   const saveGuruAbsensi = api.absensi.createOrUpdateGuruAbsensi.useMutation()
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
 
-  const handleManualSave = async () => {
-    if (!tanggal) {
-      toast.error("Pilih tanggal terlebih dahulu")
-      return
-    }
+  // ─── AUTOSAVE per baris ──────────────────────────────────
+  const existingSiswaMap = useMemo(() => {
+    const map = new Map<string, { id: string }>()
+    for (const r of studentAttendanceQuery.data || []) map.set(r.siswaId, r)
+    return map
+  }, [studentAttendanceQuery.data])
 
+  const existingGuruMap = useMemo(() => {
+    const map = new Map<string, { id: string }>()
+    for (const r of guruAttendanceQuery.data || []) map.set(r.guruId, r)
+    return map
+  }, [guruAttendanceQuery.data])
+
+  const getDefaultJamMasuk = () => {
+    const fromSettings =
+      targetType === "siswa" ? pengaturanAbsensi?.jamMasukSiswa : pengaturanAbsensi?.jamMasuk
+    return fromSettings || new Date().toTimeString().slice(0, 5)
+  }
+
+  const persistRow = async (
+    id: string,
+    rec: { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }
+  ) => {
+    if (!tanggal) return
+    const tanggalDate = parseLocalDate(tanggal)
+    const jamMasukDate = rec.jamMasuk ? new Date(tanggal + "T" + rec.jamMasuk + ":00") : null
+    const jamPulangDate = rec.jamPulang ? new Date(tanggal + "T" + rec.jamPulang + ":00") : null
+
+    setSaveStates((s) => ({ ...s, [id]: "saving" }))
     try {
-      const tanggalDate = parseLocalDate(tanggal)
-
       if (targetType === "siswa") {
-        if (!kelasId) {
-          toast.error("Pilih kelas terlebih dahulu")
-          return
-        }
-
-        const existingMap = new Map((studentAttendanceQuery.data || []).map((r) => [r.siswaId, r]))
-        const toCreate: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null; keterangan: string | null }[] = []
-        const toUpdate: { id: string; status: StatusAbsensi; jamMasuk: Date | null; jamPulang: Date | null; keterangan: string | null }[] = []
-
-        for (const s of siswaDiKelas) {
-          const rec = siswaRecords[s.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-          const existing = existingMap.get(s.id)
-
-          const jamMasukDate = rec.jamMasuk ? new Date(tanggal + "T" + rec.jamMasuk + ":00") : null
-          const jamPulangDate = rec.jamPulang ? new Date(tanggal + "T" + rec.jamPulang + ":00") : null
-
-          if (existing) {
-            if (
-              existing.status !== rec.status ||
-              (existing.jamMasuk && new Date(existing.jamMasuk).toTimeString().slice(0, 5) !== rec.jamMasuk) ||
-              (!existing.jamMasuk && rec.jamMasuk) ||
-              (existing.jamPulang && new Date(existing.jamPulang).toTimeString().slice(0, 5) !== rec.jamPulang) ||
-              (!existing.jamPulang && rec.jamPulang) ||
-              existing.keterangan !== rec.keterangan
-            ) {
-              toUpdate.push({
-                id: existing.id,
-                status: rec.status,
-                jamMasuk: jamMasukDate,
-                jamPulang: jamPulangDate,
-                keterangan: rec.keterangan || null,
-              })
-            }
-          } else {
-            toCreate.push({
-              siswaId: s.id,
+        const existingRow = existingSiswaMap.get(id)
+        if (existingRow) {
+          await updateAbsensiSiswa.mutateAsync({
+            id: existingRow.id,
+            status: rec.status,
+            jamMasuk: jamMasukDate,
+            jamPulang: jamPulangDate,
+            keterangan: rec.keterangan || null,
+          })
+        } else {
+          await createAbsensiSiswa.mutateAsync({
+            absensi: [{
+              siswaId: id,
               kelasId,
               tanggal: tanggalDate,
               status: rec.status,
               jamMasuk: jamMasukDate,
               jamPulang: jamPulangDate,
               keterangan: rec.keterangan || null,
-            })
-          }
+            }],
+          })
+          setCreatedSiswaIds((prev) => new Set(prev).add(id))
         }
-
-        if (toCreate.length > 0) {
-          await createAbsensiSiswa.mutateAsync({ absensi: toCreate })
-        }
-        const updatePromises = toUpdate.map((u) => updateAbsensiSiswa.mutateAsync(u))
-        await Promise.all(updatePromises)
-
-        toast.success("Absensi siswa berhasil disimpan")
-        studentAttendanceQuery.refetch()
       } else {
-        // Guru
-        if (!guruAll) return
-
-        const guruPromises: Promise<any>[] = []
-
-        for (const g of guruAll) {
-          const rec = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-          const existing = (guruAttendanceQuery.data || []).find((r) => r.guruId === g.id)
-
-          const jamMasukDate = rec.jamMasuk ? new Date(tanggal + "T" + rec.jamMasuk + ":00") : null
-          const jamPulangDate = rec.jamPulang ? new Date(tanggal + "T" + rec.jamPulang + ":00") : null
-
-          if (existing) {
-            if (
-              existing.status !== rec.status ||
-              (existing.jamMasuk && new Date(existing.jamMasuk).toTimeString().slice(0, 5) !== rec.jamMasuk) ||
-              (!existing.jamMasuk && rec.jamMasuk) ||
-              (existing.jamPulang && new Date(existing.jamPulang).toTimeString().slice(0, 5) !== rec.jamPulang) ||
-              (!existing.jamPulang && rec.jamPulang) ||
-              existing.keterangan !== rec.keterangan
-            ) {
-              guruPromises.push(saveGuruAbsensi.mutateAsync({
-                id: existing.id,
-                guruId: g.id,
-                tanggal: tanggalDate,
-                status: rec.status,
-                jamMasuk: jamMasukDate,
-                jamPulang: jamPulangDate,
-                keterangan: rec.keterangan || null,
-              }))
-            }
-          } else {
-            guruPromises.push(saveGuruAbsensi.mutateAsync({
-              guruId: g.id,
-              tanggal: tanggalDate,
-              status: rec.status,
-              jamMasuk: jamMasukDate,
-              jamPulang: jamPulangDate,
-              keterangan: rec.keterangan || null,
-            }))
-          }
-        }
-
-        await Promise.all(guruPromises)
-
-        toast.success("Absensi guru berhasil disimpan")
-        guruAttendanceQuery.refetch()
+        const existing = existingGuruMap.get(id) || createdGuruIds.has(id)
+        const existingRow = existingGuruMap.get(id)
+        await saveGuruAbsensi.mutateAsync({
+          ...(existingRow ? { id: existingRow.id } : {}),
+          guruId: id,
+          tanggal: tanggalDate,
+          status: rec.status,
+          jamMasuk: jamMasukDate,
+          jamPulang: jamPulangDate,
+          keterangan: rec.keterangan || null,
+        })
+        setCreatedGuruIds((prev) => new Set(prev).add(id))
       }
+      setSaveStates((s) => ({ ...s, [id]: "saved" }))
     } catch {
-      toast.error("Gagal menyimpan absensi")
+      setSaveStates((s) => ({ ...s, [id]: "error" }))
+      toast.error("Gagal menyimpan absensi. Coba ubah kembali baris tersebut.")
     }
   }
 
+  const scheduleSave = (id: string, rec?: { status: StatusAbsensi; jamMasuk: string; jamPulang: string; keterangan: string }) => {
+    const records = targetType === "siswa" ? siswaRecords : guruRecords
+    const target = rec || records[id]
+    if (!target) return
+    if (saveTimers.current[id]) clearTimeout(saveTimers.current[id])
+    saveTimers.current[id] = setTimeout(() => {
+      persistRow(id, target)
+    }, 700)
+  }
+
   const handleHadirSemua = () => {
-    const nowTime = new Date().toTimeString().slice(0, 5)
+    const defaultJam = getDefaultJamMasuk()
     if (targetType === "siswa") {
       const updated = { ...siswaRecords }
       for (const s of siswaDiKelas) {
-        updated[s.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "", keterangan: "" }
+        updated[s.id] = { status: "hadir", jamMasuk: defaultJam, jamPulang: "", keterangan: "" }
       }
       setSiswaRecords(updated)
+      for (const s of siswaDiKelas) scheduleSave(s.id, updated[s.id])
     } else if (guruAll) {
       const updated = { ...guruRecords }
       for (const g of guruAll) {
-        updated[g.id] = { status: "hadir", jamMasuk: nowTime, jamPulang: "", keterangan: "" }
+        updated[g.id] = { status: "hadir", jamMasuk: defaultJam, jamPulang: "", keterangan: "" }
       }
       setGuruRecords(updated)
+      for (const g of guruAll) scheduleSave(g.id, updated[g.id])
     }
-    toast.info("Status diset Hadir Semua dengan jam masuk saat ini")
+    toast.info("Status diset Hadir Semua dengan jam masuk default sekolah")
   }
 
   const updateManualRecord = (id: string, field: "status" | "jamMasuk" | "jamPulang" | "keterangan", value: string) => {
@@ -441,40 +399,43 @@ export default function AbsensiPage() {
     const current = records[id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
     const updated = { ...current, [field]: value }
 
-    // Auto set time if status changes to hadir or terlambat and time is empty
+    // Auto isi jam datang dengan default jam masuk sekolah saat status hadir/terlambat & jam masih kosong
     if (field === "status" && (value === "hadir" || value === "terlambat") && !current.jamMasuk) {
-      updated.jamMasuk = new Date().toTimeString().slice(0, 5)
+      updated.jamMasuk = getDefaultJamMasuk()
     }
 
     setRecords({ ...records, [id]: updated })
+    scheduleSave(id, updated)
   }
 
   const handleSetAllStatus = (status: StatusAbsensi) => {
-    const nowTime = new Date().toTimeString().slice(0, 5)
+    const defaultJam = getDefaultJamMasuk()
     if (targetType === "siswa") {
       const updated = { ...siswaRecords }
       for (const s of siswaDiKelas) {
         const existing = siswaRecords[s.id]
         updated[s.id] = {
           status,
-          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || nowTime) : "",
+          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || defaultJam) : "",
           jamPulang: existing?.jamPulang || "",
           keterangan: existing?.keterangan || "",
         }
       }
       setSiswaRecords(updated)
+      for (const s of siswaDiKelas) scheduleSave(s.id, updated[s.id])
     } else if (guruAll) {
       const updated = { ...guruRecords }
       for (const g of guruAll) {
         const existing = guruRecords[g.id]
         updated[g.id] = {
           status,
-          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || nowTime) : "",
+          jamMasuk: status === "hadir" || status === "terlambat" ? (existing?.jamMasuk || defaultJam) : "",
           jamPulang: existing?.jamPulang || "",
           keterangan: existing?.keterangan || "",
         }
       }
       setGuruRecords(updated)
+      for (const g of guruAll) scheduleSave(g.id, updated[g.id])
     }
     toast.info(`Status semua diset ke ${STATUS_LABELS[status]}`)
   }
@@ -488,6 +449,7 @@ export default function AbsensiPage() {
         updated[s.id] = { ...existing, [field]: nowTime }
       }
       setSiswaRecords(updated)
+      for (const s of siswaDiKelas) scheduleSave(s.id, updated[s.id])
     } else if (guruAll) {
       const updated = { ...guruRecords }
       for (const g of guruAll) {
@@ -495,6 +457,7 @@ export default function AbsensiPage() {
         updated[g.id] = { ...existing, [field]: nowTime }
       }
       setGuruRecords(updated)
+      for (const g of guruAll) scheduleSave(g.id, updated[g.id])
     }
     toast.info(`${field === "jamMasuk" ? "Jam masuk" : "Jam pulang"} semua diisi jam sekarang`)
   }
@@ -504,7 +467,9 @@ export default function AbsensiPage() {
     const records = targetType === "siswa" ? siswaRecords : guruRecords
     const setRecords = targetType === "siswa" ? setSiswaRecords : setGuruRecords
     const current = records[id] || { status: "hadir" as StatusAbsensi, jamMasuk: "", jamPulang: "", keterangan: "" }
-    setRecords({ ...records, [id]: { ...current, [field]: nowTime } })
+    const updated = { ...current, [field]: nowTime }
+    setRecords({ ...records, [id]: updated })
+    scheduleSave(id, updated)
   }
 
   // Audio beep simulation for barcode scans
@@ -1228,148 +1193,157 @@ export default function AbsensiPage() {
 
       {activeTab === "manual" && canTakeAttendance && (
         <div className="space-y-4">
-          <div className="neumo-card bg-background rounded-[26px] p-4 md:p-5 flex flex-col md:flex-row gap-3 items-start md:items-center text-left">
-            <div className="flex gap-2 flex-wrap items-center">
-              <Select
-                value={targetType}
-                onValueChange={(v) => setTargetType(v as "siswa" | "guru")}
-                options={[
-                  { value: "siswa", label: "Siswa" },
-                  { value: "guru", label: "Guru/Pegawai" }
-                ]}
-              >
-                <SelectTrigger className="w-full sm:w-36 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
-                  <SelectValue placeholder="Tipe Absen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="siswa">Siswa</SelectItem>
-                  {canManageGlobal && <SelectItem value="guru">Guru/Pegawai</SelectItem>}
-                </SelectContent>
-              </Select>
-
-              {targetType === "siswa" && (
+          <div className="sticky top-2 md:top-4 z-30 space-y-3">
+            <div className="neumo-card bg-background rounded-[26px] p-4 md:p-5 flex flex-col gap-3 text-left shadow-lg shadow-black/5">
+              {/* Row 1: filter + pencarian */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Select
-                  value={kelasId}
-                  onValueChange={(v) => setKelasId(v ?? "")}
-                  disabled={role === "guru" && isWaliKelas && !canManageGlobal}
-                  options={classes?.map((c) => ({ value: c.id, label: c.namaKelas }))}
+                  value={targetType}
+                  onValueChange={(v) => setTargetType(v as "siswa" | "guru")}
+                  options={[
+                    { value: "siswa", label: "Siswa" },
+                    { value: "guru", label: "Guru/Pegawai" }
+                  ]}
                 >
-                   <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
-                    <SelectValue placeholder="Pilih Kelas" />
+                  <SelectTrigger className="w-full sm:w-36 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
+                    <SelectValue placeholder="Tipe Absen" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.namaKelas}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="siswa">Siswa</SelectItem>
+                    {canManageGlobal && <SelectItem value="guru">Guru/Pegawai</SelectItem>}
                   </SelectContent>
                 </Select>
-              )}
 
-              <div className="relative flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-2 shrink-0 !h-10">
-                <Calendar className="h-4 w-4 text-slate-450 dark:text-slate-500 mr-2" />
-                <input
-                  type="date"
-                  lang="id-ID"
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none w-[130px] cursor-pointer"
-                />
-              </div>
-            </div>
+                {targetType === "siswa" && (
+                  <Select
+                    value={kelasId}
+                    onValueChange={(v) => setKelasId(v ?? "")}
+                    disabled={role === "guru" && isWaliKelas && !canManageGlobal}
+                    options={classes?.map((c) => ({ value: c.id, label: c.namaKelas }))}
+                  >
+                    <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-2xl text-xs font-bold cursor-pointer">
+                      <SelectValue placeholder="Pilih Kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.namaKelas}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-            <div className="md:ml-auto flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
-                onClick={handleHadirSemua}
-                disabled={targetType === "siswa" && !kelasId}
-              >
-                Hadir Semua
-              </Button>
-              <div className="relative group">
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
-                  disabled={targetType === "siswa" && !kelasId}
-                >
-                  Set Status Semua ▾
-                </Button>
-                <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block">
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-1 min-w-[140px]">
-                    {(["alpha", "izin", "sakit"] as StatusAbsensi[]).map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => handleSetAllStatus(st)}
-                        className="w-full text-left px-3 py-2 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      >
-                        {STATUS_LABELS[st]} Semua
-                      </button>
-                    ))}
-                  </div>
+                <div className="relative flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-2 shrink-0 !h-10">
+                  <Calendar className="h-4 w-4 text-slate-450 dark:text-slate-500 mr-2" />
+                  <input
+                    type="date"
+                    lang="id-ID"
+                    value={tanggal}
+                    onChange={(e) => setTanggal(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none w-[130px] cursor-pointer"
+                  />
                 </div>
-              </div>
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
-                onClick={() => handleSetAllTimeNow("jamMasuk")}
-                disabled={targetType === "siswa" && !kelasId}
-              >
-                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                Jam Masuk Semua
-              </Button>
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
-                onClick={() => handleSetAllTimeNow("jamPulang")}
-                disabled={targetType === "siswa" && !kelasId}
-              >
-                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                Jam Pulang Semua
-              </Button>
-              <button
-                className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-teal-600 hover:bg-teal-700 text-white border-none px-4 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleManualSave}
-                disabled={createAbsensiSiswa.isPending || saveGuruAbsensi.isPending || (targetType === "siswa" && !kelasId)}
-              >
-                {(createAbsensiSiswa.isPending || saveGuruAbsensi.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                <Save className="h-4 w-4 mr-2" />
-                <span>Simpan Absensi</span>
-              </button>
-            </div>
-          </div>
 
-          {/* Summary Bar */}
-          {((targetType === "siswa" && kelasId) || targetType === "guru") && (
-            <div className="flex items-center gap-3 flex-wrap px-1">
-              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                <div key={st} className="flex items-center gap-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${
-                    st === "hadir" ? "bg-emerald-500" : st === "terlambat" ? "bg-amber-500" : st === "izin" ? "bg-blue-500" : st === "sakit" ? "bg-orange-500" : "bg-red-500"
-                  }`} />
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                    {STATUS_LABELS[st]}: <span className="font-extrabold text-slate-800 dark:text-slate-200">{summaryStats[st]}</span>
-                  </span>
-                </div>
-              ))}
-              <div className="ml-auto flex items-center gap-2">
-                {(targetType === "siswa" ? filteredSiswa : filteredGuru).length > 0 && (
-                  <div className="relative">
+                {((targetType === "siswa" && kelasId) || targetType === "guru") && (
+                  <div className="relative ml-auto w-full sm:w-[200px]">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Cari nama..."
                       value={targetType === "siswa" ? searchSiswa : searchGuru}
                       onChange={(e) => targetType === "siswa" ? setSearchSiswa(e.target.value) : setSearchGuru(e.target.value)}
-                      className="h-8 pl-8 pr-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-[160px] focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                      className="h-10 pl-8 pr-3 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full focus:outline-none focus:ring-2 focus:ring-slate-500/20"
                     />
                   </div>
                 )}
               </div>
+
+              {/* Row 2: bulk action + statistik */}
+              <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                <Button
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white border-none px-4 transition-all"
+                  onClick={handleHadirSemua}
+                  disabled={targetType === "siswa" && !kelasId}
+                >
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
+                  Hadir Semua
+                </Button>
+                <div className="relative group">
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                    disabled={targetType === "siswa" && !kelasId}
+                  >
+                    Set Status Semua ▾
+                  </Button>
+                  <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-1 min-w-[140px]">
+                      {(["alpha", "izin", "sakit", "terlambat"] as StatusAbsensi[]).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => handleSetAllStatus(st)}
+                          className="w-full text-left px-3 py-2 text-xs font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {STATUS_LABELS[st]} Semua
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                  onClick={() => handleSetAllTimeNow("jamMasuk")}
+                  disabled={targetType === "siswa" && !kelasId}
+                >
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  Jam Masuk Semua
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 px-4 bg-white dark:bg-slate-900 transition-all"
+                  onClick={() => handleSetAllTimeNow("jamPulang")}
+                  disabled={targetType === "siswa" && !kelasId}
+                >
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  Jam Pulang Semua
+                </Button>
+
+                {((targetType === "siswa" && kelasId) || targetType === "guru") && (
+                  <div className="ml-auto flex items-center gap-3 flex-wrap">
+                    {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                      <div key={st} className="flex items-center gap-1.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT_CLASS[st]}`} />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          {STATUS_LABELS[st]}: <span className="font-extrabold text-slate-800 dark:text-slate-200">{summaryStats[st]}</span>
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      {Object.values(saveStates).includes("saving") ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Menyimpan...</span>
+                        </>
+                      ) : Object.values(saveStates).includes("error") ? (
+                        <>
+                          <ShieldAlert className="h-3 w-3 text-red-500" />
+                          <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Ada yang gagal</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-500" />
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Autosave</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
 
           {targetType === "siswa" && !kelasId ? (
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
@@ -1402,8 +1376,10 @@ export default function AbsensiPage() {
                   <TableBody>
                     {filteredSiswa.map((std, idx) => {
                       const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-                      const hasExistingData = !!studentAttendanceQuery.data?.find((r) => r.siswaId === std.id)
-                      const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
+                      const hasExistingData = existingSiswaMap.has(std.id) || createdSiswaIds.has(std.id)
+                      const needsKeterangan = record.status !== "hadir"
+                      const showJam = record.status === "hadir" || record.status === "terlambat"
+                      const saveState = saveStates[std.id]
                       return (
                         <TableRow key={std.id} className={`transition-colors border-b border-slate-100 dark:border-slate-800/60 ${
                           hasExistingData ? "bg-emerald-50/30 dark:bg-emerald-950/10" : "hover:bg-slate-50/50 dark:hover:bg-slate-900/20"
@@ -1412,61 +1388,58 @@ export default function AbsensiPage() {
                           <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{std.nisn}</TableCell>
                           <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                             <div className="flex items-center gap-1.5">
-                              {hasExistingData && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {saveState === "saving" && <Loader2 className="w-3 h-3 animate-spin text-amber-500 shrink-0" />}
+                              {saveState === "saved" && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {saveState === "error" && <ShieldAlert className="w-3 h-3 text-red-500 shrink-0" />}
                               {std.namaLengkap}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-1 justify-center flex-wrap">
-                              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
+                            <StatusSegmented value={record.status} onChange={(st) => updateManualRecord(std.id, "status", st)} />
+                          </TableCell>
+                          <TableCell>
+                            {showJam ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="time"
+                                  value={record.jamMasuk}
+                                  onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
+                                  className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
+                                />
                                 <button
-                                  key={st}
                                   type="button"
-                                  onClick={() => updateManualRecord(std.id, "status", st)}
-                                  className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                    record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
-                                  }`}
+                                  onClick={() => handleSetSingleTimeNow(std.id, "jamMasuk")}
+                                  className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                  title="Isi jam sekarang"
                                 >
-                                  {STATUS_LABELS[st]}
+                                  <Clock className="w-3.5 h-3.5" />
                                 </button>
-                              ))}
-                            </div>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="time"
-                                value={record.jamMasuk}
-                                onChange={(e) => updateManualRecord(std.id, "jamMasuk", e.target.value)}
-                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleSetSingleTimeNow(std.id, "jamMasuk")}
-                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
-                                title="Isi jam sekarang"
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="time"
-                                value={record.jamPulang}
-                                onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
-                                className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleSetSingleTimeNow(std.id, "jamPulang")}
-                                className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
-                                title="Isi jam sekarang"
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {showJam ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="time"
+                                  value={record.jamPulang}
+                                  onChange={(e) => updateManualRecord(std.id, "jamPulang", e.target.value)}
+                                  className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetSingleTimeNow(std.id, "jamPulang")}
+                                  className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 flex items-center justify-center transition-colors cursor-pointer"
+                                  title="Isi jam sekarang"
+                                >
+                                  <Clock className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {needsKeterangan ? (
@@ -1474,7 +1447,7 @@ export default function AbsensiPage() {
                                 type="text"
                                 value={record.keterangan || ""}
                                 onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
-                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" ? "Keterangan izin..." : record.status === "sakit" ? "Keterangan sakit..." : "Alasan alpha..."}
                                 className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                               />
                             ) : (
@@ -1491,15 +1464,19 @@ export default function AbsensiPage() {
               <div className="md:hidden space-y-2">
                 {filteredSiswa.map((std, idx) => {
                   const record = siswaRecords[std.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-                  const hasExistingData = !!studentAttendanceQuery.data?.find((r) => r.siswaId === std.id)
-                  const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
+                  const hasExistingData = existingSiswaMap.has(std.id) || createdSiswaIds.has(std.id)
+                  const needsKeterangan = record.status !== "hadir"
+                  const showJam = record.status === "hadir" || record.status === "terlambat"
+                  const saveState = saveStates[std.id]
                   return (
                     <div key={std.id} className={`neumo-card bg-background rounded-2xl p-4 space-y-3 ${
                       hasExistingData ? "ring-1 ring-emerald-300 dark:ring-emerald-700" : ""
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          {hasExistingData && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          {saveState === "saving" && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />}
+                          {saveState === "saved" && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          {saveState === "error" && <ShieldAlert className="w-3.5 h-3.5 text-red-500" />}
                           <div>
                             <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{std.namaLengkap}</p>
                             <p className="text-[10px] text-slate-400 font-mono">{std.nisn}</p>
@@ -1509,25 +1486,13 @@ export default function AbsensiPage() {
                       </div>
                       <div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">Status</span>
-                        <div className="flex gap-1 flex-wrap">
-                          {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                            <button
-                              key={st}
-                              type="button"
-                              onClick={() => updateManualRecord(std.id, "status", st)}
-                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550"
-                              }`}
-                            >
-                              {STATUS_LABELS[st]}
-                            </button>
-                          ))}
-                        </div>
+                        <StatusSegmented value={record.status} onChange={(st) => updateManualRecord(std.id, "status", st)} />
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
-                          <div className="flex items-center gap-1">
+                      {showJam && (
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
+                            <div className="flex items-center gap-1">
                             <input
                               type="time"
                               value={record.jamMasuk}
@@ -1543,10 +1508,10 @@ export default function AbsensiPage() {
                               <Clock className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
-                          <div className="flex items-center gap-1">
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
+                            <div className="flex items-center gap-1">
                             <input
                               type="time"
                               value={record.jamPulang}
@@ -1562,8 +1527,9 @@ export default function AbsensiPage() {
                               <Clock className="w-3.5 h-3.5" />
                             </button>
                           </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       {needsKeterangan && (
                         <div>
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
@@ -1571,7 +1537,7 @@ export default function AbsensiPage() {
                             type="text"
                             value={record.keterangan || ""}
                             onChange={(e) => updateManualRecord(std.id, "keterangan", e.target.value)}
-                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" ? "Keterangan izin..." : record.status === "sakit" ? "Keterangan sakit..." : "Alasan alpha..."}
                             className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
                         </div>
@@ -1586,10 +1552,6 @@ export default function AbsensiPage() {
           {targetType === "guru" && guruAttendanceQuery.isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-            </div>
-          ) : targetType === "guru" && (!guruAll || guruAll.length === 0) ? (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
-              Tidak ada guru terdaftar.
             </div>
           ) : targetType === "guru" && (!guruAll || guruAll.length === 0) ? (
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[22px] p-16 text-center text-slate-400 font-semibold shadow-sm flex flex-col items-center justify-center">
@@ -1614,8 +1576,10 @@ export default function AbsensiPage() {
                   <TableBody>
                     {filteredGuru.map((g, idx) => {
                       const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-                      const hasExistingData = !!guruAttendanceQuery.data?.find((r) => r.guruId === g.id)
-                      const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
+                      const hasExistingData = existingGuruMap.has(g.id) || createdGuruIds.has(g.id)
+                      const needsKeterangan = record.status !== "hadir"
+                      const showJam = record.status === "hadir" || record.status === "terlambat"
+                      const saveState = saveStates[g.id]
                       return (
                         <TableRow key={g.id} className={`transition-colors border-b border-slate-100 dark:border-slate-800/60 ${
                           hasExistingData ? "bg-emerald-50/30 dark:bg-emerald-950/10" : "hover:bg-slate-50/50 dark:hover:bg-slate-900/20"
@@ -1624,28 +1588,18 @@ export default function AbsensiPage() {
                           <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">{g.nipnuptk || "-"}</TableCell>
                           <TableCell className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                             <div className="flex items-center gap-1.5">
-                              {hasExistingData && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {saveState === "saving" && <Loader2 className="w-3 h-3 animate-spin text-amber-500 shrink-0" />}
+                              {saveState === "saved" && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                              {saveState === "error" && <ShieldAlert className="w-3 h-3 text-red-500 shrink-0" />}
                               {g.namaLengkap}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-1 justify-center flex-wrap">
-                              {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                                <button
-                                  key={st}
-                                  type="button"
-                                  onClick={() => updateManualRecord(g.id, "status", st)}
-                                  className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                    record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550 hover:bg-slate-100 dark:hover:bg-slate-850"
-                                  }`}
-                                >
-                                  {STATUS_LABELS[st]}
-                                </button>
-                              ))}
-                            </div>
+                            <StatusSegmented value={record.status} onChange={(st) => updateManualRecord(g.id, "status", st)} />
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
+                            {showJam ? (
+                              <div className="flex items-center gap-1">
                               <input
                                 type="time"
                                 value={record.jamMasuk}
@@ -1661,9 +1615,13 @@ export default function AbsensiPage() {
                                 <Clock className="w-3.5 h-3.5" />
                               </button>
                             </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
+                            {showJam ? (
+                              <div className="flex items-center gap-1">
                               <input
                                 type="time"
                                 value={record.jamPulang}
@@ -1679,6 +1637,9 @@ export default function AbsensiPage() {
                                 <Clock className="w-3.5 h-3.5" />
                               </button>
                             </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {needsKeterangan ? (
@@ -1686,7 +1647,7 @@ export default function AbsensiPage() {
                                 type="text"
                                 value={record.keterangan || ""}
                                 onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
-                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                                placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" ? "Keterangan izin..." : record.status === "sakit" ? "Keterangan sakit..." : "Alasan alpha..."}
                                 className="h-9 px-3 rounded-xl text-[11px] border border-slate-200 dark:border-slate-800 focus:outline-none bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                               />
                             ) : (
@@ -1703,15 +1664,19 @@ export default function AbsensiPage() {
               <div className="md:hidden space-y-2">
                 {filteredGuru.map((g, idx) => {
                   const record = guruRecords[g.id] || { status: "hadir", jamMasuk: "", jamPulang: "", keterangan: "" }
-                  const hasExistingData = !!guruAttendanceQuery.data?.find((r) => r.guruId === g.id)
-                  const needsKeterangan = record.status === "terlambat" || record.status === "izin" || record.status === "sakit"
+                  const hasExistingData = existingGuruMap.has(g.id) || createdGuruIds.has(g.id)
+                  const needsKeterangan = record.status !== "hadir"
+                  const showJam = record.status === "hadir" || record.status === "terlambat"
+                  const saveState = saveStates[g.id]
                   return (
                     <div key={g.id} className={`neumo-card bg-background rounded-2xl p-4 space-y-3 ${
                       hasExistingData ? "ring-1 ring-emerald-300 dark:ring-emerald-700" : ""
                     }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          {hasExistingData && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          {saveState === "saving" && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />}
+                          {saveState === "saved" && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          {saveState === "error" && <ShieldAlert className="w-3.5 h-3.5 text-red-500" />}
                           <div>
                             <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{g.namaLengkap}</p>
                             <p className="text-[10px] text-slate-400 font-mono">{g.nipnuptk || "-"}</p>
@@ -1721,25 +1686,13 @@ export default function AbsensiPage() {
                       </div>
                       <div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1.5">Status</span>
-                        <div className="flex gap-1 flex-wrap">
-                          {(["hadir", "terlambat", "izin", "sakit", "alpha"] as StatusAbsensi[]).map((st) => (
-                            <button
-                              key={st}
-                              type="button"
-                              onClick={() => updateManualRecord(g.id, "status", st)}
-                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                                record.status === st ? STATUS_COLORS[st] : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-550"
-                              }`}
-                            >
-                              {STATUS_LABELS[st]}
-                            </button>
-                          ))}
-                        </div>
+                        <StatusSegmented value={record.status} onChange={(st) => updateManualRecord(g.id, "status", st)} />
                       </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
-                          <div className="flex items-center gap-1">
+                      {showJam && (
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Datang</span>
+                            <div className="flex items-center gap-1">
                             <input
                               type="time"
                               value={record.jamMasuk}
@@ -1755,10 +1708,10 @@ export default function AbsensiPage() {
                               <Clock className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
-                          <div className="flex items-center gap-1">
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Jam Pulang</span>
+                            <div className="flex items-center gap-1">
                             <input
                               type="time"
                               value={record.jamPulang}
@@ -1774,8 +1727,9 @@ export default function AbsensiPage() {
                               <Clock className="w-3.5 h-3.5" />
                             </button>
                           </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       {needsKeterangan && (
                         <div>
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Alasan</span>
@@ -1783,7 +1737,7 @@ export default function AbsensiPage() {
                             type="text"
                             value={record.keterangan || ""}
                             onChange={(e) => updateManualRecord(g.id, "keterangan", e.target.value)}
-                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : "Keterangan izin..."}
+                            placeholder={record.status === "terlambat" ? "Alasan terlambat..." : record.status === "izin" ? "Keterangan izin..." : record.status === "sakit" ? "Keterangan sakit..." : "Alasan alpha..."}
                             className="h-9 px-3 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-semibold text-slate-700 dark:text-slate-300 w-full"
                           />
                         </div>
@@ -2012,7 +1966,7 @@ export default function AbsensiPage() {
                       <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                         <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
                         <TableCell>
-                          <Badge className={STATUS_COLORS[row.status as StatusAbsensi]} variant="secondary">
+                          <Badge className={STATUS_ACTIVE_CLASS[row.status as StatusAbsensi]} variant="secondary">
                             {STATUS_LABELS[row.status as StatusAbsensi]}
                           </Badge>
                         </TableCell>
@@ -2053,7 +2007,7 @@ export default function AbsensiPage() {
                       <TableRow key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors border-b border-slate-100 dark:border-slate-800/60">
                         <TableCell className="text-xs font-bold text-slate-705 dark:text-slate-300">{new Date(row.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</TableCell>
                         <TableCell>
-                          <Badge className={STATUS_COLORS[row.status as StatusAbsensi]} variant="secondary">
+                          <Badge className={STATUS_ACTIVE_CLASS[row.status as StatusAbsensi]} variant="secondary">
                             {STATUS_LABELS[row.status as StatusAbsensi]}
                           </Badge>
                         </TableCell>
