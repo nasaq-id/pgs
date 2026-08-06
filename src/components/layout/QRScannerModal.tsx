@@ -59,6 +59,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const resultTimerRef = useRef<NodeJS.Timeout | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const trackRef = useRef<MediaStreamTrack | null>(null)
+  const handleRetryRef = useRef<() => void>(() => {})
 
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
   const guruScanMutation = api.absensi.scanSingleQrGuru.useMutation()
@@ -205,10 +206,10 @@ export default function QRScannerModal({ open, onClose }: Props) {
         })
         setState("success")
 
+        /* Continue scanning: tampilkan hasil sebentar, lalu restart kamera (modal tetap terbuka) */
         resultTimerRef.current = setTimeout(() => {
-          onClose()
-          router.push("/")
-        }, 1800)
+          handleRetryRef.current()
+        }, 1200)
       } catch (err: any) {
         playSound("error")
         hapticFeedback("error")
@@ -216,7 +217,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
         setState("error")
       }
     },
-    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, getGeolocation, clearDwellTimer, onClose, router],
+    [barcodeScanMutation, guruScanMutation, stopScanner, playSound, hapticFeedback, getGeolocation, clearDwellTimer],
   )
 
   const handleReasonSubmit = async () => {
@@ -252,11 +253,14 @@ export default function QRScannerModal({ open, onClose }: Props) {
     [clearDwellTimer, handleValidate],
   )
 
-  /* ─── Reset to scanning ─── */
+  /* ─── Reset to scanning (continue scan, modal tetap terbuka) ─── */
   const handleRetry = useCallback(() => {
     processingLockRef.current = false
     setErrorMessage("")
     setResult(null)
+    setPendingQrCode("")
+    setLateName("")
+    setLateReason("")
     clearDwellTimer()
     setState("scanning")
     /* Re-start scanner */
@@ -282,6 +286,11 @@ export default function QRScannerModal({ open, onClose }: Props) {
         .catch(() => setState("permission_denied"))
     })
   }, [clearDwellTimer, handleQrDetected])
+
+  /* Sinkronkan handleRetry ke ref agar handleValidate bisa memanggilnya tanpa sirkular dependency */
+  useEffect(() => {
+    handleRetryRef.current = handleRetry
+  }, [handleRetry])
 
   /* ─── Lifecycle ─── */
   useEffect(() => {
@@ -619,7 +628,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           <p className="text-white text-sm font-semibold text-center drop-shadow-lg">Memproses absensi ke server...</p>
         )}
         {state === "success" && (
-          <p className="text-emerald-400 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Mengalihkan ke dashboard...</p>
+          <p className="text-emerald-400 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Berhasil — siap memindai QR berikutnya...</p>
         )}
         {state === "error" && (
           <p className="text-red-300 text-sm font-semibold text-center drop-shadow-lg animate-fade-in">Periksa koneksi lalu coba lagi</p>
