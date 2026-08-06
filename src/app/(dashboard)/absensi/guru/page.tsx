@@ -60,6 +60,7 @@ export default function PresensiGuruPage() {
   const [lateDialogOpen, setLateDialogOpen] = useState(false)
   const [lateReason, setLateReason] = useState("")
   const [pendingQrCode, setPendingQrCode] = useState("")
+  const [pendingAction, setPendingAction] = useState<"masuk" | "pulang">("masuk")
 
   // Menyimpan koordinat GPS dari percobaan scan pertama siswa, agar bisa
   // dipakai ulang saat mengirim alasan keterlambatan (requireReason).
@@ -136,8 +137,9 @@ export default function PresensiGuruPage() {
         if (res && 'requireReason' in res && res.requireReason) {
           setPendingQrCode(code)
           setLateReason("")
+          setPendingAction(res.action === "pulang" ? "pulang" : "masuk")
           setLateDialogOpen(true)
-          toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+          toast.warning(res.action === "pulang" ? "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal." : "Terlambat: Harap masukkan alasan keterlambatan.")
           await stopCamera()
         } else {
           setLateDialogOpen(false)
@@ -166,8 +168,9 @@ export default function PresensiGuruPage() {
         if (res && 'requireReason' in res && res.requireReason) {
           setPendingQrCode(code)
           setLateReason("")
+          setPendingAction(res.action === "pulang" ? "pulang" : "masuk")
           setLateDialogOpen(true)
-          toast.warning("Terlambat: Harap masukkan alasan keterlambatan.")
+          toast.warning(res.action === "pulang" ? "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal." : "Terlambat: Harap masukkan alasan keterlambatan.")
           await stopCamera()
         } else {
           // Sukses — tampilkan kartu hasil absensi siswa
@@ -700,19 +703,19 @@ export default function PresensiGuruPage() {
         </div>
       </div>
 
-      {/* Dialog Alasan Keterlambatan */}
-      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); } }}>
+      {/* Dialog Alasan Keterlambatan / Pulang Cepat */}
+      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); } }}>
         <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-amber-500" />
               <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
-                Konfirmasi Keterlambatan
+                {pendingAction === "pulang" ? "Konfirmasi Pulang Cepat" : "Konfirmasi Keterlambatan"}
               </h3>
             </div>
             <button
               type="button"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); }}
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -723,18 +726,20 @@ export default function PresensiGuruPage() {
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 text-xs font-semibold text-amber-800 dark:text-amber-300">
               <p className="font-bold">⚠️ Perhatian:</p>
               <p className="mt-1">
-                Waktu pemindaian absensi masuk telah melewati batas toleransi keterlambatan 15 menit dari jam pelajaran (JP) Anda. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini.
+                {pendingAction === "pulang"
+                  ? "Presensi pulang dilakukan sebelum jam pulang sekolah. Anda wajib mengisi alasan pulang cepat untuk mencatat kepulangan ini."
+                  : "Waktu pemindaian absensi masuk telah melewati batas toleransi keterlambatan 15 menit dari jam pelajaran (JP) Anda. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini."}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label className="block text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest mb-1">
-                Alasan Terlambat (Wajib)
+                {pendingAction === "pulang" ? "Alasan Pulang Cepat (Wajib)" : "Alasan Terlambat (Wajib)"}
               </Label>
               <textarea
                 value={lateReason}
                 onChange={(e) => setLateReason(e.target.value)}
-                placeholder="Masukkan alasan keterlambatan (misalnya: macet di jalan, kendala kendaraan, dll)..."
+                placeholder={pendingAction === "pulang" ? "Masukkan alasan pulang cepat (misalnya: urusan keluarga, keperluan mendesak, dll)..." : "Masukkan alasan keterlambatan (misalnya: macet di jalan, kendala kendaraan, dll)..."}
                 rows={3}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50 dark:bg-slate-900/50 text-xs p-3 font-semibold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none"
               />
@@ -745,7 +750,7 @@ export default function PresensiGuruPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); resetAndRestartScanner(); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); }}
               disabled={scanMutation.isPending}
               className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
             >

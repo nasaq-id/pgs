@@ -49,6 +49,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const [pendingQrCode, setPendingQrCode] = useState("")
   const [lateReason, setLateReason] = useState("")
   const [lateName, setLateName] = useState("")
+  const [pendingAction, setPendingAction] = useState<"masuk" | "pulang">("masuk")
 
   const html5QrcodeRef = useRef<any>(null)
   const stateRef = useRef<ScannerState>("idle")
@@ -190,6 +191,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           setPendingQrCode(decodedText)
           setLateName(resultData.name || "")
           setLateReason("")
+          setPendingAction(resultData.action === "pulang" ? "pulang" : "masuk")
           setState("require_reason")
           return
         }
@@ -261,6 +263,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     setPendingQrCode("")
     setLateName("")
     setLateReason("")
+    setPendingAction("masuk")
     clearDwellTimer()
     setState("scanning")
     /* Re-start scanner */
@@ -564,22 +567,26 @@ export default function QRScannerModal({ open, onClose }: Props) {
           <div className="w-full max-w-sm mx-4 bg-slate-900/90 dark:bg-slate-950/95 p-6 rounded-[28px] border border-white/10 shadow-2xl flex flex-col gap-4 text-left z-30 animate-fade-in">
             <div className="flex items-center gap-2 border-b border-white/10 pb-3">
               <span className="text-sm font-black text-white uppercase tracking-wider">
-                ⚠️ Konfirmasi Keterlambatan
+                {pendingAction === "pulang" ? "⚠️ Konfirmasi Pulang Cepat" : "⚠️ Konfirmasi Keterlambatan"}
               </span>
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs font-semibold text-amber-300">
-              Waktu presensi masuk untuk <strong>{lateName}</strong> telah melewati batas toleransi 15 menit. Harap isi alasan keterlambatan Anda.
+              {pendingAction === "pulang" ? (
+                <>Presensi pulang untuk <strong>{lateName}</strong> dilakukan sebelum jam pulang sekolah. Harap isi alasan pulang cepat Anda.</>
+              ) : (
+                <>Waktu presensi masuk untuk <strong>{lateName}</strong> telah melewati batas toleransi 15 menit. Harap isi alasan keterlambatan Anda.</>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                Alasan Terlambat (Wajib)
+                {pendingAction === "pulang" ? "Alasan Pulang Cepat (Wajib)" : "Alasan Terlambat (Wajib)"}
               </span>
               <textarea
                 value={lateReason}
                 onChange={(e) => setLateReason(e.target.value)}
-                placeholder="Misalnya: macet di jalan, kendala kendaraan, dll..."
+                placeholder={pendingAction === "pulang" ? "Misalnya: urusan keluarga, keperluan mendesak, dll..." : "Misalnya: macet di jalan, kendala kendaraan, dll..."}
                 rows={3}
                 className="w-full rounded-xl border border-white/10 focus:ring-teal-500/10 focus:border-teal-500 bg-white/5 text-xs p-3 font-semibold text-white placeholder-slate-500 focus:outline-none"
               />
