@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers
 } from "lucide-react"
 import {
   Dialog,
@@ -182,8 +182,28 @@ const menuItems: MenuItem[] = [
 const SUPER_ADMIN_MENU_ITEMS: MenuItem[] = [
   {
     icon: LayoutDashboard,
-    label: "Dashboard Platform",
+    label: "Daftar Lembaga",
     path: "/super-admin"
+  },
+  {
+    icon: Activity,
+    label: "Kesehatan Platform",
+    path: "/super-admin/kesehatan"
+  },
+  {
+    icon: ScrollText,
+    label: "Log Audit Global",
+    path: "/super-admin/log-audit"
+  },
+  {
+    icon: Database,
+    label: "Skema Database",
+    path: "/super-admin/database"
+  },
+  {
+    icon: Layers,
+    label: "Kesehatan Codebase",
+    path: "/super-admin/arsitektur"
   },
   {
     icon: Bell,

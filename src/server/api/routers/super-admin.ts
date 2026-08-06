@@ -1,6 +1,10 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, desc, sql, and } from "drizzle-orm"
+import { eq, desc, sql, and, getTableColumns, getTableName, is } from "drizzle-orm"
+import { PgTable } from "drizzle-orm/pg-core"
+import * as fs from "fs"
+import * as path from "path"
+import * as dbSchema from "@/server/db/schema"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
 import {
@@ -413,5 +417,201 @@ export const superAdminRouter = router({
       })
 
       return deleted
+    }),
+
+  getDatabaseSchema: roleProtectedProcedure(["super_admin"])
+    .query(async () => {
+      const tables = Object.entries(dbSchema).filter(([_, val]) => is(val, PgTable))
+      const result = tables.map(([key, value]) => {
+        const tableName = getTableName(value as any)
+        const columnsObj = getTableColumns(value as any)
+        const columns = Object.entries(columnsObj).map(([colKey, colVal]: [string, any]) => ({
+          name: colVal.name,
+          keyName: colKey,
+          dataType: colVal.dataType,
+          columnType: colVal.columnType,
+          notNull: colVal.notNull,
+          primaryKey: colVal.primary,
+          hasDefault: colVal.hasDefault,
+          enumValues: colVal.enumValues || null,
+        }))
+
+        // Inline Foreign Keys
+        const pgTableVal = value as any
+        const symbols = Object.getOwnPropertySymbols(pgTableVal)
+        const inlineFkSymbol = symbols.find(s => s.toString() === "Symbol(drizzle:PgInlineForeignKeys)")
+        const foreignKeys: any[] = []
+        if (inlineFkSymbol) {
+          const fks = pgTableVal[inlineFkSymbol] || []
+          for (const fk of fks) {
+            const ref = fk.reference()
+            foreignKeys.push({
+              name: fk.name || null,
+              onDelete: fk.onDelete || null,
+              onUpdate: fk.onUpdate || null,
+              columns: ref.columns.map((c: any) => c.name),
+              foreignTable: getTableName(ref.foreignTable),
+              foreignColumns: ref.foreignColumns.map((c: any) => c.name),
+            })
+          }
+        }
+
+        return {
+          keyName: key,
+          tableName,
+          columns,
+          foreignKeys,
+        }
+      })
+
+      return result
+    }),
+
+  getCodebaseHealth: roleProtectedProcedure(["super_admin"])
+    .query(async () => {
+      const rootPath = path.join(process.cwd(), "src")
+      
+      const scanDir = (dirPath: string, rootDir: string): { files: any[], tree: any } => {
+        const name = path.basename(dirPath)
+        const relPath = path.relative(rootDir, dirPath)
+        
+        let stats
+        try {
+          stats = fs.statSync(dirPath)
+        } catch (e) {
+          return { files: [], tree: null }
+        }
+
+        if (stats.isFile()) {
+          let lineCount = 0
+          try {
+            const content = fs.readFileSync(dirPath, "utf-8")
+            lineCount = content.split("\n").length
+          } catch (e) {}
+
+          let health: "critical" | "warning" | "healthy" = "healthy"
+          let suggestion = "Struktur file sudah optimal. Pertahankan modularitas."
+          const sizeKb = stats.size / 1024
+
+          if (lineCount > 600 || sizeKb > 30) {
+            health = "critical"
+            if (dirPath.includes("components") || dirPath.includes("app")) {
+              suggestion = "Pecah file UI utama menjadi sub-komponen modular di folder '_components/' untuk meningkatkan keterbacaan."
+            } else if (dirPath.includes("routers") || dirPath.includes("server")) {
+              suggestion = "Refaktorkan fungsi-fungsi router yang terlalu besar ke dalam sub-router terpisah atau business logic helpers."
+            } else {
+              suggestion = "Pecah fungsionalitas file ini menjadi modul-modul helper yang lebih kecil."
+            }
+          } else if (lineCount > 300) {
+            health = "warning"
+            if (dirPath.endsWith(".tsx")) {
+              suggestion = "Pertimbangkan untuk memindahkan inline dialog, dialog modal, atau forms ke file terpisah."
+            } else {
+              suggestion = "Pertimbangkan refaktorisasi beberapa fungsi internal ke berkas utilitas terpisah."
+            }
+          }
+
+          const fileObj = {
+            path: relPath,
+            name,
+            lines: lineCount,
+            size: stats.size,
+            health,
+            suggestion
+          }
+
+          return {
+            files: [fileObj],
+            tree: {
+              name,
+              path: relPath,
+              type: "file",
+              lines: lineCount,
+              health
+            }
+          }
+        }
+
+        if (stats.isDirectory()) {
+          let children: any[] = []
+          let filesAcc: any[] = []
+          
+          let entries: string[] = []
+          try {
+            entries = fs.readdirSync(dirPath)
+          } catch (e) {}
+
+          for (const entry of entries) {
+            if (entry.startsWith(".")) continue
+            
+            const childPath = path.join(dirPath, entry)
+            const res = scanDir(childPath, rootDir)
+            if (res.tree) {
+              children.push(res.tree)
+            }
+            filesAcc = filesAcc.concat(res.files)
+          }
+
+          children.sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name)
+            return a.type === "dir" ? -1 : 1
+          })
+
+          return {
+            files: filesAcc,
+            tree: {
+              name,
+              path: relPath,
+              type: "dir",
+              children
+            }
+          }
+        }
+
+        return { files: [], tree: null }
+      }
+
+      const { files, tree } = scanDir(rootPath, rootPath)
+      const sortedFiles = [...files].sort((a, b) => b.lines - a.lines)
+
+      return {
+        files: sortedFiles,
+        tree
+      }
+    }),
+
+  getFileContent: roleProtectedProcedure(["super_admin"])
+    .input(z.object({
+      path: z.string()
+    }))
+    .query(async ({ input }) => {
+      const rootPath = path.join(process.cwd(), "src")
+      const resolvedPath = path.resolve(rootPath, input.path)
+      
+      if (!resolvedPath.startsWith(rootPath)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Akses di luar direktori src/ dilarang."
+        })
+      }
+
+      try {
+        if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Berkas tidak ditemukan."
+          })
+        }
+
+        const content = fs.readFileSync(resolvedPath, "utf-8")
+        return {
+          content
+        }
+      } catch (e) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Gagal membaca isi berkas."
+        })
+      }
     }),
 })
