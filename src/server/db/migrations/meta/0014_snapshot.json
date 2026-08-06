@@ -1,6 +1,6 @@
 {
-  "id": "12d0a147e030c3f2dff934c8594494af",
-  "prevId": "15f9827d0e05463d014ddcf33dead1ba",
+  "id": "a4c119c8-313d-4c73-9814-08d8544342f4",
+  "prevId": "12d0a147e030c3f2dff934c8594494af",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1284,6 +1284,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "discount_student_id_siswa_id_fk": {
+          "name": "discount_student_id_siswa_id_fk",
+          "tableFrom": "discount",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1715,6 +1728,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "fee_structure_academic_year_id_tahun_ajaran_id_fk": {
+          "name": "fee_structure_academic_year_id_tahun_ajaran_id_fk",
+          "tableFrom": "fee_structure",
+          "tableTo": "tahun_ajaran",
+          "columnsFrom": [
+            "academic_year_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2120,12 +2146,38 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "invoice_student_id_siswa_id_fk": {
+          "name": "invoice_student_id_siswa_id_fk",
+          "tableFrom": "invoice",
+          "tableTo": "siswa",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "invoice_billing_type_id_billing_type_id_fk": {
           "name": "invoice_billing_type_id_billing_type_id_fk",
           "tableFrom": "invoice",
           "tableTo": "billing_type",
           "columnsFrom": [
             "billing_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "invoice_academic_year_id_tahun_ajaran_id_fk": {
+          "name": "invoice_academic_year_id_tahun_ajaran_id_fk",
+          "tableFrom": "invoice",
+          "tableTo": "tahun_ajaran",
+          "columnsFrom": [
+            "academic_year_id"
           ],
           "columnsTo": [
             "id"

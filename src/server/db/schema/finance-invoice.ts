@@ -1,6 +1,8 @@
 import { pgTable, text, numeric, integer, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
+import { siswa } from "./siswa"
+import { tahunAjaran } from "./tahun-ajaran"
 import { billingType } from "./finance-master"
 
 // ─── INVOICE ───────────────────────────────────────────────
@@ -8,9 +10,9 @@ import { billingType } from "./finance-master"
 export const invoice = pgTable("invoice", {
   id: text("id").primaryKey(),
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
-  studentId: text("student_id").notNull(),
+  studentId: text("student_id").notNull().references(() => siswa.id, { onDelete: "restrict" }),
   billingTypeId: text("billing_type_id").notNull().references(() => billingType.id, { onDelete: "restrict" }),
-  academicYearId: text("academic_year_id").notNull(),
+  academicYearId: text("academic_year_id").notNull().references(() => tahunAjaran.id, { onDelete: "restrict" }),
   periodMonth: integer("period_month"),
   periodYear: integer("period_year"),
 

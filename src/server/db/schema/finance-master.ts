@@ -1,6 +1,7 @@
 import { pgTable, text, numeric, integer, boolean, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
+import { tahunAjaran } from "./tahun-ajaran"
 
 // ─── BILLING TYPE ──────────────────────────────────────────
 
@@ -23,7 +24,7 @@ export const feeStructure = pgTable("fee_structure", {
   id: text("id").primaryKey(),
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   billingTypeId: text("billing_type_id").notNull().references(() => billingType.id, { onDelete: "cascade" }),
-  academicYearId: text("academic_year_id").notNull(),
+  academicYearId: text("academic_year_id").notNull().references(() => tahunAjaran.id, { onDelete: "cascade" }),
   gradeLevel: text("grade_level").notNull(),
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   effectiveFrom: timestamp("effective_from").notNull(),

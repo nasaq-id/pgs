@@ -145,15 +145,17 @@ function FeeStructureTab() {
 
   const { data, isLoading, refetch } = api.keuangan.settings.feeStructure.list.useQuery()
   const { data: billingTypes } = api.keuangan.settings.billingType.list.useQuery()
+  const { data: tahunAjaranAktif } = api.lembaga.getActiveTahunAjaran.useQuery()
   const createMutation = api.keuangan.settings.feeStructure.create.useMutation()
 
   const handleCreate = async () => {
     if (!billingTypeId || !gradeLevel || !amount || !effectiveFrom) { toast.error("Isi semua field"); return }
+    if (!tahunAjaranAktif?.id) { toast.error("Tahun ajaran aktif belum ditentukan di menu Lembaga"); return }
     setSaving(true)
     try {
       await createMutation.mutateAsync({
         billingTypeId,
-        academicYearId: "active",
+        academicYearId: tahunAjaranAktif.id,
         gradeLevel,
         amount: Number(amount),
         effectiveFrom: new Date(effectiveFrom),

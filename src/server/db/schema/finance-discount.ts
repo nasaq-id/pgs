@@ -1,13 +1,14 @@
 import { pgTable, text, numeric, boolean, timestamp, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
+import { siswa } from "./siswa"
 
 // ─── DISCOUNT ──────────────────────────────────────────────
 
 export const discount = pgTable("discount", {
   id: text("id").primaryKey(),
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
-  studentId: text("student_id").notNull(),
+  studentId: text("student_id").notNull().references(() => siswa.id, { onDelete: "cascade" }),
   type: text("type", {
     enum: ["sibling", "scholarship", "yayasan", "other"],
   }).notNull(),

@@ -1,0 +1,4 @@
+ALTER TABLE "discount" ADD CONSTRAINT "discount_student_id_siswa_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."siswa"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fee_structure" ADD CONSTRAINT "fee_structure_academic_year_id_tahun_ajaran_id_fk" FOREIGN KEY ("academic_year_id") REFERENCES "public"."tahun_ajaran"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invoice" ADD CONSTRAINT "invoice_student_id_siswa_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."siswa"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invoice" ADD CONSTRAINT "invoice_academic_year_id_tahun_ajaran_id_fk" FOREIGN KEY ("academic_year_id") REFERENCES "public"."tahun_ajaran"("id") ON DELETE restrict ON UPDATE no action;
