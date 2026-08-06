@@ -251,6 +251,38 @@ export const absensiRouter = router({
       return { success: true }
     }),
 
+  togglePulangCepatDarurat: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({ aktif: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
+
+      const existing = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+
+      if (existing) {
+        await db
+          .update(pengaturanAbsensi)
+          .set({ isPulangCepatDarurat: input.aktif, updatedAt: new Date() })
+          .where(eq(pengaturanAbsensi.sekolahId, sekolahId))
+      } else {
+        await db.insert(pengaturanAbsensi).values({
+          id: crypto.randomUUID(),
+          sekolahId,
+          isPulangCepatDarurat: input.aktif,
+        })
+      }
+
+      await logAudit(ctx, {
+        action: input.aktif ? "aktifkan_pulang_cepat_darurat" : "nonaktifkan_pulang_cepat_darurat",
+        entity: "pengaturan_absensi",
+        metadata: { aktif: input.aktif },
+      })
+
+      return { success: true }
+    }),
+
   absenViaBarcode: roleProtectedProcedure(["super_admin", "admin_sekolah", "guru", "tu"])
     .input(
       sanitized(z.object({
@@ -407,18 +439,40 @@ export const absensiRouter = router({
             ),
           })
 
-          if (!approvedIzinPulangCepat) {
+          const isPulangCepatDaruratAktif = settings?.isPulangCepatDarurat ?? false
+
+          if (!approvedIzinPulangCepat && !isPulangCepatDaruratAktif) {
             if (nowMinutes < limitPulangMinutes) {
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: `Belum waktunya absen pulang. Jam pulang hari ini pukul ${jamPulangStr}`,
-              })
+              if (!input.alasan) {
+                return {
+                  success: true,
+                  requireReason: true,
+                  type: "siswa" as const,
+                  name: student.namaLengkap,
+                  action: "pulang" as const,
+                  status: existingAbsen.status,
+                }
+              }
             }
+          }
+
+          let keteranganValue = existingAbsen.keterangan
+          if (input.alasan) {
+            keteranganValue = existingAbsen.keterangan
+              ? `${existingAbsen.keterangan} | [PULANG CEPAT] ${input.alasan}`
+              : `[PULANG CEPAT] ${input.alasan}`
+          } else if (isPulangCepatDaruratAktif) {
+            keteranganValue = existingAbsen.keterangan
+              ? `${existingAbsen.keterangan} | [PULANG CEPAT DARURAT MASAL]`
+              : `[PULANG CEPAT DARURAT MASAL]`
           }
 
           await db
             .update(absensiSiswa)
-            .set({ jamPulang: now })
+            .set({ 
+              jamPulang: now,
+              keterangan: keteranganValue,
+            })
             .where(eq(absensiSiswa.id, existingAbsen.id))
 
           await logAudit(ctx, { action: "scan_checkout_siswa", entity: "absensi_siswa", entityId: existingAbsen.id, metadata: { name: student.namaLengkap } })
@@ -541,19 +595,40 @@ export const absensiRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Guru sudah melakukan absensi pulang hari ini" })
           }
 
-          if (nowMinutes < limitPulangMinutes) {
-            const targetHour = Math.floor(limitPulangMinutes / 60)
-            const targetMin = limitPulangMinutes % 60
-            const targetTimeStr = `${targetHour.toString().padStart(2, "0")}:${targetMin.toString().padStart(2, "0")}`
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Absen pulang dikunci hingga jam mengajar terakhir selesai pada jam ${targetTimeStr}`,
-            })
+          const isPulangCepatDaruratAktif = settings?.isPulangCepatDarurat ?? false
+
+          if (!isPulangCepatDaruratAktif) {
+            if (nowMinutes < limitPulangMinutes) {
+              if (!input.alasan) {
+                return {
+                  success: true,
+                  requireReason: true,
+                  type: "guru" as const,
+                  name: teacher.namaLengkap,
+                  action: "pulang" as const,
+                  status: existingAbsen.status,
+                }
+              }
+            }
+          }
+
+          let keteranganValue = existingAbsen.keterangan
+          if (input.alasan) {
+            keteranganValue = existingAbsen.keterangan
+              ? `${existingAbsen.keterangan} | [PULANG CEPAT] ${input.alasan}`
+              : `[PULANG CEPAT] ${input.alasan}`
+          } else if (isPulangCepatDaruratAktif) {
+            keteranganValue = existingAbsen.keterangan
+              ? `${existingAbsen.keterangan} | [PULANG CEPAT DARURAT MASAL]`
+              : `[PULANG CEPAT DARURAT MASAL]`
           }
 
           await db
             .update(absensiGuru)
-            .set({ jamPulang: now })
+            .set({ 
+              jamPulang: now,
+              keterangan: keteranganValue,
+            })
             .where(eq(absensiGuru.id, existingAbsen.id))
 
           await logAudit(ctx, { action: "scan_checkout_guru", entity: "absensi_guru", entityId: existingAbsen.id, metadata: { name: teacher.namaLengkap } })
@@ -1312,19 +1387,40 @@ export const absensiRouter = router({
           })
         }
 
-        if (nowMinutes < checkoutLimitMinutes) {
-          const targetHour = Math.floor(checkoutLimitMinutes / 60)
-          const targetMin = checkoutLimitMinutes % 60
-          const targetTimeStr = `${targetHour.toString().padStart(2, "0")}:${targetMin.toString().padStart(2, "0")}`
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Presensi pulang dikunci hingga jam mengajar terakhir selesai pada pukul ${targetTimeStr} WIB.`,
-          })
+        const isPulangCepatDaruratAktif = settings?.isPulangCepatDarurat ?? false
+
+        if (!isPulangCepatDaruratAktif) {
+          if (nowMinutes < checkoutLimitMinutes) {
+            if (!input.alasan) {
+              return {
+                success: true,
+                requireReason: true,
+                type: "guru" as const,
+                name: teacherRecord.namaLengkap,
+                action: "pulang" as const,
+                status: existingAbsen.status,
+              }
+            }
+          }
+        }
+
+        let keteranganValue = existingAbsen.keterangan
+        if (input.alasan) {
+          keteranganValue = existingAbsen.keterangan
+            ? `${existingAbsen.keterangan} | [PULANG CEPAT] ${input.alasan}`
+            : `[PULANG CEPAT] ${input.alasan}`
+        } else if (isPulangCepatDaruratAktif) {
+          keteranganValue = existingAbsen.keterangan
+            ? `${existingAbsen.keterangan} | [PULANG CEPAT DARURAT MASAL]`
+            : `[PULANG CEPAT DARURAT MASAL]`
         }
 
         await db
           .update(absensiGuru)
-          .set({ jamPulang: now })
+          .set({ 
+            jamPulang: now,
+            keterangan: keteranganValue,
+          })
           .where(eq(absensiGuru.id, existingAbsen.id))
 
         await logAudit(ctx, {

@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, timestamp, index, boolean } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -16,6 +16,7 @@ export const pengaturanAbsensi = pgTable("pengaturan_absensi", {
   radius: integer("radius").notNull().default(100),
   aturanGuru: text("aturan_guru").notNull().default("per_jp"),
   hariLibur: text("hari_libur").notNull().default('["sabtu", "minggu"]'),
+  isPulangCepatDarurat: boolean("is_pulang_cepat_darurat").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [

@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import JSZip from "jszip"
 import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check } from "lucide-react"
+import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff } from "lucide-react"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -62,6 +62,7 @@ export default function AbsensiPage() {
     longitude: number | null
     name: string
     type: "siswa" | "guru"
+    action?: "masuk" | "pulang"
   } | null>(null)
   const [lateReason, setLateReason] = useState("")
   const [submittingLateReason, setSubmittingLateReason] = useState(false)
@@ -286,6 +287,11 @@ export default function AbsensiPage() {
   const updateAbsensiSiswa = api.absensi.update.useMutation()
   const saveGuruAbsensi = api.absensi.createOrUpdateGuruAbsensi.useMutation()
   const barcodeScanMutation = api.absensi.absenViaBarcode.useMutation()
+  const togglePulangCepatDaruratMutation = api.absensi.togglePulangCepatDarurat.useMutation({
+    onSuccess: () => {
+      utils.absensi.getPengaturan.invalidate()
+    },
+  })
 
   // ─── AUTOSAVE per baris ──────────────────────────────────
   const existingSiswaMap = useMemo(() => {
@@ -553,11 +559,16 @@ export default function AbsensiPage() {
           longitude: coords?.longitude ?? null,
           name: result.name ?? "",
           type: result.type as "siswa" | "guru",
+          action: result.action as "masuk" | "pulang",
         })
         setLateReason("")
         setLateDialogOpen(true)
         playBeep("error")
-        toast.warning(`Terlambat: Harap masukkan alasan keterlambatan.`)
+        if (result.action === "pulang") {
+          toast.warning(`Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal.`)
+        } else {
+          toast.warning(`Terlambat: Harap masukkan alasan keterlambatan.`)
+        }
         setScannerState("cooldown")
         scannerStateRef.current = "cooldown"
         if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
@@ -614,9 +625,15 @@ export default function AbsensiPage() {
         name: result.name,
         action: result.action === "masuk" ? "MASUK" : "PULANG",
         status: STATUS_LABELS[result.status as StatusAbsensi],
-        message: `Absensi Masuk untuk ${result.name} berhasil dicatat dengan status ${STATUS_LABELS[result.status as StatusAbsensi]}. Alasan: ${lateReason.trim()}`,
+        message: result.action === "pulang"
+          ? `Absensi Pulang untuk ${result.name} berhasil dicatat (Pulang Lebih Awal). Alasan: ${lateReason.trim()}`
+          : `Absensi Masuk untuk ${result.name} berhasil dicatat dengan status ${STATUS_LABELS[result.status as StatusAbsensi]}. Alasan: ${lateReason.trim()}`,
       })
-      toast.success(`Scan Berhasil: ${result.name} (Masuk - Terlambat)`)
+      if (result.action === "pulang") {
+        toast.success(`Scan Berhasil: ${result.name} (Pulang Cepat)`)
+      } else {
+        toast.success(`Scan Berhasil: ${result.name} (Masuk - Terlambat)`)
+      }
       setLateDialogOpen(false)
       setLateData(null)
       setLateReason("")
@@ -625,7 +642,7 @@ export default function AbsensiPage() {
       playBeep("error")
       setScanResult({
         success: false,
-        message: err.message || "Gagal mengirimkan alasan terlambat",
+        message: err.message || (lateData?.action === "pulang" ? "Gagal mengirimkan alasan pulang cepat" : "Gagal mengirimkan alasan terlambat"),
       })
       toast.error(err.message || "Gagal Kirim Alasan")
     } finally {
@@ -1848,6 +1865,66 @@ export default function AbsensiPage() {
                 </div>
               )}
             </div>
+
+            {/* Control Panel: Pulang Cepat Darurat */}
+            <div className="neumo-card bg-background rounded-[26px] p-5 space-y-4 border border-rose-100 dark:border-rose-950/20">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <Flame className="h-4.5 w-4.5 text-rose-500 animate-pulse" />
+                  <h4 className="font-black text-[10px] text-slate-400 uppercase tracking-wider">
+                    Kontrol Pulang Cepat Darurat
+                  </h4>
+                </div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                  pengaturanAbsensi?.isPulangCepatDarurat
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-455"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                }`}>
+                  {pengaturanAbsensi?.isPulangCepatDarurat ? "Aktif" : "Nonaktif"}
+                </span>
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Fitur ini digunakan saat terjadi keadaan darurat (misal: bencana alam, banjir, mati listrik total, dll) atau kebijakan sekolah khusus untuk memulangkan seluruh warga sekolah lebih awal tanpa harus memasukkan alasan pulang cepat secara individual.
+              </p>
+
+              <button
+                type="button"
+                disabled={togglePulangCepatDaruratMutation.isPending}
+                onClick={async () => {
+                  try {
+                    const nextState = !pengaturanAbsensi?.isPulangCepatDarurat
+                    await togglePulangCepatDaruratMutation.mutateAsync({ aktif: nextState })
+                    toast.success(
+                      nextState
+                        ? "Pulang Cepat Darurat diaktifkan. Semua guru/siswa dapat melakukan scan pulang tanpa dialog alasan."
+                        : "Pulang Cepat Darurat dinonaktifkan. Aturan kepulangan kembali normal."
+                    )
+                  } catch (error: any) {
+                    toast.error(error.message || "Gagal mengubah status Pulang Cepat Darurat.")
+                  }
+                }}
+                className={`w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 transform active:scale-95 shadow-md shadow-rose-500/5 cursor-pointer disabled:opacity-85 ${
+                  pengaturanAbsensi?.isPulangCepatDarurat
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
+                    : "bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white"
+                }`}
+              >
+                {togglePulangCepatDaruratMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : pengaturanAbsensi?.isPulangCepatDarurat ? (
+                  <>
+                    <PowerOff className="h-4 w-4" />
+                    Matikan Mode Darurat
+                  </>
+                ) : (
+                  <>
+                    <Flame className="h-4 w-4" />
+                    Aktifkan Mode Darurat
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2143,14 +2220,14 @@ export default function AbsensiPage() {
         </div>
       )}
 
-      {/* Dialog Alasan Keterlambatan */}
+      {/* Dialog Alasan Keterlambatan / Pulang Cepat */}
       <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setLateData(null); resetAndRestartScanner(); } }}>
         <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-amber-500" />
               <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
-                Konfirmasi Keterlambatan
+                {lateData?.action === "pulang" ? "Konfirmasi Pulang Lebih Awal" : "Konfirmasi Keterlambatan"}
               </h3>
             </div>
             <button
@@ -2166,18 +2243,26 @@ export default function AbsensiPage() {
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 text-xs font-semibold text-amber-800 dark:text-amber-300">
               <p className="font-bold">⚠️ Perhatian:</p>
               <p className="mt-1">
-                Waktu pemindaian absensi masuk untuk <strong>{lateData?.name}</strong> telah melewati batas toleransi keterlambatan 15 menit. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini.
+                {lateData?.action === "pulang" ? (
+                  <>
+                    Waktu pemindaian absensi pulang untuk <strong>{lateData?.name}</strong> dilakukan sebelum jam mengajar selesai. Anda wajib mengisi alasan pulang lebih awal untuk mencatat kepulangan ini.
+                  </>
+                ) : (
+                  <>
+                    Waktu pemindaian absensi masuk untuk <strong>{lateData?.name}</strong> telah melewati batas toleransi keterlambatan 15 menit. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini.
+                  </>
+                )}
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="block text-[9px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest mb-1">
-                Alasan Terlambat (Wajib)
+              <Label className="block text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+                {lateData?.action === "pulang" ? "Alasan Pulang Cepat (Wajib)" : "Alasan Terlambat (Wajib)"}
               </Label>
               <textarea
                 value={lateReason}
                 onChange={(e) => setLateReason(e.target.value)}
-                placeholder="Masukkan alasan keterlambatan (misalnya: macet di jalan, kendala kendaraan, dll)..."
+                placeholder={lateData?.action === "pulang" ? "Masukkan alasan pulang cepat (misalnya: sakit, urusan keluarga mendesak, dll)..." : "Masukkan alasan keterlambatan (misalnya: macet di jalan, kendala kendaraan, dll)..."}
                 rows={3}
                 className="w-full rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-teal-500/10 focus:border-teal-500 bg-slate-50/50 dark:bg-slate-900/50 text-xs p-3 font-semibold text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none"
               />
@@ -2189,7 +2274,7 @@ export default function AbsensiPage() {
               type="button"
               onClick={() => { setLateDialogOpen(false); setLateData(null); resetAndRestartScanner(); }}
               disabled={submittingLateReason}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-85"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-85"
             >
               Batal
             </button>
