@@ -19,6 +19,7 @@ import {
   Calendar,
   X,
   FileSpreadsheet,
+  RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -116,6 +117,8 @@ export default function JadwalPage() {
   const [pengaturanOpen, setPengaturanOpen] = useState(false)
   const [cetakOpen, setCetakOpen] = useState(false)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -152,6 +155,25 @@ export default function JadwalPage() {
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({})
 
   const utils = api.useUtils()
+
+  const clearAllMutation = api.jadwal.clearAll.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Jadwal berhasil di-reset (${res.count} entri dihapus)`)
+      utils.jadwal.getAll.invalidate()
+      utils.jadwal.getTimelineWithJadwal.invalidate()
+      setResetOpen(false)
+    },
+    onError: (err) => toast.error(err.message || "Gagal mereset jadwal"),
+  })
+
+  const handleResetJadwal = async () => {
+    setResetting(true)
+    try {
+      await clearAllMutation.mutateAsync({ kelasId: kelasId || undefined })
+    } finally {
+      setResetting(false)
+    }
+  }
 
   const createMutation = api.jadwal.create.useMutation({
     onSuccess: () => {
@@ -423,6 +445,17 @@ export default function JadwalPage() {
 
               <ExportExcelJadwal />
             </>
+          )}
+
+          {canEdit && (
+            <Button
+              onClick={() => setResetOpen(true)}
+              disabled={resetting}
+              className="flex items-center justify-center font-bold px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              <span>Reset Jadwal</span>
+            </Button>
           )}
         </div>
       )}
@@ -922,7 +955,29 @@ export default function JadwalPage() {
             onClose={() => setPengaturanOpen(false)}
           />
 
-          <AiGenerateDialog
+          <AlertDialog open={resetOpen} onOpenChange={(open) => !resetting && setResetOpen(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Jadwal Pelajaran?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Semua jadwal pelajaran {kelasId && !isGuru && !isSiswa ? `untuk ${selectedKelasMain}` : "di sekolah ini"} akan dihapus permanen. Anda bisa generate ulang lewat AI Auto-Generate atau menyusun ulang secara manual. Tindakan ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetJadwal}
+              disabled={resetting}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <RotateCcw className="w-4 h-4 mr-1.5" />}
+              Ya, Reset Sekarang
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AiGenerateDialog
             open={aiGenerateOpen}
             onClose={() => setAiGenerateOpen(false)}
             kelasRecords={kelasRecords}

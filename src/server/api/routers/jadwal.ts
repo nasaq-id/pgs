@@ -508,6 +508,17 @@ export const jadwalRouter = router({
       return { success: true }
     }),
 
+  clearAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({ kelasId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const conditions = [eq(jadwalPelajaran.sekolahId, sekolahId)]
+      if (input.kelasId) conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
+      const deleted = await db.delete(jadwalPelajaran).where(and(...conditions)).returning()
+      await logAudit(ctx, { action: "clear_all", entity: "jadwal_pelajaran", metadata: { kelasId: input.kelasId ?? null, count: deleted.length } })
+      return { success: true, count: deleted.length }
+    }),
+
   autoGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(autoGenerateInputSchema)
     .mutation(async ({ ctx, input }) => {
