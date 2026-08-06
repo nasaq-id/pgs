@@ -71,14 +71,8 @@
 
 ### B4. Konsolidasi sistem tagihan lama (tagihan_spp) → invoice
 - **Severity:** 🟢 Low
-- **Status:** 🟡 In Progress
-- **Lokasi:** `src/server/db/schema/tagihan-spp.ts`, `src/server/api/routers/keuangan.ts`, `scripts/migrate-tagihan-spp.ts`
-- **Masalah:** Ada **dua sistem tagihan paralel**: `tagihan_spp` (lama, sederhana) & `invoice` (baru, lengkap dengan diskon/denda/riwayat status). Script migrasi sudah ada tapi router `keuangan.ts` masih baca/tulis `tagihanSpp`. Potensi double-billing & kebingungan UI.
-- **Saran aksi:**
-  1. Jalankan `scripts/migrate-tagihan-spp.ts` untuk semua sekolah.
-  2. Migrasi UI/halaman `keuangan/*` agar pakai router `finance-*` (billing/payment/discount/report).
-  3. Setelah verifikasi, deprecate `keuangan.ts` + drop `tagihan_spp` (atau simpan read-only untuk arsip).
-  4. Update sidebar/menu bila perlu.
+- **Status:** ✅ Done
+- **Hasil (2026-08):** Data `tagihan_spp` sudah kosong (0 baris, semua sudah di-invoice). UI `keuangan/*` sudah 100% memakai router `finance-*` (billing/payment/discount/report/settings). Prosedur lama di `keuangan.ts` (getBySiswa/create/update) dihapus — router kini murni komposisi sub-router. Tabel `tagihan_spp` di-drop (migration `0017_drop_tagihan_spp`).
 
 ---
 

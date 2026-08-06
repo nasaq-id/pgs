@@ -113,6 +113,13 @@
       "when": 1785992372790,
       "tag": "0016_add_rate_limit_bucket",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785993014240,
+      "tag": "0017_drop_tagihan_spp",
+      "breakpoints": true
     }
   ]
 }
