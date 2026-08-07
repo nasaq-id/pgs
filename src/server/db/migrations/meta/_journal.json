@@ -148,6 +148,20 @@
       "when": 1786030355567,
       "tag": "0021_hari_libur_guru",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786080895789,
+      "tag": "0021_add-absensi-hari",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786081298162,
+      "tag": "0022_small_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

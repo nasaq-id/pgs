@@ -16,6 +16,7 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   jamSelesai: timestamp("jam_selesai"),
   jpMulai: integer("jp_mulai"),
   jpCount: integer("jp_count"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("jadwal_pelajaran_sekolah_id_idx").on(table.sekolahId),
   index("jadwal_pelajaran_kelas_id_hari_idx").on(table.kelasId, table.hari),

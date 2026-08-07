@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, boolean, index, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -14,6 +14,7 @@ export const mataPelajaran = pgTable("mata_pelajaran", {
   jumlahJam: integer("jumlah_jam").notNull().default(0),
   aktif: boolean("aktif").notNull().default(true),
   urutan: integer("urutan").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("mata_pelajaran_sekolah_id_idx").on(table.sekolahId),
 ])

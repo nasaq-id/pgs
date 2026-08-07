@@ -12,6 +12,7 @@ export const prestasi = pgTable("prestasi", {
   juara: text("juara"),
   tanggal: timestamp("tanggal"),
   sertifikat: text("sertifikat"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("prestasi_sekolah_id_idx").on(table.sekolahId),
 ])

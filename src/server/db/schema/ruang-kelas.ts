@@ -1,4 +1,4 @@
-import { pgTable, text, integer, index } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, index, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 
@@ -7,6 +7,7 @@ export const ruangKelas = pgTable("ruang_kelas", {
   sekolahId: text("sekolah_id").notNull().references(() => sekolah.id, { onDelete: "cascade" }),
   namaRuang: text("nama_ruang").notNull(),
   kapasitas: integer("kapasitas"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("ruang_kelas_sekolah_id_idx").on(table.sekolahId),
 ])

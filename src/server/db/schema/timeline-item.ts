@@ -1,4 +1,4 @@
-import { pgTable, text, integer, index } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, index, timestamp } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { pengaturanJadwal } from "./pengaturan-jadwal"
@@ -14,6 +14,7 @@ export const timelineItem = pgTable("timeline_item", {
   jamSelesai: text("jam_selesai").notNull(),
   urutan: integer("urutan").notNull().default(0),
   warna: text("warna"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("timeline_item_sekolah_id_idx").on(table.sekolahId),
 ])
