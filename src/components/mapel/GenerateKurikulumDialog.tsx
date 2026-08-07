@@ -110,7 +110,7 @@ export default function GenerateKurikulumDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="sm:max-w-3xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
+      <DialogContent showCloseButton={false} className="sm:max-w-3xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.97, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
