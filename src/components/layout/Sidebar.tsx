@@ -629,27 +629,38 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               )}
             </span>
             <div className="relative group">
-              <button
-                type="button"
-                onClick={() => setLogoutOpen(true)}
-                className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20 text-muted-foreground hover:text-red-500 transition-all duration-200 border border-transparent hover:border-red-200/30"
-                title={`Keluar (${displayName})`}
+              <Link
+                href="/profil"
+                title={`Profil Saya (${displayName})`}
+                className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/20 text-muted-foreground hover:text-teal-600 transition-all duration-200 border border-transparent hover:border-teal-200/30"
               >
                 {userPhoto ? (
                   <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <span className="font-bold text-xs uppercase">{initials}</span>
                 )}
-              </button>
+              </Link>
               {/* Hover tooltip when minimized */}
               <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-850">
-                Keluar ({displayName})
+                Profil Saya
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20 text-muted-foreground hover:text-red-500 transition-all duration-200 border border-transparent"
+              title="Keluar"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </>
         ) : (
           <div className="flex items-center justify-between w-full gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <Link
+              href="/profil"
+              title="Profil Saya"
+              className="flex items-center gap-2.5 min-w-0 flex-1 rounded-xl px-1.5 py-1 -mx-1.5 transition-colors hover:bg-slate-100/60 dark:hover:bg-slate-800/40 cursor-pointer"
+            >
               {userPhoto ? (
                 <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
                   <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
@@ -667,7 +678,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   {userRoleLabel}
                 </span>
               </div>
-            </div>
+            </Link>
 
             <span id="sidebar-toggle-tour">
               {setIsMinimized && (
