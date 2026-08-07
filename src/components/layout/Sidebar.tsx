@@ -614,11 +614,20 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       {/* Footer Profile Section */}
       <div className={cn(
         "p-3.5 border-t border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300",
-        isMinimized ? "flex items-center justify-center gap-2" : "flex items-center justify-between",
+        isMinimized ? "flex flex-col items-center justify-center gap-1.5" : "flex items-center justify-between",
         "pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] lg:pb-3.5"
       )}>
         {isMinimized ? (
           <>
+            <span id="sidebar-toggle-tour">
+              {setIsMinimized && (
+                <IosSwitch
+                  checked={!isMinimized}
+                  onChange={() => setIsMinimized(!isMinimized)}
+                  title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+                />
+              )}
+            </span>
             <div className="relative group">
               <button
                 type="button"
@@ -637,15 +646,6 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 Keluar ({displayName})
               </div>
             </div>
-            <span id="sidebar-toggle-tour">
-              {setIsMinimized && (
-                <IosSwitch
-                  checked={!isMinimized}
-                  onChange={() => setIsMinimized(!isMinimized)}
-                  title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
-                />
-              )}
-            </span>
           </>
         ) : (
           <div className="flex items-center justify-between w-full gap-2.5">
