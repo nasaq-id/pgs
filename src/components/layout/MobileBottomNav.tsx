@@ -24,7 +24,7 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      <div className="fixed left-3 right-3 z-50 lg:hidden" style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="fixed left-3 right-3 z-30 lg:hidden" style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-3xl px-2 py-1.5 flex items-center justify-between neumo-card border border-white/40 dark:border-slate-800/40">
           
           {/* 1. BERANDA */}

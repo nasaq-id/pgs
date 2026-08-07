@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers, LogOut
 } from "lucide-react"
 import {
   Dialog,
@@ -610,6 +610,66 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           )
         })}
       </nav>
+
+      {/* Footer Profile Section */}
+      <div className={cn(
+        "p-3.5 border-t border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300",
+        isMinimized ? "flex justify-center" : "flex items-center justify-between",
+        "pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] lg:pb-3.5"
+      )}>
+        {isMinimized ? (
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20 text-muted-foreground hover:text-red-500 transition-all duration-200 border border-transparent hover:border-red-200/30"
+              title={`Keluar (${displayName})`}
+            >
+              {userPhoto ? (
+                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-bold text-xs uppercase">{initials}</span>
+              )}
+            </button>
+            {/* Hover tooltip when minimized */}
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-850">
+              Keluar ({displayName})
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between w-full gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {userPhoto ? (
+                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
+                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-9 h-9 bg-teal-100 dark:bg-teal-950/60 rounded-xl flex items-center justify-center text-teal-700 dark:text-teal-400 font-bold text-xs shadow-sm border border-slate-100 dark:border-slate-800 uppercase flex-shrink-0">
+                  <span>{initials}</span>
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="text-[12px] font-black text-foreground leading-none truncate">
+                  {displayName}
+                </span>
+                <span className="text-[9px] text-muted-foreground font-extrabold tracking-wider leading-none capitalize mt-1.5">
+                  {userRoleLabel}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLogoutOpen(true)}
+              className="h-8 w-8 text-red-500 hover:text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg cursor-pointer flex-shrink-0"
+              title="Keluar"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Dialog Konfirmasi Keluar */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
