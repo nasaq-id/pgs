@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers, LogOut
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers, LogOut, PanelLeftClose, PanelLeftOpen
 } from "lucide-react"
 import {
   Dialog,
@@ -614,28 +614,41 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
       {/* Footer Profile Section */}
       <div className={cn(
         "p-3.5 border-t border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300",
-        isMinimized ? "flex justify-center" : "flex items-center justify-between",
+        isMinimized ? "flex items-center justify-center gap-2" : "flex items-center justify-between",
         "pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] lg:pb-3.5"
       )}>
         {isMinimized ? (
-          <div className="relative group">
-            <button
-              type="button"
-              onClick={() => setLogoutOpen(true)}
-              className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20 text-muted-foreground hover:text-red-500 transition-all duration-200 border border-transparent hover:border-red-200/30"
-              title={`Keluar (${displayName})`}
-            >
-              {userPhoto ? (
-                <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="font-bold text-xs uppercase">{initials}</span>
-              )}
-            </button>
-            {/* Hover tooltip when minimized */}
-            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-850">
-              Keluar ({displayName})
+          <>
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => setLogoutOpen(true)}
+                className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20 text-muted-foreground hover:text-red-500 transition-all duration-200 border border-transparent hover:border-red-200/30"
+                title={`Keluar (${displayName})`}
+              >
+                {userPhoto ? (
+                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-bold text-xs uppercase">{initials}</span>
+                )}
+              </button>
+              {/* Hover tooltip when minimized */}
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-950 dark:bg-slate-900 text-white text-[10px] font-black tracking-wider uppercase rounded-lg shadow-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-50 border border-slate-850">
+                Keluar ({displayName})
+              </div>
             </div>
-          </div>
+            {setIsMinimized && (
+              <button
+                type="button"
+                onClick={() => setIsMinimized(!isMinimized)}
+                id="sidebar-toggle-tour"
+                className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground hover:text-slate-800 dark:hover:text-slate-100 transition-all duration-200 border border-transparent"
+                title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+              >
+                {isMinimized ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
+            )}
+          </>
         ) : (
           <div className="flex items-center justify-between w-full gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -658,6 +671,19 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               </div>
             </div>
 
+            {setIsMinimized && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMinimized(!isMinimized)}
+                id="sidebar-toggle-tour"
+                className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer flex-shrink-0"
+                title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+              >
+                {isMinimized ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="icon"
@@ -673,20 +699,29 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
 
       {/* Dialog Konfirmasi Keluar */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Keluar</DialogTitle>
-            <DialogDescription>
-              Apakah kamu yakin ingin keluar? Kamu akan kembali ke halaman login.
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+          <DialogHeader className="text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30 flex items-center justify-center text-red-500 mx-auto">
+              <LogOut className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <DialogTitle className="text-base font-black text-slate-800 dark:text-slate-100">Konfirmasi Keluar</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-semibold">
+              Apakah Anda yakin ingin keluar dari sistem presensi dan manajemen PGS ini?
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setLogoutOpen(false)}>
+          <div className="flex items-center gap-3.5 mt-6">
+            <button
+              onClick={() => setLogoutOpen(false)}
+              className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs transition-all active:scale-95 cursor-pointer text-center border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700"
+            >
               Batal
-            </Button>
-            <Button variant="destructive" onClick={() => { signOut(); setLogoutOpen(false) }}>
-              Ya, Keluar
-            </Button>
+            </button>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs transition-all active:scale-95 cursor-pointer text-center shadow-sm"
+            >
+              Keluar
+            </button>
           </div>
         </DialogContent>
       </Dialog>

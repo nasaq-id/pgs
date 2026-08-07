@@ -177,11 +177,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="w-full flex-grow flex flex-col"
       >
-        <Topbar
-          onMenuClick={() => setSidebarOpen(true)}
-          isMinimized={isMinimized}
-          setIsMinimized={setIsMinimized}
-        />
+        <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="pt-4 lg:pt-5 pb-20 lg:pb-6 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full">
           <AnimatePresence mode="wait">
             <motion.div

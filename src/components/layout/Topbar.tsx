@@ -57,32 +57,9 @@ const pageTitles: Record<string, string> = {
 
 interface TopbarProps {
   onMenuClick: () => void
-  isMinimized?: boolean
-  setIsMinimized?: (val: boolean) => void
 }
 
-function IosSwitch({ checked, onChange, title }: { checked: boolean; onChange: () => void; title?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      className={cn(
-        "w-9 h-5 rounded-full relative transition-colors duration-300 outline-none cursor-pointer flex-shrink-0 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]",
-        checked ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-800"
-      )}
-      title={title}
-    >
-      <span
-        className={cn(
-          "w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform duration-300",
-          checked ? "translate-x-4" : "translate-x-0"
-        )}
-      />
-    </button>
-  )
-}
-
-export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimized }: TopbarProps) {
+export default function Topbar({ onMenuClick }: TopbarProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const user = session?.user
@@ -388,17 +365,6 @@ export default function Topbar({ onMenuClick, isMinimized = false, setIsMinimize
               </TooltipPositioner>
             </TooltipPortal>
           </Tooltip>
-        )}
-
-        {setIsMinimized && (
-          <div className="hidden lg:flex items-center gap-2 mr-1">
-            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Expand Menu</span>
-            <IosSwitch
-              checked={!isMinimized}
-              onChange={() => setIsMinimized(!isMinimized)}
-              title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
-            />
-          </div>
         )}
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
