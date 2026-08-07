@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Wand2, Loader2, CheckSquare, Square, X, Info, Sparkles, School, Check } from "lucide-react"
+import { Wand2, Loader2, CheckSquare, Square, X, Info, Sparkles, Check } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -158,25 +158,17 @@ export default function GenerateKurikulumDialog({
             <div className="space-y-4">
               {/* Info jenjang + filter kelas */}
               <div className="neumo-inset bg-background rounded-2xl p-4">
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-                  {/* Jenjang badge */}
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-500/[0.08] to-emerald-500/[0.08] border border-teal-500/25 dark:border-teal-500/20 text-teal-700 dark:text-teal-300 shadow-sm shrink-0">
-                    <School className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-teal-600/70 dark:text-teal-400/70">
-                      Jenjang
-                    </span>
-                    <span className="w-px h-3.5 bg-teal-500/25" />
-                    <span className="text-[10px] font-extrabold uppercase">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">
+                    Jenjang:{" "}
+                    <span className="text-teal-650 dark:text-teal-400 font-extrabold">
                       {getJenjangDisplayName(jenjang, sekolahLevel || undefined)}
                     </span>
-                  </div>
-
-                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 hidden sm:block" />
-
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    Filter Kelas
                   </span>
-
+                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">
+                    Filter Kelas:
+                  </span>
                   <div className="flex flex-wrap gap-1.5">
                     {kelasList.map((n) => {
                       const active = kelasFilter.includes(n)
