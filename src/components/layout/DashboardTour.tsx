@@ -116,7 +116,7 @@ export default function DashboardTour() {
     return (
       <button
         onClick={handleResetTour}
-        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 z-40 h-10 w-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-teal-600 dark:text-teal-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md group cursor-pointer focus:outline-none"
+        className="fixed bottom-[6rem] right-6 lg:bottom-8 lg:right-8 z-40 h-10 w-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-teal-600 dark:text-teal-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md group cursor-pointer focus:outline-none"
         title="Ulangi Tur Dashboard"
       >
         <HelpCircle className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
