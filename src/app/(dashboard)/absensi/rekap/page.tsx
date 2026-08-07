@@ -46,6 +46,23 @@ function getPaginationPages(current: number, total: number): (number | "...")[] 
   return pages
 }
 
+function formatHariEfektifPertama(dateStr: string): string {
+  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+function formatHariLiburPendek(dateStr: string): string {
+  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    weekday: "short",
+  })
+}
+
 type TabType = "siswa" | "guru"
 type PeriodeType = "mingguan" | "bulanan" | "semester" | "kustom"
 
@@ -200,6 +217,20 @@ export default function RekapPresensiPage() {
 
   // Guru mode Jam Pelajaran (JP): kolom & satuan rekap jadi JP
   const isGuruJP = activeTab === "guru" && !!rekapGuruData?.isPerJP
+
+  // Info hari efektif periode aktif (dinamis dari data kalender akademik)
+  const hariEfektifInfo = useMemo(() => {
+    const isSiswa = activeTab === "siswa"
+    const data = isSiswa ? rekapSiswaData : rekapGuruData
+    const loading = isSiswa ? isLoadingSiswa : isLoadingGuru
+    const pertama = data?.hariEfektifPertama ?? null
+    const awalLibur: string[] = data?.hariEfektifAwalLibur ?? []
+    const hariEfektif = data?.hariEfektif ?? 0
+    const awalLiburText = awalLibur.length === 0
+      ? null
+      : `${awalLibur.slice(0, 4).map(formatHariLiburPendek).join(", ")}${awalLibur.length > 4 ? " …" : ""} libur`
+    return { loading, pertama, awalLiburText, hariEfektif }
+  }, [activeTab, rekapSiswaData, rekapGuruData, isLoadingSiswa, isLoadingGuru])
 
   const selectedPersonLogs = useMemo(() => {
     if (!selectedPerson) return []
@@ -655,19 +686,38 @@ export default function RekapPresensiPage() {
         </div>
       </div>
 
-      {/* Tab Switcher */}
+      {/* Tab Switcher + Info Hari Efektif */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSearchQuery(""); setPage(0); }} className="w-full">
-        <div className="flex justify-center mb-6">
+        <div className="relative flex flex-col md:flex-row items-center justify-center gap-3 mb-6">
           <TabsList className="w-full max-w-md">
-            <TabsTrigger value="siswa" className="">
+            <TabsTrigger value="siswa" className="flex-1">
               <GraduationCap className="w-4 h-4" />
               <span>Siswa</span>
             </TabsTrigger>
-            <TabsTrigger value="guru" className="">
+            <TabsTrigger value="guru" className="flex-1">
               <UserCheck className="w-4 h-4" />
               <span>Guru</span>
             </TabsTrigger>
           </TabsList>
+          <div className="flex flex-col items-start gap-0.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-900/40 px-3 py-1.5 w-full md:w-auto md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2">
+            {hariEfektifInfo.loading ? (
+              <Skeleton className="h-3.5 w-48 rounded" />
+            ) : !hariEfektifInfo.pertama ? (
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hari efektif periode ini: tidak ada</span>
+            ) : (
+              <>
+                <span className="text-[10px] font-extrabold text-teal-700 dark:text-teal-300 uppercase tracking-wider flex items-center gap-1">
+                  <Calendar className="h-3 w-3 shrink-0" />
+                  Hari efektif {hariEfektifInfo.hariEfektif} hari · dimulai {formatHariEfektifPertama(hariEfektifInfo.pertama)}
+                </span>
+                {hariEfektifInfo.awalLiburText && (
+                  <span className="text-[9px] font-bold text-teal-600/70 dark:text-teal-400/60 normal-case">
+                    {hariEfektifInfo.awalLiburText}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </Tabs>
 

@@ -938,10 +938,23 @@ export const absensiRouter = router({
         }
       })
 
+      // Info hari efektif untuk tampilan rekap (dinamis, bukan hardcoded)
+      const hariEfektifPertama = hariEfektifDates[0] ?? null
+      const hariEfektifAwalLibur: string[] = []
+      if (hariEfektifPertama) {
+        const cur = new Date(start)
+        while (cur.toISOString().split("T")[0] < hariEfektifPertama) {
+          hariEfektifAwalLibur.push(cur.toISOString().split("T")[0])
+          cur.setUTCDate(cur.getUTCDate() + 1)
+        }
+      }
+
       return {
         summary: summaryList,
         logs: attendanceLogs.filter(log => hariEfektifSet.has(log.tanggal.toISOString().split("T")[0])),
         hariEfektif: hariEfektifCount,
+        hariEfektifPertama,
+        hariEfektifAwalLibur,
       }
     }),
   getRekapGuru: protectedProcedure
@@ -1278,11 +1291,56 @@ export const absensiRouter = router({
         return teacherEfektifSet ? teacherEfektifSet.has(dateKey) : false
       })
 
+      // Info hari efektif untuk tampilan rekap (dinamis, bukan hardcoded)
+      const hariEfektifPertama = baselineEfektifDates[0] ?? null
+      const hariEfektifAwalLibur: string[] = []
+      if (hariEfektifPertama) {
+        const cur = new Date(start)
+        while (cur.toISOString().split("T")[0] < hariEfektifPertama) {
+          hariEfektifAwalLibur.push(cur.toISOString().split("T")[0])
+          cur.setUTCDate(cur.getUTCDate() + 1)
+        }
+      }
+
       return {
         summary: summaryList,
         logs: filteredLogs,
         hariEfektif: baselineEfektifDates.length,
+        hariEfektifPertama,
+        hariEfektifAwalLibur,
         isPerJP,
+      }
+    }),
+  getInfoHariEfektif: protectedProcedure
+    .input(
+      z.object({
+        tanggalMulai: z.coerce.date(),
+        tanggalSelesai: z.coerce.date(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "FORBIDDEN", message: "Sekolah tidak ditemukan" })
+
+      const start = getSchoolDayDate(new Date(input.tanggalMulai))
+      const end = getSchoolDayDate(new Date(input.tanggalSelesai))
+      end.setUTCHours(23, 59, 59, 999)
+
+      const { count, dates } = await getHariEfektif(sekolahId, start, end, "siswa")
+      const hariEfektifPertama = dates[0] ?? null
+      const hariEfektifAwalLibur: string[] = []
+      if (hariEfektifPertama) {
+        const cur = new Date(start)
+        while (cur.toISOString().split("T")[0] < hariEfektifPertama) {
+          hariEfektifAwalLibur.push(cur.toISOString().split("T")[0])
+          cur.setUTCDate(cur.getUTCDate() + 1)
+        }
+      }
+
+      return {
+        hariEfektif: count,
+        hariEfektifPertama,
+        hariEfektifAwalLibur,
       }
     }),
   getStaticQrGuru: protectedProcedure

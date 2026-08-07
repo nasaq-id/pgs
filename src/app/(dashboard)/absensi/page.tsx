@@ -238,6 +238,15 @@ export default function AbsensiPage() {
     { enabled: role === "siswa" },
   )
 
+  // Info hari efektif bulan berjalan (dinamis dari kalender akademik)
+  const infoHariEfektifQuery = api.absensi.getInfoHariEfektif.useQuery(
+    {
+      tanggalMulai: tanggal ? new Date(parseLocalDate(tanggal).getFullYear(), parseLocalDate(tanggal).getMonth(), 1) : new Date(),
+      tanggalSelesai: tanggal ? new Date(parseLocalDate(tanggal).getFullYear(), parseLocalDate(tanggal).getMonth() + 1, 0) : new Date(),
+    },
+    { enabled: activeTab === "manual" && !!tanggal },
+  )
+
   const currentSiswaInfo = useMemo(() => {
     if (role !== "siswa" || !siswaAll) return null
     return (siswaAll || []).find((s) => s.usernameSiswa === session?.user?.email || s.nisn === session?.user?.email || s.nisLokal === session?.user?.email)
@@ -1379,6 +1388,25 @@ export default function AbsensiPage() {
                   </div>
                 )}
               </div>
+
+              {/* Info hari efektif bulan berjalan (baris penuh, tidak terpotong) */}
+              {infoHariEfektifQuery.data?.hariEfektifPertama && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-900/40 px-3 py-1.5 text-[10px] font-extrabold text-teal-700 dark:text-teal-300 uppercase tracking-wider">
+                  <span className="flex items-center gap-1 min-w-0">
+                    <Calendar className="h-3 w-3 shrink-0" />
+                    <span>
+                      {infoHariEfektifQuery.data.hariEfektif} hari efektif · mulai{" "}
+                      {new Date(infoHariEfektifQuery.data.hariEfektifPertama + "T00:00:00Z").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+                    </span>
+                  </span>
+                  {(infoHariEfektifQuery.data.hariEfektifAwalLibur ?? []).length > 0 && (
+                    <span className="text-[9px] font-bold text-teal-600/70 dark:text-teal-400/60 normal-case tracking-normal">
+                      {(infoHariEfektifQuery.data.hariEfektifAwalLibur ?? []).slice(0, 4).map((d) => new Date(d + "T00:00:00Z").toLocaleDateString("id-ID", { day: "numeric", month: "short", weekday: "short" })).join(", ")}
+                      {(infoHariEfektifQuery.data.hariEfektifAwalLibur ?? []).length > 4 ? " …" : ""} libur
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Row 2: bulk action + statistik */}
               <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2.5">
