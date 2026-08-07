@@ -21,6 +21,7 @@ export { pengaturanKalender, pengaturanKalenderRelations } from "./pengaturan-ka
 export { timelineItem, timelineItemRelations } from "./timeline-item"
 export { asesmen, asesmenRelations, asesmenSiswa, asesmenSiswaRelations, asesmenKomentar, asesmenKomentarRelations } from "./asesmen"
 export { absensiGuru, absensiGuruRelations } from "./absensi-guru"
+export { absensiHari, absensiHariRelations } from "./absensi-hari"
 export { pengaturanAbsensi, pengaturanAbsensiRelations } from "./pengaturan-absensi"
 export { pengajuanIzin, pengajuanIzinRelations } from "./pengajuan-izin"
 export { poinKategori, poinKategoriRelations } from "./poin-kategori"

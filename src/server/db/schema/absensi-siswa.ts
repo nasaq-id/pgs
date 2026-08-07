@@ -14,6 +14,8 @@ export const absensiSiswa = pgTable("absensi_siswa", {
   jamMasuk: timestamp("jam_masuk"),
   jamPulang: timestamp("jam_pulang"),
   keterangan: text("keterangan"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("absensi_siswa_sekolah_id_idx").on(table.sekolahId),
   index("absensi_siswa_siswa_id_tanggal_idx").on(table.siswaId, table.tanggal),

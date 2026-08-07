@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, desc, between, or, asc, lte, gte, isNull } from "drizzle-orm"
 import { db } from "@/server/db"
-import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent, pengaturanKalender } from "@/server/db/schema"
+import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent, pengaturanKalender, absensiHari } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -66,6 +66,31 @@ async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]
   return rows.map((r) => r.id)
 }
 
+/**
+ * Catat bahwa hari presensi benar-benar dioperasikan (sesi absensi dijalankan).
+ * Sumber kebenaran "hari beroperasi" untuk perhitungan alfa implisit.
+ * Izin otomatis TIDAK memanggil helper ini — hari yang hanya berisi record
+ * izin/sakit tidak pernah menjadi hari operasional.
+ */
+async function ensureHariAbsensi(
+  sekolahId: string,
+  jenis: "siswa" | "guru",
+  tanggal: Date,
+  kelasId?: string | null
+): Promise<void> {
+  const schoolDay = getSchoolDayDate(new Date(tanggal))
+  await db
+    .insert(absensiHari)
+    .values({
+      id: crypto.randomUUID(),
+      sekolahId,
+      jenis,
+      kelasId: kelasId ?? null,
+      tanggal: schoolDay,
+    })
+    .onConflictDoNothing()
+}
+
 
 
 export const absensiRouter = router({
@@ -125,6 +150,15 @@ export const absensiRouter = router({
       }))
       const result = await db.insert(absensiSiswa).values(values as any).returning()
       await logAudit(ctx, { action: "bulk_create", entity: "absensi_siswa", metadata: { count: result.length } })
+
+      const hariKeys = new Set<string>()
+      for (const a of values) {
+        const key = `${a.kelasId}|${a.tanggal.toISOString()}`
+        if (hariKeys.has(key)) continue
+        hariKeys.add(key)
+        await ensureHariAbsensi(sekolahId, "siswa", a.tanggal, a.kelasId)
+      }
+
       return result
     }),
 
@@ -381,6 +415,8 @@ export const absensiRouter = router({
             })
             .returning()
 
+          await ensureHariAbsensi(sekolahId, "siswa", schoolToday, student.kelasId)
+
           await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } })
 
           if (isLate && !input.alasan) {
@@ -546,6 +582,8 @@ export const absensiRouter = router({
               keterangan: input.alasan ?? null,
             })
             .returning()
+
+          await ensureHariAbsensi(sekolahId, "guru", schoolToday)
 
           await logAudit(ctx, { action: "scan_checkin_guru", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } })
 
@@ -750,6 +788,7 @@ export const absensiRouter = router({
             keterangan: input.keterangan,
           })
           .returning()
+        await ensureHariAbsensi(sekolahId, "guru", input.tanggal)
         await logAudit(ctx, { action: "create_guru_absensi", entity: "absensi_guru", entityId: result.id })
         return result
       }
@@ -813,6 +852,7 @@ export const absensiRouter = router({
         nisn: string | null
         nisLokal: string | null
         kelasNama: string
+        kelasId: string | null
         totalHari: number
         hadirCount: number
         terlambatCount: number
@@ -829,6 +869,7 @@ export const absensiRouter = router({
           nisn: s.nisn,
           nisLokal: s.nisLokal,
           kelasNama: s.kelas?.namaKelas || "-",
+          kelasId: s.kelasId,
           totalHari: 0,
           hadirCount: 0,
           terlambatCount: 0,
@@ -853,10 +894,38 @@ export const absensiRouter = router({
         }
       }
 
+      // Hari operasional per kelas: sesi absensi yang benar-benar dijalankan di sistem.
+      // Hari ini (belum genap selesai) dikecualikan — alfa baru dihitung besok.
+      const todayKey = getSchoolDayDate(new Date()).toISOString().split("T")[0]
+      const sessionRows = await db
+        .select({ kelasId: absensiHari.kelasId, tanggal: absensiHari.tanggal })
+        .from(absensiHari)
+        .where(
+          and(
+            eq(absensiHari.sekolahId, sekolahId),
+            eq(absensiHari.jenis, "siswa"),
+            between(absensiHari.tanggal, start, end)
+          )
+        )
+      const classOperatedDays = new Map<string, Set<string>>()
+      for (const row of sessionRows) {
+        if (!row.kelasId) continue
+        const dateKey = row.tanggal.toISOString().split("T")[0]
+        if (!hariEfektifSet.has(dateKey)) continue
+        if (dateKey >= todayKey) continue
+        let set = classOperatedDays.get(row.kelasId)
+        if (!set) {
+          set = new Set<string>()
+          classOperatedDays.set(row.kelasId, set)
+        }
+        set.add(dateKey)
+      }
+
       const summaryList = Array.from(studentMap.values()).map((item) => {
         const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
-        // Alfa implisit: hari efektif tanpa record apa pun (tidak hadir & tidak ada izin/sakit disetujui)
-        const alphaCount = Math.max(0, hariEfektifCount - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount))
+        // Alfa implisit: hari operasional kelas tanpa record apa pun (tidak hadir & tidak ada izin/sakit disetujui)
+        const operatedDays = item.kelasId ? (classOperatedDays.get(item.kelasId)?.size ?? 0) : 0
+        const alphaCount = item.alphaCount + Math.max(0, operatedDays - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount))
         // Pendekatan A: (Hadir + Terlambat) / Hari Efektif
         const effectiveHadir = item.hadirCount + item.terlambatCount
         const persentase = hariEfektifCount > 0 ? Math.round((effectiveHadir / hariEfektifCount) * 100) : 0
@@ -864,7 +933,7 @@ export const absensiRouter = router({
           ...item,
           alphaCount,
           hariEfektif: hariEfektifCount,
-          hariTercatat: loggedDays + (alphaCount - item.alphaCount),
+          hariTercatat: loggedDays,
           persentaseHadir: persentase,
         }
       })
@@ -1133,6 +1202,26 @@ export const absensiRouter = router({
         }
       }
 
+      // Hari operasional guru: sesi absensi guru yang benar-benar dijalankan di sistem.
+      // Hari ini (belum genap selesai) dikecualikan — alfa baru dihitung besok.
+      const todayKey = getSchoolDayDate(new Date()).toISOString().split("T")[0]
+      const guruSessionRows = await db
+        .select({ tanggal: absensiHari.tanggal })
+        .from(absensiHari)
+        .where(
+          and(
+            eq(absensiHari.sekolahId, sekolahId),
+            eq(absensiHari.jenis, "guru"),
+            between(absensiHari.tanggal, start, end)
+          )
+        )
+      const guruOperatedDates = new Set<string>()
+      for (const row of guruSessionRows) {
+        const dateKey = row.tanggal.toISOString().split("T")[0]
+        if (dateKey >= todayKey) continue
+        guruOperatedDates.add(dateKey)
+      }
+
       const summaryList = Array.from(teacherMap.values()).map((item) => {
         const teacherEfektifCount = teacherEfektifCounts.get(item.guruId) || 0
 
@@ -1153,15 +1242,22 @@ export const absensiRouter = router({
 
         // Jam Kerja: Pendekatan B — Sakit/Izin dimaklumi (tidak mengurangi persentase)
         const loggedDays = item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount
-        // Alfa implisit: hari efektif tanpa record apa pun
-        const alphaCount = Math.max(0, teacherEfektifCount - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount))
+        // Alfa implisit: hari operasional guru (sesi berjalan di sistem) tanpa record apa pun
+        const teacherEfektifSet = teacherEfektifSets.get(item.guruId)
+        let operatedDays = 0
+        if (teacherEfektifSet) {
+          for (const d of teacherEfektifSet) {
+            if (guruOperatedDates.has(d)) operatedDays++
+          }
+        }
+        const alphaCount = item.alphaCount + Math.max(0, operatedDays - (item.hadirCount + item.terlambatCount + item.izinCount + item.sakitCount + item.alphaCount))
         const effectiveHadir = item.hadirCount + item.terlambatCount + item.sakitCount + item.izinCount
         const persentase = teacherEfektifCount > 0 ? Math.round((effectiveHadir / teacherEfektifCount) * 100) : 0
         return {
           ...item,
           alphaCount,
           hariEfektif: teacherEfektifCount,
-          hariTercatat: loggedDays + (alphaCount - item.alphaCount),
+          hariTercatat: loggedDays,
           persentaseHadir: persentase,
         }
       })
@@ -1418,6 +1514,8 @@ export const absensiRouter = router({
             keterangan: input.alasan ?? null,
           })
           .returning()
+
+        await ensureHariAbsensi(sekolahId, "guru", schoolToday)
 
         await logAudit(ctx, {
           action: "scan_single_qr_guru_masuk",
