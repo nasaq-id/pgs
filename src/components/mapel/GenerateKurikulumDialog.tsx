@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { Wand2, Loader2, CheckSquare, Square, X, Info, Sparkles } from "lucide-react"
+import { Wand2, Loader2, CheckSquare, Square, X, Info, Sparkles, School, Check } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -158,32 +158,44 @@ export default function GenerateKurikulumDialog({
             <div className="space-y-4">
               {/* Info jenjang + filter kelas */}
               <div className="neumo-inset bg-background rounded-2xl p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">
-                    Jenjang:{" "}
-                    <span className="text-teal-650 dark:text-teal-400 font-extrabold">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                  {/* Jenjang badge */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-500/[0.08] to-emerald-500/[0.08] border border-teal-500/25 dark:border-teal-500/20 text-teal-700 dark:text-teal-300 shadow-sm shrink-0">
+                    <School className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-teal-600/70 dark:text-teal-400/70">
+                      Jenjang
+                    </span>
+                    <span className="w-px h-3.5 bg-teal-500/25" />
+                    <span className="text-[10px] font-extrabold uppercase">
                       {getJenjangDisplayName(jenjang, sekolahLevel || undefined)}
                     </span>
+                  </div>
+
+                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    Filter Kelas
                   </span>
-                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">
-                    Filter Kelas:
-                  </span>
+
                   <div className="flex flex-wrap gap-1.5">
-                    {kelasList.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => toggleKelasFilter(n)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all cursor-pointer ${
-                          kelasFilter.includes(n)
-                            ? "bg-teal-600 text-white border-teal-600 shadow-sm"
-                            : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-teal-400"
-                        }`}
-                      >
-                        {formatKelasLabel([n], jenjang).replace("Kelas ", "")}
-                      </button>
-                    ))}
+                    {kelasList.map((n) => {
+                      const active = kelasFilter.includes(n)
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => toggleKelasFilter(n)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border transition-all cursor-pointer active:scale-95 ${
+                            active
+                              ? "bg-teal-600 text-white border-teal-600 shadow-sm shadow-teal-500/25"
+                              : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-teal-400 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-950/20"
+                          }`}
+                        >
+                          {active && <Check className="w-3 h-3" />}
+                          {formatKelasLabel([n], jenjang).replace("Kelas ", "")}
+                        </button>
+                      )
+                    })}
                     {kelasFilter.length > 0 && (
                       <button
                         type="button"
@@ -191,8 +203,9 @@ export default function GenerateKurikulumDialog({
                           setKelasFilter([])
                           regenerate([])
                         }}
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-500 hover:border-rose-300 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-300 dark:hover:border-rose-800 transition-all cursor-pointer active:scale-95"
                       >
+                        <X className="w-3 h-3" />
                         Reset
                       </button>
                     )}
