@@ -9,7 +9,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
-  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers, LogOut, PanelLeftClose, PanelLeftOpen
+  Trophy, Megaphone, QrCode, Bell, Wallet, Compass, X, Shield, Activity, ScrollText, Database, Layers, LogOut
 } from "lucide-react"
 import {
   Dialog,
@@ -637,17 +637,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 Keluar ({displayName})
               </div>
             </div>
-            {setIsMinimized && (
-              <button
-                type="button"
-                onClick={() => setIsMinimized(!isMinimized)}
-                id="sidebar-toggle-tour"
-                className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground hover:text-slate-800 dark:hover:text-slate-100 transition-all duration-200 border border-transparent"
-                title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
-              >
-                {isMinimized ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              </button>
-            )}
+            <span id="sidebar-toggle-tour">
+              {setIsMinimized && (
+                <IosSwitch
+                  checked={!isMinimized}
+                  onChange={() => setIsMinimized(!isMinimized)}
+                  title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+                />
+              )}
+            </span>
           </>
         ) : (
           <div className="flex items-center justify-between w-full gap-2.5">
@@ -671,18 +669,15 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               </div>
             </div>
 
-            {setIsMinimized && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMinimized(!isMinimized)}
-                id="sidebar-toggle-tour"
-                className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer flex-shrink-0"
-                title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
-              >
-                {isMinimized ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              </Button>
-            )}
+            <span id="sidebar-toggle-tour">
+              {setIsMinimized && (
+                <IosSwitch
+                  checked={!isMinimized}
+                  onChange={() => setIsMinimized(!isMinimized)}
+                  title={isMinimized ? "Tampilkan Menu" : "Sembunyikan Menu"}
+                />
+              )}
+            </span>
 
             <Button
               variant="ghost"
