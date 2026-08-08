@@ -257,6 +257,12 @@ export default function MapelPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Mata Pelajaran</h2>
+        <p className="text-muted-foreground">Kelola mata pelajaran dan kurikulum</p>
+      </div>
+
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Stat 1: Total Mata Pelajaran */}
@@ -343,6 +349,7 @@ export default function MapelPage() {
             <button
               type="button"
               onClick={() => setGenerateOpen(true)}
+              title="Generate struktur mata pelajaran otomatis sesuai standar Permendikdasmen 13/2025 / KMA 1503"
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-indigo-500/5 transition-all cursor-pointer transform active:scale-95 w-full"
             >
               <Wand2 className="h-4 w-4" />
@@ -354,6 +361,7 @@ export default function MapelPage() {
             />
             <button
               className="col-span-2 lg:col-span-1 w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
+              title="Tambahkan mata pelajaran baru secara manual"
               onClick={() => {
                 setEditData(null)
                 setFormOpen(true)
@@ -767,10 +775,12 @@ export default function MapelPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-          <GenerateKurikulumDialog
+      <GenerateKurikulumDialog
         open={generateOpen}
         onOpenChange={setGenerateOpen}
         sekolahLevel={sekolah?.jenjang}
+        sekolahNama={sekolah?.namaSekolah}
+        kelasList={(kelasList ?? []) as any}
         existingMapel={(mapelList ?? []) as any}
       />
     </div>
