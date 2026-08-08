@@ -33,6 +33,17 @@ function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): numbe
   return date.getUTCHours() * 60 + date.getUTCMinutes()
 }
 
+function formatSchoolTime(date: Date | null | undefined): string | null {
+  if (!date) return null
+  const formatter = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+  return formatter.format(date)
+}
+
 const absensiBulkCreateSchema = z.object({
   absensi: z.array(
     z.object({
@@ -393,6 +404,21 @@ export const absensiRouter = router({
           const isLate = nowMinutes > limitMasukMinutes
           const status = isLate ? "terlambat" : "hadir"
 
+          // Keterlambatan tanpa alasan: jangan buat record dulu — tunggu alasan
+          // dikirim. Ini mencegah record "nyangkut" (jam masuk terisi, jam pulang
+          // kosong) yang membuat scan berikutnya diterjemahkan sebagai checkout
+          // ("belum waktunya pulang") padahal siswa baru mau absen masuk.
+          if (isLate && !input.alasan) {
+            return {
+              success: true,
+              requireReason: true,
+              type: "siswa" as const,
+              name: student.namaLengkap,
+              action: "masuk" as const,
+              status,
+            }
+          }
+
           // Defensive re-check to prevent race condition duplicates
           const recheckAbsen = await db.query.absensiSiswa.findFirst({
             where: and(eq(absensiSiswa.siswaId, student.id), between(absensiSiswa.tanggal, startOfToday, endOfToday)),
@@ -419,17 +445,6 @@ export const absensiRouter = router({
 
           await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } })
 
-          if (isLate && !input.alasan) {
-            return {
-              success: true,
-              requireReason: true,
-              type: "siswa" as const,
-              name: student.namaLengkap,
-              action: "masuk" as const,
-              status,
-            }
-          }
-
           return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status }
         } else {
           // Check if updating reason for existing late check-in
@@ -446,7 +461,41 @@ export const absensiRouter = router({
 
           // Check-out (Pulang)
           if (existingAbsen.jamPulang) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Siswa sudah melakukan absensi pulang hari ini" })
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `${student.namaLengkap} sudah tercatat masuk pukul ${formatSchoolTime(existingAbsen.jamMasuk) ?? "-"} dan pulang pukul ${formatSchoolTime(existingAbsen.jamPulang) ?? "-"} hari ini.`,
+            })
+          }
+
+          // Record yang dibuat manual (pre-fill admin/guru) tanpa jam masuk:
+          // scan berikutnya diperlakukan sebagai check-in, bukan checkout.
+          if (!existingAbsen.jamMasuk) {
+            const isLate = nowMinutes > limitMasukMinutes
+            const status = isLate ? "terlambat" : "hadir"
+
+            if (isLate && !input.alasan) {
+              return {
+                success: true,
+                requireReason: true,
+                type: "siswa" as const,
+                name: student.namaLengkap,
+                action: "masuk" as const,
+                status,
+              }
+            }
+
+            const [updated] = await db
+              .update(absensiSiswa)
+              .set({
+                status,
+                jamMasuk: now,
+                keterangan: input.alasan ?? existingAbsen.keterangan,
+              })
+              .where(eq(absensiSiswa.id, existingAbsen.id))
+              .returning()
+
+            await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: updated.id, metadata: { name: student.namaLengkap } })
+            return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status }
           }
 
           // Cek apakah ada izin pulang_cepat yang sudah disetujui untuk hari ini
@@ -471,6 +520,7 @@ export const absensiRouter = router({
                   name: student.namaLengkap,
                   action: "pulang" as const,
                   status: existingAbsen.status,
+                  jamMasuk: formatSchoolTime(existingAbsen.jamMasuk),
                 }
               }
             }

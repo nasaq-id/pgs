@@ -70,6 +70,7 @@ export default function AbsensiPage() {
     name: string
     type: "siswa" | "guru"
     action?: "masuk" | "pulang"
+    jamMasuk?: string | null
   } | null>(null)
   const [lateReason, setLateReason] = useState("")
   const [submittingLateReason, setSubmittingLateReason] = useState(false)
@@ -599,12 +600,17 @@ export default function AbsensiPage() {
           name: result.name ?? "",
           type: result.type as "siswa" | "guru",
           action: result.action as "masuk" | "pulang",
+          jamMasuk: result.jamMasuk ?? null,
         })
         setLateReason("")
         setLateDialogOpen(true)
         playBeep("error")
         if (result.action === "pulang") {
-          toast.warning(`Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal.`)
+          toast.warning(
+            result.jamMasuk
+              ? `${result.name} sudah tercatat MASUK pukul ${result.jamMasuk}. Scan ini akan dicatat PULANG lebih awal — wajib isi alasan.`
+              : `Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal.`
+          )
         } else {
           toast.warning(`Terlambat: Harap masukkan alasan keterlambatan.`)
         }
@@ -2536,7 +2542,10 @@ export default function AbsensiPage() {
               <p className="mt-1">
                 {lateData?.action === "pulang" ? (
                   <>
-                    Waktu pemindaian absensi pulang untuk <strong>{lateData?.name}</strong> dilakukan sebelum jam mengajar selesai. Anda wajib mengisi alasan pulang lebih awal untuk mencatat kepulangan ini.
+                    <p>
+                      <strong>{lateData?.name}</strong> sudah tercatat MASUK hari ini{lateData?.jamMasuk ? ` pukul ${lateData.jamMasuk}` : ""}.
+                      Waktu pemindaian ini masih sebelum jam pulang — akan dicatat sebagai PULANG lebih awal. Anda wajib mengisi alasan kepulangan lebih awal.
+                    </p>
                   </>
                 ) : (
                   <>

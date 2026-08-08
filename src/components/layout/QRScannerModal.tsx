@@ -49,6 +49,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
   const [pendingQrCode, setPendingQrCode] = useState("")
   const [lateReason, setLateReason] = useState("")
   const [lateName, setLateName] = useState("")
+  const [lateJamMasuk, setLateJamMasuk] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<"masuk" | "pulang">("masuk")
 
   const html5QrcodeRef = useRef<any>(null)
@@ -191,6 +192,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
           setPendingQrCode(decodedText)
           setLateName(resultData.name || "")
           setLateReason("")
+          setLateJamMasuk(resultData.jamMasuk ?? null)
           setPendingAction(resultData.action === "pulang" ? "pulang" : "masuk")
           setState("require_reason")
           return
@@ -263,6 +265,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
     setPendingQrCode("")
     setLateName("")
     setLateReason("")
+    setLateJamMasuk(null)
     setPendingAction("masuk")
     clearDwellTimer()
     setState("scanning")
@@ -573,7 +576,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs font-semibold text-amber-300">
               {pendingAction === "pulang" ? (
-                <>Presensi pulang untuk <strong>{lateName}</strong> dilakukan sebelum jam pulang sekolah. Harap isi alasan pulang cepat Anda.</>
+                <>
+                  <strong>{lateName}</strong> sudah tercatat MASUK hari ini{lateJamMasuk ? ` pukul ${lateJamMasuk}` : ""}. Pemindaian ini masih sebelum jam pulang — akan dicatat sebagai PULANG lebih awal. Harap isi alasan pulang cepat Anda.
+                </>
               ) : (
                 <>Waktu presensi masuk untuk <strong>{lateName}</strong> telah melewati batas toleransi 15 menit. Harap isi alasan keterlambatan Anda.</>
               )}

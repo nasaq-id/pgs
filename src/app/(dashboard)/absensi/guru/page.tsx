@@ -39,6 +39,7 @@ import {
   Loader2
 } from "lucide-react"
 import { toast } from "sonner"
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 
 export default function PresensiGuruPage() {
   const { data: session } = useSession()
@@ -61,6 +62,7 @@ export default function PresensiGuruPage() {
   const [lateReason, setLateReason] = useState("")
   const [pendingQrCode, setPendingQrCode] = useState("")
   const [pendingAction, setPendingAction] = useState<"masuk" | "pulang">("masuk")
+  const [lateJamMasuk, setLateJamMasuk] = useState<string | null>(null)
 
   // Menyimpan koordinat GPS dari percobaan scan pertama siswa, agar bisa
   // dipakai ulang saat mengirim alasan keterlambatan (requireReason).
@@ -138,13 +140,15 @@ export default function PresensiGuruPage() {
           setPendingQrCode(code)
           setLateReason("")
           setPendingAction(res.action === "pulang" ? "pulang" : "masuk")
+          setLateJamMasuk((res as any).jamMasuk ?? null)
           setLateDialogOpen(true)
-          toast.warning(res.action === "pulang" ? "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal." : "Terlambat: Harap masukkan alasan keterlambatan.")
+          toast.warning(res.action === "pulang" ? ((res as any).jamMasuk ? `${res.name} sudah tercatat MASUK pukul ${(res as any).jamMasuk}. Scan ini akan dicatat PULANG lebih awal — wajib isi alasan.` : "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal.") : "Terlambat: Harap masukkan alasan keterlambatan.")
           await stopCamera()
         } else {
           setLateDialogOpen(false)
           setLateReason("")
           setPendingQrCode("")
+          setLateJamMasuk(null)
           // Stop camera on successful attendance to show final result card
           await stopCamera()
         }
@@ -169,8 +173,9 @@ export default function PresensiGuruPage() {
           setPendingQrCode(code)
           setLateReason("")
           setPendingAction(res.action === "pulang" ? "pulang" : "masuk")
+          setLateJamMasuk((res as any).jamMasuk ?? null)
           setLateDialogOpen(true)
-          toast.warning(res.action === "pulang" ? "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal." : "Terlambat: Harap masukkan alasan keterlambatan.")
+          toast.warning(res.action === "pulang" ? ((res as any).jamMasuk ? `${res.name} sudah tercatat MASUK pukul ${(res as any).jamMasuk}. Scan ini akan dicatat PULANG lebih awal — wajib isi alasan.` : "Pulang Cepat: Harap konfirmasi alasan kepulangan lebih awal.") : "Terlambat: Harap masukkan alasan keterlambatan.")
           await stopCamera()
         } else {
           // Sukses — tampilkan kartu hasil absensi siswa
@@ -291,6 +296,7 @@ export default function PresensiGuruPage() {
     : ""
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6 text-left pb-10">
       {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -704,7 +710,7 @@ export default function PresensiGuruPage() {
       </div>
 
       {/* Dialog Alasan Keterlambatan / Pulang Cepat */}
-      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); } }}>
+      <Dialog open={lateDialogOpen} onOpenChange={(v) => { if (!v) { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); setLateJamMasuk(null); resetAndRestartScanner(); } }}>
         <DialogContent className="max-w-md p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left">
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -715,7 +721,7 @@ export default function PresensiGuruPage() {
             </div>
             <button
               type="button"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); setLateJamMasuk(null); resetAndRestartScanner(); }}
               className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer"
             >
               <X className="h-4 w-4" />
@@ -729,6 +735,11 @@ export default function PresensiGuruPage() {
                 {pendingAction === "pulang"
                   ? "Presensi pulang dilakukan sebelum jam pulang sekolah. Anda wajib mengisi alasan pulang cepat untuk mencatat kepulangan ini."
                   : "Waktu pemindaian absensi masuk telah melewati batas toleransi keterlambatan 15 menit dari jam pelajaran (JP) Anda. Anda wajib mengisi alasan keterlambatan untuk mencatat kehadiran ini."}
+                {pendingAction === "pulang" && lateJamMasuk && (
+                  <span className="mt-2 block">
+                    Sesi telah tercatat MASUK pukul <strong>{lateJamMasuk}</strong> hari ini — pemindaian ini akan dicatat sebagai PULANG lebih awal.
+                  </span>
+                )}
               </p>
             </div>
 
@@ -750,7 +761,7 @@ export default function PresensiGuruPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); resetAndRestartScanner(); }}
+              onClick={() => { setLateDialogOpen(false); setPendingQrCode(""); setPendingAction("masuk"); setLateJamMasuk(null); resetAndRestartScanner(); }}
               disabled={scanMutation.isPending}
               className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
             >
@@ -799,5 +810,6 @@ export default function PresensiGuruPage() {
         }
       `}} />
     </div>
+    </ErrorBoundary>
   )
 }
