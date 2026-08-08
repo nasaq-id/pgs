@@ -90,7 +90,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [showAllNotif, setShowAllNotif] = useState(false)
   const calendarRef = useRef<HTMLDivElement>(null)
   const utils = api.useUtils()
 
@@ -116,13 +115,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   )
 
   const unreadCount = unreadData?.total ?? 0
-
-  const { data: allNotifData } = api.notifikasi.getAll.useQuery(
-    { limit: 50, offset: 0 },
-    { enabled: showAllNotif },
-  )
-
-  const allNotifications = allNotifData?.data ?? []
 
   useEffect(() => {
     const fetchWhatsApp = async () => {
@@ -178,16 +170,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       utils.notifikasi.getAll.invalidate()
     } catch (e) {
       console.error("Failed to mark all as read", e)
-    }
-  }
-
-  const handleMarkRead = async (id: string) => {
-    try {
-      await utils.client.notifikasi.markAsRead.mutate({ id })
-      utils.notifikasi.getRecent.invalidate()
-      utils.notifikasi.getAll.invalidate()
-    } catch (e) {
-      console.error("Failed to mark as read", e)
     }
   }
 
