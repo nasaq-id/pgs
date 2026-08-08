@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
 import {
   sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas,
-  mataPelajaran, absensiSiswa, invoice, jurnalMengajar, poinSikap
+  mataPelajaran, absensiSiswa, absensiGuru, absensiHari, pengajuanIzin, invoice, jurnalMengajar, poinSikap
 } from "@/server/db/schema"
 import { router, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
@@ -417,6 +417,58 @@ export const superAdminRouter = router({
       })
 
       return deleted
+    }),
+
+  resetDataAbsensi: roleProtectedProcedure(["super_admin"])
+    .input(z.object({ sekolahId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await db.query.sekolah.findFirst({
+        where: eq(sekolah.id, input.sekolahId),
+      })
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sekolah tidak ditemukan",
+        })
+      }
+
+      const counts = await db.transaction(async (tx) => {
+        const absensiSiswaRows = await tx
+          .delete(absensiSiswa)
+          .where(eq(absensiSiswa.sekolahId, input.sekolahId))
+          .returning({ id: absensiSiswa.id })
+
+        const absensiGuruRows = await tx
+          .delete(absensiGuru)
+          .where(eq(absensiGuru.sekolahId, input.sekolahId))
+          .returning({ id: absensiGuru.id })
+
+        const absensiHariRows = await tx
+          .delete(absensiHari)
+          .where(eq(absensiHari.sekolahId, input.sekolahId))
+          .returning({ id: absensiHari.id })
+
+        const izinRows = await tx
+          .delete(pengajuanIzin)
+          .where(eq(pengajuanIzin.sekolahId, input.sekolahId))
+          .returning({ id: pengajuanIzin.id })
+
+        return {
+          absensiSiswa: absensiSiswaRows.length,
+          absensiGuru: absensiGuruRows.length,
+          absensiHari: absensiHariRows.length,
+          pengajuanIzin: izinRows.length,
+        }
+      })
+
+      await logAudit(ctx, {
+        action: "reset_absensi",
+        entity: "absensi",
+        entityId: input.sekolahId,
+        metadata: { namaSekolah: existing.namaSekolah, ...counts },
+      })
+
+      return { success: true, counts }
     }),
 
   getDatabaseSchema: roleProtectedProcedure(["super_admin"])

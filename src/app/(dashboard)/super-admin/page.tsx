@@ -5,7 +5,7 @@ import { api } from "@/lib/trpc/client"
 import {
   School, Search, Plus, Sparkles, Building, Key,
   ShieldCheck, ShieldAlert, Check, X,
-  Activity, ScrollText, Pencil, Users, Trash2, MoreVertical
+  Activity, ScrollText, Pencil, Users, Trash2, MoreVertical, CalendarX2
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,7 @@ import EditSekolahDialog from "./_components/EditSekolahDialog"
 import ResetPasswordDialog from "./_components/ResetPasswordDialog"
 import DeleteSekolahDialog from "./_components/DeleteSekolahDialog"
 import DetailSekolahDialog from "./_components/DetailSekolahDialog"
+import ResetAbsensiDialog from "./_components/ResetAbsensiDialog"
 
 export default function SuperAdminPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -36,12 +37,14 @@ export default function SuperAdminPage() {
   const [resetModalOpen, setResetModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [resetAbsensiModalOpen, setResetAbsensiModalOpen] = useState(false)
 
   // Selected school states
   const [selectedSekolahForEdit, setSelectedSekolahForEdit] = useState<any>(null)
   const [selectedSekolahForReset, setSelectedSekolahForReset] = useState<any>(null)
   const [selectedSekolahForDelete, setSelectedSekolahForDelete] = useState<any>(null)
   const [selectedSekolahForDetail, setSelectedSekolahForDetail] = useState<any>(null)
+  const [selectedSekolahForResetAbsensi, setSelectedSekolahForResetAbsensi] = useState<any>(null)
 
   // Queries & Mutations
   const utils = api.useUtils()
@@ -76,6 +79,11 @@ export default function SuperAdminPage() {
   const handleDeleteClick = (sekolah: any) => {
     setSelectedSekolahForDelete(sekolah)
     setDeleteModalOpen(true)
+  }
+
+  const handleResetAbsensiClick = (sekolah: any) => {
+    setSelectedSekolahForResetAbsensi(sekolah)
+    setResetAbsensiModalOpen(true)
   }
 
   const handleImpersonate = (sekolahId: string) => {
@@ -449,6 +457,10 @@ export default function SuperAdminPage() {
                               <Key size={14} className="text-amber-500" />
                               <span>Reset Password</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleResetAbsensiClick(item)} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
+                              <CalendarX2 size={14} className="text-orange-500" />
+                              <span>Reset Data Absensi</span>
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => toggleActiveMutation.mutate({ id: item.id })} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
                               {item.active ? (
                                 <>
@@ -564,6 +576,10 @@ export default function SuperAdminPage() {
                           <Key size={14} className="text-amber-500" />
                           <span>Reset Password</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleResetAbsensiClick(item)} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
+                          <CalendarX2 size={14} className="text-orange-500" />
+                          <span>Reset Data Absensi</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => toggleActiveMutation.mutate({ id: item.id })} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
                           {item.active ? (
                             <>
@@ -631,6 +647,13 @@ export default function SuperAdminPage() {
         open={resetModalOpen}
         onOpenChange={setResetModalOpen}
         sekolah={selectedSekolahForReset}
+      />
+
+      <ResetAbsensiDialog
+        open={resetAbsensiModalOpen}
+        onOpenChange={setResetAbsensiModalOpen}
+        sekolah={selectedSekolahForResetAbsensi}
+        onSuccess={() => utils.superAdmin.listSekolah.invalidate()}
       />
 
       <DeleteSekolahDialog
