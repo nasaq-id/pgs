@@ -298,11 +298,11 @@ export const KURIKULUM_KMA_1503_DATASET: KurikulumMasterItem[] = [
   { kode: "MTK", nama: "Matematika (Luar Biasa)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Wajib", jpPerMinggu: 3, catatan: "Disesuaikan Jenis Hambatan" },
   { kode: "PJK", nama: "PJOK (Luar Biasa)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "Adaptif" },
   { kode: "SNB", nama: "Seni Budaya (Luar Biasa)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "Apresiasi & Terapi" },
-  { kode: "PKK-NETRA", nama: "Program Kebutuhan Khusus (Disabilitas Netra)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 4, isPeminatan: true, catatan: "Pengembangan Orientasi, Mobilitas, Sosial & Komunikasi" },
-  { kode: "PKK-RUNGU", nama: "Program Kebutuhan Khusus (Disabilitas Rungu)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 4, isPeminatan: true, catatan: "Pengembangan Komunikasi, Persepsi Bunyi & Irama" },
-  { kode: "PKK-INTELEKTUAL", nama: "Program Kebutuhan Khusus (Disabilitas Intelektual)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 4, isPeminatan: true, catatan: "Pengembangan Diri & Bina Diri" },
-  { kode: "PKK-FISIK", nama: "Program Kebutuhan Khusus (Disabilitas Fisik)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 4, isPeminatan: true, catatan: "Pengembangan Diri & Gerak" },
-  { kode: "PKK-MENTAL", nama: "Program Kebutuhan Khusus (Disabilitas Mental)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 4, isPeminatan: true, catatan: "Pengembangan Komunikasi, Interaksi Sosial & Perilaku" },
+  { kode: "PKK-NETRA", nama: "Program Kebutuhan Khusus (Disabilitas Netra)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 6, isPeminatan: true, catatan: "Pengembangan Orientasi, Mobilitas, Sosial & Komunikasi" },
+  { kode: "PKK-RUNGU", nama: "Program Kebutuhan Khusus (Disabilitas Rungu)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 6, isPeminatan: true, catatan: "Pengembangan Komunikasi, Persepsi Bunyi & Irama" },
+  { kode: "PKK-INTELEKTUAL", nama: "Program Kebutuhan Khusus (Disabilitas Intelektual)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 6, isPeminatan: true, catatan: "Pengembangan Diri & Bina Diri" },
+  { kode: "PKK-FISIK", nama: "Program Kebutuhan Khusus (Disabilitas Fisik)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 6, isPeminatan: true, catatan: "Pengembangan Diri & Gerak" },
+  { kode: "PKK-MENTAL", nama: "Program Kebutuhan Khusus (Disabilitas Mental)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Mapel Pilihan", jpPerMinggu: 6, isPeminatan: true, catatan: "Pengembangan Komunikasi, Interaksi Sosial & Perilaku" },
   { kode: "MLK", nama: "Muatan Lokal (Luar Biasa)", jenjang: "sd", kelas: [1, 2, 3, 4, 5, 6], kategori: "Muatan Lokal", jpPerMinggu: 2, catatan: "Muatan Lokal Adaptif" },
 ]
 
