@@ -61,6 +61,7 @@ interface MapelRecord {
   namaMapel: string
   kodeMapel: string | null
   kelompok: string | null
+  jumlahJam: number
   aktif: boolean
   urutan: number | null
   pengampu?: PengampuItem[]
@@ -81,7 +82,7 @@ export default function MapelPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [pengampuOpen, setPengampuOpen] = useState(false)
   const [generateOpen, setGenerateOpen] = useState(false)
-  const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string } | null>(null)
+  const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string; jumlahJam: number } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
@@ -477,7 +478,7 @@ export default function MapelPage() {
                     <div className="flex space-x-1.5 items-center">
                       <button
                         onClick={() => {
-                          setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
+                          setPengampuMapel({ id: r.id, namaMapel: r.namaMapel, jumlahJam: r.jumlahJam ?? 0 })
                           setPengampuOpen(true)
                         }}
                         className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
@@ -675,7 +676,7 @@ export default function MapelPage() {
                             <button
                               onClick={() => {
                                 setActiveMenuId(null)
-                                setPengampuMapel({ id: r.id, namaMapel: r.namaMapel })
+                                setPengampuMapel({ id: r.id, namaMapel: r.namaMapel, jumlahJam: r.jumlahJam ?? 0 })
                                 setPengampuOpen(true)
                               }}
                               className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-655 dark:text-slate-300 font-semibold text-xs transition-colors group cursor-pointer text-left"
@@ -740,6 +741,7 @@ export default function MapelPage() {
         }}
         mataPelajaranId={pengampuMapel?.id ?? ""}
         mataPelajaranNama={pengampuMapel?.namaMapel ?? ""}
+        jumlahJam={pengampuMapel?.jumlahJam ?? null}
       />
 
       <MapelFormDialog

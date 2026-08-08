@@ -20,6 +20,8 @@ interface Props {
   onClose: () => void
   mataPelajaranId: string
   mataPelajaranNama: string
+  /** Alokasi JP dari master mapel (generate KMA / impor) — dipakai sebagai default plotting */
+  jumlahJam?: number | null
 }
 
 function SearchableGuruSelect({
@@ -108,9 +110,11 @@ function SearchableGuruSelect({
   )
 }
 
-export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPelajaranNama }: Props) {
+export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPelajaranNama, jumlahJam: mapelJumlahJam }: Props) {
   const { data, isLoading } = api.pengampu.getByMapel.useQuery({ mataPelajaranId }, { enabled: open })
   const saveMutation = api.pengampu.save.useMutation()
+
+  const defaultJumlahJam = mapelJumlahJam && mapelJumlahJam > 0 ? mapelJumlahJam : 4
 
   const [rows, setRows] = useState<AssignmentRow[]>([])
 
@@ -124,13 +128,13 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
     const initial: AssignmentRow[] = []
     for (const [guruId, kelasIds] of grouped) {
       const existingAssignment = data.assignments.find((a) => a.guruId === guruId)
-      initial.push({ guruId, kelasIds, jumlahJam: existingAssignment?.jumlahJam ?? 4 })
+      initial.push({ guruId, kelasIds, jumlahJam: existingAssignment?.jumlahJam ?? defaultJumlahJam })
     }
     if (initial.length === 0) {
-      initial.push({ guruId: "", kelasIds: [], jumlahJam: 4 })
+      initial.push({ guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam })
     }
     setRows(initial)
-  }, [data])
+  }, [data, defaultJumlahJam])
 
   const allKelas = data?.allKelas ?? []
   const allGuru = data?.allGuru ?? []
@@ -154,14 +158,14 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
 
   const removeRow = (index: number) => {
     if (rows.length <= 1) {
-      setRows([{ guruId: "", kelasIds: [], jumlahJam: 4 }])
+      setRows([{ guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam }])
       return
     }
     setRows((prev) => prev.filter((_, i) => i !== index))
   }
 
   const addRow = () => {
-    setRows((prev) => [...prev, { guruId: "", kelasIds: [], jumlahJam: 4 }])
+    setRows((prev) => [...prev, { guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam }])
   }
 
   const toggleKelas = (rowIndex: number, kelasId: string) => {
