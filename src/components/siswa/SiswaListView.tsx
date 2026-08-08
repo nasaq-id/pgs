@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, ShieldAlert, Users, UserCheck, UserX } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
@@ -98,7 +97,6 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     return Array.from(setT).sort()
   }, [kelasList])
 
-  const tingkatHint = uniqueTingkat.length > 0 ? `Tingkat Terdaftar: ${uniqueTingkat.join(", ")}` : ""
   const importInstructionHeader = "PANDUAN IMPOR: (1) Kolom 'Tingkat' diisi dengan angka tingkat (contoh: 7, 8, 9 atau 1, 2, 3). (2) Kolom 'Kelas' diisi dengan nama rombel saja (contoh: A, B, C) atau nama kelas lengkap (contoh: 7A, 7B). Pastikan Rombel sudah didaftarkan terlebih dahulu di menu Rombel."
 
   const resolveTingkatDanKelasToKelasId = useCallback((tingkat: string, kelasInput: string): string | null => {
@@ -384,11 +382,6 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
         utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
 
-      let logoBase64: string | null = null
-      if (sekolah?.logo) {
-        logoBase64 = await urlToBase64(sekolah.logo)
-      }
-
       let customKopBase64: string | null = null
       if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
         customKopBase64 = await urlToBase64(sekolah.customKopGambar)
@@ -549,7 +542,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     return errors
   }
 
-  const parseAndMap = (data: any[], mode: "quick" | "regular") => {
+  const parseAndMap = (data: any[]) => {
     const mapped = data.map((row: any) => {
       let tglLahir: Date | undefined
       if (row["Tanggal Lahir"]) {
@@ -643,7 +636,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
       const range = hasPanduan ? 1 : 0
       
       const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, range })
-      const mapped = parseAndMap(rows, importMode)
+      const mapped = parseAndMap(rows)
 
       const errors = validateImportData(mapped, importMode, hasPanduan ? 3 : 2)
       setImportErrors(errors)
