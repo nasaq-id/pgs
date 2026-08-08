@@ -33,7 +33,9 @@ import { id } from "date-fns/locale"
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard", "/lembaga": "Lembaga",
-  "/manajemen/siswa": "Siswa", "/manajemen/guru": "Guru & Tendik",
+  "/manajemen/siswa": "Siswa Aktif",
+  "/manajemen/siswa/mutasi-keluar": "Mutasi Keluar",
+  "/manajemen/siswa/tidak-aktif": "Alumni / Tidak Aktif", "/manajemen/guru": "Guru & Tendik",
   "/manajemen/kelas": "Rombongan Belajar",
   "/akademik/mapel": "Mata Pelajaran",
   "/akademik/jadwal": "Jadwal Pelajaran",

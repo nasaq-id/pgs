@@ -56,8 +56,12 @@ const menuItems: MenuItem[] = [
   { 
     icon: Users, 
     label: "Siswa", 
-    path: "/manajemen/siswa",
-    allowedRoles: ["super_admin", "admin_sekolah", "tu"]
+    allowedRoles: ["super_admin", "admin_sekolah", "tu"],
+    children: [
+      { label: "Data Siswa Aktif", path: "/manajemen/siswa" },
+      { label: "Mutasi Keluar", path: "/manajemen/siswa/mutasi-keluar" },
+      { label: "Alumni / Tidak Aktif", path: "/manajemen/siswa/tidak-aktif" },
+    ]
   },
   { 
     icon: BookUser, 
