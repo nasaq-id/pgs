@@ -364,6 +364,12 @@ export default function JadwalPage() {
 
   return (
     <div className="space-y-6 text-left">
+      {/* Page Header */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Jadwal Pelajaran</h2>
+        <p className="text-muted-foreground">Atur jadwal kegiatan belajar mengajar</p>
+      </div>
+
       {/* Premium selection panel */}
       <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
