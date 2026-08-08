@@ -188,7 +188,7 @@ export const KURIKULUM_KMA_1503_DATASET: KurikulumMasterItem[] = [
   // ==========================================
   // 2. SMP / MTs (Sekolah Menengah Pertama / Madrasah Tsanawiyah)
   // ==========================================
-  { kode: "PAI", nama: "Pendidikan Agama Islam dan Budi Pekerti", jenjang: "mts", kelas: [7, 8, 9], kategori: "Mapel Wajib", jpPerMinggu: 3, catatan: "Permendikdasmen 13/2025 (PAI Terpadu)" },
+  { kode: "PAI", nama: "Pendidikan Agama Islam dan Budi Pekerti", jenjang: "mts", kelas: [7, 8, 9], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "Permendikdasmen 13/2025 (PAI Terpadu)" },
   { kode: "QRD", nama: "Al-Qur'an Hadis", jenjang: "mts", kelas: [7, 8, 9], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
   { kode: "AKH", nama: "Akidah Akhlak", jenjang: "mts", kelas: [7, 8, 9], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
   { kode: "FKH", nama: "Fikih", jenjang: "mts", kelas: [7, 8, 9], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
@@ -209,7 +209,7 @@ export const KURIKULUM_KMA_1503_DATASET: KurikulumMasterItem[] = [
   // ==========================================
   // 3. SMA / MA (Sekolah Menengah Atas / Madrasah Aliyah)
   // ==========================================
-  { kode: "PAI", nama: "Pendidikan Agama Islam dan Budi Pekerti", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Wajib", jpPerMinggu: 3, catatan: "Permendikdasmen 13/2025 (PAI Terpadu)" },
+  { kode: "PAI", nama: "Pendidikan Agama Islam dan Budi Pekerti", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "Permendikdasmen 13/2025 (PAI Terpadu)" },
   { kode: "QRD", nama: "Al-Qur'an Hadis", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
   { kode: "AKH", nama: "Akidah Akhlak", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
   { kode: "FKH", nama: "Fikih", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Wajib", jpPerMinggu: 2, catatan: "KMA 1503/2025 (PAI Madrasah)" },
@@ -243,8 +243,15 @@ export const KURIKULUM_KMA_1503_DATASET: KurikulumMasterItem[] = [
   { kode: "INL", nama: "Bahasa Indonesia Tingkat Lanjut", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa" },
   { kode: "IGL", nama: "Bahasa Inggris Tingkat Lanjut", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa" },
   { kode: "ARL", nama: "Bahasa Arab Tingkat Lanjut", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa" },
-  { kode: "AIK", nama: "Koding & Kecerdasan Artifisial", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 2, isPeminatan: true, catatan: "Permendikdasmen 13/2025 & KMA 1503/2025 (Pilihan AI)" },
+  { kode: "AIK", nama: "Koding & Kecerdasan Artifisial", jenjang: "ma", kelas: [10, 11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 2, isPeminatan: true, catatan: "Permendikdasmen 13/2025 & KMA 1503/2025 (Pilihan AI)" },
   { kode: "KWU", nama: "Prakarya dan Kewirausahaan", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 2, isPeminatan: true, catatan: "Pilihan Keterampilan" },
+  { kode: "INF-P", nama: "Informatika (Tingkat Lanjut)", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Informatika (Kelas XI-XII)" },
+  { kode: "ANT", nama: "Antropologi", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Ilmu Sosial" },
+  { kode: "BJPN", nama: "Bahasa Jepang", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa Asing" },
+  { kode: "BJRM", nama: "Bahasa Jerman", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa Asing" },
+  { kode: "BKRN", nama: "Bahasa Korea", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa Asing" },
+  { kode: "BMND", nama: "Bahasa Mandarin", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa Asing" },
+  { kode: "BPRC", nama: "Bahasa Prancis", jenjang: "ma", kelas: [11, 12], kategori: "Mapel Pilihan", jpPerMinggu: 5, isPeminatan: true, catatan: "Pilihan Bahasa Asing" },
 
   // ==========================================
   // 4. SMK / MAK (Sekolah Menengah Kejuruan / Madrasah Aliyah Kejuruan)
@@ -268,6 +275,7 @@ export const KURIKULUM_KMA_1503_DATASET: KurikulumMasterItem[] = [
   { kode: "KKH", nama: "Konsentrasi Keahlian", jenjang: "smk", kelas: [11, 12], kategori: "Mapel Wajib", jpPerMinggu: 18, catatan: "Konsentrasi Keahlian Kejuruan (Kelas XI-XII)" },
   { kode: "KIK", nama: "Kreativitas, Inovasi, & Kewirausahaan", jenjang: "smk", kelas: [11, 12], kategori: "Mapel Wajib", jpPerMinggu: 5, catatan: "Project Kewirausahaan Kejuruan" },
   { kode: "PKL", nama: "Praktik Kerja Lapangan (PKL)", jenjang: "smk", kelas: [12], kategori: "Mapel Wajib", jpPerMinggu: 16, catatan: "Magang Industri (Min. 1 Semester)" },
+  { kode: "AIK", nama: "Koding & Kecerdasan Artifisial", jenjang: "smk", kelas: [10], kategori: "Mapel Pilihan", jpPerMinggu: 2, isPeminatan: true, catatan: "Permendikdasmen 13/2025 & KMA 1503/2025 (Pilihan AI)" },
   { kode: "MLK", nama: "Muatan Lokal", jenjang: "smk", kelas: [10, 11, 12], kategori: "Muatan Lokal", jpPerMinggu: 2, catatan: "Muatan Lokal Kejuruan" },
 
   // ==========================================
