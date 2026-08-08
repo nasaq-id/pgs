@@ -238,6 +238,7 @@ export const siswaRouter = router({
   getAllExport: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
+      status: z.enum(["aktif", "aktif_tanpa_rombel", "tidak_aktif", "mutasi_keluar"]).optional(),
     }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
@@ -245,6 +246,15 @@ export const siswaRouter = router({
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
         conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+      }
+      if (input.status === "aktif") {
+        conditions.push(eq(siswa.status, "aktif"))
+      } else if (input.status === "aktif_tanpa_rombel") {
+        conditions.push(eq(siswa.status, "aktif"), isNull(siswa.kelasId))
+      } else if (input.status === "tidak_aktif") {
+        conditions.push(inArray(siswa.status, ["lulus", "pindah", "keluar"]))
+      } else if (input.status === "mutasi_keluar") {
+        conditions.push(inArray(siswa.status, ["pindah", "keluar"]))
       }
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
       return db

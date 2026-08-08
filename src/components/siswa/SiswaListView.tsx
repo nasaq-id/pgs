@@ -288,7 +288,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     setExporting(true)
     try {
       const [res, sekolah, aktifTa] = await Promise.all([
-        utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.siswa.getAllExport.query({ search: querySearch || undefined, status: queryStatus }),
         utils.client.lembaga.getSekolah.query(),
         utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
@@ -377,7 +377,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     setExportingPdf(true)
     try {
       const [res, sekolah, aktifTa] = await Promise.all([
-        utils.client.siswa.getAllExport.query({ search: querySearch || undefined }),
+        utils.client.siswa.getAllExport.query({ search: querySearch || undefined, status: queryStatus }),
         utils.client.lembaga.getSekolah.query(),
         utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
@@ -951,7 +951,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
 
           <Button
             onClick={() => {
-              if (activeTab === "mutasi_keluar") {
+              if (activeTab === "mutasi_keluar" || activeTab === "tidak_aktif") {
                 setMutasiOpen(true)
               } else {
                 handleCreate()
