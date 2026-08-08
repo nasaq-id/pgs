@@ -4,6 +4,7 @@ import { Toaster } from "sonner"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
 import { TRPCProvider } from "@/lib/trpc/provider"
+import { PWAProvider } from "@/components/providers/PWAProvider"
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s | Sistem Manajemen Lembaga",
   },
   description: "Sistem Informasi Manajemen Sekolah",
-  manifest: "/manifest",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.png",
     shortcut: "/favicon.ico",
@@ -60,6 +61,7 @@ export default function RootLayout({
         <TRPCProvider>
           {children}
         </TRPCProvider>
+        <PWAProvider />
         <Toaster richColors position="top-right" />
         <SpeedInsights />
       </body>
