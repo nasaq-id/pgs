@@ -41,12 +41,36 @@ import {
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
 import { useSession } from "next-auth/react"
-import JadwalFormDialog, { type JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
-import PengaturanJadwalDialog from "@/components/jadwal/PengaturanJadwalDialog"
-import CetakJadwal from "@/components/jadwal/CetakJadwal"
-import ExportExcelJadwal from "@/components/jadwal/ExportExcelJadwal"
-import AiGenerateDialog from "@/components/jadwal/AiGenerateDialog"
+import dynamic from "next/dynamic"
+import type { ComponentProps } from "react"
+import type JadwalFormDialogType from "@/components/jadwal/JadwalFormDialog"
+import type { JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
+import type PengaturanJadwalDialogType from "@/components/jadwal/PengaturanJadwalDialog"
+import type CetakJadwalType from "@/components/jadwal/CetakJadwal"
+import type ExportExcelJadwalType from "@/components/jadwal/ExportExcelJadwal"
+import type AiGenerateDialogType from "@/components/jadwal/AiGenerateDialog"
 import { DAYS, DAY_LABEL, toTimeInputValue, formatKelasLabel } from "@/components/jadwal/constants"
+
+const JadwalFormDialog = dynamic<ComponentProps<typeof JadwalFormDialogType>>(
+  () => import("@/components/jadwal/JadwalFormDialog").then((m) => m.default),
+  { ssr: false }
+)
+const PengaturanJadwalDialog = dynamic<ComponentProps<typeof PengaturanJadwalDialogType>>(
+  () => import("@/components/jadwal/PengaturanJadwalDialog").then((m) => m.default),
+  { ssr: false }
+)
+const CetakJadwal = dynamic<ComponentProps<typeof CetakJadwalType>>(
+  () => import("@/components/jadwal/CetakJadwal").then((m) => m.default),
+  { ssr: false }
+)
+const ExportExcelJadwal = dynamic<ComponentProps<typeof ExportExcelJadwalType>>(
+  () => import("@/components/jadwal/ExportExcelJadwal").then((m) => m.default),
+  { ssr: false }
+)
+const AiGenerateDialog = dynamic<ComponentProps<typeof AiGenerateDialogType>>(
+  () => import("@/components/jadwal/AiGenerateDialog").then((m) => m.default),
+  { ssr: false }
+)
 
 interface JadwalRecord {
   id: string

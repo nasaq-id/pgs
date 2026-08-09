@@ -4,7 +4,6 @@ import { Toaster } from "sonner"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
-import { TRPCProvider } from "@/lib/trpc/provider"
 import { PWAProvider } from "@/components/providers/PWAProvider"
 
 const fontSans = Inter({
@@ -59,9 +58,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-full flex flex-col">
-        <TRPCProvider>
-          {children}
-        </TRPCProvider>
+        {children}
         <PWAProvider />
         <Toaster richColors position="top-right" />
         <SpeedInsights />

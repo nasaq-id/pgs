@@ -12,7 +12,6 @@ import {
   Tooltip, TooltipTrigger, TooltipPortal, TooltipPositioner,
   TooltipPopup, TooltipProvider,
 } from "@/components/ui/tooltip"
-import { api } from "@/lib/trpc/client"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,18 +21,6 @@ export default function LoginPage() {
   const formRef = useRef<HTMLFormElement>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
-
-  // Persiapan untuk Custom Domain di masa depan:
-  // const [hostname, setHostname] = useState("")
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     setHostname(window.location.hostname)
-  //   }
-  // }, [])
-  // const { data: publicSekolah } = api.lembaga.getPublicSekolahByDomain.useQuery(
-  //   { domain: hostname },
-  //   { enabled: hostname !== "" }
-  // )
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
