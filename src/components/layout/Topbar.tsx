@@ -202,7 +202,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const formatDate = (date: Date) => format(date, "d MMMM yyyy", { locale: id })
 
   return (
-    <div className="sticky top-0 z-40 glass-strong h-16 flex items-center gap-4 px-5 rounded-b-2xl border-x border-b border-slate-200/40 dark:border-slate-800/30 mx-2 mt-2 shadow-[0_4px_20px_rgba(0,0,0,0.01)]">
+    <div className="sticky top-0 z-40 h-16 mx-2 mt-2 rounded-2xl neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] flex items-center gap-4 px-5">  
       <Tooltip>
         <TooltipTrigger
           onClick={onMenuClick}

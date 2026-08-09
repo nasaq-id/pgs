@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Sidebar from "./Sidebar"
@@ -83,6 +83,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [hoverExpanded, setHoverExpanded] = useState(false)
+  const hoverTimerRef = useRef<number | null>(null)
+  const effectiveMinimized = isMinimized && !hoverExpanded
   
   const { data: session } = useSession()
   const [impersonatedId, setImpersonatedId] = useState<string | null>(null)
@@ -97,6 +100,46 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
   const pageTitle = getPageTitle(pathname)
+
+  // Hover-peek: hanya aktif saat sidebar pinned-collapsed.
+  // Pointer masuk strip collapsed → expanded; keluar → grace 180ms → collapse.
+  const clearHoverTimer = () => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+  }
+
+  const handleSidebarEnter = () => {
+    if (!isMinimized) return
+    clearHoverTimer()
+    setHoverExpanded(true)
+  }
+
+  const handleSidebarLeave = () => {
+    if (!isMinimized) return
+    clearHoverTimer()
+    hoverTimerRef.current = window.setTimeout(() => {
+      setHoverExpanded(false)
+    }, 180)
+  }
+
+  const handleSidebarBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      handleSidebarLeave()
+    }
+  }
+
+  const handleSetMinimized = (val: boolean) => {
+    setHoverExpanded(false)
+    setIsMinimized(val)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current !== null) window.clearTimeout(hoverTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (pageTitle) {
@@ -148,15 +191,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       <motion.div
-        animate={{ width: isDesktop ? (isMinimized ? 80 : 308) : 308 }}
+        animate={{ width: isDesktop ? (effectiveMinimized ? 80 : 308) : 308 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        onPointerEnter={handleSidebarEnter}
+        onPointerLeave={handleSidebarLeave}
+        onFocus={handleSidebarEnter}
+        onBlur={handleSidebarBlur}
         className={cn(
-          "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-2 lg:py-2 overflow-hidden",
+          "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-0 overflow-hidden",
           isImpersonating ? "lg:top-11 lg:bottom-0" : "lg:inset-y-0",
-          isMinimized ? "sidebar-minimized" : ""
+          effectiveMinimized ? "sidebar-minimized" : ""
         )}
       >
-        <Sidebar isMinimized={isMinimized} setIsMinimized={setIsMinimized} />
+        <Sidebar isMinimized={effectiveMinimized} setIsMinimized={handleSetMinimized} />
       </motion.div>
  
       {sidebarOpen && (
@@ -175,7 +222,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       <motion.div
-        animate={{ paddingLeft: isDesktop ? (isMinimized ? 80 : 298) : 0 }}
+        animate={{ paddingLeft: isDesktop ? (effectiveMinimized ? 80 : 298) : 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="w-full flex-grow flex flex-col"
       >
