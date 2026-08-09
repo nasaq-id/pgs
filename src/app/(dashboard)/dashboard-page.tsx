@@ -311,7 +311,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-emerald-800 dark:text-emerald-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-emerald-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
-                    {studentSummary.data?.total ?? 0}
+                    {studentSummary.isLoading ? "—" : (studentSummary.data?.total ?? 0)}
                   </span>
                   <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm group-hover:bg-slate-900 transition-colors">
                     <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
@@ -326,7 +326,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-indigo-900 dark:text-indigo-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-indigo-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
-                    {staffSummary.data?.total ?? 0}
+                    {staffSummary.isLoading ? "—" : (staffSummary.data?.total ?? 0)}
                   </span>
                   <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm">
                     <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
@@ -598,7 +598,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 text-xs leading-snug">Pantau Tagihan & Tunggakan SPP</p>
-                  <p className="text-[10px] text-sky-800/80 mt-1 font-semibold">Keuangan — {pendingPayment.data?.count ?? 0} tagihan pending</p>
+                  <p className="text-[10px] text-sky-800/80 mt-1 font-semibold">Keuangan — {pendingPayment.isLoading ? "—" : (pendingPayment.data?.count ?? 0)} tagihan pending</p>
                 </div>
               </div>
               <div className="bg-[#f1f5f9]/80 border border-[#cbd5e1]/50 p-4 rounded-2xl flex items-start gap-3">
@@ -607,7 +607,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 text-xs leading-snug">Kelola Akademik</p>
-                  <p className="text-[10px] text-slate-700/80 mt-1 font-semibold">{classSummary.data?.total ?? 0} rombel aktif</p>
+                  <p className="text-[10px] text-slate-700/80 mt-1 font-semibold">{classSummary.isLoading ? "—" : (classSummary.data?.total ?? 0)} rombel aktif</p>
                 </div>
               </div>
             </div>
