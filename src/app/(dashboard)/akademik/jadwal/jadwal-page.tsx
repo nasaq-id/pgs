@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import {
   Pencil,
@@ -145,7 +145,7 @@ function JadwalSkeleton() {
 
       {/* Grid view skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
           <div key={i} className="bg-slate-50 dark:bg-slate-900/30 rounded-3xl p-5 border border-slate-100 dark:border-slate-850 space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />
@@ -181,7 +181,7 @@ export default function JadwalPage() {
 
   const { data: profile } = api.profil.getProfile.useQuery(undefined, { enabled: !!session })
 
-  const [kelasId, setKelasId] = useState("")
+  const [manualKelasId, setManualKelasId] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<JadwalFormData | null>(null)
   const [addForHari, setAddForHari] = useState<string | null>(null)
@@ -200,19 +200,18 @@ export default function JadwalPage() {
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
 
+  // Derived value — tidak perlu useEffect: kelasRecords & profile sudah
+  // tersedia sinkron dari server-side hydration di render pertama.
+  const kelasId = useMemo(() => {
+    if (isSiswa) return (profile?.kelasId as string) || ""
+    if (manualKelasId) return manualKelasId
+    return kelasRecords[0]?.id || ""
+  }, [isSiswa, profile, manualKelasId, kelasRecords])
+
   const selectedKelasMain = useMemo(() => {
     const cls = kelasRecords.find((k) => k.id === kelasId)
     return cls ? formatKelasLabel(cls) : ""
   }, [kelasId, kelasRecords])
-
-  // Sync current user's profile IDs
-  useEffect(() => {
-    if (isSiswa && profile?.kelasId) {
-      setKelasId(profile.kelasId as string)
-    } else if (!isSiswa && !isGuru && !kelasId && kelasRecords.length > 0) {
-      setKelasId(kelasRecords[0].id)
-    }
-  }, [isSiswa, isGuru, kelasId, kelasRecords, profile])
 
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
@@ -422,7 +421,7 @@ export default function JadwalPage() {
               <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
               <Select
                 value={kelasId}
-                onValueChange={(v) => v && setKelasId(v)}
+                onValueChange={(v) => v && setManualKelasId(v)}
                 options={kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
               >
                  <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
@@ -553,7 +552,7 @@ export default function JadwalPage() {
       {/* Main Content Area */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div key={i} className="bg-slate-50 dark:bg-slate-900/30 rounded-3xl p-5 border border-slate-100 dark:border-slate-850 space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg" />

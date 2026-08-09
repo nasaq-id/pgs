@@ -18,10 +18,16 @@ export default async function JadwalServerPage() {
   const session = await auth()
   const role = session?.user?.role as string | undefined
 
+  const [kelasList, profile] = await Promise.all([
+    helpers.kelas.getAll.fetch({ limit: 500 }).catch(() => []),
+    helpers.profil.getProfile.fetch().catch(() => null),
+  ])
+  const kelasRecords = (kelasList ?? []) as { id: string }[]
+  const defaultKelasId = kelasRecords[0]?.id
+  const profileKelasId = (profile as { kelasId?: string | null } | null)?.kelasId
+
   await Promise.all(
     [
-      helpers.profil.getProfile.prefetch(undefined),
-      helpers.kelas.getAll.prefetch({ limit: 500 }),
       helpers.mapel.getAll.prefetch({ limit: 500 }),
       helpers.guru.getAll.prefetch({ limit: 500 }),
       helpers.pengaturanJadwal.get.prefetch({}),
@@ -31,12 +37,15 @@ export default async function JadwalServerPage() {
 
   if (session?.user) {
     if (role === "guru") {
-      const profile = await helpers.profil.getProfile.fetch().catch(() => null)
       await helpers.jadwal.getAll
         .prefetch({ guruId: (profile?.id || "none") as string })
         .catch(() => {})
+    } else if (role === "siswa") {
+      await helpers.jadwal.getAll
+        .prefetch({ kelasId: profileKelasId || undefined })
+        .catch(() => {})
     } else {
-      await helpers.jadwal.getAll.prefetch({ kelasId: undefined }).catch(() => {})
+      await helpers.jadwal.getAll.prefetch({ kelasId: defaultKelasId }).catch(() => {})
     }
   }
 
