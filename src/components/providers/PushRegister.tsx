@@ -69,6 +69,36 @@ export function PushRegister() {
       }
 
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
+
+      // Cek subscription lama: browser menolak subscribe dengan application server key berbeda
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) {
+        const existingKey = existing.options?.applicationServerKey as ArrayBuffer | null | undefined
+        const sameKey =
+          !!existingKey &&
+          existingKey.byteLength === applicationServerKey.byteLength &&
+          new Uint8Array(existingKey).every((v, i) => v === applicationServerKey[i])
+
+        if (!sameKey) {
+          // VAPID key berubah — unsub dulu supaya bisa subscribe ulang
+          await existing.unsubscribe()
+        } else {
+          // Key sama — cukup sinkron subscription ke server
+          const p256dh = existing.getKey("p256dh")
+          const auth = existing.getKey("auth")
+          if (p256dh && auth) {
+            await savePushMutation.mutateAsync({
+              endpoint: existing.endpoint,
+              keys: {
+                p256dh: arrayBufferToBase64(p256dh),
+                auth: arrayBufferToBase64(auth),
+              },
+            })
+          }
+          return
+        }
+      }
+
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
