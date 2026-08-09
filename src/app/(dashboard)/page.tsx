@@ -56,7 +56,10 @@ export default async function DashboardServerPage() {
       )
     }
 
-    await Promise.all(jobs.map((p) => p.catch(() => {})))
+    // Konkurensi dibatasi (3) — pooler Supabase hanya ~15 session, hindari saturasi
+    for (let i = 0; i < jobs.length; i += 3) {
+      await Promise.all(jobs.slice(i, i + 3).map((p) => p.catch(() => {})))
+    }
   }
 
   return (

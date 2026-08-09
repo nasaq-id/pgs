@@ -26,14 +26,17 @@ export default async function JadwalServerPage() {
   const defaultKelasId = kelasRecords[0]?.id
   const profileKelasId = (profile as { kelasId?: string | null } | null)?.kelasId
 
-  await Promise.all(
-    [
-      helpers.mapel.getAll.prefetch({ limit: 500 }),
-      helpers.guru.getAll.prefetch({ limit: 500 }),
-      helpers.pengaturanJadwal.get.prefetch({}),
-      helpers.pengaturanJadwal.getTimeline.prefetch({}),
-    ].map((p) => p.catch(() => {}))
-  )
+  const prefetchJobs = [
+    helpers.mapel.getAll.prefetch({ limit: 500 }),
+    helpers.guru.getAll.prefetch({ limit: 500 }),
+    helpers.pengaturanJadwal.get.prefetch({}),
+    helpers.pengaturanJadwal.getTimeline.prefetch({}),
+  ]
+
+  // Konkurensi dibatasi (3) — pooler Supabase hanya ~15 session, hindari saturasi
+  for (let i = 0; i < prefetchJobs.length; i += 3) {
+    await Promise.all(prefetchJobs.slice(i, i + 3).map((p) => p.catch(() => {})))
+  }
 
   if (session?.user) {
     if (role === "guru") {
