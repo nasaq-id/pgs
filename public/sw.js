@@ -1,4 +1,4 @@
-const CACHE = "edumanage-v1"
+const CACHE = "edumanage-v2"
 
 const STATIC_ASSETS = [
   "/",
@@ -28,6 +28,13 @@ self.addEventListener("fetch", (event) => {
 
   // API calls - network first, fallback to cache
   if (url.pathname.startsWith("/api/")) {
+    event.respondWith(networkFirst(request))
+    return
+  }
+
+  // Navigasi halaman - network first (user selalu dapat versi terbaru),
+  // cache hanya fallback saat offline
+  if (request.mode === "navigate") {
     event.respondWith(networkFirst(request))
     return
   }
