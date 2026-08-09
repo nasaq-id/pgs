@@ -309,9 +309,22 @@ export default function AiGenerateDialog({
     return selectedGuruList.map((g) => ({
       ...g,
       hariCount: (teacherExceptions[g.id] || []).length,
-      jpCount: (teacherJPExceptions[g.id] || []).length,
+      jpCount: Object.values(teacherJPExceptions[g.id] || {}).reduce((acc, jps) => acc + jps.length, 0),
     }))
   }, [selectedGuruList, teacherExceptions, teacherJPExceptions])
+
+  // Hari kerja aktif (hari libur sekolah tidak dihitung) untuk pemilihan JP per guru
+  const activeWorkDays: string[] = useMemo(() => {
+    return HARI_LIST.map((h) => h.value).filter((d) => !hariLibur.includes(d))
+  }, [hariLibur])
+
+  // Hari yang dipilih untuk mengatur JP guru aktif; fallback ke hari pertama yang sudah punya pembatasan JP
+  const currentTeacherDay = useMemo(() => {
+    const dayMap = activeGuru ? (teacherJPExceptions[activeGuru.id] || {}) : {}
+    if (activeTeacherDay && activeWorkDays.includes(activeTeacherDay)) return activeTeacherDay
+    const withExclusions = activeWorkDays.find((d) => (dayMap[d] || []).length > 0)
+    return withExclusions || activeWorkDays[0] || ""
+  }, [activeTeacherDay, activeWorkDays, activeGuru, teacherJPExceptions])
 
   const handleAddGuru = (guruId: string) => {
     setSelectedGuruIds((prev) => (prev.includes(guruId) ? prev : [...prev, guruId]))
@@ -356,11 +369,17 @@ export default function AiGenerateDialog({
     setTeacherJPExceptions({})
     setSelectedGuruIds([])
     setActiveGuruId("")
+    setActiveTeacherDay("")
     setGuruSearch("")
     setGuruSearchOpen(false)
     setPreviewData(null)
     setPreviewError(null)
   }, [open, kaldikSetting])
+
+  // Reset pemilihan hari saat berpindah guru aktif
+  useEffect(() => {
+    setActiveTeacherDay("")
+  }, [activeGuruId])
 
   // Filter plotting pengajar based on selected target kelas
   const filteredPengampu = useMemo(() => {
@@ -450,13 +469,15 @@ export default function AiGenerateDialog({
     })
   }
 
-  const handleToggleTeacherJP = (guruId: string, jpNum: number) => {
+  const handleToggleTeacherJP = (guruId: string, day: string, jpNum: number) => {
     setTeacherJPExceptions((prev) => {
-      const current = prev[guruId] || []
+      const dayMap = { ...(prev[guruId] || {}) }
+      const current = dayMap[day] || []
       const next = current.includes(jpNum)
         ? current.filter((n) => n !== jpNum)
         : [...current, jpNum]
-      return { ...prev, [guruId]: next }
+      dayMap[day] = next
+      return { ...prev, [guruId]: dayMap }
     })
   }
 
@@ -489,11 +510,10 @@ export default function AiGenerateDialog({
       })
     })
 
-    // 2. Add JP exclusions across all work days
-    const workDays = HARI_LIST.map((h) => h.value).filter((d) => !hariLibur.includes(d))
-    Object.entries(teacherJPExceptions).forEach(([guruId, jps]) => {
-      jps.forEach((jp) => {
-        workDays.forEach((day) => {
+    // 2. Add JP exclusions per specific day
+    Object.entries(teacherJPExceptions).forEach(([guruId, dayMap]) => {
+      Object.entries(dayMap).forEach(([day, jps]) => {
+        jps.forEach((jp) => {
           constraints.push({
             guruId,
             hari: day as any,
@@ -807,7 +827,7 @@ export default function AiGenerateDialog({
                       </span>
                     </div>
                     {(teacherExceptions[activeGuru.id]?.length || 0) > 0 ||
-                    (teacherJPExceptions[activeGuru.id]?.length || 0) > 0 ? (
+                    Object.values(teacherJPExceptions[activeGuru.id] || {}).some((jps) => jps.length > 0) ? (
                       <Tip label="Hapus semua pembatasan guru ini">
                         <Button
                           type="button"
@@ -852,31 +872,69 @@ export default function AiGenerateDialog({
                       </div>
                     </div>
 
-                    {/* JP exceptions */}
+                    {/* JP exceptions per day */}
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tidak Bisa JP Ke:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {jpOptions.map((jpNum) => {
-                          const isExcluded = (teacherJPExceptions[activeGuru.id] || []).includes(jpNum)
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Pilih Hari (JP):</span>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {activeWorkDays.map((day) => {
+                          const dayJPs = teacherJPExceptions[activeGuru.id]?.[day] || []
+                          const isSelected = currentTeacherDay === day
                           return (
                             <Tip
-                              key={jpNum}
-                              label={isExcluded ? "Boleh mengajar JP ini" : "Guru tidak bisa mengajar JP ini"}
+                              key={day}
+                              label={isSelected ? `Atur JP tidak bisa untuk ${day}` : `Pilih ${day} untuk mengatur JP`}
                             >
                               <button
                                 type="button"
-                                onClick={() => handleToggleTeacherJP(activeGuru.id, jpNum)}
-                                className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
-                                  isExcluded
-                                    ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
-                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
+                                onClick={() => setActiveTeacherDay(day)}
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "bg-indigo-500 border-indigo-500 text-white font-black shadow-xs"
+                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
                                 }`}
                               >
-                                {jpNum}
+                                {HARI_LIST.find((h) => h.value === day)?.label}
+                                {dayJPs.length > 0 && (
+                                  <span className={`ml-1 ${isSelected ? "text-white/90" : "text-amber-600"}`}>
+                                    ({dayJPs.length})
+                                  </span>
+                                )}
                               </button>
                             </Tip>
                           )
                         })}
+                        {activeWorkDays.length === 0 && (
+                          <span className="text-[9px] font-semibold text-slate-400">
+                            Tidak ada hari kerja aktif (semua hari libur).
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">
+                        Tidak Bisa JP Ke{currentTeacherDay ? ` (${HARI_LIST.find((h) => h.value === currentTeacherDay)?.label})` : ":"}
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {currentTeacherDay &&
+                          jpOptions.map((jpNum) => {
+                            const isExcluded = (teacherJPExceptions[activeGuru.id]?.[currentTeacherDay] || []).includes(jpNum)
+                            return (
+                              <Tip
+                                key={jpNum}
+                                label={isExcluded ? "Boleh mengajar JP ini" : "Guru tidak bisa mengajar JP ini"}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTeacherJP(activeGuru.id, currentTeacherDay, jpNum)}
+                                  className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
+                                    isExcluded
+                                      ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
+                                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
+                                  }`}
+                                >
+                                  {jpNum}
+                                </button>
+                              </Tip>
+                            )
+                          })}
                       </div>
                     </div>
                   </div>
