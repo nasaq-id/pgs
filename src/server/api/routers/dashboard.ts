@@ -61,10 +61,12 @@ export const dashboardRouter = router({
         try {
           return await fn()
         } catch (e) {
-          console.error("[dashboard-overview] bagian gagal:", e)
+          console.error("[dashboard-overview] bagian gagal:", e instanceof Error ? e.message : e)
           return null
         }
       }
+
+      const sekolahId = ctx.session.user.sekolahId
 
       const [studentSummary, staffSummary, classSummary, pendingPayment, attendance, receivables, ruangKelas, topPoints] =
         await Promise.all([
@@ -82,7 +84,7 @@ export const dashboardRouter = router({
         isSiswa ? run(() => queryDashboardSiswa(ctx)) : Promise.resolve(null),
         !isSiswa ? run(() => queryDashboardGuruAdmin(ctx)) : Promise.resolve(null),
         run(() => queryPublishedAnnouncements(ctx, 5)),
-        !isSiswa
+        !isSiswa && sekolahId
           ? run(() => queryKalenderEvents(ctx, { tahun, bulan, limit: 200 }))
           : Promise.resolve(null),
       ])
