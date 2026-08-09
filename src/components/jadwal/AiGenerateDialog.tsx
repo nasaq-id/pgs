@@ -22,9 +22,19 @@ import {
   AlertTriangle,
   Info,
   Eye,
+  RotateCcw,
+  Trash2,
 } from "lucide-react"
 import { formatKelasLabel } from "./constants"
 import { cn } from "@/lib/utils"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Tooltip,
   TooltipTrigger,
@@ -208,6 +218,7 @@ export default function AiGenerateDialog({
   // Teacher exception states matching reference ZIP structure
   const [teacherExceptions, setTeacherExceptions] = useState<Record<string, string[]>>({})
   const [teacherJPExceptions, setTeacherJPExceptions] = useState<Record<string, number[]>>({})
+  const [selectedGuruId, setSelectedGuruId] = useState<string>("")
 
   // Progression States for terminal modal
   const [progressModalOpen, setProgressModalOpen] = useState(false)
@@ -248,6 +259,44 @@ export default function AiGenerateDialog({
     return Array.from({ length: maxJp }, (_, i) => i + 1)
   }, [maxJpPerDay, hariLibur])
 
+  // Daftar guru terurut alfabetis untuk dropdown
+  const sortedGuruRecords = useMemo(() => {
+    return [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
+  }, [guruRecords])
+
+  const selectedGuru = useMemo(
+    () => sortedGuruRecords.find((g) => g.id === selectedGuruId) || null,
+    [sortedGuruRecords, selectedGuruId]
+  )
+
+  // Guru yang punya pembatasan (untuk ringkasan & hapus cepat)
+  const configuredGuru = useMemo(() => {
+    const ids = new Set([
+      ...Object.keys(teacherExceptions),
+      ...Object.keys(teacherJPExceptions),
+    ])
+    return sortedGuruRecords
+      .filter((g) => ids.has(g.id))
+      .map((g) => ({
+        ...g,
+        hariCount: (teacherExceptions[g.id] || []).length,
+        jpCount: (teacherJPExceptions[g.id] || []).length,
+      }))
+  }, [sortedGuruRecords, teacherExceptions, teacherJPExceptions])
+
+  const handleClearTeacherExceptions = (guruId: string) => {
+    setTeacherExceptions((prev) => {
+      const next = { ...prev }
+      delete next[guruId]
+      return next
+    })
+    setTeacherJPExceptions((prev) => {
+      const next = { ...prev }
+      delete next[guruId]
+      return next
+    })
+  }
+
   useEffect(() => {
     if (!open) return
     setTargetKelasId("all")
@@ -256,6 +305,7 @@ export default function AiGenerateDialog({
     setCustomRequest("")
     setTeacherExceptions({})
     setTeacherJPExceptions({})
+    setSelectedGuruId("")
     setPreviewData(null)
     setPreviewError(null)
   }, [open, kaldikSetting])
@@ -521,18 +571,28 @@ export default function AiGenerateDialog({
                   <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Target Kelas</Label>
                   <p className="text-[11px] text-muted-foreground">Pilih kelas yang akan di-generate jadwalnya</p>
                 </div>
-                <select
+                <Select
                   value={targetKelasId}
-                  onChange={(e) => setTargetKelasId(e.target.value)}
-                  className="mt-3 w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none"
+                  onValueChange={(v) => setTargetKelasId(v || "all")}
+                  options={[
+                    { value: "all", label: `Semua Kelas (${kelasRecords.length} Rombel)` },
+                    ...kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) })),
+                  ]}
                 >
-                  <option value="all">Semua Kelas ({kelasRecords.length} Rombel)</option>
-                  {kelasRecords.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {formatKelasLabel(k)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="mt-3 rounded-xl h-10">
+                    <SelectValue placeholder="Pilih kelas..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">Semua Kelas ({kelasRecords.length} Rombel)</SelectItem>
+                      {kelasRecords.map((k) => (
+                        <SelectItem key={k.id} value={k.id}>
+                          {formatKelasLabel(k)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
@@ -638,83 +698,159 @@ export default function AiGenerateDialog({
                 placeholder="Contoh: Utamakan mata pelajaran eksakta di pagi hari, guru berhalangan mengajar tolong diposisikan di slot siang..."
                 value={customRequest}
                 onChange={(e) => setCustomRequest(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:bg-white dark:focus:bg-slate-950 transition-all h-20 resize-none"
+                className="w-full px-4 py-3 neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/15 transition-all h-20 resize-none"
               />
             </div>
 
-            {/* Section 4: Teacher Availability scroll list (Matching ZIP layout) */}
+            {/* Section 4: Teacher Availability (dropdown per guru) */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <UserX className="w-4 h-4 text-indigo-500" />
                 <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Ketersediaan Mengajar & Pembatasan JP Guru
                 </Label>
+                {configuredGuru.length > 0 && (
+                  <span className="ml-auto text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 px-2 py-0.5 rounded-lg">
+                    {configuredGuru.length} Guru diatur
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-muted-foreground -mt-1">
-                Atur hari libur mengajar guru atau jam pelajaran (JP) tertentu saat guru tersebut berhalangan hadir.
+                Opsional — diisi hanya ketika ada guru yang berhalangan atau request tidak bisa mengajar di hari dan jam (JP) tertentu.
               </p>
 
-              <div className="max-h-[260px] overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-950/40 space-y-4 text-left shadow-inner">
-                {guruRecords.map((t) => {
-                  const excludedDays = teacherExceptions[t.id] || []
-                  const excludedJPs = teacherJPExceptions[t.id] || []
-                  return (
-                    <div key={t.id} className="pb-3 border-b border-slate-200/60 dark:border-slate-800/80 last:border-0 last:pb-0 space-y-2.5">
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{t.namaLengkap}</span>
+              <Select
+                value={selectedGuruId}
+                onValueChange={(v) => setSelectedGuruId(v || "")}
+                options={sortedGuruRecords.map((g) => ({ value: g.id, label: g.namaLengkap }))}
+              >
+                <SelectTrigger className="rounded-xl h-10">
+                  <SelectValue placeholder="Silahkan pilih guru terlebih dahulu" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {sortedGuruRecords.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.namaLengkap}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3 border-l-2 border-indigo-500">
-                        {/* Day exceptions */}
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 block mb-1">Hari Libur Guru:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {HARI_LIST.map((h) => {
-                              const isExcluded = excludedDays.includes(h.value)
-                              return (
-                                <button
-                                  key={h.value}
-                                  type="button"
-                                  onClick={() => handleToggleTeacherDay(t.id, h.value)}
-                                  className={`px-2 py-0.5 rounded-md text-[9px] font-bold border transition-all cursor-pointer ${
-                                    isExcluded
-                                      ? "bg-rose-50 border-rose-300 text-rose-700 font-black shadow-xs"
-                                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
-                                  }`}
-                                >
-                                  {h.label}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
+              {selectedGuru ? (
+                <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-4 text-left shadow-inner space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                        {selectedGuru.namaLengkap}
+                      </span>
+                    </div>
+                    {(teacherExceptions[selectedGuru.id]?.length || 0) > 0 ||
+                    (teacherJPExceptions[selectedGuru.id]?.length || 0) > 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleClearTeacherExceptions(selectedGuru.id)}
+                        className="h-7 px-2 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        Bersihkan
+                      </Button>
+                    ) : null}
+                  </div>
 
-                        {/* JP exceptions */}
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 block mb-1">Tidak Bisa JP Ke:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {jpOptions.map((jpNum) => {
-                              const isExcluded = excludedJPs.includes(jpNum)
-                              return (
-                                <button
-                                  key={jpNum}
-                                  type="button"
-                                  onClick={() => handleToggleTeacherJP(t.id, jpNum)}
-                                  className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
-                                    isExcluded
-                                      ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
-                                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
-                                  }`}
-                                >
-                                  {jpNum}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-3 border-l-2 border-indigo-500">
+                    {/* Day exceptions */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Hari Libur Guru:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {HARI_LIST.map((h) => {
+                          const isExcluded = (teacherExceptions[selectedGuru.id] || []).includes(h.value)
+                          return (
+                            <button
+                              key={h.value}
+                              type="button"
+                              onClick={() => handleToggleTeacherDay(selectedGuru.id, h.value)}
+                              className={`px-2 py-0.5 rounded-md text-[9px] font-bold border transition-all cursor-pointer ${
+                                isExcluded
+                                  ? "bg-rose-50 border-rose-300 text-rose-700 font-black shadow-xs"
+                                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
+                              }`}
+                            >
+                              {h.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* JP exceptions */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block mb-1">Tidak Bisa JP Ke:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {jpOptions.map((jpNum) => {
+                          const isExcluded = (teacherJPExceptions[selectedGuru.id] || []).includes(jpNum)
+                          return (
+                            <button
+                              key={jpNum}
+                              type="button"
+                              onClick={() => handleToggleTeacherJP(selectedGuru.id, jpNum)}
+                              className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
+                                isExcluded
+                                  ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
+                                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {jpNum}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/30 p-4 text-[11px] font-semibold text-slate-400 text-center">
+                  Silahkan pilih guru terlebih dahulu untuk mengatur ketersediaannya.
+                </div>
+              )}
+
+              {configuredGuru.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 block">Guru yang sudah diatur:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {configuredGuru.map((g) => (
+                      <div
+                        key={g.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedGuruId(g.id)}
+                        onKeyDown={(e) => e.key === "Enter" && setSelectedGuruId(g.id)}
+                        className="group flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 cursor-pointer hover:border-indigo-400 transition-colors"
+                      >
+                        <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300">{g.namaLengkap}</span>
+                        <span className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded-md">
+                          {g.hariCount} hari · {g.jpCount} JP
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleClearTeacherExceptions(g.id)
+                          }}
+                          className="p-1 rounded-md text-indigo-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title="Hapus pembatasan guru ini"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
