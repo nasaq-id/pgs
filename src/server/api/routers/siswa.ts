@@ -424,29 +424,33 @@ export const siswaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)]
-      
-      const [updatedSiswa] = await db
-        .update(siswa)
-        .set({
-          status: input.jenisMutasi === "Pindah Sekolah" ? "pindah" : "keluar",
-          updatedAt: new Date()
-        })
-        .where(and(...conditions))
-        .returning()
-      if (!updatedSiswa) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
-      }
 
-      // Simpan catatan mutasi
       const id = crypto.randomUUID()
-      await db.insert(catatanMutasi).values({
-        id,
-        sekolahId,
-        siswaId: input.siswaId,
-        tanggalMutasi: input.tanggalMutasi,
-        jenisMutasi: input.jenisMutasi,
-        alasanMutasi: input.alasanMutasi,
-        sekolahTujuan: input.sekolahTujuan,
+      const [updatedSiswa] = await db.transaction(async (tx) => {
+        const updated = await tx
+          .update(siswa)
+          .set({
+            status: input.jenisMutasi === "Pindah Sekolah" ? "pindah" : "keluar",
+            updatedAt: new Date()
+          })
+          .where(and(...conditions))
+          .returning()
+        if (!updated[0]) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
+        }
+
+        // Simpan catatan mutasi — kalau gagal, status siswa ikut di-rollback
+        await tx.insert(catatanMutasi).values({
+          id,
+          sekolahId,
+          siswaId: input.siswaId,
+          tanggalMutasi: input.tanggalMutasi,
+          jenisMutasi: input.jenisMutasi,
+          alasanMutasi: input.alasanMutasi,
+          sekolahTujuan: input.sekolahTujuan,
+        })
+
+        return updated
       })
 
       await logAudit(ctx, {
