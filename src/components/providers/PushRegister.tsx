@@ -5,6 +5,13 @@ import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bell, X } from "lucide-react"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -106,7 +113,7 @@ export function PushRegister() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 350, damping: 25 }}
-          className="fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card border border-teal-500/10 text-left shadow-2xl"
+          className="fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card-clean border border-teal-500/10 text-left shadow-2xl"
         >
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center shrink-0">
@@ -118,12 +125,24 @@ export function PushRegister() {
                 <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-100 tracking-wider">
                   Aktifkan Notifikasi
                 </h4>
-                <button
-                  onClick={() => setShowPrompt(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        onClick={() => setShowPrompt(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        aria-label="Tutup"
+                      />
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipPortal>
+                    <TooltipPositioner side="bottom">
+                      <TooltipPopup>Tutup</TooltipPopup>
+                    </TooltipPositioner>
+                  </TooltipPortal>
+                </Tooltip>
               </div>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed font-semibold">
                 Dapatkan pemberitahuan langsung di status bar HP Anda saat ada pengumuman baru dari sekolah.

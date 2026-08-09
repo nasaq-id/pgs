@@ -357,6 +357,14 @@
     -8px -8px 18px oklch(1 0 0);
 }
 
+.neumo-card-clean {
+  box-shadow: 10px 10px 24px oklch(0.89 0.015 250 / 0.6);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.neumo-card-clean:hover {
+  box-shadow: 8px 8px 18px oklch(0.89 0.015 250 / 0.6);
+}
+
 .neumo-inset {
   box-shadow:
     inset 4px 4px 8px oklch(0.89 0.015 250 / 0.8),
@@ -391,6 +399,12 @@
   box-shadow:
     8px 8px 18px oklch(0.11 0.01 250 / 0.8),
     -8px -8px 18px oklch(0.23 0.01 250 / 0.6);
+}
+.dark .neumo-card-clean {
+  box-shadow: 10px 10px 24px oklch(0.11 0.01 250 / 0.8);
+}
+.dark .neumo-card-clean:hover {
+  box-shadow: 8px 8px 18px oklch(0.11 0.01 250 / 0.8);
 }
 .dark .neumo-inset {
   box-shadow:
