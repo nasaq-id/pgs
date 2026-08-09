@@ -8,6 +8,7 @@ import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 import { queryPublishedAnnouncements } from "@/server/api/dashboard-queries"
+import { cacheKey, invalidateCache } from "@/lib/cache"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -22,6 +23,10 @@ const pengumumanCreateSchema = z.object({
 const pengumumanUpdateSchema = pengumumanCreateSchema.partial()
 
 
+
+const PENGUMUMAN_CACHE_LIMITS = [5, 20, 50, 100]
+const PENGUMUMAN_CACHE_KEYS = (sekolahId: string) =>
+  PENGUMUMAN_CACHE_LIMITS.map((l) => cacheKey("pengumuman:getPublished", sekolahId, `l${l}`))
 
 export const pengumumanRouter = router({
   getAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -78,6 +83,7 @@ export const pengumumanRouter = router({
     .input(sanitized(pengumumanCreateSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(PENGUMUMAN_CACHE_KEYS(sekolahId))
       const id = input.id || crypto.randomUUID()
       
       let tanggalPublish = new Date()
@@ -116,6 +122,7 @@ export const pengumumanRouter = router({
     .input(sanitized(z.object({ id: z.string(), data: pengumumanUpdateSchema })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(PENGUMUMAN_CACHE_KEYS(sekolahId))
       const conditions = [eq(pengumuman.id, input.id), eq(pengumuman.sekolahId, sekolahId)]
       const existing = await db.query.pengumuman.findFirst({ where: and(...conditions) })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
@@ -159,6 +166,7 @@ export const pengumumanRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(PENGUMUMAN_CACHE_KEYS(sekolahId))
       const conditions = [eq(pengumuman.id, input.id), eq(pengumuman.sekolahId, sekolahId)]
       const [deleted] = await db.delete(pengumuman).where(and(...conditions)).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })

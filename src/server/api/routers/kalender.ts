@@ -8,6 +8,23 @@ import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getLiburNasional } from "@/lib/libur-nasional"
 import { queryKalenderEvents } from "@/server/api/dashboard-queries"
+import { cacheKey, invalidateCache } from "@/lib/cache"
+
+const kalenderCacheKeys = (sekolahId: string, from: Date, to?: Date): string[] => {
+  const keys = new Set<string>()
+  const end = to ?? from
+  let d = new Date(from.getFullYear(), from.getMonth(), 1)
+  const last = new Date(end.getFullYear(), end.getMonth(), 1)
+  let guard = 0
+  while (d <= last && guard < 36) {
+    keys.add(cacheKey("kalender:getAll", sekolahId, `${d.getFullYear()}-${d.getMonth() + 1}`))
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+    guard++
+  }
+  const now = new Date()
+  keys.add(cacheKey("kalender:getAll", sekolahId, `${now.getFullYear()}-${now.getMonth() + 1}`))
+  return [...keys]
+}
 
 export const kalenderRouter = router({
   getAll: protectedProcedure
@@ -50,6 +67,7 @@ export const kalenderRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+      await invalidateCache(kalenderCacheKeys(sekolahId, new Date(input.tanggalMulai), input.tanggalSelesai ? new Date(input.tanggalSelesai) : undefined))
 
       const [created] = await db
         .insert(kalenderEvent)
@@ -97,6 +115,7 @@ export const kalenderRouter = router({
       if (data.tanggalMulai) updateData.tanggalMulai = new Date(data.tanggalMulai)
       if (data.tanggalSelesai) updateData.tanggalSelesai = new Date(data.tanggalSelesai)
       updateData.updatedAt = new Date()
+      await invalidateCache(kalenderCacheKeys(sekolahId, data.tanggalMulai ? new Date(data.tanggalMulai) : new Date(), data.tanggalSelesai ? new Date(data.tanggalSelesai) : undefined))
 
       const [updated] = await db.update(kalenderEvent).set(updateData).where(eq(kalenderEvent.id, id)).returning()
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
@@ -109,6 +128,7 @@ export const kalenderRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
+      await invalidateCache(kalenderCacheKeys(sekolahId, new Date()))
       const [deleted] = await db.delete(kalenderEvent).where(eq(kalenderEvent.id, input.id)).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "kalender", entityId: input.id })
@@ -143,6 +163,7 @@ export const kalenderRouter = router({
 
       const startDate = new Date(input.tahun, 0, 1)
       const endDate = new Date(input.tahun, 11, 31, 23, 59, 59)
+      await invalidateCache(kalenderCacheKeys(sekolahId, startDate, endDate))
 
       // Delete existing national holidays for this school and year to prevent duplicates and clean old data
       await db.delete(kalenderEvent).where(

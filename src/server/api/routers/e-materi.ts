@@ -6,6 +6,7 @@ import { eMateri, mataPelajaran, kelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const eMateriSchema = z.object({
   id: z.string().optional(),
@@ -27,6 +28,10 @@ const eMateriSchema = z.object({
   pembuatId: z.string().nullable().optional(),
   pembuatNama: z.string().nullable().optional(),
 })
+
+const E_MATERI_CACHE_LIMITS = [25, 50, 100, 200]
+const eMateriCacheKeys = (sekolahId: string | null) =>
+  E_MATERI_CACHE_LIMITS.map((l) => cacheKey("e-materi:getAll", sekolahId || "all", `l${l}`))
 
 export const eMateriRouter = router({
   getAll: protectedProcedure
@@ -73,18 +78,28 @@ export const eMateriRouter = router({
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db.query.eMateri.findMany({
-        where: whereClause,
-        orderBy: [desc(eMateri.createdAt)],
-        limit: input.limit,
-        offset: input.offset,
-        with: {
-          mataPelajaran: true,
-          kelas: true,
-          pembuat: true,
-        },
-      })
-      return data
+      const runQuery = () =>
+        db.query.eMateri.findMany({
+          where: whereClause,
+          orderBy: [desc(eMateri.createdAt)],
+          limit: input.limit,
+          offset: input.offset,
+          with: {
+            mataPelajaran: true,
+            kelas: true,
+            pembuat: true,
+          },
+        })
+
+      // Hanya varian default (tanpa search/filter, halaman pertama) yang di-cache
+      const isDefault =
+        !input.search && !input.mataPelajaranId && !input.kelasId && !input.tingkat &&
+        !input.tipeMateri && !input.status && input.offset === 0
+      if (isDefault) {
+        const key = cacheKey("e-materi:getAll", sekolahIdFilter || "all", `l${input.limit}`)
+        return getOrSetCache(key, runQuery, 300)
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -110,6 +125,7 @@ export const eMateriRouter = router({
     .input(sanitized(eMateriSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(eMateriCacheKeys(sekolahId))
 
       const id = input.id || crypto.randomUUID()
       const pembuatId = input.pembuatId || ctx.session.user.id
@@ -139,6 +155,7 @@ export const eMateriRouter = router({
     .input(sanitized(z.object({ id: z.string(), data: eMateriSchema.partial() })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(eMateriCacheKeys(sekolahId))
       const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
       const result = await db
@@ -165,6 +182,7 @@ export const eMateriRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      await invalidateCache(eMateriCacheKeys(sekolahId))
       const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
       const result = await db.delete(eMateri).where(and(...conditions)).returning()

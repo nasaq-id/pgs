@@ -15,6 +15,7 @@ import {
   pengumuman,
 } from "@/server/db/schema"
 import { getSekolahIdFilter } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache } from "@/lib/cache"
 
 // Ctx ringkas untuk helper — semua query ini berjalan di protectedProcedure
 type QueryCtx = {
@@ -362,29 +363,38 @@ export async function queryPublishedAnnouncements(ctx: QueryCtx, limit: number, 
   const sekolahId = ctx.session.user.sekolahId
   const role = ctx.session.user.role || ""
 
-  const conditions: any[] = [
-    eq(pengumuman.published, true),
-    lte(pengumuman.tanggalPublish, new Date()),
-  ]
-  if (sekolahId) conditions.push(eq(pengumuman.sekolahId, sekolahId))
+  const runQuery = async () => {
+    const conditions: any[] = [
+      eq(pengumuman.published, true),
+      lte(pengumuman.tanggalPublish, new Date()),
+    ]
+    if (sekolahId) conditions.push(eq(pengumuman.sekolahId, sekolahId))
 
-  const isAdmin = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "yayasan"
-  if (!isAdmin) {
-    const targetRole = roleTargetMap[role] || "semua"
-    conditions.push(
-      or(
-        eq(pengumuman.target, "semua"),
-        eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
+    const isAdmin = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "yayasan"
+    if (!isAdmin) {
+      const targetRole = roleTargetMap[role] || "semua"
+      conditions.push(
+        or(
+          eq(pengumuman.target, "semua"),
+          eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
+        )
       )
-    )
+    }
+
+    return db.query.pengumuman.findMany({
+      where: and(...conditions),
+      orderBy: desc(pengumuman.tanggalPublish),
+      limit,
+      offset,
+    })
   }
 
-  return db.query.pengumuman.findMany({
-    where: and(...conditions),
-    orderBy: desc(pengumuman.tanggalPublish),
-    limit,
-    offset,
-  })
+  // Hanya varian default (halaman pertama, tanpa offset) yang di-cache — TTL 5 menit
+  if (offset === 0) {
+    const key = cacheKey("pengumuman:getPublished", sekolahId || "all", `l${limit}`)
+    return getOrSetCache(key, runQuery, 300)
+  }
+  return runQuery()
 }
 
 export async function queryKalenderEvents(
@@ -394,26 +404,36 @@ export async function queryKalenderEvents(
   const sekolahId = ctx.session.user.sekolahId
   if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-  const conditions = [eq(kalenderEvent.sekolahId, sekolahId)]
+  const runQuery = async () => {
+    const conditions = [eq(kalenderEvent.sekolahId, sekolahId)]
 
-  if (input.search) {
-    conditions.push(like(kalenderEvent.judul, `%${input.search}%`))
+    if (input.search) {
+      conditions.push(like(kalenderEvent.judul, `%${input.search}%`))
+    }
+
+    if (input.bulan && input.tahun) {
+      const startDate = new Date(input.tahun, input.bulan - 1, 1)
+      const endDate = new Date(input.tahun, input.bulan, 0, 23, 59, 59)
+      conditions.push(gte(kalenderEvent.tanggalMulai, startDate))
+      conditions.push(lte(kalenderEvent.tanggalMulai, endDate))
+    }
+
+    if (input.tipe) conditions.push(eq(kalenderEvent.tipe, input.tipe))
+
+    return db
+      .select()
+      .from(kalenderEvent)
+      .where(and(...conditions))
+      .orderBy(asc(kalenderEvent.tanggalMulai))
+      .limit(input.limit ?? 200)
+      .offset(input.offset ?? 0)
   }
 
-  if (input.bulan && input.tahun) {
-    const startDate = new Date(input.tahun, input.bulan - 1, 1)
-    const endDate = new Date(input.tahun, input.bulan, 0, 23, 59, 59)
-    conditions.push(gte(kalenderEvent.tanggalMulai, startDate))
-    conditions.push(lte(kalenderEvent.tanggalMulai, endDate))
+  // Cache per bulan (key: tahun-bulan) — dipakai Topbar & dashboard tiap page load.
+  // Varian dengan search/tipe/offset tidak di-cache.
+  if (input.tahun && input.bulan && !input.search && !input.tipe && !(input.offset ?? 0)) {
+    const key = cacheKey("kalender:getAll", sekolahId, `${input.tahun}-${input.bulan}`)
+    return getOrSetCache(key, runQuery, 300)
   }
-
-  if (input.tipe) conditions.push(eq(kalenderEvent.tipe, input.tipe))
-
-  return db
-    .select()
-    .from(kalenderEvent)
-    .where(and(...conditions))
-    .orderBy(asc(kalenderEvent.tanggalMulai))
-    .limit(input.limit ?? 200)
-    .offset(input.offset ?? 0)
+  return runQuery()
 }
