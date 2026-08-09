@@ -1,7 +1,7 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { httpBatchLink, httpSubscriptionLink } from "@trpc/client"
+import { httpBatchLink, httpSubscriptionLink, splitLink } from "@trpc/client"
 import { useState } from "react"
 import { api } from "./client"
 
@@ -24,11 +24,14 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [trpcClient] = useState(() =>
     api.createClient({
       links: [
-        httpSubscriptionLink({
-          url: "/api/trpc",
-        }),
-        httpBatchLink({
-          url: "/api/trpc",
+        splitLink({
+          condition: (op) => op.type === "subscription",
+          true: httpSubscriptionLink({
+            url: "/api/trpc",
+          }),
+          false: httpBatchLink({
+            url: "/api/trpc",
+          }),
         }),
       ],
     })
