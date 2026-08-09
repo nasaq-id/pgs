@@ -27,6 +27,20 @@ type QueryCtx = {
   }
 }
 
+// Enrich nama siswa dalam 1 query batch (fix N+1) — ganti pola rows.map → findFirst
+async function enrichNamaSiswa<T extends { siswaId: string }>(
+  rows: T[]
+): Promise<(T & { namaLengkap: string })[]> {
+  if (rows.length === 0) return []
+  const ids = [...new Set(rows.map((r) => r.siswaId))]
+  const siswaRows = await db
+    .select({ id: siswa.id, namaLengkap: siswa.namaLengkap })
+    .from(siswa)
+    .where(inArray(siswa.id, ids))
+  const namaMap = new Map(siswaRows.map((s) => [s.id, s.namaLengkap]))
+  return rows.map((row) => ({ ...row, namaLengkap: namaMap.get(row.siswaId) || "-" }))
+}
+
 // ─── POIN / DASHBOARD ──────────────────────────────────────────
 
 export async function queryDashboardSiswa(ctx: QueryCtx) {
@@ -68,14 +82,7 @@ export async function queryDashboardSiswa(ctx: QueryCtx) {
     .orderBy(desc(sql`sum(${poinSikap.poin})`))
     .limit(5)
 
-  const leaderboardWithSiswa = await Promise.all(
-    leaderboard.map(async (row) => {
-      const s = await db.query.siswa.findFirst({
-        where: eq(siswa.id, row.siswaId),
-      })
-      return { ...row, namaLengkap: s?.namaLengkap || "-" }
-    })
-  )
+  const leaderboardWithSiswa = await enrichNamaSiswa(leaderboard)
 
   return { totalPoin, leaderboard: leaderboardWithSiswa, currentSiswa }
 }
@@ -113,19 +120,10 @@ export async function queryDashboardGuruAdmin(ctx: QueryCtx) {
     .orderBy(desc(sql`sum(${poinSikap.poin})`))
     .limit(5)
 
-  const positifWithSiswa = await Promise.all(
-    topPositif.map(async (row) => {
-      const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
-      return { ...row, namaLengkap: s?.namaLengkap || "-" }
-    })
-  )
-
-  const negatifWithSiswa = await Promise.all(
-    topNegatif.map(async (row) => {
-      const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
-      return { ...row, namaLengkap: s?.namaLengkap || "-" }
-    })
-  )
+  const [positifWithSiswa, negatifWithSiswa] = await Promise.all([
+    enrichNamaSiswa(topPositif),
+    enrichNamaSiswa(topNegatif),
+  ])
 
   return { topPositif: positifWithSiswa, topNegatif: negatifWithSiswa }
 }
@@ -331,15 +329,7 @@ export async function queryTopStudentPoints(ctx: QueryCtx) {
       .orderBy(desc(sql`sum(${poinSikap.poin})`))
       .limit(5)
 
-    return Promise.all(
-      rows.map(async (row) => {
-        const s = await db.query.siswa.findFirst({
-          where: eq(siswa.id, row.siswaId),
-          columns: { namaLengkap: true },
-        })
-        return { ...row, namaLengkap: s?.namaLengkap || "-" }
-      }),
-    )
+    return enrichNamaSiswa(rows)
   }
 
   const [positive, negative, totalNegatif] = await Promise.all([
