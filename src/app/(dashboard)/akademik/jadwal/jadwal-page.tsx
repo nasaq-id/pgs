@@ -22,6 +22,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -193,6 +194,7 @@ export default function JadwalPage() {
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [resetMode, setResetMode] = useState<"all" | "kelas">("all")
 
   // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -242,7 +244,7 @@ export default function JadwalPage() {
   const handleResetJadwal = async () => {
     setResetting(true)
     try {
-      await clearAllMutation.mutateAsync({ kelasId: kelasId || undefined })
+      await clearAllMutation.mutateAsync({ kelasId: resetMode === "kelas" ? kelasId || undefined : undefined })
     } finally {
       setResetting(false)
     }
@@ -537,7 +539,7 @@ export default function JadwalPage() {
 
           {canEdit && (
             <Button
-              onClick={() => setResetOpen(true)}
+              onClick={() => { setResetMode("all"); setResetOpen(true) }}
               disabled={resetting}
               className="flex items-center justify-center font-bold px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 w-full lg:w-auto"
             >
@@ -1066,8 +1068,38 @@ export default function JadwalPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Jadwal Pelajaran?</AlertDialogTitle>
             <AlertDialogDescription>
-              Semua jadwal pelajaran {kelasId && !isGuru && !isSiswa ? `untuk ${selectedKelasMain}` : "di sekolah ini"} akan dihapus permanen. Anda bisa generate ulang lewat AI Auto-Generate atau menyusun ulang secara manual. Tindakan ini tidak bisa dibatalkan.
+              Pilih cakupan reset, lalu konfirmasi. Tindakan ini tidak bisa dibatalkan.
             </AlertDialogDescription>
+            <div className="flex flex-col gap-3 pt-1">
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/60 has-[[data-slot=radio-group-item][aria-checked=true]]:border-rose-300 has-[[data-slot=radio-group-item][aria-checked=true]]:bg-rose-50/50 dark:has-[[data-slot=radio-group-item][aria-checked=true]]:border-rose-900/60"
+                onClick={() => setResetMode("all")}>
+                <RadioGroup
+                  value={resetMode}
+                  onValueChange={(v) => setResetMode(v as "all" | "kelas")}
+                >
+                  <RadioGroupItem value="all" />
+                </RadioGroup>
+                <span>
+                  <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">Semua Kelas</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hapus seluruh jadwal pelajaran di semua rombel sekolah ini</span>
+                </span>
+              </label>
+              {kelasId && (
+                <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/60 has-[[data-slot=radio-group-item][aria-checked=true]]:border-rose-300 has-[[data-slot=radio-group-item][aria-checked=true]]:bg-rose-50/50 dark:has-[[data-slot=radio-group-item][aria-checked=true]]:border-rose-900/60"
+                  onClick={() => setResetMode("kelas")}>
+                  <RadioGroup
+                    value={resetMode}
+                    onValueChange={(v) => setResetMode(v as "all" | "kelas")}
+                  >
+                    <RadioGroupItem value="kelas" />
+                  </RadioGroup>
+                  <span>
+                    <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">Hanya {selectedKelasMain || "Kelas Terpilih"}</span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hapus jadwal rombel yang sedang dipilih saja</span>
+                  </span>
+                </label>
+              )}
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={resetting}>Batal</AlertDialogCancel>
