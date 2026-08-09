@@ -511,12 +511,15 @@ export const jadwalRouter = router({
   clearAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
     .input(z.object({ kelasId: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
+      const t0 = performance.now()
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(jadwalPelajaran.sekolahId, sekolahId)]
       if (input.kelasId) conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
       const deleted = await db.delete(jadwalPelajaran).where(and(...conditions)).returning()
+      const durationMs = Math.round(performance.now() - t0)
+      console.log(`[jadwal] clearAll selesai: ${durationMs}ms, ${deleted.length} entri dihapus${input.kelasId ? ` (kelas ${input.kelasId})` : " (semua kelas)"}`)
       await logAudit(ctx, { action: "clear_all", entity: "jadwal_pelajaran", metadata: { kelasId: input.kelasId ?? null, count: deleted.length } })
-      return { success: true, count: deleted.length }
+      return { success: true, count: deleted.length, durationMs }
     }),
 
   autoGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -525,6 +528,7 @@ export const jadwalRouter = router({
       const { sekolahId, pengaturanJadwalId, activeDays, allocations } = await prepareGenerate(ctx, input)
 
       const seedKey = buildSeedKey(sekolahId, input)
+      const t0 = performance.now()
       const result = await solveSchedule({ sekolahId, pengaturanJadwalId, allocations, activeDays, hariLibur: input.hariLibur || [], constraints: input.constraints || [], seedKey })
 
       if (!result.ok) {
@@ -611,8 +615,10 @@ export const jadwalRouter = router({
       }
 
       const totalJpTerjadwal = insertData.reduce((sum, d) => sum + (d.jpCount || 0), 0)
+      const durationMs = Math.round(performance.now() - t0)
+      console.log(`[jadwal] autoGenerate selesai: ${durationMs}ms, ${insertData.length} blok, ${totalJpTerjadwal} JP, ${targetKelasIds.length} rombel`)
       await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds, totalJp: totalJpTerjadwal, totalBlocks: insertData.length } })
-      return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length }
+      return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length, durationMs }
     }),
 
   previewGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -630,6 +636,7 @@ export const jadwalRouter = router({
       const namaMapel = new Map(mapelRows.map((m) => [m.id, m.namaMapel]))
 
       const seedKey = buildSeedKey(sekolahId, input)
+      const t0 = performance.now()
       const result = await solveSchedule({
         sekolahId,
         pengaturanJadwalId,
@@ -643,7 +650,7 @@ export const jadwalRouter = router({
       })
 
       if (!result.ok) {
-        return { ok: false, error: result.error ?? null, totalJp: 0, perKelas: [] }
+        return { ok: false, error: result.error ?? null, totalJp: 0, perKelas: [], durationMs: Math.round(performance.now() - t0) }
       }
 
       const kelasBeban = new Map<string, number>()
@@ -701,7 +708,7 @@ export const jadwalRouter = router({
         }
       })
 
-      return { ok: true, error: null, totalJp: result.totalJp, perKelas }
+      return { ok: true, error: null, totalJp: result.totalJp, perKelas, durationMs: Math.round(performance.now() - t0) }
     }),
 })
 
@@ -709,8 +716,8 @@ export const jadwalRouter = router({
 // Shared helpers for auto-generate & preview (dry-run) jadwal
 // ─────────────────────────────────────────────────────────────────────────────
 
-type GenerateAllocation = { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }
-type GenerateConstraint = { guruId: string; hari: string; jpMulai: number; jpSelesai: number; isFullDay?: boolean }
+export type GenerateAllocation = { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }
+export type GenerateConstraint = { guruId: string; hari: string; jpMulai: number; jpSelesai: number; isFullDay?: boolean }
 
 function hashString(s: string): number {
   let h = 2166136261
@@ -912,7 +919,7 @@ async function prepareGenerate(
   return { sekolahId, pengaturanJadwalId, activeDays, allocations }
 }
 
-async function solveSchedule(args: {
+export async function solveSchedule(args: {
   sekolahId: string
   pengaturanJadwalId: string
   allocations: GenerateAllocation[]
@@ -1049,8 +1056,11 @@ async function solveSchedule(args: {
   blocks.sort((a, b) => b.jpCount - a.jpCount)
 
   const assigned = new Map<string, { mataPelajaranId: string; guruId: string; jpCount: number }>()
+  const guruSlotKelas = new Map<string, string>() // `${guruId}|${day}|${jp}` -> kelasId (O(1) lookup alasan bentrok)
   const teacherBusy = new Map<string, boolean>()
   const kelasDaysMap = new Map<string, Set<string>>()
+  const kelasLoad = new Map<string, Map<string, number>>()
+  const kelasMapelDays = new Map<string, Map<string, Set<string>>>()
   const reasons = new Map<string, string>()
   const rng = mulberry32(hashString(seedKey))
 
@@ -1061,10 +1071,13 @@ async function solveSchedule(args: {
   let success = false
 
   // ── PHASE 1: Backtracking dengan Pengecualian Guru & Shuffling (Mencari Solusi Sempurna) ──
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 12; attempt++) {
     assigned.clear()
     teacherBusy.clear()
+    guruSlotKelas.clear()
     kelasDaysMap.clear()
+    kelasLoad.clear()
+    kelasMapelDays.clear()
     reasons.clear()
 
     const shuffledBlocks = [...blocks]
@@ -1083,7 +1096,7 @@ async function solveSchedule(args: {
       avoidConsecutive: attempt < 10,
     }
 
-    const solverState = { steps: 0, maxSteps: 20000 }
+    const solverState: { steps: number; maxSteps: number; aborted: boolean } = { steps: 0, maxSteps: 5000, aborted: false }
     success = runBacktrackingSolver(
       shuffledBlocks,
       0,
@@ -1093,6 +1106,9 @@ async function solveSchedule(args: {
       academicSlotsPerDay,
       teacherExclusions,
       kelasDaysMap,
+      kelasLoad,
+      kelasMapelDays,
+      guruSlotKelas,
       solverState,
       options,
       recordReason,
@@ -1108,10 +1124,13 @@ async function solveSchedule(args: {
 
   // ── PHASE 2: Jika gagal, rileksasikan aturan jam berhalangan guru (Teacher Exclusions) ──
   if (!success && teacherExclusions.size > 0) {
-    for (let attempt = 0; attempt < 30; attempt++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
       assigned.clear()
       teacherBusy.clear()
+      guruSlotKelas.clear()
       kelasDaysMap.clear()
+      kelasLoad.clear()
+      kelasMapelDays.clear()
       reasons.clear()
 
       const shuffledBlocks = [...blocks]
@@ -1129,7 +1148,7 @@ async function solveSchedule(args: {
         avoidConsecutive: attempt < 10,
       }
 
-      const solverState = { steps: 0, maxSteps: 20000 }
+      const solverState: { steps: number; maxSteps: number; aborted: boolean } = { steps: 0, maxSteps: 5000, aborted: false }
       success = runBacktrackingSolver(
         shuffledBlocks,
         0,
@@ -1139,6 +1158,9 @@ async function solveSchedule(args: {
         academicSlotsPerDay,
         new Set(), // Rileksasikan pengecualian guru
         kelasDaysMap,
+        kelasLoad,
+        kelasMapelDays,
+        guruSlotKelas,
         solverState,
         options,
         recordReason,
@@ -1160,27 +1182,29 @@ async function solveSchedule(args: {
   if (!success) {
     assigned.clear()
     teacherBusy.clear()
+    guruSlotKelas.clear()
     kelasDaysMap.clear()
+    kelasLoad.clear()
+    kelasMapelDays.clear()
     reasons.clear()
 
     // Urutkan kembali berdasarkan JP terbesar
     blocks.sort((a, b) => b.jpCount - a.jpCount)
 
-    const hasSameMapelOnDay = (kelasId: string, mataPelajaranId: string, day: string) => {
-      for (const [sKey, sVal] of assigned.entries()) {
-        const [kId, d] = sKey.split("|")
-        if (kId === kelasId && d === day && sVal.mataPelajaranId === mataPelajaranId) return true
-      }
-      return false
-    }
+    const hasSameMapelOnDay = (kelasId: string, mataPelajaranId: string, day: string) =>
+      kelasMapelDays.get(kelasId)?.get(mataPelajaranId)?.has(day) ?? false
 
-    const dayLoad = (kelasId: string, day: string) => {
-      let load = 0
-      for (const [sKey, sVal] of assigned.entries()) {
-        const [kId, d] = sKey.split("|")
-        if (kId === kelasId && d === day) load += sVal.jpCount || 1
-      }
-      return load
+    const dayLoad = (kelasId: string, day: string) => kelasLoad.get(kelasId)?.get(day) ?? 0
+
+    const markPlaced = (kelasId: string, mataPelajaranId: string, day: string, jpCount: number) => {
+      const loadMap = kelasLoad.get(kelasId) || new Map<string, number>()
+      loadMap.set(day, (loadMap.get(day) ?? 0) + jpCount)
+      kelasLoad.set(kelasId, loadMap)
+      const mDays = kelasMapelDays.get(kelasId) || new Map<string, Set<string>>()
+      const mDaySet = mDays.get(mataPelajaranId) || new Set<string>()
+      mDaySet.add(day)
+      mDays.set(mataPelajaranId, mDaySet)
+      kelasMapelDays.set(kelasId, mDays)
     }
 
     for (const block of blocks) {
@@ -1210,15 +1234,7 @@ async function solveSchedule(args: {
             const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
             if (teacherBusy.get(teacherDayKey)) {
               teacherConflict = true;
-              let otherKelasId = ""
-              for (const [sKey, sVal] of assigned.entries()) {
-                const [kId, d, jpS] = sKey.split("|")
-                if (d === day && jpS === String(slotJp) && sVal.guruId === block.guruId) {
-                  otherKelasId = kId
-                  break
-                }
-              }
-              recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} sedang mengajar Kelas ${namaKelas?.get(otherKelasId) || otherKelasId} di slot ini`)
+              recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} sedang mengajar Kelas ${namaKelas?.get(guruSlotKelas.get(teacherDayKey) || "") || guruSlotKelas.get(teacherDayKey) || ""} di slot ini`)
             }
           }
 
@@ -1230,10 +1246,12 @@ async function solveSchedule(args: {
 
               const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
               teacherBusy.set(teacherDayKey, true)
+              guruSlotKelas.set(teacherDayKey, block.kelasId)
             }
             const kDays = kelasDaysMap.get(block.kelasId) || new Set()
             kDays.add(day)
             kelasDaysMap.set(block.kelasId, kDays)
+            markPlaced(block.kelasId, block.mataPelajaranId, day, block.jpCount)
             placed = true
             break
           }
@@ -1265,10 +1283,12 @@ async function solveSchedule(args: {
                 // Tandai guru tetap mengajar (walau bentrok) agar sistem mencatat
                 const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
                 teacherBusy.set(teacherDayKey, true)
+                guruSlotKelas.set(teacherDayKey, block.kelasId)
               }
               const kDays = kelasDaysMap.get(block.kelasId) || new Set()
               kDays.add(day)
               kelasDaysMap.set(block.kelasId, kDays)
+              markPlaced(block.kelasId, block.mataPelajaranId, day, block.jpCount)
               placed = true
               break
             }
@@ -1335,15 +1355,22 @@ function runBacktrackingSolver(
   academicSlotsPerDay: Map<string, number[]>,
   teacherExclusions: Set<string>,
   kelasDaysMap: Map<string, Set<string>>,
-  state: { steps: number; maxSteps: number } | undefined,
+  kelasLoad: Map<string, Map<string, number>>,
+  kelasMapelDays: Map<string, Map<string, Set<string>>>,
+  guruSlotKelas: Map<string, string>,
+  state: { steps: number; maxSteps: number; aborted?: boolean } | undefined,
   options: { avoidSame: boolean; avoidConsecutive: boolean },
   recordReason?: (slotKey: string, msg: string) => void,
   namaGuru?: Map<string, string>,
   namaKelas?: Map<string, string>
 ): boolean {
   if (state) {
+    if (state.aborted) return false
     state.steps++
-    if (state.steps > state.maxSteps) return false
+    if (state.steps > state.maxSteps) {
+      state.aborted = true
+      return false
+    }
   }
 
   if (index >= blocks.length) return true
@@ -1352,54 +1379,44 @@ function runBacktrackingSolver(
   const key = `${block.kelasId}-${block.mataPelajaranId}-${block.guruId}`
   const kelasDays = kelasDaysMap.get(block.kelasId) || new Set()
 
-  // Least-loaded balancing: coba hari dengan beban JP terendah untuk kelas ini dulu
-  const dayLoad = (day: string) => {
-    let load = 0
-    for (const [sKey, sVal] of assigned.entries()) {
-      const [kId, d] = sKey.split("|")
-      if (kId === block.kelasId && d === day) load += sVal.jpCount || 1
-    }
-    return load
-  }
+  // Least-loaded balancing: cari hari dengan beban JP terendah via map O(1)
+  const loadPerDay = kelasLoad.get(block.kelasId)
+  const dayLoad = (day: string) => loadPerDay?.get(day) ?? 0
   const orderedDays = [...activeDays].sort((a, b) => dayLoad(a) - dayLoad(b))
+
+  // Mapel yang sudah dijadwalkan per hari (O(1) lookup)
+  const mapelDaySet = kelasMapelDays.get(block.kelasId)?.get(block.mataPelajaranId)
 
   // Try each active day
   for (const day of orderedDays) {
+    if (state?.aborted) break
     const slots: number[] = academicSlotsPerDay.get(day) || []
     if (slots.length === 0) continue
 
     // Spacing constraints check
     if (options.avoidSame) {
-      let alreadyScheduledOnDay = false
-      for (const [sKey, sVal] of assigned.entries()) {
-        const [kId, d, ] = sKey.split("|")
-        if (kId === block.kelasId && d === day && sVal.mataPelajaranId === block.mataPelajaranId) {
-          alreadyScheduledOnDay = true
-          break
-        }
-      }
-      if (alreadyScheduledOnDay) continue
+      if (mapelDaySet?.has(day)) continue
     }
 
     if (options.avoidConsecutive) {
       const weekdaysOrder = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]
       const idxCurrent = weekdaysOrder.indexOf(day)
-      let alreadyScheduledConsecutive = false
-      for (const [sKey, sVal] of assigned.entries()) {
-        const [kId, d, ] = sKey.split("|")
-        if (kId === block.kelasId && sVal.mataPelajaranId === block.mataPelajaranId) {
-          const idxOther = weekdaysOrder.indexOf(d)
+      if (mapelDaySet) {
+        let alreadyScheduledConsecutive = false
+        for (const otherDay of mapelDaySet) {
+          const idxOther = weekdaysOrder.indexOf(otherDay)
           if (idxCurrent !== -1 && idxOther !== -1 && Math.abs(idxCurrent - idxOther) === 1) {
             alreadyScheduledConsecutive = true
             break
           }
         }
+        if (alreadyScheduledConsecutive) continue
       }
-      if (alreadyScheduledConsecutive) continue
     }
 
     // Try each possible starting academic JP slot
     for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
+      if (state?.aborted) break
       const startJp = slots[startIdx]
       let conflict = false
 
@@ -1438,14 +1455,7 @@ function runBacktrackingSolver(
           conflict = true
           if (recordReason) {
             const slotKey = `${block.kelasId}|${day}|${slotJp}`
-            let otherKelasId = ""
-            for (const [sKey, sVal] of assigned.entries()) {
-              const [kId, d, jpS] = sKey.split("|")
-              if (d === day && jpS === String(slotJp) && sVal.guruId === block.guruId) {
-                otherKelasId = kId
-                break
-              }
-            }
+            const otherKelasId = guruSlotKelas.get(teacherDayKey) || ""
             recordReason(slotKey, `Guru ${namaGuru?.get(block.guruId) || "terkait"} sedang mengajar Kelas ${namaKelas?.get(otherKelasId) || otherKelasId} di slot ini`)
           }
           break
@@ -1462,11 +1472,22 @@ function runBacktrackingSolver(
 
         const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
         teacherBusy.set(teacherDayKey, true)
+        guruSlotKelas.set(teacherDayKey, block.kelasId)
       }
       kelasDays.add(day)
       kelasDaysMap.set(block.kelasId, kelasDays)
 
-      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, state, options, recordReason, namaGuru, namaKelas)) {
+      // Update O(1) tracking maps
+      const loadMap = kelasLoad.get(block.kelasId) || new Map<string, number>()
+      loadMap.set(day, (loadMap.get(day) ?? 0) + block.jpCount)
+      kelasLoad.set(block.kelasId, loadMap)
+      const mDays = kelasMapelDays.get(block.kelasId) || new Map<string, Set<string>>()
+      const mDaySet = mDays.get(block.mataPelajaranId) || new Set<string>()
+      mDaySet.add(day)
+      mDays.set(block.mataPelajaranId, mDaySet)
+      kelasMapelDays.set(block.kelasId, mDays)
+
+      if (runBacktrackingSolver(blocks, index + 1, assigned, teacherBusy, activeDays, academicSlotsPerDay, teacherExclusions, kelasDaysMap, kelasLoad, kelasMapelDays, guruSlotKelas, state, options, recordReason, namaGuru, namaKelas)) {
         return true
       }
 
@@ -1478,8 +1499,13 @@ function runBacktrackingSolver(
 
         const teacherDayKey = `${block.guruId}|${day}|${slotJp}`
         teacherBusy.delete(teacherDayKey)
+        guruSlotKelas.delete(teacherDayKey)
       }
       kelasDays.delete(day)
+
+      // Rollback O(1) tracking maps
+      loadMap.set(day, (loadMap.get(day) ?? 0) - block.jpCount)
+      mDaySet.delete(day)
     }
   }
 
