@@ -524,101 +524,46 @@ export const jadwalRouter = router({
 
   autoGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(autoGenerateInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      const { sekolahId, pengaturanJadwalId, activeDays, allocations } = await prepareGenerate(ctx, input)
+    .mutation(async ({ ctx, input }) => runAutoGenerate(ctx, input)),
 
-      const seedKey = buildSeedKey(sekolahId, input)
-      const t0 = performance.now()
-      const result = await solveSchedule({ sekolahId, pengaturanJadwalId, allocations, activeDays, hariLibur: input.hariLibur || [], constraints: input.constraints || [], seedKey })
+  /**
+   * Generate dengan streaming progress via SSE (1 koneksi = 1 proses penuh).
+   * Event: { type: "progress", percent, message } → { type: "done", result } | { type: "error", message }
+   */
+  generateWithProgress: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(autoGenerateInputSchema)
+    .subscription(async function* ({ ctx, input }) {
+      const queue: { type: "progress"; percent: number; message: string }[] = []
 
-      if (!result.ok) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
-      }
-
-      // Delete existing schedules for the classes we generated
-      const targetKelasIds = Array.from(new Set(allocations.map((a) => a.kelasId)))
-      if (targetKelasIds.length > 0) {
-        await db.delete(jadwalPelajaran).where(inArray(jadwalPelajaran.kelasId, targetKelasIds))
-      }
-
-      // Group contiguous assignments into single records
-      const groups: {
-        kelasId: string
-        hari: string
-        mataPelajaranId: string
-        guruId: string
-        jpMulai: number
-        jpCount: number
-      }[] = []
-
-      const assignmentsList = Array.from(result.assigned.entries()).map(([key, val]) => {
-        const [kelasId, hari, academicJpStr] = key.split("|")
-        return {
-          kelasId,
-          hari,
-          academicJp: parseInt(academicJpStr),
-          mataPelajaranId: val.mataPelajaranId,
-          guruId: val.guruId,
-        }
-      })
-
-      assignmentsList.sort((a, b) => {
-        if (a.kelasId !== b.kelasId) return a.kelasId.localeCompare(b.kelasId)
-        if (a.hari !== b.hari) return a.hari.localeCompare(b.hari)
-        return a.academicJp - b.academicJp
-      })
-
-      for (const item of assignmentsList) {
-        const lastGroup = groups[groups.length - 1]
-        const isContiguous =
-          lastGroup &&
-          lastGroup.kelasId === item.kelasId &&
-          lastGroup.hari === item.hari &&
-          lastGroup.mataPelajaranId === item.mataPelajaranId &&
-          lastGroup.guruId === item.guruId &&
-          lastGroup.jpCount < 3 &&
-          lastGroup.jpMulai + lastGroup.jpCount === item.academicJp
-
-        if (isContiguous) {
-          lastGroup.jpCount++
-        } else {
-          groups.push({
-            kelasId: item.kelasId,
-            hari: item.hari,
-            mataPelajaranId: item.mataPelajaranId,
-            guruId: item.guruId,
-            jpMulai: item.academicJp,
-            jpCount: 1,
+      const donePromise = (async () => {
+        try {
+          const result = await runAutoGenerate(ctx, input, (_stage, percent, message) => {
+            queue.push({ type: "progress", percent, message })
           })
+          return { kind: "done" as const, result }
+        } catch (e) {
+          return { kind: "error" as const, message: e instanceof Error ? e.message : "Kesalahan solver internal" }
+        }
+      })()
+
+      while (true) {
+        if (queue.length > 0) {
+          yield queue.shift()!
+          continue
+        }
+        const settled = await Promise.race([
+          donePromise,
+          new Promise<null>((res) => setTimeout(() => res(null), 150)),
+        ])
+        if (settled) {
+          if (settled.kind === "done") {
+            yield { type: "done" as const, result: settled.result }
+          } else {
+            yield { type: "error" as const, message: settled.message }
+          }
+          return
         }
       }
-
-      const insertData: any[] = []
-      for (const g of groups) {
-        const { jamMulai, jamSelesai } = await computeTimesForJadwal(pengaturanJadwalId, g.hari, g.jpMulai, g.jpCount)
-        insertData.push({
-          id: crypto.randomUUID(),
-          sekolahId,
-          kelasId: g.kelasId,
-          mataPelajaranId: g.mataPelajaranId,
-          guruId: g.guruId,
-          hari: g.hari,
-          jpMulai: g.jpMulai,
-          jpCount: g.jpCount,
-          jamMulai,
-          jamSelesai,
-        })
-      }
-
-      if (insertData.length > 0) {
-        await db.insert(jadwalPelajaran).values(insertData)
-      }
-
-      const totalJpTerjadwal = insertData.reduce((sum, d) => sum + (d.jpCount || 0), 0)
-      const durationMs = Math.round(performance.now() - t0)
-      console.log(`[jadwal] autoGenerate selesai: ${durationMs}ms, ${insertData.length} blok, ${totalJpTerjadwal} JP, ${targetKelasIds.length} rombel`)
-      await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds, totalJp: totalJpTerjadwal, totalBlocks: insertData.length } })
-      return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length, durationMs }
     }),
 
   previewGenerate: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -919,6 +864,132 @@ async function prepareGenerate(
   return { sekolahId, pengaturanJadwalId, activeDays, allocations }
 }
 
+type AutoGenerateCtx = {
+  session: {
+    user: {
+      role?: string | null
+      sekolahId: string | null
+    }
+  }
+}
+
+/**
+ * Jalankan generate jadwal penuh (solver + delete lama + simpan DB).
+ * Dipakai oleh mutation autoGenerate dan subscription generateWithProgress.
+ * `onProgress` opsional — tanpa callback perilaku identik.
+ */
+async function runAutoGenerate(
+  ctx: AutoGenerateCtx,
+  input: { kelasId?: string; hariLibur?: string[]; constraints?: GenerateConstraint[] },
+  onProgress?: (stage: string, percent: number, message: string) => void
+) {
+  const { sekolahId, pengaturanJadwalId, activeDays, allocations } = await prepareGenerate(ctx, input)
+
+  const seedKey = buildSeedKey(sekolahId, input)
+  const t0 = performance.now()
+  const result = await solveSchedule({
+    sekolahId,
+    pengaturanJadwalId,
+    allocations,
+    activeDays,
+    hariLibur: input.hariLibur || [],
+    constraints: input.constraints || [],
+    seedKey,
+    onProgress,
+  })
+
+  if (!result.ok) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
+  }
+
+  // Delete existing schedules for the classes we generated
+  const targetKelasIds = Array.from(new Set(allocations.map((a) => a.kelasId)))
+  if (targetKelasIds.length > 0) {
+    onProgress?.("simpan", 90, "Menghapus jadwal lama...")
+    await db.delete(jadwalPelajaran).where(inArray(jadwalPelajaran.kelasId, targetKelasIds))
+  }
+
+  // Group contiguous assignments into single records
+  const groups: {
+    kelasId: string
+    hari: string
+    mataPelajaranId: string
+    guruId: string
+    jpMulai: number
+    jpCount: number
+  }[] = []
+
+  const assignmentsList = Array.from(result.assigned.entries()).map(([key, val]) => {
+    const [kelasId, hari, academicJpStr] = key.split("|")
+    return {
+      kelasId,
+      hari,
+      academicJp: parseInt(academicJpStr),
+      mataPelajaranId: val.mataPelajaranId,
+      guruId: val.guruId,
+    }
+  })
+
+  assignmentsList.sort((a, b) => {
+    if (a.kelasId !== b.kelasId) return a.kelasId.localeCompare(b.kelasId)
+    if (a.hari !== b.hari) return a.hari.localeCompare(b.hari)
+    return a.academicJp - b.academicJp
+  })
+
+  for (const item of assignmentsList) {
+    const lastGroup = groups[groups.length - 1]
+    const isContiguous =
+      lastGroup &&
+      lastGroup.kelasId === item.kelasId &&
+      lastGroup.hari === item.hari &&
+      lastGroup.mataPelajaranId === item.mataPelajaranId &&
+      lastGroup.guruId === item.guruId &&
+      lastGroup.jpCount < 3 &&
+      lastGroup.jpMulai + lastGroup.jpCount === item.academicJp
+
+    if (isContiguous) {
+      lastGroup.jpCount++
+    } else {
+      groups.push({
+        kelasId: item.kelasId,
+        hari: item.hari,
+        mataPelajaranId: item.mataPelajaranId,
+        guruId: item.guruId,
+        jpMulai: item.academicJp,
+        jpCount: 1,
+      })
+    }
+  }
+
+  const insertData: any[] = []
+  onProgress?.("simpan", 95, "Menyimpan jadwal ke database...")
+  for (const g of groups) {
+    const { jamMulai, jamSelesai } = await computeTimesForJadwal(pengaturanJadwalId, g.hari, g.jpMulai, g.jpCount)
+    insertData.push({
+      id: crypto.randomUUID(),
+      sekolahId,
+      kelasId: g.kelasId,
+      mataPelajaranId: g.mataPelajaranId,
+      guruId: g.guruId,
+      hari: g.hari,
+      jpMulai: g.jpMulai,
+      jpCount: g.jpCount,
+      jamMulai,
+      jamSelesai,
+    })
+  }
+
+  if (insertData.length > 0) {
+    await db.insert(jadwalPelajaran).values(insertData)
+  }
+
+  const totalJpTerjadwal = insertData.reduce((sum, d) => sum + (d.jpCount || 0), 0)
+  const durationMs = Math.round(performance.now() - t0)
+  console.log(`[jadwal] autoGenerate selesai: ${durationMs}ms, ${insertData.length} blok, ${totalJpTerjadwal} JP, ${targetKelasIds.length} rombel`)
+  await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: "auto-generate", metadata: { kelasIds: targetKelasIds, totalJp: totalJpTerjadwal, totalBlocks: insertData.length } })
+  return { success: true, totalJp: totalJpTerjadwal, totalBlocks: insertData.length, durationMs }
+}
+
 export async function solveSchedule(args: {
   sekolahId: string
   pengaturanJadwalId: string
@@ -929,6 +1000,7 @@ export async function solveSchedule(args: {
   seedKey: string
   namaGuru?: Map<string, string>
   namaKelas?: Map<string, string>
+  onProgress?: (stage: string, percent: number, message: string) => void
 }): Promise<{
   ok: boolean
   error?: string
@@ -940,7 +1012,7 @@ export async function solveSchedule(args: {
   kapasitasRealistisPerKelas: Map<string, number>
   totalJp: number
 }> {
-  const { pengaturanJadwalId, allocations, activeDays, constraints, seedKey, namaGuru, namaKelas } = args
+  const { pengaturanJadwalId, allocations, activeDays, constraints, seedKey, namaGuru, namaKelas, onProgress } = args
 
   // Get all timeline items for slot mapping
   const timelineList = await db.query.timelineItem.findMany({
@@ -949,6 +1021,7 @@ export async function solveSchedule(args: {
     ),
     orderBy: [asc(timelineItem.urutan)],
   })
+  onProgress?.("timeline", 10, "Membaca timeline & plotting pengajar...")
 
   // Pre-map academic slots per day
   const academicSlotsPerDay = new Map<string, number[]>()
@@ -994,6 +1067,7 @@ export async function solveSchedule(args: {
     }
   }
   if (overloaded.length > 0) {
+    onProgress?.("validasi", 20, "Overload terdeteksi — generate dibatalkan")
     const butuhHari = activeDays.length + 1
     const detail = overloaded
       .map((o) => {
@@ -1021,6 +1095,7 @@ export async function solveSchedule(args: {
       totalJp: 0,
     }
   }
+  onProgress?.("validasi", 20, "Memvalidasi kapasitas & beban JP...")
 
   // Convert constraints to a fast-lookup Set "guruId-day-academicJp"
   const teacherExclusions = new Set<string>()
@@ -1079,6 +1154,7 @@ export async function solveSchedule(args: {
     kelasLoad.clear()
     kelasMapelDays.clear()
     reasons.clear()
+    onProgress?.("phase1", Math.round(25 + ((attempt + 1) / 12) * 30), `Mencari solusi anti-bentrok (attempt ${attempt + 1}/12)...`)
 
     const shuffledBlocks = [...blocks]
     if (attempt > 0) {
@@ -1132,6 +1208,7 @@ export async function solveSchedule(args: {
       kelasLoad.clear()
       kelasMapelDays.clear()
       reasons.clear()
+      onProgress?.("phase2", Math.round(55 + ((attempt + 1) / 6) * 10), `Merilekskan jam berhalangan guru (attempt ${attempt + 1}/6)...`)
 
       const shuffledBlocks = [...blocks]
       if (attempt > 0) {
@@ -1180,6 +1257,7 @@ export async function solveSchedule(args: {
   // bisa ditempatkan dikumpulkan dan memicu error (bukan silent drop).
   const unplaced: { kelasId: string; mataPelajaranId: string; guruId: string; jpCount: number }[] = []
   if (!success) {
+    onProgress?.("phase3", 70, "Menyusun blok dengan greedy placement...")
     assigned.clear()
     teacherBusy.clear()
     guruSlotKelas.clear()
@@ -1333,6 +1411,7 @@ export async function solveSchedule(args: {
   }
 
   const totalJp = blocks.reduce((sum, b) => sum + b.jpCount, 0)
+  onProgress?.("finalisasi", 80, "Memfinalisasi blok jadwal...")
   return {
     ok: true,
     assigned,

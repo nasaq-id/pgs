@@ -241,9 +241,30 @@ export default function AiGenerateDialog({
 
   // Progression States for terminal modal
   const [progressModalOpen, setProgressModalOpen] = useState(false)
-  const [progressPercent, setProgressPercent] = useState(0)
+  const [progressPercent, setProgressPercent] = useState(0) // target dari server
+  const [progressDisplay, setProgressDisplay] = useState(0) // nilai animasi (interpolasi)
   const [progressStatus, setProgressStatus] = useState<"processing" | "success" | "error">("processing")
   const [progressLogs, setProgressLogs] = useState<string[]>([])
+  const [genStarted, setGenStarted] = useState(false)
+  const [genInput, setGenInput] = useState<{
+    kelasId?: string
+    hariLibur: string[]
+    constraints: ReturnType<typeof buildConstraints>
+  } | null>(null)
+
+  // Interpolasi halus: display meluncur menuju target (real dari server)
+  useEffect(() => {
+    if (!progressModalOpen) return
+    const id = setInterval(() => {
+      setProgressDisplay((prev) => {
+        const target = progressPercent
+        if (target === 100) return 100
+        const next = prev + (target - prev) * 0.12
+        return Math.min(next, Math.max(target - 1, prev + 0.2))
+      })
+    }, 80)
+    return () => clearInterval(id)
+  }, [progressModalOpen, progressPercent])
 
   // Fetch Plotting Pengajar (Pengampu)
   const { data: pengampuList, isLoading: isLoadingPengampu } = api.pengampu.getAll.useQuery(undefined, {
@@ -448,7 +469,6 @@ export default function AiGenerateDialog({
   const isOverload = bebanCek > kapasitasPerMinggu
 
   const utils = api.useUtils()
-  const generateMutation = api.jadwal.autoGenerate.useMutation()
   const previewMutation = api.jadwal.previewGenerate.useMutation()
 
   const handleToggleHariLibur = (dayValue: string) => {
@@ -567,57 +587,55 @@ export default function AiGenerateDialog({
     setProgressModalOpen(true)
     setProgressStatus("processing")
     setProgressPercent(5)
+    setProgressDisplay(0)
     setProgressLogs([
-      "[Sistem] Menghubungi mesin asisten AI...",
-      "[Sistem] Menganalisis rombel kelas dan program mata pelajaran...",
+      "[Sistem] Menyiapkan data plotting & timeline...",
     ])
 
-    // Simulated log delays for a realistic premium computation vibe
-    setTimeout(() => {
-      setProgressPercent(25)
-      setProgressLogs((prev) => [
-        ...prev,
-        "[Sistem] Membaca preferensi guru pengampu...",
-        "[Sistem] Menyesuaikan ketersediaan & pantangan mengajar guru...",
-      ])
-    }, 500)
-
-    setTimeout(() => {
-      setProgressPercent(55)
-      setProgressLogs((prev) => [
-        ...prev,
-        "[Sistem] Menghitung alokasi optimal slot KBM sekolah...",
-        "[Sistem] Memetakan seluruh JP mata pelajaran tanpa bentrok...",
-      ])
-    }, 1000)
-
-    // Execute server-side scheduler
-    setTimeout(async () => {
-      try {
-        await generateMutation.mutateAsync({
-          kelasId: targetKelasId === "all" ? undefined : targetKelasId,
-          hariLibur: hariLibur as any[],
-          constraints,
-        })
-
-        setProgressPercent(100)
-        setProgressStatus("success")
-        setProgressLogs((prev) => [
-          ...prev,
-          "[Success] Penyusunan jadwal berhasil difinalisasi oleh solver!",
-          "[Success] Berhasil menyusun seluruh jadwal kelas tanpa ada bentrok guru!",
-        ])
-        toast.success("Jadwal pelajaran berhasil digenerate otomatis oleh AI!")
-        await utils.jadwal.getAll.invalidate()
-      } catch (err: any) {
-        setProgressStatus("error")
-        setProgressLogs((prev) => [
-          ...prev,
-          `[Error] Gagal menyusun: ${err.message || "Kesalahan solver internal"}`,
-        ])
-      }
-    }, 1500)
+    // Mulai subscription — progress asli datang dari server
+    setGenInput({
+      kelasId: targetKelasId === "all" ? undefined : targetKelasId,
+      hariLibur: hariLibur as string[],
+      constraints,
+    })
+    setGenStarted(true)
   }
+
+  api.jadwal.generateWithProgress.useSubscription(
+    genInput as any,
+    {
+      enabled: genStarted && !!genInput,
+      onData(event) {
+        if (event.type === "progress") {
+          setProgressPercent(event.percent)
+          setProgressLogs((prev) => [...prev, `[Sistem] ${event.message}`])
+        } else if (event.type === "done") {
+          setProgressPercent(100)
+          setProgressDisplay(100)
+          setGenStarted(false)
+          setProgressStatus("success")
+          const r = event.result
+          const detik = ((r?.durationMs ?? 0) / 1000).toFixed(1)
+          setProgressLogs((prev) => [
+            ...prev,
+            `[Success] Penyusunan jadwal berhasil difinalisasi oleh solver!`,
+            `[Success] ${r?.totalBlocks ?? 0} blok / ${r?.totalJp ?? 0} JP tersusun tanpa bentrok — selesai dalam ${detik} detik.`,
+          ])
+          toast.success("Jadwal pelajaran berhasil digenerate otomatis oleh AI!")
+          utils.jadwal.getAll.invalidate()
+        } else if (event.type === "error") {
+          setGenStarted(false)
+          setProgressStatus("error")
+          setProgressLogs((prev) => [...prev, `[Error] Gagal menyusun: ${event.message}`])
+        }
+      },
+      onError(err) {
+        setGenStarted(false)
+        setProgressStatus("error")
+        setProgressLogs((prev) => [...prev, `[Error] Gagal menyusun: ${err.message || "Kesalahan solver internal"}`])
+      },
+    }
+  )
 
   return (
     <>
@@ -1266,12 +1284,12 @@ export default function AiGenerateDialog({
                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative shadow-inner">
                   <div
                     className="bg-indigo-600 h-full rounded-full transition-all duration-300 ease-out shadow-sm"
-                    style={{ width: `${progressPercent}%` }}
+                    style={{ width: `${progressDisplay}%` }}
                   />
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-2">
                   <span>Proses Komputasi</span>
-                  <span>{progressPercent}%</span>
+                  <span>{Math.round(progressDisplay)}%</span>
                 </div>
               </div>
 
