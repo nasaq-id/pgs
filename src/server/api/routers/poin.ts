@@ -16,6 +16,7 @@ import { queryDashboardSiswa, queryDashboardGuruAdmin } from "@/server/api/dashb
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const kategoriCreateSchema = z.object({
   id: z.string().optional(),
@@ -62,15 +63,23 @@ export const poinRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
-      if (input.search) conditions.push(like(poinKategori.nama, `%${input.search}%`))
-      if (input.jenis) conditions.push(eq(poinKategori.jenis, input.jenis))
-      if (input.aktifOnly) conditions.push(eq(poinKategori.aktif, true))
-      return db.query.poinKategori.findMany({
-        where: conditions.length > 0 ? and(...conditions) : undefined,
-        orderBy: [asc(poinKategori.jenis), asc(poinKategori.nama)],
-      })
+
+      const runQuery = async () => {
+        const conditions = []
+        if (sekolahId) conditions.push(eq(poinKategori.sekolahId, sekolahId))
+        if (input.search) conditions.push(like(poinKategori.nama, `%${input.search}%`))
+        if (input.jenis) conditions.push(eq(poinKategori.jenis, input.jenis))
+        if (input.aktifOnly) conditions.push(eq(poinKategori.aktif, true))
+        return db.query.poinKategori.findMany({
+          where: conditions.length > 0 ? and(...conditions) : undefined,
+          orderBy: [asc(poinKategori.jenis), asc(poinKategori.nama)],
+        })
+      }
+
+      if (!input.search && !input.jenis && !input.aktifOnly) {
+        return getOrSetCache(cacheKey("poin:getAllKategori", sekolahId || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   createKategori: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -80,6 +89,7 @@ export const poinRouter = router({
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinKategori).values({ ...input, id, sekolahId }).returning()
       await logAudit(ctx, { action: "create", entity: "poin_kategori", entityId: id, metadata: { nama: input.nama } })
+      await invalidateCache([cacheKey("poin:getAllKategori", sekolahId)])
       return result
     }),
 
@@ -91,6 +101,7 @@ export const poinRouter = router({
       const [result] = await db.update(poinKategori).set(input.data as any).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_kategori", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllKategori", sekolahId)])
       return result
     }),
 
@@ -102,6 +113,7 @@ export const poinRouter = router({
       const [result] = await db.delete(poinKategori).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_kategori", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllKategori", sekolahId)])
       return { success: true }
     }),
 
@@ -113,14 +125,22 @@ export const poinRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const sekolahId = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
-      if (input.search) conditions.push(like(poinTindakLanjut.nama, `%${input.search}%`))
-      if (input.jenis) conditions.push(eq(poinTindakLanjut.jenis, input.jenis))
-      return db.query.poinTindakLanjut.findMany({
-        where: conditions.length > 0 ? and(...conditions) : undefined,
-        orderBy: [asc(poinTindakLanjut.jenis), asc(poinTindakLanjut.nama)],
-      })
+
+      const runQuery = async () => {
+        const conditions = []
+        if (sekolahId) conditions.push(eq(poinTindakLanjut.sekolahId, sekolahId))
+        if (input.search) conditions.push(like(poinTindakLanjut.nama, `%${input.search}%`))
+        if (input.jenis) conditions.push(eq(poinTindakLanjut.jenis, input.jenis))
+        return db.query.poinTindakLanjut.findMany({
+          where: conditions.length > 0 ? and(...conditions) : undefined,
+          orderBy: [asc(poinTindakLanjut.jenis), asc(poinTindakLanjut.nama)],
+        })
+      }
+
+      if (!input.search && !input.jenis) {
+        return getOrSetCache(cacheKey("poin:getAllTindakLanjut", sekolahId || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   createTindakLanjut: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -130,6 +150,7 @@ export const poinRouter = router({
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinTindakLanjut).values({ ...input, id, sekolahId }).returning()
       await logAudit(ctx, { action: "create", entity: "poin_tindak_lanjut", entityId: id, metadata: { nama: input.nama } })
+      await invalidateCache([cacheKey("poin:getAllTindakLanjut", sekolahId)])
       return result
     }),
 
@@ -141,6 +162,7 @@ export const poinRouter = router({
       const [result] = await db.update(poinTindakLanjut).set(input.data as any).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_tindak_lanjut", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllTindakLanjut", sekolahId)])
       return result
     }),
 
@@ -152,6 +174,7 @@ export const poinRouter = router({
       const [result] = await db.delete(poinTindakLanjut).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_tindak_lanjut", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllTindakLanjut", sekolahId)])
       return { success: true }
     }),
 
@@ -159,12 +182,14 @@ export const poinRouter = router({
   getAllAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .query(async ({ ctx }) => {
       const sekolahId = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
-      return db.query.poinAturan.findMany({
-        where: conditions.length > 0 ? and(...conditions) : undefined,
-        orderBy: [asc(poinAturan.poinMin)],
-      })
+      return getOrSetCache(cacheKey("poin:getAllAturan", sekolahId || "all"), async () => {
+        const conditions = []
+        if (sekolahId) conditions.push(eq(poinAturan.sekolahId, sekolahId))
+        return db.query.poinAturan.findMany({
+          where: conditions.length > 0 ? and(...conditions) : undefined,
+          orderBy: [asc(poinAturan.poinMin)],
+        })
+      }, 300)
     }),
 
   createAturan: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -174,6 +199,7 @@ export const poinRouter = router({
       const id = input.id || crypto.randomUUID()
       const [result] = await db.insert(poinAturan).values({ ...input, id, sekolahId }).returning()
       await logAudit(ctx, { action: "create", entity: "poin_aturan", entityId: id })
+      await invalidateCache([cacheKey("poin:getAllAturan", sekolahId)])
       return result
     }),
 
@@ -185,6 +211,7 @@ export const poinRouter = router({
       const [result] = await db.update(poinAturan).set(input.data as any).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_aturan", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllAturan", sekolahId)])
       return result
     }),
 
@@ -196,6 +223,7 @@ export const poinRouter = router({
       const [result] = await db.delete(poinAturan).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_aturan", entityId: input.id })
+      await invalidateCache([cacheKey("poin:getAllAturan", sekolahId)])
       return { success: true }
     }),
 

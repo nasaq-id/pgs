@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { sekolah, tahunAjaran, pengaturanKalender } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 import { DEFAULT_KALDIK, resolveSemesterYear, suggestSemesterDates } from "@/server/kaldik"
 
 export const lembagaRouter = router({
@@ -23,11 +24,13 @@ export const lembagaRouter = router({
     const sekolahId = ctx.session.user.sekolahId
     if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-    const data = await db.query.sekolah.findFirst({
-      where: eq(sekolah.id, sekolahId),
-    })
-    if (!data) throw new TRPCError({ code: "NOT_FOUND" })
-    return data
+    return getOrSetCache(cacheKey("lembaga:getSekolah", sekolahId), async () => {
+      const data = await db.query.sekolah.findFirst({
+        where: eq(sekolah.id, sekolahId),
+      })
+      if (!data) throw new TRPCError({ code: "NOT_FOUND" })
+      return data
+    }, 300)
   }),
 
   updateSekolah: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -72,6 +75,7 @@ export const lembagaRouter = router({
 
       await db.update(sekolah).set(input).where(eq(sekolah.id, sekolahId))
       await logAudit(ctx, { action: "update", entity: "sekolah", entityId: sekolahId, metadata: { fields: Object.keys(input) } })
+      await invalidateCache([cacheKey("lembaga:getSekolah", sekolahId)])
       return { success: true }
     }),
 
@@ -89,10 +93,12 @@ export const lembagaRouter = router({
     const sekolahId = ctx.session.user.sekolahId
     if (!sekolahId) return null
 
-    const data = await db.query.tahunAjaran.findFirst({
-      where: and(eq(tahunAjaran.sekolahId, sekolahId), eq(tahunAjaran.active, true)),
-    })
-    return data || null
+    return getOrSetCache(cacheKey("lembaga:getActiveTahunAjaran", sekolahId), async () => {
+      const data = await db.query.tahunAjaran.findFirst({
+        where: and(eq(tahunAjaran.sekolahId, sekolahId), eq(tahunAjaran.active, true)),
+      })
+      return data || null
+    }, 300)
   }),
 
   createTahunAjaran: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -140,6 +146,7 @@ export const lembagaRouter = router({
       }).returning()
 
       await logAudit(ctx, { action: "create", entity: "tahun_ajaran", entityId: inserted.id, metadata: { namaTahunAjaran: input.namaTahunAjaran } })
+      await invalidateCache([cacheKey("lembaga:getActiveTahunAjaran", sekolahId)])
       return inserted
     }),
 
@@ -176,6 +183,7 @@ export const lembagaRouter = router({
 
       await db.update(tahunAjaran).set(updateData).where(whereClause)
       await logAudit(ctx, { action: "update", entity: "tahun_ajaran", entityId: id, metadata: { fields: Object.keys(data) } })
+      await invalidateCache([cacheKey("lembaga:getActiveTahunAjaran", sekolahId)])
       return { success: true }
     }),
 
@@ -187,6 +195,7 @@ export const lembagaRouter = router({
       const [deleted] = await db.delete(tahunAjaran).where(whereClause).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "tahun_ajaran", entityId: input.id })
+      await invalidateCache([cacheKey("lembaga:getActiveTahunAjaran", sekolahId)])
       return { success: true }
     }),
 })

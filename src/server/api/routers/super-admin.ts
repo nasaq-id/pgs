@@ -12,6 +12,7 @@ import {
   mataPelajaran, absensiSiswa, absensiGuru, absensiHari, pengajuanIzin, invoice, jurnalMengajar, poinSikap
 } from "@/server/db/schema"
 import { router, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 import { logAudit } from "@/server/audit"
 
 const registerSekolahSchema = z.object({
@@ -27,107 +28,11 @@ const registerSekolahSchema = z.object({
 export const superAdminRouter = router({
   listSekolah: roleProtectedProcedure(["super_admin"])
     .query(async () => {
-      // 1. Get raw schools
-      const schools = await db
-        .select()
-        .from(sekolah)
-        .orderBy(desc(sekolah.createdAt))
-
-      // 2. Fetch aggregates grouped by sekolahId
-      const siswaCounts = await db
-        .select({ sekolahId: siswa.sekolahId, count: sql<number>`count(*)` })
-        .from(siswa)
-        .groupBy(siswa.sekolahId)
-
-      const guruCounts = await db
-        .select({ sekolahId: guru.sekolahId, count: sql<number>`count(*)` })
-        .from(guru)
-        .groupBy(guru.sekolahId)
-
-      const kelasCounts = await db
-        .select({ sekolahId: kelas.sekolahId, count: sql<number>`count(*)` })
-        .from(kelas)
-        .groupBy(kelas.sekolahId)
-
-      const mapelCounts = await db
-        .select({ sekolahId: mataPelajaran.sekolahId, count: sql<number>`count(*)` })
-        .from(mataPelajaran)
-        .groupBy(mataPelajaran.sekolahId)
-
-      const absensiCounts = await db
-        .select({ sekolahId: absensiSiswa.sekolahId, count: sql<number>`count(*)` })
-        .from(absensiSiswa)
-        .groupBy(absensiSiswa.sekolahId)
-
-      const invoiceCounts = await db
-        .select({ sekolahId: invoice.sekolahId, count: sql<number>`count(*)` })
-        .from(invoice)
-        .groupBy(invoice.sekolahId)
-
-      const jurnalCounts = await db
-        .select({ sekolahId: jurnalMengajar.sekolahId, count: sql<number>`count(*)` })
-        .from(jurnalMengajar)
-        .groupBy(jurnalMengajar.sekolahId)
-
-      const poinCounts = await db
-        .select({ sekolahId: poinSikap.sekolahId, count: sql<number>`count(*)` })
-        .from(poinSikap)
-        .groupBy(poinSikap.sekolahId)
-
-      // Map counts by school ID for O(1) lookups
-      const siswaMap = new Map(siswaCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const guruMap = new Map(guruCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const kelasMap = new Map(kelasCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const mapelMap = new Map(mapelCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const absensiMap = new Map(absensiCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const invoiceMap = new Map(invoiceCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const jurnalMap = new Map(jurnalCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const poinMap = new Map(poinCounts.map(c => [c.sekolahId, Number(c.count)]))
-
-      // Compute stats for each school
-      return schools.map(s => {
-        const totalSiswa = siswaMap.get(s.id) ?? 0
-        const totalGuru = guruMap.get(s.id) ?? 0
-        const totalKelas = kelasMap.get(s.id) ?? 0
-        const totalMapel = mapelMap.get(s.id) ?? 0
-        const totalAbsensi = absensiMap.get(s.id) ?? 0
-        const totalInvoice = invoiceMap.get(s.id) ?? 0
-        const totalJurnal = jurnalMap.get(s.id) ?? 0
-        const totalPoin = poinMap.get(s.id) ?? 0
-
-        const totalDbRows = totalSiswa + totalGuru + totalKelas + totalMapel + totalAbsensi + totalInvoice + totalJurnal + totalPoin
-
-        // Calculate health state:
-        // - "abu" : suspended/inactive
-        // - "merah" : active but has 0 students
-        // - "kuning" : active but has 0 teachers
-        // - "hijau" : active and has both students & teachers
-        let health: "hijau" | "kuning" | "merah" | "abu" = "hijau"
-        if (!s.active) {
-          health = "abu"
-        } else if (totalSiswa === 0) {
-          health = "merah"
-        } else if (totalGuru === 0) {
-          health = "kuning"
-        }
-
-        return {
-          ...s,
-          stats: {
-            siswa: totalSiswa,
-            guru: totalGuru,
-            kelas: totalKelas,
-            mapel: totalMapel,
-            absensi: totalAbsensi,
-            invoice: totalInvoice,
-            jurnal: totalJurnal,
-            poin: totalPoin,
-            dbRows: totalDbRows,
-            health,
-          }
-        }
-      })
+      return getOrSetCache(cacheKey("superAdmin:listSekolah"), async () => {
+        return listSekolahInner()
+      }, 60)
     }),
+
 
   registerSekolah: roleProtectedProcedure(["super_admin"])
     .input(sanitized(registerSekolahSchema))
@@ -212,6 +117,7 @@ export const superAdminRouter = router({
         entityId: newSekolahId,
         metadata: { namaSekolah: input.namaSekolah, adminEmail: input.adminEmail },
       })
+      await invalidateSekolahCache()
 
       return result
     }),
@@ -240,6 +146,7 @@ export const superAdminRouter = router({
         entityId: input.id,
         metadata: { active: newStatus },
       })
+      await invalidateSekolahCache()
 
       return updated
     }),
@@ -277,6 +184,7 @@ export const superAdminRouter = router({
         entityId: input.id,
         metadata: { namaSekolah: input.namaSekolah, npsn: input.npsn },
       })
+      await invalidateSekolahCache()
 
       return updated
     }),
@@ -407,6 +315,7 @@ export const superAdminRouter = router({
         entityId: input.id,
         metadata: { namaSekolah: deleted.namaSekolah, npsn: deleted.npsn },
       })
+      await invalidateSekolahCache()
 
       return deleted
     }),
@@ -459,6 +368,7 @@ export const superAdminRouter = router({
         entityId: input.sekolahId,
         metadata: { namaSekolah: existing.namaSekolah, ...counts },
       })
+      await invalidateSekolahCache()
 
       return { success: true, counts }
     }),
@@ -659,3 +569,108 @@ export const superAdminRouter = router({
       }
     }),
 })
+
+async function listSekolahInner() {
+      // 1. Get raw schools
+      const schools = await db
+        .select()
+        .from(sekolah)
+        .orderBy(desc(sekolah.createdAt))
+
+      // 2. Fetch aggregates grouped by sekolahId
+      const siswaCounts = await db
+        .select({ sekolahId: siswa.sekolahId, count: sql<number>`count(*)` })
+        .from(siswa)
+        .groupBy(siswa.sekolahId)
+
+      const guruCounts = await db
+        .select({ sekolahId: guru.sekolahId, count: sql<number>`count(*)` })
+        .from(guru)
+        .groupBy(guru.sekolahId)
+
+      const kelasCounts = await db
+        .select({ sekolahId: kelas.sekolahId, count: sql<number>`count(*)` })
+        .from(kelas)
+        .groupBy(kelas.sekolahId)
+
+      const mapelCounts = await db
+        .select({ sekolahId: mataPelajaran.sekolahId, count: sql<number>`count(*)` })
+        .from(mataPelajaran)
+        .groupBy(mataPelajaran.sekolahId)
+
+      const absensiCounts = await db
+        .select({ sekolahId: absensiSiswa.sekolahId, count: sql<number>`count(*)` })
+        .from(absensiSiswa)
+        .groupBy(absensiSiswa.sekolahId)
+
+      const invoiceCounts = await db
+        .select({ sekolahId: invoice.sekolahId, count: sql<number>`count(*)` })
+        .from(invoice)
+        .groupBy(invoice.sekolahId)
+
+      const jurnalCounts = await db
+        .select({ sekolahId: jurnalMengajar.sekolahId, count: sql<number>`count(*)` })
+        .from(jurnalMengajar)
+        .groupBy(jurnalMengajar.sekolahId)
+
+      const poinCounts = await db
+        .select({ sekolahId: poinSikap.sekolahId, count: sql<number>`count(*)` })
+        .from(poinSikap)
+        .groupBy(poinSikap.sekolahId)
+
+      // Map counts by school ID for O(1) lookups
+      const siswaMap = new Map(siswaCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const guruMap = new Map(guruCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const kelasMap = new Map(kelasCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const mapelMap = new Map(mapelCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const absensiMap = new Map(absensiCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const invoiceMap = new Map(invoiceCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const jurnalMap = new Map(jurnalCounts.map(c => [c.sekolahId, Number(c.count)]))
+      const poinMap = new Map(poinCounts.map(c => [c.sekolahId, Number(c.count)]))
+
+      // Compute stats for each school
+      return schools.map(s => {
+        const totalSiswa = siswaMap.get(s.id) ?? 0
+        const totalGuru = guruMap.get(s.id) ?? 0
+        const totalKelas = kelasMap.get(s.id) ?? 0
+        const totalMapel = mapelMap.get(s.id) ?? 0
+        const totalAbsensi = absensiMap.get(s.id) ?? 0
+        const totalInvoice = invoiceMap.get(s.id) ?? 0
+        const totalJurnal = jurnalMap.get(s.id) ?? 0
+        const totalPoin = poinMap.get(s.id) ?? 0
+
+        const totalDbRows = totalSiswa + totalGuru + totalKelas + totalMapel + totalAbsensi + totalInvoice + totalJurnal + totalPoin
+
+        // Calculate health state:
+        // - "abu" : suspended/inactive
+        // - "merah" : active but has 0 students
+        // - "kuning" : active but has 0 teachers
+        // - "hijau" : active and has both students & teachers
+        let health: "hijau" | "kuning" | "merah" | "abu" = "hijau"
+        if (!s.active) {
+          health = "abu"
+        } else if (totalSiswa === 0) {
+          health = "merah"
+        } else if (totalGuru === 0) {
+          health = "kuning"
+        }
+
+        return {
+          ...s,
+          stats: {
+            siswa: totalSiswa,
+            guru: totalGuru,
+            kelas: totalKelas,
+            mapel: totalMapel,
+            absensi: totalAbsensi,
+            invoice: totalInvoice,
+             jurnal: totalJurnal,
+             poin: totalPoin,
+             dbRows: totalDbRows,
+             health,
+           }
+         }
+       })
+}
+
+const invalidateSekolahCache = () => invalidateCache([cacheKey("superAdmin:listSekolah")])

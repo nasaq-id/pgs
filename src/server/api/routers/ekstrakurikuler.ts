@@ -6,6 +6,7 @@ import { ekstrakurikuler, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const ekstrakurikulerCreateSchema = z.object({
   id: z.string().optional(),
@@ -34,22 +35,32 @@ export const ekstrakurikulerRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
-      if (effectiveSekolahId) conditions.push(eq(ekstrakurikuler.sekolahId, effectiveSekolahId))
-      if (input.search) {
-        conditions.push(like(ekstrakurikuler.namaEkskul, `%${input.search}%`))
+
+      const runQuery = async () => {
+        const conditions = []
+        if (effectiveSekolahId) conditions.push(eq(ekstrakurikuler.sekolahId, effectiveSekolahId))
+        if (input.search) {
+          conditions.push(like(ekstrakurikuler.namaEkskul, `%${input.search}%`))
+        }
+        const orderBy = input.sortOrder === "asc" ? asc(ekstrakurikuler[input.sortBy]) : desc(ekstrakurikuler[input.sortBy])
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        return db.query.ekstrakurikuler.findMany({
+          where: whereClause,
+          orderBy,
+          limit: input.limit,
+          offset: input.offset,
+          with: { pembina: true },
+        })
       }
-      const orderBy = input.sortOrder === "asc" ? asc(ekstrakurikuler[input.sortBy]) : desc(ekstrakurikuler[input.sortBy])
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db.query.ekstrakurikuler.findMany({
-        where: whereClause,
-        orderBy,
-        limit: input.limit,
-        offset: input.offset,
-        with: { pembina: true },
-      })
-      return data
+
+      const isDefault =
+        !input.search && input.offset === 0 && input.limit === 50 &&
+        input.sortBy === "namaEkskul" && input.sortOrder === "asc"
+      if (isDefault) {
+        return getOrSetCache(cacheKey("ekstrakurikuler:getAll", effectiveSekolahId || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -73,6 +84,7 @@ export const ekstrakurikulerRouter = router({
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ekstrakurikuler).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { namaEkskul: input.namaEkskul } })
+      await invalidateCache([cacheKey("ekstrakurikuler:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -90,6 +102,7 @@ export const ekstrakurikulerRouter = router({
         .returning()
       if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Ekstrakurikuler tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "ekstrakurikuler", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
+      await invalidateCache([cacheKey("ekstrakurikuler:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -101,6 +114,7 @@ export const ekstrakurikulerRouter = router({
       const [result] = await db.delete(ekstrakurikuler).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Ekstrakurikuler tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "ekstrakurikuler", entityId: input.id })
+      await invalidateCache([cacheKey("ekstrakurikuler:getAll", sekolahId)])
       return { success: true }
     }),
 })

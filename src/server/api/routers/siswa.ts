@@ -9,6 +9,7 @@ import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRa
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 import { syncUserCredentials } from "@/server/credentials"
+import { cacheKey, invalidateCache } from "@/lib/cache"
 
 const siswaCreateSchema = z.object({
   id: z.string().optional(),
@@ -343,6 +344,7 @@ export const siswaRouter = router({
         entity: "siswa", 
         metadata: { ids: input.ids, kelasId: input.kelasId } 
       })
+      await invalidateCache([cacheKey("kelas:getAll", sekolahId)])
       return { success: true }
     }),
 

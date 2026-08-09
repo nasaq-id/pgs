@@ -6,6 +6,7 @@ import { pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 export const pengaturanJadwalRouter = router({
   get: protectedProcedure
@@ -13,10 +14,12 @@ export const pengaturanJadwalRouter = router({
     .query(async ({ ctx }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const result = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
-      return result ?? null
+      return getOrSetCache(cacheKey("pengaturanJadwal:get", sekolahId), async () => {
+        const result = await db.query.pengaturanJadwal.findFirst({
+          where: eq(pengaturanJadwal.sekolahId, sekolahId),
+        })
+        return result ?? null
+      }, 300)
     }),
 
   upsert: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -41,6 +44,7 @@ export const pengaturanJadwalRouter = router({
         if (wasChanged) {
           await recalculateJpTimes(existing.id)
         }
+        await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
         return result[0]
       }
       const id = input.id || crypto.randomUUID()
@@ -49,6 +53,7 @@ export const pengaturanJadwalRouter = router({
         .values({ id, sekolahId, durasiJP: input.durasiJP, jamMulai: input.jamMulai })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_jadwal", entityId: result[0]?.id, metadata: {} })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return result[0]
     }),
 
@@ -57,18 +62,25 @@ export const pengaturanJadwalRouter = router({
     .query(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) return []
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
-      if (!pengaturan) return []
-      const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]
-      if (input.hari) conditions.push(eq(timelineItem.hari, input.hari as any))
-      const result = await db
-        .select()
-        .from(timelineItem)
-        .where(and(...conditions))
-        .orderBy(asc(timelineItem.urutan))
-      return result
+
+      const runQuery = async () => {
+        const pengaturan = await db.query.pengaturanJadwal.findFirst({
+          where: eq(pengaturanJadwal.sekolahId, sekolahId),
+        })
+        if (!pengaturan) return []
+        const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]
+        if (input.hari) conditions.push(eq(timelineItem.hari, input.hari as any))
+        return db
+          .select()
+          .from(timelineItem)
+          .where(and(...conditions))
+          .orderBy(asc(timelineItem.urutan))
+      }
+
+      if (!input.hari) {
+        return getOrSetCache(cacheKey("pengaturanJadwal:getTimeline", sekolahId), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   upsertTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -105,6 +117,7 @@ export const pengaturanJadwalRouter = router({
           .returning()
         if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Item timeline tidak ditemukan" })
         await logAudit(ctx, { action: "update", entity: "timeline_item", entityId: input.id, metadata: {} })
+        await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
         return result[0]
       }
       const id = crypto.randomUUID()
@@ -124,6 +137,7 @@ export const pengaturanJadwalRouter = router({
         })
         .returning()
       await logAudit(ctx, { action: "create", entity: "timeline_item", entityId: result[0]?.id, metadata: {} })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return result[0]
     }),
 
@@ -158,6 +172,7 @@ export const pengaturanJadwalRouter = router({
 
       await recalculateJpTimes(deleted.pengaturanJadwalId)
       await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return { success: true }
     }),
 
@@ -197,6 +212,7 @@ export const pengaturanJadwalRouter = router({
       if (sisaJp) await recalculateJpTimes(pengaturan.id)
 
       await logAudit(ctx, { action: "clear_timeline_day", entity: "timeline_item", metadata: { hari: input.hari, tipe: input.tipe ?? null, count: deleted.length } })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return { success: true, count: deleted.length }
     }),
 
@@ -245,6 +261,7 @@ export const pengaturanJadwalRouter = router({
       }
 
       await logAudit(ctx, { action: "apply_template", entity: "timeline_item", entityId: input.sourceHari, metadata: { targetHari: input.targetHari } })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return { success: true }
     }),
 })

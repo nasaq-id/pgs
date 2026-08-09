@@ -6,6 +6,7 @@ import { kelas, siswa } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const kelasCreateSchema = z.object({
   id: z.string().optional(),
@@ -36,34 +37,45 @@ export const kelasRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
-      if (effectiveSekolahId) conditions.push(eq(kelas.sekolahId, effectiveSekolahId))
-      if (input.tahunAjaranId) conditions.push(eq(kelas.tahunAjaranId, input.tahunAjaranId))
-      if (input.search) {
-        conditions.push(like(kelas.namaKelas, `%${input.search}%`))
+
+      const runQuery = async () => {
+        const conditions = []
+        if (effectiveSekolahId) conditions.push(eq(kelas.sekolahId, effectiveSekolahId))
+        if (input.tahunAjaranId) conditions.push(eq(kelas.tahunAjaranId, input.tahunAjaranId))
+        if (input.search) {
+          conditions.push(like(kelas.namaKelas, `%${input.search}%`))
+        }
+        const orderBy = input.sortOrder === "asc" ? asc(kelas[input.sortBy]) : desc(kelas[input.sortBy])
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        return db
+          .select({
+            id: kelas.id,
+            sekolahId: kelas.sekolahId,
+            tahunAjaranId: kelas.tahunAjaranId,
+            namaKelas: kelas.namaKelas,
+            tingkat: kelas.tingkat,
+            waliKelasId: kelas.waliKelasId,
+            kapasitas: kelas.kapasitas,
+            siswaCount: sql<number>`count(${siswa.id})::int`,
+          })
+          .from(kelas)
+          .leftJoin(siswa, eq(siswa.kelasId, kelas.id))
+          .where(whereClause)
+          .groupBy(kelas.id)
+          .orderBy(orderBy)
+          .limit(input.limit)
+          .offset(input.offset)
       }
-      const orderBy = input.sortOrder === "asc" ? asc(kelas[input.sortBy]) : desc(kelas[input.sortBy])
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db
-        .select({
-          id: kelas.id,
-          sekolahId: kelas.sekolahId,
-          tahunAjaranId: kelas.tahunAjaranId,
-          namaKelas: kelas.namaKelas,
-          tingkat: kelas.tingkat,
-          waliKelasId: kelas.waliKelasId,
-          kapasitas: kelas.kapasitas,
-          siswaCount: sql<number>`count(${siswa.id})::int`,
-        })
-        .from(kelas)
-        .leftJoin(siswa, eq(siswa.kelasId, kelas.id))
-        .where(whereClause)
-        .groupBy(kelas.id)
-        .orderBy(orderBy)
-        .limit(input.limit)
-        .offset(input.offset)
-      return data
+
+      // Cache hanya varian default (dropdown utama). Varian ter-filter tetap fresh.
+      const isDefault =
+        !input.search && !input.tahunAjaranId && input.offset === 0 && input.limit === 200 &&
+        input.sortBy === "namaKelas" && input.sortOrder === "asc"
+      if (isDefault) {
+        return getOrSetCache(cacheKey("kelas:getAll", effectiveSekolahId || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -103,6 +115,7 @@ export const kelasRouter = router({
           .where(and(eq(siswa.sekolahId, sekolahId), inArray(siswa.id, siswaIds)))
       }
       await logAudit(ctx, { action: "create", entity: "kelas", entityId: result[0]?.id, metadata: { namaKelas: input.namaKelas } })
+      await invalidateCache([cacheKey("kelas:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -132,6 +145,7 @@ export const kelasRouter = router({
         }
       }
       await logAudit(ctx, { action: "update", entity: "kelas", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
+      await invalidateCache([cacheKey("kelas:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -148,6 +162,7 @@ export const kelasRouter = router({
         .where(and(eq(siswa.kelasId, input.id), eq(siswa.sekolahId, existing.sekolahId)))
       await db.delete(kelas).where(and(...conditions))
       await logAudit(ctx, { action: "delete", entity: "kelas", entityId: input.id })
+      await invalidateCache([cacheKey("kelas:getAll", sekolahId)])
       return { success: true }
     }),
 })

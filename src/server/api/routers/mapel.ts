@@ -6,6 +6,7 @@ import { mataPelajaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const mapelCreateSchema = z.object({
   id: z.string().optional(),
@@ -35,44 +36,56 @@ export const mapelRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
-      if (input.search) {
-        conditions.push(
-          or(like(mataPelajaran.namaMapel, `%${input.search}%`), like(mataPelajaran.kodeMapel, `%${input.search}%`)),
-        )
-      }
-      const orderBy = input.sortOrder === "asc" ? asc(mataPelajaran[input.sortBy]) : desc(mataPelajaran[input.sortBy])
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db.query.mataPelajaran.findMany({
-        where: whereClause,
-        orderBy,
-        limit: input.limit,
-        offset: input.offset,
-        with: {
-          pengampu: {
-            with: {
-              kelas: true,
-              guru: true,
+
+      const runQuery = async () => {
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(mataPelajaran.sekolahId, sekolahIdFilter))
+        if (input.search) {
+          conditions.push(
+            or(like(mataPelajaran.namaMapel, `%${input.search}%`), like(mataPelajaran.kodeMapel, `%${input.search}%`)),
+          )
+        }
+        const orderBy = input.sortOrder === "asc" ? asc(mataPelajaran[input.sortBy]) : desc(mataPelajaran[input.sortBy])
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        const data = await db.query.mataPelajaran.findMany({
+          where: whereClause,
+          orderBy,
+          limit: input.limit,
+          offset: input.offset,
+          with: {
+            pengampu: {
+              with: {
+                kelas: true,
+                guru: true,
+              },
             },
           },
-        },
-      })
-
-      if (input.tingkat && input.tingkat !== "semua") {
-        const selectedTingkat = input.tingkat.trim().toLowerCase()
-        return data.filter((item) => {
-          if (!item.pengampu || item.pengampu.length === 0) return false
-          return item.pengampu.some((p) => {
-            if (!p.kelas) return false
-            const kTingkat = (p.kelas.tingkat || "").trim().toLowerCase()
-            const kNama = (p.kelas.namaKelas || "").trim().toLowerCase()
-            return kTingkat === selectedTingkat || kTingkat.includes(selectedTingkat) || kNama.startsWith(selectedTingkat)
-          })
         })
+
+        if (input.tingkat && input.tingkat !== "semua") {
+          const selectedTingkat = input.tingkat.trim().toLowerCase()
+          return data.filter((item) => {
+            if (!item.pengampu || item.pengampu.length === 0) return false
+            return item.pengampu.some((p) => {
+              if (!p.kelas) return false
+              const kTingkat = (p.kelas.tingkat || "").trim().toLowerCase()
+              const kNama = (p.kelas.namaKelas || "").trim().toLowerCase()
+              return kTingkat === selectedTingkat || kTingkat.includes(selectedTingkat) || kNama.startsWith(selectedTingkat)
+            })
+          })
+        }
+
+        return data
       }
 
-      return data
+      // Cache hanya varian default — dropdown utama (paling sering dipanggil).
+      const isDefault =
+        !input.search && !input.tingkat && input.offset === 0 && input.limit === 100 &&
+        input.sortBy === "urutan" && input.sortOrder === "asc"
+      if (isDefault) {
+        return getOrSetCache(cacheKey("mapel:getAll", sekolahIdFilter || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -96,6 +109,7 @@ export const mapelRouter = router({
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(mataPelajaran).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { namaMapel: input.namaMapel } })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -111,6 +125,7 @@ export const mapelRouter = router({
         .returning()
       if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -122,6 +137,7 @@ export const mapelRouter = router({
       const [deleted] = await db.delete(mataPelajaran).where(and(...conditions)).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "mata_pelajaran", entityId: input.id })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return { success: true }
     }),
 
@@ -136,6 +152,7 @@ export const mapelRouter = router({
         await db.update(mataPelajaran).set({ urutan: item.urutan }).where(and(...conditions))
       }
       await logAudit(ctx, { action: "reorder", entity: "mata_pelajaran", metadata: { count: input.items.length } })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return { success: true }
     }),
 
@@ -152,6 +169,7 @@ export const mapelRouter = router({
       const sekolahId = requireSekolahId(ctx)
       const result = await upsertMapelList(sekolahId, input.items)
       await logAudit(ctx, { action: "generate_kma", entity: "mata_pelajaran", metadata: { ...result, source: "kma_1503_2025" } })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return result
     }),
 
@@ -175,6 +193,7 @@ export const mapelRouter = router({
         kkm: i.kkm,
       })))
       await logAudit(ctx, { action: "import_xlsx", entity: "mata_pelajaran", metadata: result })
+      await invalidateCache([cacheKey("mapel:getAll", sekolahId)])
       return result
     }),
 })

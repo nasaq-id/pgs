@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs"
 import { guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { cacheKey, getCache, setCache, invalidateCache } from "@/lib/cache"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 import { syncUserCredentials } from "@/server/credentials"
 
@@ -39,6 +40,9 @@ const guruCreateSchema = z.object({
 const guruUpdateSchema = guruCreateSchema.partial()
 
 
+const GURU_CACHE_LIMITS = [1, 50, 100, 200, 500, 1000]
+const guruCacheKeys = (sekolahId: string) => GURU_CACHE_LIMITS.map((l) => cacheKey("guru:getAll", sekolahId, `l${l}`))
+
 export const guruRouter = router({
   getAll: protectedProcedure
     .input(
@@ -54,35 +58,53 @@ export const guruRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
-      if (input.search) {
-        conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
-      }
-      if (input.statusKepegawaian) {
-        if (input.statusKepegawaian === "GTY") {
-          conditions.push(or(eq(guru.statusKepegawaian, "GTY"), like(guru.statusKepegawaian, "%GTY%")))
-        } else if (input.statusKepegawaian === "GTT") {
-          conditions.push(or(eq(guru.statusKepegawaian, "GTT"), like(guru.statusKepegawaian, "%GTT%")))
-        } else if (input.statusKepegawaian === "Honor") {
-          conditions.push(or(eq(guru.statusKepegawaian, "Honor"), like(guru.statusKepegawaian, "%Honor%")))
-        } else {
-          conditions.push(eq(guru.statusKepegawaian, input.statusKepegawaian))
+
+      const runQuery = async () => {
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+        if (input.search) {
+          conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
         }
+        if (input.statusKepegawaian) {
+          if (input.statusKepegawaian === "GTY") {
+            conditions.push(or(eq(guru.statusKepegawaian, "GTY"), like(guru.statusKepegawaian, "%GTY%")))
+          } else if (input.statusKepegawaian === "GTT") {
+            conditions.push(or(eq(guru.statusKepegawaian, "GTT"), like(guru.statusKepegawaian, "%GTT%")))
+          } else if (input.statusKepegawaian === "Honor") {
+            conditions.push(or(eq(guru.statusKepegawaian, "Honor"), like(guru.statusKepegawaian, "%Honor%")))
+          } else {
+            conditions.push(eq(guru.statusKepegawaian, input.statusKepegawaian))
+          }
+        }
+        if (input.kategoriPegawai) {
+          conditions.push(eq(guru.kategoriPegawai, input.kategoriPegawai))
+        }
+        const orderBy = input.sortOrder === "asc" ? asc(guru[input.sortBy]) : desc(guru[input.sortBy])
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        return db
+          .select()
+          .from(guru)
+          .where(whereClause)
+          .orderBy(orderBy)
+          .limit(input.limit)
+          .offset(input.offset)
       }
-      if (input.kategoriPegawai) {
-        conditions.push(eq(guru.kategoriPegawai, input.kategoriPegawai))
+
+      // Cache varian tanpa filter (dropdown utama). Key ikut limit — banyak
+      // pemanggil pakai limit berbeda (50/200/500/1000). passwordGuru tidak
+      // ikut di-cache (hash kredensial, bukan data tampilan).
+      const isDefault =
+        !input.search && !input.statusKepegawaian && !input.kategoriPegawai &&
+        input.offset === 0 && input.sortBy === "namaLengkap" && input.sortOrder === "asc"
+      if (isDefault) {
+        const key = cacheKey("guru:getAll", sekolahIdFilter || "all", `l${input.limit}`)
+        const cached = await getCache<typeof guru.$inferSelect[]>(key)
+        if (cached !== null) return cached
+        const data = await runQuery()
+        await setCache(key, data.map(({ passwordGuru: _pw, ...rest }) => rest), 300)
+        return data
       }
-      const orderBy = input.sortOrder === "asc" ? asc(guru[input.sortBy]) : desc(guru[input.sortBy])
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db
-        .select()
-        .from(guru)
-        .where(whereClause)
-        .orderBy(orderBy)
-        .limit(input.limit)
-        .offset(input.offset)
-      return data
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -117,6 +139,7 @@ export const guruRouter = router({
         passwordHash,
       })
       await logAudit(ctx, { action: "create", entity: "guru", entityId: result[0]?.id, metadata: { namaLengkap: input.namaLengkap } })
+      await invalidateCache(guruCacheKeys(sekolahId))
       return result[0]
     }),
 
@@ -150,6 +173,7 @@ export const guruRouter = router({
         await syncUserCredentials(u)
       }
       await logAudit(ctx, { action: "bulk_create", entity: "guru", metadata: { count: result.length } })
+      await invalidateCache(guruCacheKeys(sekolahId))
       return result
     }),
 
@@ -196,6 +220,7 @@ export const guruRouter = router({
         })
       }
       await logAudit(ctx, { action: "update", entity: "guru", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
+      await invalidateCache(guruCacheKeys(sekolahId))
       return result[0]
     }),
 
@@ -207,6 +232,7 @@ export const guruRouter = router({
       const [result] = await db.delete(guru).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "guru", entityId: input.id })
+      await invalidateCache(guruCacheKeys(sekolahId))
       return { success: true }
     }),
 

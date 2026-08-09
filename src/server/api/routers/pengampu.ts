@@ -5,6 +5,7 @@ import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { pengampu, kelas, guru, mataPelajaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { cacheKey, invalidateCache } from "@/lib/cache"
 
 export const pengampuRouter = router({
   getAll: protectedProcedure
@@ -136,6 +137,12 @@ export const pengampuRouter = router({
         entityId: mataPelajaranId,
         metadata: { totalAssignments: values.length },
       })
+
+      await invalidateCache([
+        cacheKey("mapel:getAll", sekolahId),
+        cacheKey("guru:getAll", sekolahId),
+        cacheKey("pengampu:getAll", sekolahId),
+      ])
 
       return { success: true, count: values.length }
     }),

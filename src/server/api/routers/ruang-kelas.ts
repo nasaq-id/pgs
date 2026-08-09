@@ -6,6 +6,7 @@ import { ruangKelas } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 const ruangKelasCreateSchema = z.object({
   id: z.string().optional(),
@@ -29,19 +30,27 @@ export const ruangKelasRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
       const effectiveSekolahId = sekolahIdFilter || input.sekolahId
-      if (effectiveSekolahId) conditions.push(eq(ruangKelas.sekolahId, effectiveSekolahId))
-      if (input.search) {
-        conditions.push(like(ruangKelas.namaRuang, `%${input.search}%`))
+
+      const runQuery = async () => {
+        const conditions = []
+        if (effectiveSekolahId) conditions.push(eq(ruangKelas.sekolahId, effectiveSekolahId))
+        if (input.search) {
+          conditions.push(like(ruangKelas.namaRuang, `%${input.search}%`))
+        }
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        return db.query.ruangKelas.findMany({
+          where: whereClause,
+          limit: input.limit,
+          offset: input.offset,
+        })
       }
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      const data = await db.query.ruangKelas.findMany({
-        where: whereClause,
-        limit: input.limit,
-        offset: input.offset,
-      })
-      return data
+
+      const isDefault = !input.search && input.offset === 0 && input.limit === 50
+      if (isDefault) {
+        return getOrSetCache(cacheKey("ruangKelas:getAll", effectiveSekolahId || "all"), runQuery, 300)
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure
@@ -64,6 +73,7 @@ export const ruangKelasRouter = router({
       const id = input.id || crypto.randomUUID()
       const result = await db.insert(ruangKelas).values({ ...input, id, sekolahId } as any).returning()
       await logAudit(ctx, { action: "create", entity: "ruang_kelas", entityId: result[0]?.id, metadata: { namaRuang: input.namaRuang } })
+      await invalidateCache([cacheKey("ruangKelas:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -81,6 +91,7 @@ export const ruangKelasRouter = router({
         .returning()
       if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Ruang kelas tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "ruang_kelas", entityId: result[0]?.id, metadata: { fields: Object.keys(updateData) } })
+      await invalidateCache([cacheKey("ruangKelas:getAll", sekolahId)])
       return result[0]
     }),
 
@@ -92,6 +103,7 @@ export const ruangKelasRouter = router({
       const [result] = await db.delete(ruangKelas).where(and(...conditions)).returning()
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Ruang kelas tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "ruang_kelas", entityId: input.id })
+      await invalidateCache([cacheKey("ruangKelas:getAll", sekolahId)])
       return { success: true }
     }),
 })

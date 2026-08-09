@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { db } from "@/server/db"
 import { router, protectedProcedure } from "@/server/api/trpc"
+import { cacheKey, getOrSetCache } from "@/lib/cache"
 import {
   queryStudentSummary,
   queryStaffSummary,
@@ -56,53 +57,68 @@ export const dashboardRouter = router({
       const tahun = input.tahun ?? now.getFullYear()
       const bulan = input.bulan ?? now.getMonth() + 1
 
-      // Setiap bagian di-isolasi: satu sub-query gagal tidak merusak lainnya
-      const run = async <T>(fn: () => Promise<T>): Promise<T | null> => {
-        try {
-          return await fn()
-        } catch (e) {
-          const cause = (e as { cause?: Error })?.cause
-          console.error("[dashboard-overview] bagian gagal:", e instanceof Error ? e.message : e, "| CAUSE:", cause instanceof Error ? cause.message : (cause ?? "none"))
-          return null
-        }
-      }
-
-      const sekolahId = ctx.session.user.sekolahId
-
-      const [studentSummary, staffSummary, classSummary, pendingPayment, attendance, receivables, ruangKelas, topPoints] =
-        await Promise.all([
-          run(() => queryStudentSummary(ctx)),
-          run(() => queryStaffSummary(ctx)),
-          run(() => queryClassSummary(ctx)),
-          run(() => queryPendingPayment(ctx)),
-          run(() => queryTodayAttendanceRate(ctx)),
-          run(() => queryOutstandingReceivables(ctx)),
-          run(() => queryRuangKelasCount(ctx)),
-          run(() => queryTopStudentPoints(ctx)),
-        ])
-
-      const [dashboardSiswa, dashboardGuruAdmin, announcements, calendarEvents] = await Promise.all([
-        isSiswa ? run(() => queryDashboardSiswa(ctx)) : Promise.resolve(null),
-        !isSiswa ? run(() => queryDashboardGuruAdmin(ctx)) : Promise.resolve(null),
-        run(() => queryPublishedAnnouncements(ctx, 5)),
-        !isSiswa && sekolahId
-          ? run(() => queryKalenderEvents(ctx, { tahun, bulan, limit: 200 }))
-          : Promise.resolve(null),
-      ])
-
-      return {
-        studentSummary,
-        staffSummary,
-        classSummary,
-        pendingPayment,
-        attendance,
-        receivables,
-        ruangKelas,
-        topPoints,
-        dashboardSiswa,
-        dashboardGuruAdmin,
-        announcements,
-        calendarEvents,
-      }
+      // Cache 30 detik per sekolah+bulan: dashboard adalah query terberat
+      // (13 sub-query). Tanpa cache, tiap page load = 13 query DB.
+      const cacheKeyOverview = cacheKey("dashboard:getOverview", ctx.session.user.sekolahId || "none", `y${tahun}m${bulan}`)
+      return getOrSetCache(cacheKeyOverview, async () => {
+        return getOverviewInner(ctx, role, isSiswa, tahun, bulan)
+      }, 30)
     }),
 })
+
+async function getOverviewInner(
+  ctx: any,
+  role: string,
+  isSiswa: boolean,
+  tahun: number,
+  bulan: number
+) {
+  // Setiap bagian di-isolasi: satu sub-query gagal tidak merusak lainnya
+  const run = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+    try {
+      return await fn()
+    } catch (e) {
+      const cause = (e as { cause?: Error })?.cause
+      console.error("[dashboard-overview] bagian gagal:", e instanceof Error ? e.message : e, "| CAUSE:", cause instanceof Error ? cause.message : (cause ?? "none"))
+      return null
+    }
+  }
+
+  const sekolahId = ctx.session.user.sekolahId
+
+  const [studentSummary, staffSummary, classSummary, pendingPayment, attendance, receivables, ruangKelas, topPoints] =
+    await Promise.all([
+      run(() => queryStudentSummary(ctx)),
+      run(() => queryStaffSummary(ctx)),
+      run(() => queryClassSummary(ctx)),
+      run(() => queryPendingPayment(ctx)),
+      run(() => queryTodayAttendanceRate(ctx)),
+      run(() => queryOutstandingReceivables(ctx)),
+      run(() => queryRuangKelasCount(ctx)),
+      run(() => queryTopStudentPoints(ctx)),
+    ])
+
+  const [dashboardSiswa, dashboardGuruAdmin, announcements, calendarEvents] = await Promise.all([
+    isSiswa ? run(() => queryDashboardSiswa(ctx)) : Promise.resolve(null),
+    !isSiswa ? run(() => queryDashboardGuruAdmin(ctx)) : Promise.resolve(null),
+    run(() => queryPublishedAnnouncements(ctx, 5)),
+    !isSiswa && sekolahId
+      ? run(() => queryKalenderEvents(ctx, { tahun, bulan, limit: 200 }))
+      : Promise.resolve(null),
+  ])
+
+  return {
+    studentSummary,
+    staffSummary,
+    classSummary,
+    pendingPayment,
+    attendance,
+    receivables,
+    ruangKelas,
+    topPoints,
+    dashboardSiswa,
+    dashboardGuruAdmin,
+    announcements,
+    calendarEvents,
+  }
+}

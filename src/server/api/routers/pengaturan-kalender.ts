@@ -5,6 +5,7 @@ import { db } from "@/server/db"
 import { pengaturanKalender } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 import { DEFAULT_KALDIK, isValidMmDd, resolveSemesterYear, suggestSemesterDates } from "@/server/kaldik"
 
 const mmDdSchema = z.string().regex(/^\d{2}-\d{2}$/, "Format harus MM-DD")
@@ -25,15 +26,17 @@ export const pengaturanKalenderRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
     const sekolahId = ctx.session.user.sekolahId
     if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-    const result = await db.query.pengaturanKalender.findFirst({
-      where: eq(pengaturanKalender.sekolahId, sekolahId),
-    })
-    if (!result) return null
-    return {
-      ...result,
-      hariLiburMingguan: parseHariLiburMingguan(result.hariLiburMingguan),
-      hariLiburMingguanGuru: parseHariLiburMingguan(result.hariLiburMingguanGuru),
-    }
+    return getOrSetCache(cacheKey("pengaturanKalender:get", sekolahId), async () => {
+      const result = await db.query.pengaturanKalender.findFirst({
+        where: eq(pengaturanKalender.sekolahId, sekolahId),
+      })
+      if (!result) return null
+      return {
+        ...result,
+        hariLiburMingguan: parseHariLiburMingguan(result.hariLiburMingguan),
+        hariLiburMingguanGuru: parseHariLiburMingguan(result.hariLiburMingguanGuru),
+      }
+    }, 300)
   }),
 
   upsert: roleProtectedProcedure(["super_admin", "admin_sekolah"])
@@ -72,6 +75,7 @@ export const pengaturanKalenderRouter = router({
           .where(eq(pengaturanKalender.id, existing.id))
           .returning()
         await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
+        await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
         return result[0]
       }
       const id = input.id || crypto.randomUUID()
@@ -88,6 +92,7 @@ export const pengaturanKalenderRouter = router({
         })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
+      await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
       return result[0]
     }),
 
@@ -112,6 +117,7 @@ export const pengaturanKalenderRouter = router({
           .where(eq(pengaturanKalender.id, existing.id))
           .returning()
         await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan" } })
+        await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
         return result[0]
       }
 
@@ -124,6 +130,7 @@ export const pengaturanKalenderRouter = router({
         })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan" } })
+      await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
       return result[0]
     }),
 
@@ -148,6 +155,7 @@ export const pengaturanKalenderRouter = router({
           .where(eq(pengaturanKalender.id, existing.id))
           .returning()
         await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan_guru" } })
+        await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
         return result[0]
       }
 
@@ -160,6 +168,7 @@ export const pengaturanKalenderRouter = router({
         })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: { field: "hari_libur_mingguan_guru" } })
+      await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
       return result[0]
     }),
 
