@@ -232,9 +232,10 @@ export default function AiGenerateDialog({
 
   // Teacher exception states matching reference ZIP structure
   const [teacherExceptions, setTeacherExceptions] = useState<Record<string, string[]>>({})
-  const [teacherJPExceptions, setTeacherJPExceptions] = useState<Record<string, number[]>>({})
+  const [teacherJPExceptions, setTeacherJPExceptions] = useState<Record<string, Record<string, number[]>>>({})
   const [selectedGuruIds, setSelectedGuruIds] = useState<string[]>([])
   const [activeGuruId, setActiveGuruId] = useState<string>("")
+  const [activeTeacherDay, setActiveTeacherDay] = useState<string>("")
   const [guruSearch, setGuruSearch] = useState<string>("")
   const [guruSearchOpen, setGuruSearchOpen] = useState(false)
 
