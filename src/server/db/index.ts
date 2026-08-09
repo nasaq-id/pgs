@@ -14,11 +14,16 @@ const pool =
   new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
-    max: 3, // Batasi koneksi per pool: pooler Supabase cuma izinkan ~15 session total (3 instance serverless x 3 = 9)
-    idleTimeoutMillis: 10000, // Tutup koneksi idle setelah 10 detik
-    connectionTimeoutMillis: 5000, // Timeout cepat jika koneksi gagal
+    max: 2, // Pooler Supabase ~15 session: 2 koneksi x 7 instance = 14, sisa ruang 1
+    idleTimeoutMillis: 8000, // Tutup koneksi idle cepat biar session pooler kembali
+    connectionTimeoutMillis: 8000, // Beri waktu antre saat pooler penuh
   })
 
 if (process.env.NODE_ENV !== "production") globalForDb.pool = pool
+
+// Cegah proses crash saat koneksi idle di-drop pooler
+pool.on("error", (err) => {
+  console.error("[db] pool error:", err.message)
+})
 
 export const db = drizzle(pool, { schema })
