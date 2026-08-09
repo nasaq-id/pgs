@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Relokasi output dev/build ke disk cepat: NEXT_DIST_DIR=/path/to/.next bun run dev
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   async headers() {
     return [
       {
