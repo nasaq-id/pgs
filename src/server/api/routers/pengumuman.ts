@@ -7,6 +7,7 @@ import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRa
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { queryPublishedAnnouncements } from "@/server/api/dashboard-queries"
 
 const pengumumanCreateSchema = z.object({
   id: z.string().optional(),
@@ -20,15 +21,6 @@ const pengumumanCreateSchema = z.object({
 
 const pengumumanUpdateSchema = pengumumanCreateSchema.partial()
 
-const roleTargetMap: Record<string, string> = {
-  super_admin: "semua",
-  admin_sekolah: "semua",
-  guru: "guru",
-  siswa: "siswa",
-  tu: "semua",
-  ortu: "orang_tua",
-  yayasan: "semua",
-}
 
 
 export const pengumumanRouter = router({
@@ -67,35 +59,7 @@ export const pengumumanRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
-      const role = ctx.session.user.role || ""
-
-      const conditions: any[] = [
-        eq(pengumuman.published, true),
-        lte(pengumuman.tanggalPublish, new Date()),
-      ]
-      if (sekolahId) conditions.push(eq(pengumuman.sekolahId, sekolahId))
-
-      const isAdmin = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "yayasan"
-      if (!isAdmin) {
-        const targetRole = roleTargetMap[role] || "semua"
-        conditions.push(
-          or(
-            eq(pengumuman.target, "semua"),
-            eq(pengumuman.target, targetRole as "semua" | "guru" | "siswa" | "orang_tua"),
-          )
-        )
-      }
-
-      const data = await db.query.pengumuman.findMany({
-        where: and(...conditions),
-        orderBy: desc(pengumuman.tanggalPublish),
-        limit: input.limit,
-        offset: input.offset,
-      })
-      return data
-    }),
+    .query(({ ctx, input }) => queryPublishedAnnouncements(ctx, input.limit, input.offset)),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))

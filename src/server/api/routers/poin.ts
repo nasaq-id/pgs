@@ -12,6 +12,7 @@ import {
   users,
 } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
+import { queryDashboardSiswa, queryDashboardGuruAdmin } from "@/server/api/dashboard-queries"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -398,107 +399,10 @@ export const poinRouter = router({
 
   // ── Dashboard ──
   getDashboardSiswa: protectedProcedure
-    .query(async ({ ctx }) => {
-      const userEmail = ctx.session.user.email
-
-      let currentSiswa = null
-      if (userEmail) {
-        currentSiswa = await db.query.siswa.findFirst({
-          where: or(
-            eq(siswa.usernameSiswa, userEmail),
-            eq(siswa.emailSiswa, userEmail),
-            eq(siswa.nisn, userEmail),
-          ),
-        })
-      }
-
-      let totalPoin = 0
-      if (currentSiswa) {
-        const conditions = [eq(poinSikap.siswaId, currentSiswa.id)]
-        if (currentSiswa.sekolahId) conditions.push(eq(poinSikap.sekolahId, currentSiswa.sekolahId))
-        const poinData = await db
-          .select({ total: sum(poinSikap.poin) })
-          .from(poinSikap)
-          .where(and(...conditions))
-        totalPoin = Number(poinData[0]?.total) || 0
-      }
-
-      const leaderboardKondisi = [eq(poinKategori.jenis, "positif")]
-      if (currentSiswa?.sekolahId) leaderboardKondisi.push(eq(poinSikap.sekolahId, currentSiswa.sekolahId))
-      const leaderboard = await db
-        .select({
-          siswaId: poinSikap.siswaId,
-          totalPoin: sum(poinSikap.poin).mapWith(Number),
-        })
-        .from(poinSikap)
-        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(...leaderboardKondisi))
-        .groupBy(poinSikap.siswaId)
-        .orderBy(desc(sql`sum(${poinSikap.poin})`))
-        .limit(5)
-
-      const leaderboardWithSiswa = await Promise.all(
-        leaderboard.map(async (row) => {
-          const s = await db.query.siswa.findFirst({
-            where: eq(siswa.id, row.siswaId),
-          })
-          return { ...row, namaLengkap: s?.namaLengkap || "-" }
-        })
-      )
-
-      return { totalPoin, leaderboard: leaderboardWithSiswa, currentSiswa }
-    }),
+    .query(({ ctx }) => queryDashboardSiswa(ctx)),
 
   getDashboardGuruAdmin: protectedProcedure
-    .query(async ({ ctx }) => {
-      const sekolahId = ctx.session.user.sekolahId
-      const kondisiPositif = [eq(poinKategori.jenis, "positif")]
-      const kondisiNegatif = [eq(poinKategori.jenis, "negatif")]
-      if (sekolahId) {
-        kondisiPositif.push(eq(poinSikap.sekolahId, sekolahId))
-        kondisiNegatif.push(eq(poinSikap.sekolahId, sekolahId))
-      }
-
-      const topPositif = await db
-        .select({
-          siswaId: poinSikap.siswaId,
-          totalPoin: sum(poinSikap.poin).mapWith(Number),
-        })
-        .from(poinSikap)
-        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(...kondisiPositif))
-        .groupBy(poinSikap.siswaId)
-        .orderBy(desc(sql`sum(${poinSikap.poin})`))
-        .limit(5)
-
-      const topNegatif = await db
-        .select({
-          siswaId: poinSikap.siswaId,
-          totalPoin: sum(poinSikap.poin).mapWith(Number),
-        })
-        .from(poinSikap)
-        .innerJoin(poinKategori, eq(poinSikap.kategoriId, poinKategori.id))
-        .where(and(...kondisiNegatif))
-        .groupBy(poinSikap.siswaId)
-        .orderBy(desc(sql`sum(${poinSikap.poin})`))
-        .limit(5)
-
-      const positifWithSiswa = await Promise.all(
-        topPositif.map(async (row) => {
-          const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
-          return { ...row, namaLengkap: s?.namaLengkap || "-" }
-        })
-      )
-
-      const negatifWithSiswa = await Promise.all(
-        topNegatif.map(async (row) => {
-          const s = await db.query.siswa.findFirst({ where: eq(siswa.id, row.siswaId) })
-          return { ...row, namaLengkap: s?.namaLengkap || "-" }
-        })
-      )
-
-      return { topPositif: positifWithSiswa, topNegatif: negatifWithSiswa }
-    }),
+    .query(({ ctx }) => queryDashboardGuruAdmin(ctx)),
 
   // ── Kirim Pemberitahuan ──
   kirimPemberitahuan: roleProtectedProcedure(["super_admin", "admin_sekolah"])

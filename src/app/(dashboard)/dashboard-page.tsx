@@ -106,33 +106,15 @@ export default function Dashboard() {
 
   const isQueryEnabled = !(role === "super_admin" && !isImpersonating)
 
-  const studentSummary = api.dashboard.getStudentSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const staffSummary = api.dashboard.getStaffSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const classSummary = api.dashboard.getClassSummary.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const pendingPayment = api.dashboard.getPendingPaymentCount.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const attendance = api.dashboard.getTodayAttendanceRate.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const receivables = api.dashboard.getOutstandingReceivables.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const ruangKelas = api.dashboard.getRuangKelasCount.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-  const topPoints = api.dashboard.getTopStudentPoints.useQuery(undefined, { staleTime: 30000, enabled: isQueryEnabled })
-
-  const { data: dashboardSiswa, isLoading: loadingSiswa } = api.poin.getDashboardSiswa.useQuery(undefined, { enabled: role === "siswa" && isQueryEnabled })
-  const { data: dashboardGuruAdmin } = api.poin.getDashboardGuruAdmin.useQuery(undefined, { enabled: (role === "guru" || role === "admin_sekolah" || role === "super_admin") && isQueryEnabled })
-  const { data: announcements, isLoading: annLoading } = api.pengumuman.getPublished.useQuery({ limit: 5 }, { enabled: isQueryEnabled })
-
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
 
-  const calendarEvents = api.kalender.getAll.useQuery(
-    {
-      tahun: calendarYear,
-      bulan: calendarMonth + 1,
-      limit: 200,
-    },
-    {
-      enabled: role !== "siswa" && isQueryEnabled,
-      staleTime: 30000,
-    }
+  const overview = api.dashboard.getOverview.useQuery(
+    { tahun: calendarYear, bulan: calendarMonth + 1 },
+    { staleTime: 30000, enabled: isQueryEnabled }
   )
+  const d = overview.data
+  const isLoading = overview.isLoading
 
   if (role === "super_admin" && !isImpersonating) {
     return (
@@ -161,8 +143,8 @@ export default function Dashboard() {
   }
 
   const getEventsForDay = (day: number) => {
-    if (!calendarEvents.data) return []
-    return calendarEvents.data.filter(event => {
+    if (!d?.calendarEvents) return []
+    return d?.calendarEvents.filter(event => {
       const startDate = new Date(event.tanggalMulai)
       startDate.setHours(0, 0, 0, 0)
       
@@ -188,7 +170,7 @@ export default function Dashboard() {
           Assalamu&apos;alaikum, <span className="text-teal-600">{displayName}</span>
         </h1>
 
-        {loadingSiswa ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Skeleton className="h-48 rounded-[2rem]" />
             <Skeleton className="h-48 rounded-[2rem]" />
@@ -206,14 +188,14 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm font-bold text-teal-100">Total Poin Anda</p>
                 <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-5xl font-black tracking-tight">{dashboardSiswa?.totalPoin ?? 0}</span>
+                  <span className="text-5xl font-black tracking-tight">{d?.dashboardSiswa?.totalPoin ?? 0}</span>
                   <span className="text-xs font-bold text-teal-200">Poin</span>
                 </div>
               </div>
               <div className="border-t border-white/10 pt-4 mt-4 grid grid-cols-2 gap-2 text-center">
                 <div className="bg-white/10 p-2.5 rounded-xl border border-white/5">
                   <p className="text-[9px] font-black uppercase tracking-wider text-teal-100">Positif</p>
-                  <p className="text-base font-black text-emerald-300 mt-0.5">+{dashboardSiswa?.totalPoin && dashboardSiswa.totalPoin > 0 ? dashboardSiswa.totalPoin : 0}</p>
+                  <p className="text-base font-black text-emerald-300 mt-0.5">+{d?.dashboardSiswa?.totalPoin && d.dashboardSiswa.totalPoin > 0 ? d.dashboardSiswa.totalPoin : 0}</p>
                 </div>
                 <div className="bg-white/10 p-2.5 rounded-xl border border-white/5">
                   <p className="text-[9px] font-black uppercase tracking-wider text-teal-100">Negatif</p>
@@ -233,8 +215,8 @@ export default function Dashboard() {
                   <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full uppercase">Teladan</span>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {dashboardSiswa?.leaderboard?.length ? (
-                    dashboardSiswa.leaderboard.slice(0, 5).map((item: any, i: number) => (
+                  {d?.dashboardSiswa?.leaderboard?.length ? (
+                    d?.dashboardSiswa.leaderboard.slice(0, 5).map((item: any, i: number) => (
                       <div key={item.siswaId} className="flex items-center justify-between py-2.5">
                         <div className="flex items-center gap-2.5">
                           <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
@@ -255,7 +237,7 @@ export default function Dashboard() {
         )}
 
         {/* Announcements */}
-        {announcements && announcements.length > 0 && (
+        {d?.announcements && d.announcements.length > 0 && (
           <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-6 rounded-[2rem]">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -266,7 +248,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="space-y-2">
-              {announcements.slice(0, 5).map((a: any) => (
+              {d?.announcements.slice(0, 5).map((a: any) => (
                 <a key={a.id} href="/konten/pengumuman" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
                   <div className="min-w-0 flex-1 mr-3">
                     <p className="text-sm font-bold text-slate-800 truncate">{a.judul}</p>
@@ -311,7 +293,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-emerald-800 dark:text-emerald-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-emerald-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
-                    {studentSummary.isLoading ? "—" : (studentSummary.data?.total ?? 0)}
+                    {isLoading ? "—" : (d?.studentSummary?.total ?? 0)}
                   </span>
                   <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm group-hover:bg-slate-900 transition-colors">
                     <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
@@ -326,7 +308,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-indigo-900 dark:text-indigo-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-indigo-500/20">
                     <Star size={12} className="fill-amber-400 text-amber-400" />
-                    {staffSummary.isLoading ? "—" : (staffSummary.data?.total ?? 0)}
+                    {isLoading ? "—" : (d?.staffSummary?.total ?? 0)}
                   </span>
                   <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm">
                     <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
@@ -344,10 +326,10 @@ export default function Dashboard() {
           <div className="space-y-4">
             <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Ringkasan</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard icon={Users} label="Total Siswa" value={studentSummary.data?.total ?? "—"} sub={studentSummary.data ? `${studentSummary.data.newThisMonth} baru` : undefined} isLoading={studentSummary.isLoading} />
-              <StatCard icon={GraduationCap} label="Guru & Tendik" value={staffSummary.data?.total ?? "—"} sub={staffSummary.data ? `${staffSummary.data.newThisMonth} baru` : undefined} isLoading={staffSummary.isLoading} />
-              <StatCard icon={BookOpen} label="Rombel" value={classSummary.data?.total ?? "—"} sub={classSummary.data ? `${classSummary.data.distinctTingkat} jenjang` : undefined} isLoading={classSummary.isLoading} />
-              <StatCard icon={Wallet} label="Tagihan Pending" value={pendingPayment.data?.count ?? "—"} sub="Belum dibayar" isLoading={pendingPayment.isLoading} />
+              <StatCard icon={Users} label="Total Siswa" value={d?.studentSummary?.total ?? "—"} sub={d?.studentSummary ? `${d.studentSummary.newThisMonth} baru` : undefined} isLoading={isLoading} />
+              <StatCard icon={GraduationCap} label="Guru & Tendik" value={d?.staffSummary?.total ?? "—"} sub={d?.staffSummary ? `${d.staffSummary.newThisMonth} baru` : undefined} isLoading={isLoading} />
+              <StatCard icon={BookOpen} label="Rombel" value={d?.classSummary?.total ?? "—"} sub={d?.classSummary ? `${d.classSummary.distinctTingkat} jenjang` : undefined} isLoading={isLoading} />
+              <StatCard icon={Wallet} label="Tagihan Pending" value={d?.pendingPayment?.count ?? "—"} sub="Belum dibayar" isLoading={isLoading} />
             </div>
           </div>
 
@@ -368,10 +350,10 @@ export default function Dashboard() {
                 <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full uppercase">Sikap Baik</span>
               </div>
               <div className="space-y-3">
-                {topPoints.isLoading ? (
+                {isLoading ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full rounded-xl" />)}</div>
-                ) : topPoints.data?.positive?.length ? (
-                  topPoints.data.positive.map((item: any, i: number) => (
+                ) : d?.topPoints?.positive?.length ? (
+                  d?.topPoints?.positive.map((item: any, i: number) => (
                     <div key={item.siswaId} className="flex items-center justify-between hover:bg-slate-50/50 p-1.5 rounded-xl transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 font-black text-xs flex items-center justify-center">{i + 1}</span>
@@ -397,16 +379,16 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="font-extrabold text-slate-800 text-sm tracking-tight">Top 5 Pelanggaran</p>
-                    <p className="text-[10px] text-slate-400 font-bold">Total: {topPoints.data?.totalNegativeThisMonth ?? "—"} poin</p>
+                    <p className="text-[10px] text-slate-400 font-bold">Total: {d?.topPoints?.totalNegativeThisMonth ?? "—"} poin</p>
                   </div>
                 </div>
                 <span className="text-[10px] font-black bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full uppercase">Perlu Pembinaan</span>
               </div>
               <div className="space-y-3">
-                {topPoints.isLoading ? (
+                {isLoading ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full rounded-xl" />)}</div>
-                ) : topPoints.data?.negative?.length ? (
-                  topPoints.data.negative.map((item: any, i: number) => (
+                ) : d?.topPoints?.negative?.length ? (
+                  d?.topPoints?.negative.map((item: any, i: number) => (
                     <div key={item.siswaId} className="flex items-center justify-between hover:bg-slate-50/50 p-1.5 rounded-xl transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center">{i + 1}</span>
@@ -430,31 +412,31 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <CompactCard
                 icon={ClipboardCheck} label="Kehadiran Hari Ini"
-                value={attendance.data ? `${attendance.data.rate}%` : "—"}
-                sub={attendance.data ? `${attendance.data.present} dari ${attendance.data.total} siswa hadir` : undefined}
-                isLoading={attendance.isLoading} isNull={attendance.data === null && !attendance.isLoading}
+                value={d?.attendance ? `${d.attendance.rate}%` : "—"}
+                sub={d?.attendance ? `${d.attendance.present} dari ${d.attendance.total} siswa hadir` : undefined}
+                isLoading={isLoading} isNull={d?.attendance == null && !isLoading}
               />
               <CompactCard
                 icon={TrendingUp} label="Total Tunggakan SPP"
-                value={receivables.data ? fmtRupiahCompact(receivables.data.total) : "—"}
-                sub={receivables.data && receivables.data.total > 0 ? fmtRupiah(receivables.data.total) : receivables.data?.total === 0 ? "Tidak ada tunggakan" : undefined}
-                isLoading={receivables.isLoading}
+                value={d?.receivables ? fmtRupiahCompact(d.receivables.total) : "—"}
+                sub={d?.receivables && d.receivables.total > 0 ? fmtRupiah(d.receivables.total) : d?.receivables?.total === 0 ? "Tidak ada tunggakan" : undefined}
+                isLoading={isLoading}
               />
               <CompactCard
                 icon={Building2} label="Ruang Kelas Aktif"
-                value={ruangKelas.data?.total ?? "—"}
-                sub={ruangKelas.data ? `Kapasitas ${ruangKelas.data.totalKapasitas} siswa` : undefined}
-                isLoading={ruangKelas.isLoading}
+                value={d?.ruangKelas?.total ?? "—"}
+                sub={d?.ruangKelas ? `Kapasitas ${d.ruangKelas.totalKapasitas} siswa` : undefined}
+                isLoading={isLoading}
               />
             </div>
           </div>
 
           {/* Announcements */}
-          {annLoading ? (
+          {isLoading ? (
             <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 rounded-xl bg-slate-100 animate-pulse" />)}</div>
             </div>
-          ) : announcements && announcements.length > 0 ? (
+          ) : d?.announcements && d.announcements.length > 0 ? (
             <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-6 rounded-[2rem]">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -463,7 +445,7 @@ export default function Dashboard() {
                 <p className="text-xs font-extrabold text-slate-700">Pengumuman</p>
               </div>
               <div className="space-y-2">
-                {announcements.slice(0, 5).map((a: any) => (
+                {d?.announcements.slice(0, 5).map((a: any) => (
                   <a key={a.id} href="/konten/pengumuman" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
                     <div className="min-w-0 flex-1 mr-3">
                       <p className="text-sm font-bold text-slate-800 truncate">{a.judul}</p>
@@ -598,7 +580,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 text-xs leading-snug">Pantau Tagihan & Tunggakan SPP</p>
-                  <p className="text-[10px] text-sky-800/80 mt-1 font-semibold">Keuangan — {pendingPayment.isLoading ? "—" : (pendingPayment.data?.count ?? 0)} tagihan pending</p>
+                  <p className="text-[10px] text-sky-800/80 mt-1 font-semibold">Keuangan — {isLoading ? "—" : (d?.pendingPayment?.count ?? 0)} tagihan pending</p>
                 </div>
               </div>
               <div className="bg-[#f1f5f9]/80 border border-[#cbd5e1]/50 p-4 rounded-2xl flex items-start gap-3">
@@ -607,7 +589,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 text-xs leading-snug">Kelola Akademik</p>
-                  <p className="text-[10px] text-slate-700/80 mt-1 font-semibold">{classSummary.isLoading ? "—" : (classSummary.data?.total ?? 0)} rombel aktif</p>
+                  <p className="text-[10px] text-slate-700/80 mt-1 font-semibold">{isLoading ? "—" : (d?.classSummary?.total ?? 0)} rombel aktif</p>
                 </div>
               </div>
             </div>

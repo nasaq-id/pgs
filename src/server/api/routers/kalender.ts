@@ -7,6 +7,7 @@ import { kalenderEvent } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getLiburNasional } from "@/lib/libur-nasional"
+import { queryKalenderEvents } from "@/server/api/dashboard-queries"
 
 export const kalenderRouter = router({
   getAll: protectedProcedure
@@ -20,35 +21,7 @@ export const kalenderRouter = router({
         offset: z.number().optional().default(0),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      const sekolahId = ctx.session.user.sekolahId
-      if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-
-      const conditions = [eq(kalenderEvent.sekolahId, sekolahId)]
-
-      if (input.search) {
-        conditions.push(like(kalenderEvent.judul, `%${input.search}%`))
-      }
-
-      if (input.bulan && input.tahun) {
-        const startDate = new Date(input.tahun, input.bulan - 1, 1)
-        const endDate = new Date(input.tahun, input.bulan, 0, 23, 59, 59)
-        conditions.push(gte(kalenderEvent.tanggalMulai, startDate))
-        conditions.push(lte(kalenderEvent.tanggalMulai, endDate))
-      }
-
-      if (input.tipe) conditions.push(eq(kalenderEvent.tipe, input.tipe))
-
-      const data = await db
-        .select()
-        .from(kalenderEvent)
-        .where(and(...conditions))
-        .orderBy(asc(kalenderEvent.tanggalMulai))
-        .limit(input.limit)
-        .offset(input.offset)
-
-      return data
-    }),
+    .query(({ ctx, input }) => queryKalenderEvents(ctx, input)),
 
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
