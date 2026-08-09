@@ -244,7 +244,12 @@ export default function JadwalPage() {
   const handleResetJadwal = async () => {
     setResetting(true)
     try {
-      await clearAllMutation.mutateAsync({ kelasId: resetMode === "kelas" ? kelasId || undefined : undefined })
+      const targetKelasId = resetMode === "kelas" ? kelasId || undefined : undefined
+      if (resetMode === "kelas" && !targetKelasId) {
+        toast.error("Tidak ada kelas yang dipilih. Pilih rombel dulu atau gunakan mode Semua Kelas.")
+        return
+      }
+      await clearAllMutation.mutateAsync({ kelasId: targetKelasId })
     } finally {
       setResetting(false)
     }
