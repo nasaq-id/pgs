@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Toaster } from "sonner"
+import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
 import { TRPCProvider } from "@/lib/trpc/provider"
@@ -64,6 +65,7 @@ export default function RootLayout({
         <PWAProvider />
         <Toaster richColors position="top-right" />
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
