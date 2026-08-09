@@ -35,21 +35,6 @@ export default function LoginPage() {
   //   { enabled: hostname !== "" }
   // )
 
-  const DEMO_CREDENTIALS = [
-    { label: "Siswa Demo", email: "123455", password: "daus123" },
-    { label: "Guru Demo", email: "mohtb", password: "mohtb123" },
-    { label: "Admin Cikalongwetan", email: "admin.smpn2cikalongwetan@demo.com", password: "cikalongwetan123" },
-    { label: "Admin Muhammadiyah 1", email: "admin.smam1bdg@demo.com", password: "muhammadiyah123" },
-  ]
-
-  function handleDemoLogin(creds: typeof DEMO_CREDENTIALS[number]) {
-    setError("")
-    setShowPassword(false)
-    if (emailRef.current) emailRef.current.value = creds.email
-    if (passwordRef.current) passwordRef.current.value = creds.password
-    formRef.current?.requestSubmit()
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -286,26 +271,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* Quick Login Section (Outside Login Card) */}
-          <div className="neumo-card bg-background rounded-3xl p-6 relative z-10 space-y-4">
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest text-center">
-              Akses Cepat Demo
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_CREDENTIALS.map((creds, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleDemoLogin(creds)}
-                  className="text-[11px] px-3 py-2 rounded-xl neumo-sm bg-background hover:scale-[1.02] active:scale-[0.98] text-muted-foreground hover:text-teal-750 font-bold transition-all cursor-pointer text-center leading-tight min-h-[50px] flex flex-col justify-center items-center"
-                >
-                  <span className="block font-black">{creds.label}</span>
-                  <span className="block text-[9px] text-muted-foreground/60 font-mono mt-0.5">{creds.email}</span>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Quick Info */}
