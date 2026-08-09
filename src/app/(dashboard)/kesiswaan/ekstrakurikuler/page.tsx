@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import EkstrakurikulerFormDialog, { type EkstrakurikulerFormData } from "@/components/ekstrakurikuler/EkstrakurikulerFormDialog"
 
 const HARI_LABEL: Record<string, string> = {
@@ -82,11 +83,11 @@ export default function EkstrakurikulerPage() {
   })
 
   const removeMutation = api.ekstrakurikuler.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Ekstrakurikuler berhasil dihapus")
-      utils.ekstrakurikuler.getAll.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus ekstrakurikuler"),
+    ...useOptimisticRemove({
+      queryKey: [["ekstrakurikuler", "getAll"]],
+      successMessage: "Ekstrakurikuler berhasil dihapus",
+      errorMessage: "Gagal menghapus ekstrakurikuler",
+    }),
   })
 
   const handleSubmit = async (data: EkstrakurikulerFormData) => {

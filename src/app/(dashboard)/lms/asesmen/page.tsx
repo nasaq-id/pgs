@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -110,8 +111,13 @@ export default function AsesmenPage() {
   const kelasMap = useMemo(() => new Map((kelasList ?? []).map((k) => [k.id, k])), [kelasList])
   const mapelMap = useMemo(() => new Map((mapelList ?? []).map((m) => [m.id, m])), [mapelList])
 
-  const removeMutation = api.asesmen.remove.useMutation()
-  const utils = api.useUtils()
+  const removeMutation = api.asesmen.remove.useMutation({
+    ...useOptimisticRemove({
+      queryKey: [["asesmen", "getAll"]],
+      successMessage: "Asesmen berhasil dihapus",
+      errorMessage: "Gagal menghapus asesmen",
+    }),
+  })
 
   const filtered = (asesmenList || []).filter((a) => {
     if (!search) return true
@@ -121,14 +127,8 @@ export default function AsesmenPage() {
 
   const handleDelete = async () => {
     if (!deleteId) return
-    try {
-      await removeMutation.mutateAsync({ id: deleteId })
-      toast.success("Asesmen berhasil dihapus")
-      setDeleteId(null)
-      utils.asesmen.getAll.invalidate()
-    } catch {
-      toast.error("Gagal menghapus asesmen")
-    }
+    await removeMutation.mutateAsync({ id: deleteId })
+    setDeleteId(null)
   }
 
   const fmtDateTime = (d: Date | string | null | undefined) => {

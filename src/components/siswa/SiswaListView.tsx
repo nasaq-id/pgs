@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -169,12 +170,12 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
   const utils = api.useUtils()
 
   const removeMutation = api.siswa.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Data siswa berhasil dihapus")
-      setDeleteId(null)
-      utils.siswa.getAll.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus data siswa"),
+    ...useOptimisticRemove({
+      queryKey: [["siswa", "getAll"]],
+      successMessage: "Data siswa berhasil dihapus",
+      errorMessage: "Gagal menghapus data siswa",
+      onSuccess: () => setDeleteId(null),
+    }),
   })
 
   const resetPasswordMutation = api.siswa.resetPassword.useMutation({

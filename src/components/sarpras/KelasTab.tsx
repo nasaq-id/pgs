@@ -37,6 +37,7 @@ import {
   TooltipPopup,
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
 import LaporanKelasDialog from "@/components/sarpras/LaporanKelasDialog"
 import { toast } from "sonner"
@@ -78,9 +79,7 @@ export default function KelasTab() {
   })
 
   const removeMutation = api.kelas.remove.useMutation({
-    onSuccess: () => {
-      utils.kelas.getAll.invalidate()
-    },
+    ...useOptimisticRemove({ queryKey: [["kelas", "getAll"]] }),
   })
 
   const { data: session } = useSession()

@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { toast } from "sonner"
 import EMateriFormDialog, { type EMateriFormData, formatTingkatLabel } from "@/components/lms/EMateriFormDialog"
 
@@ -129,9 +130,7 @@ export default function EMateriPage() {
   })
 
   const removeMutation = api.eMateri.remove.useMutation({
-    onSuccess: () => {
-      utils.eMateri.getAll.invalidate()
-    },
+    ...useOptimisticRemove({ queryKey: [["eMateri", "getAll"]] }),
   })
 
   const incrementViewsMutation = api.eMateri.incrementViews.useMutation()

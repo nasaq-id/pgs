@@ -60,6 +60,7 @@ import {
   TooltipPopup,
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
 import KelasDetailDialog from "@/components/kelas/KelasDetailDialog"
 import { formatKelasLabel, formatTingkatLabel } from "@/components/jadwal/constants"
@@ -205,9 +206,7 @@ export default function KelasPage() {
   })
 
   const removeMutation = api.kelas.remove.useMutation({
-    onSuccess: () => {
-      utils.kelas.getAll.invalidate()
-    },
+    ...useOptimisticRemove({ queryKey: [["kelas", "getAll"]] }),
   })
 
   const bulkSetKelasMutation = api.siswa.bulkSetKelas.useMutation({

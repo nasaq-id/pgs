@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 
 interface RuangKelasFormData {
   id?: string
@@ -188,11 +189,11 @@ export default function RuangKelasPage() {
   })
 
   const removeMutation = api.ruangKelas.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Ruang kelas berhasil dihapus")
-      utils.ruangKelas.getAll.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus ruang kelas"),
+    ...useOptimisticRemove({
+      queryKey: [["ruangKelas", "getAll"]],
+      successMessage: "Ruang kelas berhasil dihapus",
+      errorMessage: "Gagal menghapus ruang kelas",
+    }),
   })
 
   const handleSubmit = async (data: RuangKelasFormData) => {

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -119,11 +120,12 @@ export default function GuruPage() {
   }, [])
 
   const removeMutation = api.guru.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Data guru berhasil dihapus")
-      setDeleteId(null)
-    },
-    onError: () => toast.error("Gagal menghapus data guru"),
+    ...useOptimisticRemove({
+      queryKey: [["guru", "getAll"]],
+      successMessage: "Data guru berhasil dihapus",
+      errorMessage: "Gagal menghapus data guru",
+      onSuccess: () => setDeleteId(null),
+    }),
   })
 
   const resetPasswordMutation = api.guru.resetPassword.useMutation({

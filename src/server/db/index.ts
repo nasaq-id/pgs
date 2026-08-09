@@ -14,7 +14,9 @@ const pool =
   new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
-    max: 2, // Pooler Supabase ~15 session: 2 koneksi x 7 instance = 14, sisa ruang 1
+    // Dev: 1 instance, dashboard nembak 13 query sekaligus → butuh ruang lebih.
+    // Prod: 2 koneksi x 7 instance = 14, sisa ruang 1 di pooler Supabase (~15 session).
+    max: Number(process.env.DB_POOL_MAX ?? (process.env.NODE_ENV === "production" ? 2 : 10)),
     idleTimeoutMillis: 8000, // Tutup koneksi idle cepat biar session pooler kembali
     connectionTimeoutMillis: 8000, // Beri waktu antre saat pooler penuh
   })

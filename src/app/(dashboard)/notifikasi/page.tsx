@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -82,11 +83,12 @@ export default function NotifikasiPage() {
   })
 
   const deleteMutation = api.notifikasi.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Notifikasi berhasil dihapus")
-      utils.notifikasi.getAll.invalidate()
-      utils.notifikasi.getUnreadCount.invalidate()
-    },
+    ...useOptimisticRemove({
+      queryKey: [["notifikasi", "getAll"]],
+      invalidateKeys: [["notifikasi", "getUnreadCount"]],
+      successMessage: "Notifikasi berhasil dihapus",
+      errorMessage: "Gagal menghapus notifikasi",
+    }),
   })
 
   const handleNotificationClick = async (notif: any) => {

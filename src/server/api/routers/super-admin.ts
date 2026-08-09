@@ -219,22 +219,20 @@ export const superAdminRouter = router({
   toggleSekolahActive: roleProtectedProcedure(["super_admin"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const existing = await db.query.sekolah.findFirst({
-        where: eq(sekolah.id, input.id),
-      })
-      if (!existing) {
+      const [updated] = await db
+        .update(sekolah)
+        .set({ active: sql`not ${sekolah.active}` })
+        .where(eq(sekolah.id, input.id))
+        .returning()
+
+      if (!updated) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Sekolah tidak ditemukan",
         })
       }
 
-      const newStatus = !existing.active
-      const [updated] = await db
-        .update(sekolah)
-        .set({ active: newStatus })
-        .where(eq(sekolah.id, input.id))
-        .returning()
+      const newStatus = updated.active
 
       await logAudit(ctx, {
         action: "update",
@@ -255,16 +253,6 @@ export const superAdminRouter = router({
       jenjang: z.enum(["sd", "smp", "sma", "smk", "mi", "mts", "ma", "tk"]),
     })))
     .mutation(async ({ ctx, input }) => {
-      const existing = await db.query.sekolah.findFirst({
-        where: eq(sekolah.id, input.id),
-      })
-      if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Sekolah tidak ditemukan",
-        })
-      }
-
       const [updated] = await db
         .update(sekolah)
         .set({
@@ -275,6 +263,13 @@ export const superAdminRouter = router({
         })
         .where(eq(sekolah.id, input.id))
         .returning()
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Sekolah tidak ditemukan",
+        })
+      }
 
       await logAudit(ctx, {
         action: "update",
@@ -394,26 +389,23 @@ export const superAdminRouter = router({
   deleteSekolah: roleProtectedProcedure(["super_admin"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const existing = await db.query.sekolah.findFirst({
-        where: eq(sekolah.id, input.id),
-      })
-      if (!existing) {
+      const [deleted] = await db
+        .delete(sekolah)
+        .where(eq(sekolah.id, input.id))
+        .returning()
+
+      if (!deleted) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Sekolah tidak ditemukan",
         })
       }
 
-      const [deleted] = await db
-        .delete(sekolah)
-        .where(eq(sekolah.id, input.id))
-        .returning()
-
       await logAudit(ctx, {
         action: "delete",
         entity: "sekolah",
         entityId: input.id,
-        metadata: { namaSekolah: existing.namaSekolah, npsn: existing.npsn },
+        metadata: { namaSekolah: deleted.namaSekolah, npsn: deleted.npsn },
       })
 
       return deleted

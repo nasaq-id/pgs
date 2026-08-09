@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 
 const TIPE_LABEL: Record<string, string> = {
   kegiatan: "Kegiatan",
@@ -180,11 +181,11 @@ export default function KalenderPage() {
   })
 
   const removeMutation = api.kalender.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Event berhasil dihapus")
-      utils.kalender.getAll.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus event"),
+    ...useOptimisticRemove({
+      queryKey: [["kalender", "getAll"]],
+      successMessage: "Event berhasil dihapus",
+      errorMessage: "Gagal menghapus event",
+    }),
   })
 
   const seedMutation = api.kalender.seedLiburNasional.useMutation({

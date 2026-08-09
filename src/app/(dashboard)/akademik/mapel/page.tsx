@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
 import GenerateKurikulumDialog from "@/components/mapel/GenerateKurikulumDialog"
@@ -141,9 +142,7 @@ export default function MapelPage() {
   })
 
   const removeMutation = api.mapel.remove.useMutation({
-    onSuccess: () => {
-      utils.mapel.getAll.invalidate()
-    },
+    ...useOptimisticRemove({ queryKey: [["mapel", "getAll"]] }),
   })
 
   const reorderMutation = api.mapel.reorder.useMutation({

@@ -160,9 +160,8 @@ export const pengumumanRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(pengumuman.id, input.id), eq(pengumuman.sekolahId, sekolahId)]
-      const existing = await db.query.pengumuman.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
-      await db.delete(pengumuman).where(and(...conditions))
+      const [deleted] = await db.delete(pengumuman).where(and(...conditions)).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Pengumuman tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "pengumuman", entityId: input.id })
       return { success: true }
     }),

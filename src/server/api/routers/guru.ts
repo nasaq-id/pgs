@@ -204,9 +204,8 @@ export const guruRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(guru.id, input.id), eq(guru.sekolahId, sekolahId)]
-      const existing = await db.query.guru.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
-      await db.delete(guru).where(and(...conditions))
+      const [result] = await db.delete(guru).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "guru", entityId: input.id })
       return { success: true }
     }),

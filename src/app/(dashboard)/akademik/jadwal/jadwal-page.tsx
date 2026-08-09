@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { useSession } from "next-auth/react"
 import dynamic from "next/dynamic"
 import type { ComponentProps } from "react"
@@ -260,9 +261,7 @@ export default function JadwalPage() {
   })
 
   const removeMutation = api.jadwal.remove.useMutation({
-    onSuccess: () => {
-      utils.jadwal.getAll.invalidate()
-    },
+    ...useOptimisticRemove({ queryKey: [["jadwal", "getAll"]] }),
   })
 
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])

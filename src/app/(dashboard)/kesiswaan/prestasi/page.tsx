@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import PrestasiFormDialog, { type PrestasiFormData } from "@/components/prestasi/PrestasiFormDialog"
 
 const TINGKAT_LABEL: Record<string, string> = {
@@ -87,11 +88,11 @@ export default function PrestasiPage() {
   })
 
   const removeMutation = api.prestasi.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Prestasi berhasil dihapus")
-      utils.prestasi.getAll.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus prestasi"),
+    ...useOptimisticRemove({
+      queryKey: [["prestasi", "getAll"]],
+      successMessage: "Prestasi berhasil dihapus",
+      errorMessage: "Gagal menghapus prestasi",
+    }),
   })
 
   const handleSubmit = async (data: PrestasiFormData) => {

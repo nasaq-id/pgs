@@ -104,13 +104,12 @@ export const mapelRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(mataPelajaran.id, input.id), eq(mataPelajaran.sekolahId, sekolahId)]
-      const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       const result = await db
         .update(mataPelajaran)
         .set(input.data as any)
         .where(and(...conditions))
         .returning()
+      if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "mata_pelajaran", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
       return result[0]
     }),
@@ -120,9 +119,8 @@ export const mapelRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(mataPelajaran.id, input.id), eq(mataPelajaran.sekolahId, sekolahId)]
-      const existing = await db.query.mataPelajaran.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
-      await db.delete(mataPelajaran).where(and(...conditions))
+      const [deleted] = await db.delete(mataPelajaran).where(and(...conditions)).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Mata pelajaran tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "mata_pelajaran", entityId: input.id })
       return { success: true }
     }),

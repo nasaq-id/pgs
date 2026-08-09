@@ -84,12 +84,8 @@ export const notifikasiRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-      const existing = await db.query.notifikasi.findFirst({
-        where: and(eq(notifikasi.id, input.id), eq(notifikasi.sekolahId, sekolahId)),
-      })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
-
-      await db.update(notifikasi).set({ dibaca: true }).where(eq(notifikasi.id, input.id))
+      const [updated] = await db.update(notifikasi).set({ dibaca: true }).where(eq(notifikasi.id, input.id)).returning()
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
       return { success: true }
     }),
 
@@ -244,12 +240,9 @@ export const notifikasiRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-      const existing = await db.query.notifikasi.findFirst({
-        where: and(eq(notifikasi.id, input.id), eq(notifikasi.sekolahId, sekolahId)),
-      })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
+      const [deleted] = await db.delete(notifikasi).where(eq(notifikasi.id, input.id)).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
 
-      await db.delete(notifikasi).where(eq(notifikasi.id, input.id))
       await logAudit(ctx, { action: "delete", entity: "notifikasi", entityId: input.id })
       return { success: true }
     }),

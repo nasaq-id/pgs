@@ -416,8 +416,8 @@ export default function IdCardPage() {
                         <TableHead className="w-12 text-center">
                           <Checkbox
                             checked={
-                              siswaList && siswaList.length > 0 && 
-                              siswaList.every(s => selectedSiswaIds[s.id])
+                              !!(siswaList && siswaList.length > 0 && 
+                              siswaList.every(s => selectedSiswaIds[s.id]))
                             }
                             onCheckedChange={(checked) => handleSelectAll(checked === true)}
                           />
@@ -534,8 +534,8 @@ export default function IdCardPage() {
                         <TableHead className="w-12 text-center">
                           <Checkbox
                             checked={
-                              guruList && guruList.length > 0 && 
-                              guruList.every(g => selectedGuruIds[g.id])
+                              !!(guruList && guruList.length > 0 && 
+                              guruList.every(g => selectedGuruIds[g.id]))
                             }
                             onCheckedChange={(checked) => handleSelectAll(checked === true)}
                           />

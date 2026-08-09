@@ -184,11 +184,8 @@ export const lembagaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const whereClause = and(eq(tahunAjaran.id, input.id), eq(tahunAjaran.sekolahId, sekolahId))
-      const existing = await db.query.tahunAjaran.findFirst({
-        where: whereClause,
-      })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
-      await db.delete(tahunAjaran).where(whereClause)
+      const [deleted] = await db.delete(tahunAjaran).where(whereClause).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Tahun ajaran tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "tahun_ajaran", entityId: input.id })
       return { success: true }
     }),

@@ -61,7 +61,8 @@ export const dashboardRouter = router({
         try {
           return await fn()
         } catch (e) {
-          console.error("[dashboard-overview] bagian gagal:", e instanceof Error ? e.message : e)
+          const cause = (e as { cause?: Error })?.cause
+          console.error("[dashboard-overview] bagian gagal:", e instanceof Error ? e.message : e, "| CAUSE:", cause instanceof Error ? cause.message : (cause ?? "none"))
           return null
         }
       }

@@ -88,9 +88,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinKategori.id, input.id), eq(poinKategori.sekolahId, sekolahId)]
-      const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
       const [result] = await db.update(poinKategori).set(input.data as any).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_kategori", entityId: input.id })
       return result
     }),
@@ -100,9 +99,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinKategori.id, input.id), eq(poinKategori.sekolahId, sekolahId)]
-      const existing = await db.query.poinKategori.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
-      await db.delete(poinKategori).where(and(...conditions))
+      const [result] = await db.delete(poinKategori).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Kategori tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_kategori", entityId: input.id })
       return { success: true }
     }),
@@ -140,9 +138,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinTindakLanjut.id, input.id), eq(poinTindakLanjut.sekolahId, sekolahId)]
-      const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
       const [result] = await db.update(poinTindakLanjut).set(input.data as any).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_tindak_lanjut", entityId: input.id })
       return result
     }),
@@ -152,9 +149,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinTindakLanjut.id, input.id), eq(poinTindakLanjut.sekolahId, sekolahId)]
-      const existing = await db.query.poinTindakLanjut.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
-      await db.delete(poinTindakLanjut).where(and(...conditions))
+      const [result] = await db.delete(poinTindakLanjut).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Tindak lanjut tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_tindak_lanjut", entityId: input.id })
       return { success: true }
     }),
@@ -186,9 +182,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinAturan.id, input.id), eq(poinAturan.sekolahId, sekolahId)]
-      const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
       const [result] = await db.update(poinAturan).set(input.data as any).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "poin_aturan", entityId: input.id })
       return result
     }),
@@ -198,9 +193,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinAturan.id, input.id), eq(poinAturan.sekolahId, sekolahId)]
-      const existing = await db.query.poinAturan.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
-      await db.delete(poinAturan).where(and(...conditions))
+      const [result] = await db.delete(poinAturan).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Aturan tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "poin_aturan", entityId: input.id })
       return { success: true }
     }),
@@ -380,9 +374,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinSikap.id, input.id), eq(poinSikap.sekolahId, sekolahId)]
-      const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
       const [result] = await db.update(poinSikap).set({ status: input.status }).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
       return result
     }),
 
@@ -391,9 +384,8 @@ export const poinRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(poinSikap.id, input.id), eq(poinSikap.sekolahId, sekolahId)]
-      const existing = await db.query.poinSikap.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
-      await db.delete(poinSikap).where(and(...conditions))
+      const [result] = await db.delete(poinSikap).where(and(...conditions)).returning()
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Data tidak ditemukan" })
       return { success: true }
     }),
 

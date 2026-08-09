@@ -141,9 +141,6 @@ export const eMateriRouter = router({
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
-      const existing = await db.query.eMateri.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Materi pembelajaran tidak ditemukan" })
-
       const result = await db
         .update(eMateri)
         .set({
@@ -152,6 +149,8 @@ export const eMateriRouter = router({
         } as any)
         .where(and(...conditions))
         .returning()
+
+      if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Materi pembelajaran tidak ditemukan" })
 
       await logAudit(ctx, {
         action: "update",

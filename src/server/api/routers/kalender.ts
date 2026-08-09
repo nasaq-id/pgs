@@ -93,17 +93,13 @@ export const kalenderRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
       const { id, ...data } = input
-      const existing = await db.query.kalenderEvent.findFirst({
-        where: and(eq(kalenderEvent.id, id), eq(kalenderEvent.sekolahId, sekolahId)),
-      })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
-
       const updateData: Record<string, any> = { ...data }
       if (data.tanggalMulai) updateData.tanggalMulai = new Date(data.tanggalMulai)
       if (data.tanggalSelesai) updateData.tanggalSelesai = new Date(data.tanggalSelesai)
       updateData.updatedAt = new Date()
 
-      await db.update(kalenderEvent).set(updateData).where(eq(kalenderEvent.id, id))
+      const [updated] = await db.update(kalenderEvent).set(updateData).where(eq(kalenderEvent.id, id)).returning()
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
       await logAudit(ctx, { action: "update", entity: "kalender", entityId: id, metadata: { fields: Object.keys(data) } })
       return { success: true }
     }),
@@ -113,12 +109,8 @@ export const kalenderRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
-      const existing = await db.query.kalenderEvent.findFirst({
-        where: and(eq(kalenderEvent.id, input.id), eq(kalenderEvent.sekolahId, sekolahId)),
-      })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
-
-      await db.delete(kalenderEvent).where(eq(kalenderEvent.id, input.id))
+      const [deleted] = await db.delete(kalenderEvent).where(eq(kalenderEvent.id, input.id)).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Event tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "kalender", entityId: input.id })
       return { success: true }
     }),

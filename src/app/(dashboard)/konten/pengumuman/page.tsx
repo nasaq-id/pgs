@@ -49,6 +49,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
+import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { useSession } from "next-auth/react"
 
 const TARGET_LABEL: Record<string, string> = {
@@ -174,16 +175,18 @@ export default function PengumumanPage() {
   })
 
   const removeMutation = api.pengumuman.remove.useMutation({
-    onSuccess: () => {
-      toast.success("Pengumuman berhasil dihapus")
-      utils.pengumuman.getAll.invalidate()
-      utils.pengumuman.getPublished.invalidate()
-      utils.pengumuman.getCounts.invalidate()
-      utils.notifikasi.getAll.invalidate()
-      utils.notifikasi.getRecent.invalidate()
-      utils.notifikasi.getUnreadCount.invalidate()
-    },
-    onError: () => toast.error("Gagal menghapus pengumuman"),
+    ...useOptimisticRemove({
+      queryKey: [["pengumuman", "getAll"]],
+      invalidateKeys: [
+        ["pengumuman", "getPublished"],
+        ["pengumuman", "getCounts"],
+        ["notifikasi", "getAll"],
+        ["notifikasi", "getRecent"],
+        ["notifikasi", "getUnreadCount"],
+      ],
+      successMessage: "Pengumuman berhasil dihapus",
+      errorMessage: "Gagal menghapus pengumuman",
+    }),
   })
 
   const openCreateForm = () => {

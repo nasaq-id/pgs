@@ -306,9 +306,8 @@ export const siswaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(siswa.id, input.id), eq(siswa.sekolahId, sekolahId)]
-      const existing = await db.query.siswa.findFirst({ where: and(...conditions) })
-      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
-      await db.delete(siswa).where(and(...conditions))
+      const [deleted] = await db.delete(siswa).where(and(...conditions)).returning()
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       await logAudit(ctx, { action: "delete", entity: "siswa", entityId: input.id })
       return { success: true }
     }),
@@ -426,14 +425,19 @@ export const siswaRouter = router({
       const sekolahId = requireSekolahId(ctx)
       const conditions = [eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)]
       
-      const existingSiswa = await db.query.siswa.findFirst({
-        where: and(...conditions)
-      })
-      if (!existingSiswa) {
+      const [updatedSiswa] = await db
+        .update(siswa)
+        .set({
+          status: input.jenisMutasi === "Pindah Sekolah" ? "pindah" : "keluar",
+          updatedAt: new Date()
+        })
+        .where(and(...conditions))
+        .returning()
+      if (!updatedSiswa) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       }
 
-      // Step 1: Save mutation record
+      // Simpan catatan mutasi
       const id = crypto.randomUUID()
       await db.insert(catatanMutasi).values({
         id,
@@ -444,16 +448,6 @@ export const siswaRouter = router({
         alasanMutasi: input.alasanMutasi,
         sekolahTujuan: input.sekolahTujuan,
       })
-
-      // Step 2: Update student status
-      const newStatus = input.jenisMutasi === "Pindah Sekolah" ? "pindah" : "keluar"
-      await db
-        .update(siswa)
-        .set({
-          status: newStatus,
-          updatedAt: new Date()
-        })
-        .where(eq(siswa.id, input.siswaId))
 
       await logAudit(ctx, {
         action: "create",

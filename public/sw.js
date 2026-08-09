@@ -1,4 +1,4 @@
-const CACHE = "edumanage-v2"
+const CACHE = "edumanage-v3"
 
 const STATIC_ASSETS = [
   "/",
