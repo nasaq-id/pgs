@@ -14,15 +14,26 @@ interface SelectContextType {
 
 const SelectContext = React.createContext<SelectContextType>({})
 
-function Select<Value extends string = string>({
-  options,
-  children,
-  onValueChange,
-  ...props
-}: Omit<SelectPrimitive.Root.Props<Value, false>, "onValueChange"> & {
+type SelectSharedProps<Value extends string> = {
   options?: { value: Value; label: string }[]
-  onValueChange?: (value: Value | null) => void
-}) {
+}
+
+type SingleSelectProps<Value extends string> = SelectSharedProps<Value> &
+  Omit<SelectPrimitive.Root.Props<Value, false>, "onValueChange" | "multiple"> & {
+    multiple?: false
+    onValueChange?: (value: Value | null) => void
+  }
+
+type MultipleSelectProps<Value extends string> = SelectSharedProps<Value> &
+  Omit<SelectPrimitive.Root.Props<Value, true>, "onValueChange" | "multiple"> & {
+    multiple: true
+    onValueChange?: (value: Value[] | null) => void
+  }
+
+function Select<Value extends string = string>(props: SingleSelectProps<Value>): React.JSX.Element
+function Select<Value extends string = string>(props: MultipleSelectProps<Value>): React.JSX.Element
+function Select<Value extends string = string>(props: SingleSelectProps<Value> | MultipleSelectProps<Value>) {
+  const { options, children, onValueChange, ...rest } = props
   const [itemLabelsMap, setItemLabelsMap] = React.useState(() => new Map<string, string>())
 
   const registerItem = React.useCallback((val: string, label: string) => {
@@ -37,9 +48,10 @@ function Select<Value extends string = string>({
 
   return (
     <SelectContext.Provider value={{ options: options as any, registerItem, itemLabelsMap }}>
-      <SelectPrimitive.Root<Value, false>
-        {...props}
-        onValueChange={onValueChange}
+      <SelectPrimitive.Root<Value, boolean>
+        {...rest}
+        multiple={props.multiple}
+        onValueChange={onValueChange as any}
         items={options}
       >
         {children}
@@ -78,6 +90,17 @@ function SelectValue({
         }
         if (value === null || value === undefined || value === "") {
           return placeholder || ""
+        }
+        if (Array.isArray(value)) {
+          if (options) {
+            const labels = value
+              .map((v) => options.find((o) => o.value === v)?.label)
+              .filter(Boolean)
+            if (labels.length === value.length) return labels.join(", ")
+          }
+          return value
+            .map((v) => itemLabelsMap?.get(String(v)) || String(v))
+            .join(", ")
         }
         if (typeof value === "object" && value !== null) {
           if ("label" in value) return (value as any).label

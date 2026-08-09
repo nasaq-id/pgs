@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, type ReactElement } from "react"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import {
   Eye,
   RotateCcw,
   Trash2,
+  Search,
 } from "lucide-react"
 import { formatKelasLabel } from "./constants"
 import { cn } from "@/lib/utils"
@@ -96,6 +97,20 @@ function hashMapel(id: string): number {
     h = (h * 31 + id.charCodeAt(i)) >>> 0
   }
   return h % MAPEL_COLORS.length
+}
+
+/** Tooltip seragam untuk tombol/field di dalam modal */
+function Tip({ label, children }: { label: string; children: ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipPortal>
+        <TooltipPositioner>
+          <TooltipPopup className="max-w-[220px] text-[10px]">{label}</TooltipPopup>
+        </TooltipPositioner>
+      </TooltipPortal>
+    </Tooltip>
+  )
 }
 
 /** Replica client-side dari splitJP server (jadwal.ts) — dijaga identik. */
@@ -218,7 +233,10 @@ export default function AiGenerateDialog({
   // Teacher exception states matching reference ZIP structure
   const [teacherExceptions, setTeacherExceptions] = useState<Record<string, string[]>>({})
   const [teacherJPExceptions, setTeacherJPExceptions] = useState<Record<string, number[]>>({})
-  const [selectedGuruId, setSelectedGuruId] = useState<string>("")
+  const [selectedGuruIds, setSelectedGuruIds] = useState<string[]>([])
+  const [activeGuruId, setActiveGuruId] = useState<string>("")
+  const [guruSearch, setGuruSearch] = useState<string>("")
+  const [guruSearchOpen, setGuruSearchOpen] = useState(false)
 
   // Progression States for terminal modal
   const [progressModalOpen, setProgressModalOpen] = useState(false)
@@ -264,25 +282,55 @@ export default function AiGenerateDialog({
     return [...guruRecords].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap))
   }, [guruRecords])
 
-  const selectedGuru = useMemo(
-    () => sortedGuruRecords.find((g) => g.id === selectedGuruId) || null,
-    [sortedGuruRecords, selectedGuruId]
+  // Filter hasil pencarian nama guru
+  const filteredGuruRecords = useMemo(() => {
+    const q = guruSearch.trim().toLowerCase()
+    if (!q) return sortedGuruRecords
+    return sortedGuruRecords.filter((g) => g.namaLengkap.toLowerCase().includes(q))
+  }, [sortedGuruRecords, guruSearch])
+
+  // Guru terpilih (multi-select)
+  const selectedGuruList = useMemo(
+    () => sortedGuruRecords.filter((g) => selectedGuruIds.includes(g.id)),
+    [sortedGuruRecords, selectedGuruIds]
   )
 
-  // Guru yang punya pembatasan (untuk ringkasan & hapus cepat)
+  // Guru yang sedang diedit ketersediaannya
+  const activeGuru = useMemo(() => {
+    if (activeGuruId && selectedGuruIds.includes(activeGuruId)) {
+      return sortedGuruRecords.find((g) => g.id === activeGuruId) || null
+    }
+    return selectedGuruList[0] || null
+  }, [sortedGuruRecords, selectedGuruIds, activeGuruId, selectedGuruList])
+
+  // Ringkasan pembatasan per guru terpilih (untuk chip & hapus cepat)
   const configuredGuru = useMemo(() => {
-    const ids = new Set([
-      ...Object.keys(teacherExceptions),
-      ...Object.keys(teacherJPExceptions),
-    ])
-    return sortedGuruRecords
-      .filter((g) => ids.has(g.id))
-      .map((g) => ({
-        ...g,
-        hariCount: (teacherExceptions[g.id] || []).length,
-        jpCount: (teacherJPExceptions[g.id] || []).length,
-      }))
-  }, [sortedGuruRecords, teacherExceptions, teacherJPExceptions])
+    return selectedGuruList.map((g) => ({
+      ...g,
+      hariCount: (teacherExceptions[g.id] || []).length,
+      jpCount: (teacherJPExceptions[g.id] || []).length,
+    }))
+  }, [selectedGuruList, teacherExceptions, teacherJPExceptions])
+
+  const handleAddGuru = (guruId: string) => {
+    setSelectedGuruIds((prev) => (prev.includes(guruId) ? prev : [...prev, guruId]))
+    setActiveGuruId(guruId)
+  }
+
+  const handleRemoveGuru = (guruId: string) => {
+    setSelectedGuruIds((prev) => prev.filter((id) => id !== guruId))
+    setTeacherExceptions((prev) => {
+      const next = { ...prev }
+      delete next[guruId]
+      return next
+    })
+    setTeacherJPExceptions((prev) => {
+      const next = { ...prev }
+      delete next[guruId]
+      return next
+    })
+    setActiveGuruId((prev) => (prev === guruId ? "" : prev))
+  }
 
   const handleClearTeacherExceptions = (guruId: string) => {
     setTeacherExceptions((prev) => {
@@ -305,7 +353,10 @@ export default function AiGenerateDialog({
     setCustomRequest("")
     setTeacherExceptions({})
     setTeacherJPExceptions({})
-    setSelectedGuruId("")
+    setSelectedGuruIds([])
+    setActiveGuruId("")
+    setGuruSearch("")
+    setGuruSearchOpen(false)
     setPreviewData(null)
     setPreviewError(null)
   }, [open, kaldikSetting])
@@ -566,7 +617,7 @@ export default function AiGenerateDialog({
           <div className="space-y-6 pt-2">
             {/* Section 1: Target Rombel & Plotting Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border border-white/40 dark:border-slate-800/40 flex flex-col justify-between">
                 <div className="space-y-0.5">
                   <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Target Kelas</Label>
                   <p className="text-[11px] text-muted-foreground">Pilih kelas yang akan di-generate jadwalnya</p>
@@ -579,9 +630,11 @@ export default function AiGenerateDialog({
                     ...kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) })),
                   ]}
                 >
-                  <SelectTrigger className="mt-3 rounded-xl h-10">
-                    <SelectValue placeholder="Pilih kelas..." />
-                  </SelectTrigger>
+                  <Tip label="Pilih kelas yang akan di-generate jadwalnya">
+                    <SelectTrigger className="mt-3 rounded-xl h-10">
+                      <SelectValue placeholder="Pilih kelas..." />
+                    </SelectTrigger>
+                  </Tip>
                   <SelectContent>
                     <SelectGroup>
                       <SelectItem value="all">Semua Kelas ({kelasRecords.length} Rombel)</SelectItem>
@@ -595,7 +648,7 @@ export default function AiGenerateDialog({
                 </Select>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] border border-white/40 dark:border-slate-800/40 flex flex-col justify-between">
                 <div className="flex items-start gap-3">
                   <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-5 h-5" />
@@ -668,22 +721,23 @@ export default function AiGenerateDialog({
                 {HARI_LIST.map((h) => {
                   const isLibur = hariLibur.includes(h.value)
                   return (
-                    <button
-                      key={h.value}
-                      type="button"
-                      onClick={() => handleToggleHariLibur(h.value)}
-                      className={cn(
-                        "px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5",
-                        isLibur
-                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-900/50 shadow-sm"
-                          : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-250 dark:border-emerald-900/50"
-                      )}
-                    >
-                      <span>{h.label}</span>
-                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase bg-white/60 dark:bg-black/30">
-                        {isLibur ? "Libur" : "Masuk"}
-                      </span>
-                    </button>
+                    <Tip key={h.value} label={isLibur ? "Jadikan hari masuk" : "Jadikan hari libur"}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHariLibur(h.value)}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5",
+                          isLibur
+                            ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-900/50 shadow-sm"
+                            : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-250 dark:border-emerald-900/50"
+                        )}
+                      >
+                        <span>{h.label}</span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase bg-white/60 dark:bg-black/30">
+                          {isLibur ? "Libur" : "Masuk"}
+                        </span>
+                      </button>
+                    </Tip>
                   )
                 })}
               </div>
@@ -711,7 +765,7 @@ export default function AiGenerateDialog({
                 </Label>
                 {configuredGuru.length > 0 && (
                   <span className="ml-auto text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 px-2 py-0.5 rounded-lg">
-                    {configuredGuru.length} Guru diatur
+                    {configuredGuru.length} Guru dipilih
                   </span>
                 )}
               </div>
@@ -719,46 +773,52 @@ export default function AiGenerateDialog({
                 Opsional — diisi hanya ketika ada guru yang berhalangan atau request tidak bisa mengajar di hari dan jam (JP) tertentu.
               </p>
 
-              <Select
-                value={selectedGuruId}
-                onValueChange={(v) => setSelectedGuruId(v || "")}
-                options={sortedGuruRecords.map((g) => ({ value: g.id, label: g.namaLengkap }))}
-              >
-                <SelectTrigger className="rounded-xl h-10">
-                  <SelectValue placeholder="Silahkan pilih guru terlebih dahulu" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {sortedGuruRecords.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.namaLengkap}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <Tip label="Cari & pilih guru yang berhalangan (bisa lebih dari satu)">
+                <button
+                  type="button"
+                  onClick={() => setGuruSearchOpen(true)}
+                  className="w-full h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 px-3.5 flex items-center justify-between gap-2 text-left cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/15"
+                >
+                  <span
+                    className={`text-xs font-bold truncate ${
+                      selectedGuruIds.length > 0
+                        ? "text-slate-800 dark:text-slate-200"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
+                  >
+                    {selectedGuruIds.length === 0
+                      ? "Silahkan pilih guru terlebih dahulu"
+                      : selectedGuruIds.length === 1
+                        ? sortedGuruRecords.find((g) => g.id === selectedGuruIds[0])?.namaLengkap || ""
+                        : `${selectedGuruIds.length} guru dipilih`}
+                  </span>
+                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                </button>
+              </Tip>
 
-              {selectedGuru ? (
+              {activeGuru ? (
                 <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-4 text-left shadow-inner space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
                       <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate">
-                        {selectedGuru.namaLengkap}
+                        {activeGuru.namaLengkap}
                       </span>
                     </div>
-                    {(teacherExceptions[selectedGuru.id]?.length || 0) > 0 ||
-                    (teacherJPExceptions[selectedGuru.id]?.length || 0) > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleClearTeacherExceptions(selectedGuru.id)}
-                        className="h-7 px-2 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 cursor-pointer"
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        Bersihkan
-                      </Button>
+                    {(teacherExceptions[activeGuru.id]?.length || 0) > 0 ||
+                    (teacherJPExceptions[activeGuru.id]?.length || 0) > 0 ? (
+                      <Tip label="Hapus semua pembatasan guru ini">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleClearTeacherExceptions(activeGuru.id)}
+                          className="h-7 px-2 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" />
+                          Bersihkan
+                        </Button>
+                      </Tip>
                     ) : null}
                   </div>
 
@@ -768,20 +828,24 @@ export default function AiGenerateDialog({
                       <span className="text-[10px] font-bold text-slate-400 block mb-1">Hari Libur Guru:</span>
                       <div className="flex flex-wrap gap-1">
                         {HARI_LIST.map((h) => {
-                          const isExcluded = (teacherExceptions[selectedGuru.id] || []).includes(h.value)
+                          const isExcluded = (teacherExceptions[activeGuru.id] || []).includes(h.value)
                           return (
-                            <button
+                            <Tip
                               key={h.value}
-                              type="button"
-                              onClick={() => handleToggleTeacherDay(selectedGuru.id, h.value)}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-bold border transition-all cursor-pointer ${
-                                isExcluded
-                                  ? "bg-rose-50 border-rose-300 text-rose-700 font-black shadow-xs"
-                                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
-                              }`}
+                              label={isExcluded ? "Boleh mengajar hari ini" : "Guru tidak bisa mengajar hari ini"}
                             >
-                              {h.label}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTeacherDay(activeGuru.id, h.value)}
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold border transition-all cursor-pointer ${
+                                  isExcluded
+                                    ? "bg-rose-50 border-rose-300 text-rose-700 font-black shadow-xs"
+                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
+                                }`}
+                              >
+                                {h.label}
+                              </button>
+                            </Tip>
                           )
                         })}
                       </div>
@@ -792,20 +856,24 @@ export default function AiGenerateDialog({
                       <span className="text-[10px] font-bold text-slate-400 block mb-1">Tidak Bisa JP Ke:</span>
                       <div className="flex flex-wrap gap-1">
                         {jpOptions.map((jpNum) => {
-                          const isExcluded = (teacherJPExceptions[selectedGuru.id] || []).includes(jpNum)
+                          const isExcluded = (teacherJPExceptions[activeGuru.id] || []).includes(jpNum)
                           return (
-                            <button
+                            <Tip
                               key={jpNum}
-                              type="button"
-                              onClick={() => handleToggleTeacherJP(selectedGuru.id, jpNum)}
-                              className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
-                                isExcluded
-                                  ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
-                                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
-                              }`}
+                              label={isExcluded ? "Boleh mengajar JP ini" : "Guru tidak bisa mengajar JP ini"}
                             >
-                              {jpNum}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTeacherJP(activeGuru.id, jpNum)}
+                                className={`w-5.5 h-5.5 rounded-md flex items-center justify-center text-[9px] font-bold border transition-all cursor-pointer ${
+                                  isExcluded
+                                    ? "bg-amber-50 border-amber-300 text-amber-700 font-black shadow-xs"
+                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
+                                }`}
+                              >
+                                {jpNum}
+                              </button>
+                            </Tip>
                           )
                         })}
                       </div>
@@ -820,33 +888,38 @@ export default function AiGenerateDialog({
 
               {configuredGuru.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 block">Guru yang sudah diatur:</span>
+                  <span className="text-[10px] font-bold text-slate-400 block">Guru terpilih:</span>
                   <div className="flex flex-wrap gap-1.5">
                     {configuredGuru.map((g) => (
-                      <div
-                        key={g.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedGuruId(g.id)}
-                        onKeyDown={(e) => e.key === "Enter" && setSelectedGuruId(g.id)}
-                        className="group flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 cursor-pointer hover:border-indigo-400 transition-colors"
-                      >
-                        <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300">{g.namaLengkap}</span>
-                        <span className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded-md">
-                          {g.hariCount} hari · {g.jpCount} JP
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleClearTeacherExceptions(g.id)
-                          }}
-                          className="p-1 rounded-md text-indigo-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          title="Hapus pembatasan guru ini"
+                      <Tip key={g.id} label="Klik untuk mengatur ketersediaan guru ini">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setActiveGuruId(g.id)}
+                          onKeyDown={(e) => e.key === "Enter" && setActiveGuruId(g.id)}
+                          className={`group flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg border cursor-pointer transition-colors ${
+                            activeGuru?.id === g.id
+                              ? "bg-indigo-100 dark:bg-indigo-900/60 border-indigo-300 dark:border-indigo-700"
+                              : "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200/70 dark:border-indigo-900/50 hover:border-indigo-400"
+                          }`}
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
+                          <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300">{g.namaLengkap}</span>
+                          <span className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded-md">
+                            {g.hariCount} hari · {g.jpCount} JP
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveGuru(g.id)
+                            }}
+                            className="p-1 rounded-md text-indigo-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Hapus guru dari pilihan"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </Tip>
                     ))}
                   </div>
                 </div>
@@ -855,33 +928,39 @@ export default function AiGenerateDialog({
           </div>
 
           <div className="flex justify-end gap-3 pt-5 mt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePreview}
-              disabled={filteredPengampu.length === 0 || previewLoading}
-              className="rounded-xl font-bold text-xs uppercase cursor-pointer"
-            >
-              {previewLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-              Preview Jadwal
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="rounded-xl font-bold text-xs uppercase cursor-pointer"
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              onClick={handleGenerate}
-              disabled={filteredPengampu.length === 0}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer shadow-md"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Mulai Auto-Scheduler
-            </Button>
+            <Tip label="Lihat hasil preview jadwal sebelum di-generate (dry-run)">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePreview}
+                disabled={filteredPengampu.length === 0 || previewLoading}
+                className="rounded-xl font-bold text-xs uppercase cursor-pointer"
+              >
+                {previewLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                Preview Jadwal
+              </Button>
+            </Tip>
+            <Tip label="Tutup modal tanpa menyimpan">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="rounded-xl font-bold text-xs uppercase cursor-pointer"
+              >
+                Batal
+              </Button>
+            </Tip>
+            <Tip label="Mulai generate jadwal otomatis untuk kelas terpilih">
+              <Button
+                type="button"
+                onClick={handleGenerate}
+                disabled={filteredPengampu.length === 0}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer shadow-md"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Mulai Auto-Scheduler
+              </Button>
+            </Tip>
           </div>
 
           {/* ================= PREVIEW JADWAL (dry-run per kelas) ================= */}
@@ -1022,6 +1101,85 @@ export default function AiGenerateDialog({
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= SEARCH GURU (batch select) ================= */}
+      <Dialog open={guruSearchOpen} onOpenChange={(v) => !v && setGuruSearchOpen(false)}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden" showCloseButton={false}>
+          <span className="sr-only">Cari & pilih guru</span>
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <input
+              autoFocus
+              type="text"
+              value={guruSearch}
+              onChange={(e) => setGuruSearch(e.target.value)}
+              placeholder="Cari nama guru..."
+              className="flex-1 h-9 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none"
+            />
+            {guruSearch && (
+              <button
+                type="button"
+                onClick={() => setGuruSearch("")}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-[300px] overflow-y-auto p-2 space-y-0.5">
+            {filteredGuruRecords.map((g) => {
+              const isSelected = selectedGuruIds.includes(g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => (isSelected ? handleRemoveGuru(g.id) : handleAddGuru(g.id))}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer",
+                    isSelected
+                      ? "bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/60"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors",
+                      isSelected
+                        ? "bg-teal-600 border-teal-600 text-white"
+                        : "border-slate-300 dark:border-slate-600"
+                    )}
+                  >
+                    {isSelected && <Check className="w-3 h-3" />}
+                  </span>
+                  <span className="flex-1 truncate">{g.namaLengkap}</span>
+                  {isSelected && (
+                    <span className="text-[9px] font-extrabold text-teal-500 uppercase">Terpilih</span>
+                  )}
+                </button>
+              )
+            })}
+            {filteredGuruRecords.length === 0 && (
+              <p className="px-3 py-6 text-center text-xs font-semibold text-slate-400">
+                Guru tidak ditemukan
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] font-bold text-slate-500">
+              {selectedGuruIds.length} guru dipilih
+            </span>
+            <Button
+              type="button"
+              onClick={() => setGuruSearchOpen(false)}
+              className="h-9 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black cursor-pointer"
+            >
+              Selesai
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
