@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, between, or, asc, lte, gte, isNull } from "drizzle-orm"
+import { eq, and, desc, between, or, asc, lte, gte, isNull, inArray, sql } from "drizzle-orm"
 import { db } from "@/server/db"
 import { absensiSiswa, absensiGuru, pengaturanAbsensi, siswa, guru, kelas, jadwalPelajaran, pengajuanIzin, sekolah, kalenderEvent, pengaturanKalender, absensiHari } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
@@ -26,6 +26,17 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
 function timeStringToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(":").map(Number)
   return h * 60 + m
+}
+
+/** Parse "HH:MM" jam pulang; value korup → fallback (mis. "14:00 WIB", kosong, dsb). */
+function parseJamPulang(jamPulang: string | null | undefined, fallback = "14:00"): number {
+  if (!jamPulang) return timeStringToMinutes(fallback)
+  const m = /^(\d{1,2}):(\d{2})$/.exec(jamPulang.trim())
+  if (!m) return timeStringToMinutes(fallback)
+  const h = parseInt(m[1]!, 10)
+  const min = parseInt(m[2]!, 10)
+  if (h > 23 || min > 59) return timeStringToMinutes(fallback)
+  return h * 60 + min
 }
 
 function getMinutesSinceMidnightOfSchedule(date: Date | null | undefined): number | null {
@@ -160,22 +171,52 @@ export const absensiRouter = router({
         tanggal: getSchoolDayDate(new Date(a.tanggal)),
       }))
 
-      const result = await db.transaction(async (tx) => {
-        // Mencegah duplikasi data: hapus record lama siswa & tanggal terkait sebelum menulis data baru
-        for (const a of values) {
-          const startOfDay = new Date(a.tanggal)
-          startOfDay.setUTCHours(0, 0, 0, 0)
-          const endOfDay = new Date(a.tanggal)
-          endOfDay.setUTCHours(23, 59, 59, 999)
+      // Dedupe dalam satu payload: siswa + tanggal yang sama cukup 1 record
+      // (mencegah double-insert dari payload yang mengandung entri duplikat).
+      const seen = new Set<string>()
+      const uniqueValues = values.filter((a) => {
+        const key = `${a.siswaId}|${a.tanggal.toISOString().split("T")[0]}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
 
+      const result = await db.transaction(async (tx) => {
+        // Mencegah duplikasi data: hapus record lama siswa & tanggal terkait sebelum menulis data baru.
+        // Dikelompokkan per tanggal agar tidak N+1 (1 query delete per tanggal).
+        const byDate = new Map<string, typeof uniqueValues>()
+        for (const a of uniqueValues) {
+          const dayKey = a.tanggal.toISOString().split("T")[0]
+          const list = byDate.get(dayKey) || []
+          list.push(a)
+          byDate.set(dayKey, list)
+        }
+        for (const [dayKey, list] of byDate) {
+          const startOfDay = new Date(`${dayKey}T00:00:00.000Z`)
+          const endOfDay = new Date(`${dayKey}T23:59:59.999Z`)
           await tx.delete(absensiSiswa).where(
             and(
-              eq(absensiSiswa.siswaId, a.siswaId),
+              inArray(absensiSiswa.siswaId, list.map((a) => a.siswaId)),
               between(absensiSiswa.tanggal, startOfDay, endOfDay)
             )
           )
         }
-        return tx.insert(absensiSiswa).values(values as any).returning()
+        // onConflictDoUpdate sebagai backstop race (2 request paralel): jika request
+        // lain sudah insert di sela-sela transaksi ini, nilai terakhir yang menang.
+        return tx
+          .insert(absensiSiswa)
+          .values(uniqueValues as any)
+          .onConflictDoUpdate({
+            target: [absensiSiswa.siswaId, absensiSiswa.tanggal],
+            set: {
+              status: sql`excluded.status`,
+              jamMasuk: sql`excluded.jam_masuk`,
+              jamPulang: sql`excluded.jam_pulang`,
+              keterangan: sql`excluded.keterangan`,
+              updatedAt: new Date(),
+            },
+          })
+          .returning()
       })
 
       await logAudit(ctx, { action: "bulk_create", entity: "absensi_siswa", metadata: { count: result.length } })
@@ -457,7 +498,12 @@ export const absensiRouter = router({
               jamMasuk: now,
               keterangan: input.alasan ?? null,
             })
+            .onConflictDoNothing()
             .returning()
+
+          if (!created) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Absensi sudah dicatat. Silakan refresh halaman." })
+          }
 
           await ensureHariAbsensi(sekolahId, "siswa", schoolToday, student.kelasId)
 
@@ -968,8 +1014,7 @@ export const absensiRouter = router({
       const settings = await db.query.pengaturanAbsensi.findFirst({
         where: eq(pengaturanAbsensi.sekolahId, sekolahId),
       })
-      const jamPulangStr = settings?.jamPulangSiswa ?? "14:00"
-      const limitPulangMinutes = timeStringToMinutes(jamPulangStr)
+      const limitPulangMinutes = parseJamPulang(settings?.jamPulangSiswa)
       const nowMinutes = getMinutesSinceMidnightInSchoolTime(new Date())
 
       const sessionRows = await db
@@ -1295,8 +1340,13 @@ export const absensiRouter = router({
       }
 
       // Hari operasional guru: sesi absensi guru yang benar-benar dijalankan di sistem.
-      // Hari ini (belum genap selesai) dikecualikan — alfa baru dihitung besok.
+      // Hari ini dikecualikan kecuali jika waktu operasional sekolah (jam pulang) sudah selesai.
       const todayKey = getSchoolDayDate(new Date()).toISOString().split("T")[0]
+      const guruSettings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+      const guruLimitPulangMinutes = parseJamPulang(guruSettings?.jamPulang)
+      const guruNowMinutes = getMinutesSinceMidnightInSchoolTime(new Date())
       const guruSessionRows = await db
         .select({ tanggal: absensiHari.tanggal })
         .from(absensiHari)
@@ -1310,7 +1360,8 @@ export const absensiRouter = router({
       const guruOperatedDates = new Set<string>()
       for (const row of guruSessionRows) {
         const dateKey = row.tanggal.toISOString().split("T")[0]
-        if (dateKey >= todayKey) continue
+        if (dateKey > todayKey) continue
+        if (dateKey === todayKey && guruNowMinutes < guruLimitPulangMinutes) continue
         guruOperatedDates.add(dateKey)
       }
 

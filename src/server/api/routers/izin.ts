@@ -358,7 +358,7 @@ export const izinRouter = router({
                   kelasId: std.kelasId,
                   tanggal: schoolDay,
                   status: statusToSet,
-                })
+                }).onConflictDoNothing()
               }
             }
           } else if (row.tipePengaju === "guru" && row.guruId) {
