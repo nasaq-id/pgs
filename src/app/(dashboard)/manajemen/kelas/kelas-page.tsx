@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import dynamic from "next/dynamic"
 import { useSession } from "next-auth/react"
 import {
   Plus,
@@ -18,8 +19,6 @@ import {
   ArrowRightLeft,
   Info
 } from "lucide-react"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -61,10 +60,16 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
-import KelasDetailDialog from "@/components/kelas/KelasDetailDialog"
 import { formatKelasLabel, formatTingkatLabel } from "@/components/jadwal/constants"
 import { toast } from "sonner"
+
+// Lazy-load dialog yang jarang dibuka (secondary action)
+const KelasDetailDialog = dynamic(
+  () => import("@/components/kelas/KelasDetailDialog").then((m) => m.default),
+  { ssr: false }
+)
 
 interface KelasRecord {
   id: string
@@ -75,6 +80,8 @@ interface KelasRecord {
   tahunAjaranId: string | null
   siswaCount: number
 }
+
+const EMPTY_KELAS_RECORDS: KelasRecord[] = []
 
 function CapacityIndicator({ count, max }: { count: number; max: number | null }) {
   if (!max) return <span className="text-muted-foreground text-xs italic">Belum diatur</span>
@@ -173,22 +180,17 @@ export default function KelasPage() {
 
   const [dstTingkat, setDstTingkat] = useState("")
   const [dstKelasId, setDstKelasId] = useState("")
-  const [dstSearch, setDstSearch] = useState("")
 
   const [confirmTransferOpen, setConfirmTransferOpen] = useState(false)
 
-  const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
-  const { data: guruList } = api.guru.getAll.useQuery({})
+  const debouncedSearch = useDebounce(search)
+  const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search: debouncedSearch })
+  const { data: guruList } = api.guru.getLookup.useQuery({})
 
   // Query students of source and target classes
-  const { data: srcStudents, isLoading: srcLoading } = api.siswa.getAll.useQuery(
+  const { data: srcStudents, isLoading: srcLoading } = api.siswa.getLookup.useQuery(
     { kelasId: srcKelasId || "none", limit: 1000 },
     { enabled: !!srcKelasId && srcKelasId !== "none" }
-  )
-
-  const { data: dstStudents, isLoading: dstLoading } = api.siswa.getAll.useQuery(
-    { kelasId: dstKelasId || "none", limit: 1000 },
-    { enabled: !!dstKelasId && dstKelasId !== "none" }
   )
 
   const utils = api.useUtils()
@@ -202,6 +204,7 @@ export default function KelasPage() {
   const updateMutation = api.kelas.update.useMutation({
     onSuccess: () => {
       utils.kelas.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
     },
   })
 
@@ -215,6 +218,7 @@ export default function KelasPage() {
       setSelectedSiswaIds([])
       setConfirmTransferOpen(false)
       utils.siswa.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
       utils.kelas.getAll.invalidate()
     },
     onError: (err) => {
@@ -247,6 +251,10 @@ export default function KelasPage() {
   const handleExportPDF = async () => {
     setExporting(true)
     try {
+      const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ])
       let logoBase64: string | null = null
       if (sekolah?.logo) {
         logoBase64 = await urlToBase64(sekolah.logo)
@@ -274,7 +282,7 @@ export default function KelasPage() {
 
       const head = [["No", "Tingkat", "Nama Rombel / Kelas", "Wali Kelas", "Kapasitas Terisi", "Jumlah Siswa"]]
 
-      const doc = new jsPDF("portrait", "mm", "a4")
+      const doc = new JsPDF("portrait", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
 
       const useCustomKop = sekolah?.useCustomKop && customKopBase64
@@ -429,7 +437,7 @@ export default function KelasPage() {
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
   }
-  const records = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
+  const records = (kelasList ?? EMPTY_KELAS_RECORDS) as KelasRecord[]
   const recordsWithoutTingkat = useMemo(() => records.filter((r) => !r.tingkat), [records])
 
   const totalRombel = records.length
@@ -473,17 +481,6 @@ export default function KelasPage() {
         (s.nisn && s.nisn.toLowerCase().includes(q))
     )
   }, [srcStudents, srcSearch])
-
-  const filteredDstStudents = useMemo(() => {
-    const list = dstStudents ?? []
-    if (!dstSearch) return list
-    const q = dstSearch.toLowerCase()
-    return list.filter(
-      (s) =>
-        s.namaLengkap.toLowerCase().includes(q) ||
-        (s.nisn && s.nisn.toLowerCase().includes(q))
-    )
-  }, [dstStudents, dstSearch])
 
   // Target class details for confirmation prompt
   const srcKelasRecord = useMemo(() => records.find((r) => r.id === srcKelasId), [records, srcKelasId])
@@ -554,7 +551,7 @@ export default function KelasPage() {
             <p className="font-semibold">{recordsWithoutTingkat.length} kelas belum memiliki tingkat</p>
             <p className="mt-1">
               Data kelas yang sudah ada sebelumnya harus diperbarui agar sesuai dengan struktur baru.
-              Klik ikon <strong>Edit</strong> pada baris yang ditandai untuk memilih tingkat dan menyesuaikan nama kelas (misal: "7a" → tingkat <strong>7</strong>, nama kelas <strong>A</strong>).
+               Klik ikon <strong>Edit</strong> pada baris yang ditandai untuk memilih tingkat dan menyesuaikan nama kelas (misal: &quot;7a&quot; -&gt; tingkat <strong>7</strong>, nama kelas <strong>A</strong>).
             </p>
           </div>
         </div>

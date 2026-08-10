@@ -138,6 +138,7 @@ function AnnouncementList({ d }: { d: OverviewData }) {
 // ─── SEKSI 1: Statistik (Aktivitas + Ringkasan + Perlu Perhatian) ───
 function StatSection() {
   const [d] = useOverview()
+  const router = useRouter()
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -145,7 +146,7 @@ function StatSection() {
           Aktivitas Hari Ini
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-[#d5f2e8] dark:bg-[oklch(0.20_0.02_140)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/siswa"}>
+          <div className="bg-[#d5f2e8] dark:bg-[oklch(0.20_0.02_140)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => router.push("/manajemen/siswa")}>
             <div className="flex items-start justify-between">
               <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-emerald-800 dark:text-emerald-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-emerald-500/20">
                 <Star size={12} className="fill-amber-400 text-amber-400" />
@@ -160,7 +161,7 @@ function StatSection() {
               <p className="text-[11px] text-emerald-800/70 dark:text-emerald-300/70 font-semibold mt-1">Kelola data & rekap profil</p>
             </div>
           </div>
-          <div className="bg-[#e0e7ff] dark:bg-[oklch(0.20_0.02_250)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => window.location.href = "/manajemen/guru"}>
+          <div className="bg-[#e0e7ff] dark:bg-[oklch(0.20_0.02_250)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => router.push("/manajemen/guru")}>
             <div className="flex items-start justify-between">
               <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-indigo-900 dark:text-indigo-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-indigo-500/20">
                 <Star size={12} className="fill-amber-400 text-amber-400" />
@@ -315,7 +316,7 @@ function KalenderSection() {
 
   const getEventsForDay = (day: number) => {
     if (!d?.calendarEvents) return []
-    return d?.calendarEvents.filter(event => {
+    return d?.calendarEvents.filter((event: any) => {
       const startDate = new Date(event.tanggalMulai)
       startDate.setHours(0, 0, 0, 0)
 
@@ -380,9 +381,9 @@ function KalenderSection() {
             const day = idx + 1
             const today = day === new Date().getDate() && calendarMonth === new Date().getMonth() && calendarYear === new Date().getFullYear()
             const dayEvents = getEventsForDay(day)
-            const hasHoliday = dayEvents.some(e => e.isLiburNasional || e.tipe === "libur")
-            const hasKegiatan = dayEvents.some(e => e.tipe === "kegiatan")
-            const hasLainnya = dayEvents.some(e => e.tipe === "lainnya")
+            const hasHoliday = dayEvents.some((e: any) => e.isLiburNasional || e.tipe === "libur")
+            const hasKegiatan = dayEvents.some((e: any) => e.tipe === "kegiatan")
+            const hasLainnya = dayEvents.some((e: any) => e.tipe === "lainnya")
 
             const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay()
             const colIndex = (firstDayIndex + idx) % 7
@@ -411,7 +412,7 @@ function KalenderSection() {
                       {new Date(calendarYear, calendarMonth, day).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short" })}
                     </p>
                     <div className="space-y-2">
-                      {dayEvents.map((ev, i) => (
+                      {dayEvents.map((ev: any, i: number) => (
                         <div key={ev.id || i} className="space-y-0.5">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${

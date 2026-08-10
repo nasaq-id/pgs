@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import dynamic from "next/dynamic"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -14,15 +14,10 @@ import { Plus, Search, Pencil, Trash2, Eye, EyeOff, ChevronLeft, ChevronRight, C
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import SiswaFormDialog from "@/components/siswa/SiswaFormDialog"
-import MutasiFormDialog from "@/components/siswa/MutasiFormDialog"
-import SiswaDetailDialog from "@/components/siswa/SiswaDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { formatKelasLabel } from "@/components/jadwal/constants"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
 import {
   Tooltip,
@@ -31,6 +26,16 @@ import {
   TooltipPositioner,
   TooltipPopup,
 } from "@/components/ui/tooltip"
+
+// Lazy-load dialog yang jarang dibuka (secondary actions)
+const MutasiFormDialog = dynamic(
+  () => import("@/components/siswa/MutasiFormDialog").then((m) => m.default),
+  { ssr: false }
+)
+const SiswaDetailDialog = dynamic(
+  () => import("@/components/siswa/SiswaDetailDialog").then((m) => m.default),
+  { ssr: false }
+)
 
 export type SiswaTab = "aktif" | "mutasi_keluar" | "tidak_aktif"
 
@@ -195,6 +200,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
       setBulkDeleteOpen(false)
       setSelectedIds([])
       utils.siswa.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
     },
     onError: () => toast.error("Gagal menghapus data siswa"),
   })
@@ -205,6 +211,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
       setBulkSetKelasOpen(false)
       setSelectedIds([])
       utils.siswa.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
       utils.kelas.getAll.invalidate() // Invalidate Rombel view count too
     },
     onError: (err) => toast.error(err.message || "Gagal mengatur kelas siswa"),
@@ -215,6 +222,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
       toast.success(`${result.length} data siswa berhasil diimport`)
       setImporting(false)
       utils.siswa.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
     },
     onError: (err) => {
       toast.error(err.message || "Gagal mengimport data siswa")
@@ -259,6 +267,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
   const handleFormSuccess = () => {
     setFormOpen(false)
     utils.siswa.getAll.invalidate()
+    utils.siswa.getLookup.invalidate()
   }
 
   const handleSelectAll = () => {
@@ -288,6 +297,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
   const handleExport = async () => {
     setExporting(true)
     try {
+      const XLSX = await import("xlsx")
       const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.siswa.getAllExport.query({ search: querySearch || undefined, status: queryStatus }),
         utils.client.lembaga.getSekolah.query(),
@@ -377,6 +387,10 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
   const handleExportPdf = async () => {
     setExportingPdf(true)
     try {
+      const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ])
       const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.siswa.getAllExport.query({ search: querySearch || undefined, status: queryStatus }),
         utils.client.lembaga.getSekolah.query(),
@@ -405,7 +419,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
 
       const head = [["No", "NISN", "NIS", "Nama Siswa", "JK", "Kelas", "Tempat Lahir", "Tanggal Lahir", "Nama Ayah", "Nama Ibu", "Alamat", "No HP/WA"]]
 
-      const doc = new jsPDF("landscape", "mm", "a4")
+      const doc = new JsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
 
       const useCustomKop = sekolah?.useCustomKop && customKopBase64
@@ -628,6 +642,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     if (!file || !importMode) return
     setImportModalOpen(false)
     try {
+      const XLSX = await import("xlsx")
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
@@ -665,7 +680,8 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     }
   }
 
-  const handleDownloadQuickTemplate = () => {
+  const handleDownloadQuickTemplate = async () => {
+    const XLSX = await import("xlsx")
     const headers = [
       "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Kelas", "Username", "Password"
     ]
@@ -705,7 +721,8 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
     toast.success("Template Quick Import berhasil didownload")
   }
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx")
     const headers = [
       "NISN", "NIS Lokal", "Nama Lengkap", "Jenis Kelamin", "Tingkat", "Kelas", "Tempat Lahir",
       "Tanggal Lahir", "NIK", "Agama", "Alamat", "No HP/WA", "Email", "Status",
@@ -1257,12 +1274,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
         <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="space-y-4"
-          >
+          <div className="space-y-4 animate-fade-in">
             <DialogHeader className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
                 EXPORT DATA
@@ -1319,18 +1331,13 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
                 Batal
               </Button>
             </div>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={importModalOpen} onOpenChange={(open) => { if (!open) setImportMode(null); setImportModalOpen(open) }}>
         <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="space-y-4"
-          >
+          <div className="space-y-4 animate-fade-in">
             <DialogHeader className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
                 IMPORT WIZARD
@@ -1424,7 +1431,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1433,12 +1440,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
           "rounded-[32px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left flex flex-col max-h-[90vh]",
           importMode === "quick" ? "sm:max-w-md" : "sm:max-w-5xl"
         )}>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="flex flex-col h-full space-y-4"
-          >
+          <div className="flex flex-col h-full space-y-4 animate-fade-in">
             {importMode === "quick" ? (
               <>
                 <DialogHeader className="space-y-1">
@@ -1719,7 +1721,7 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
                 </DialogFooter>
               </>
             )}
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 

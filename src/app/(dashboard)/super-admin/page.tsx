@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { api } from "@/lib/trpc/client"
 import {
   School, Search, Plus, Sparkles, Building, Key,
@@ -17,8 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 
 // Sub-components
 import DaftarSekolahDialog from "./_components/DaftarSekolahDialog"
@@ -30,6 +29,7 @@ import ResetAbsensiDialog from "./_components/ResetAbsensiDialog"
 
 export default function SuperAdminPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
 
   // Dialog visibility states
   const [modalOpen, setModalOpen] = useState(false)
@@ -92,24 +92,32 @@ export default function SuperAdminPage() {
     window.location.href = "/"
   }
 
-  // Filter List
-  const filteredSchools = (sekolahList ?? []).filter((s: any) => {
-    const query = searchQuery.toLowerCase()
+  // Filter List — memoized + debounced untuk dataset besar
+  const filteredSchools = useMemo(() => (sekolahList ?? []).filter((s: any) => {
+    const query = debouncedSearch.toLowerCase()
     return (
       s.namaSekolah.toLowerCase().includes(query) ||
       (s.namaSingkat && s.namaSingkat.toLowerCase().includes(query)) ||
       (s.npsn && s.npsn.includes(query))
     )
-  })
+  }), [sekolahList, debouncedSearch])
 
-  const totalSiswa = (sekolahList ?? []).reduce((acc: number, curr: any) => acc + (curr.stats?.siswa ?? 0), 0)
-  const totalGuru = (sekolahList ?? []).reduce((acc: number, curr: any) => acc + (curr.stats?.guru ?? 0), 0)
+  const totalSiswa = useMemo(() => (sekolahList ?? []).reduce((acc: number, curr: any) => acc + (curr.stats?.siswa ?? 0), 0), [sekolahList])
+  const totalGuru = useMemo(() => (sekolahList ?? []).reduce((acc: number, curr: any) => acc + (curr.stats?.guru ?? 0), 0), [sekolahList])
 
-  const exportToPDF = () => {
+  const activeCount = useMemo(() => (sekolahList ?? []).filter((s: any) => s.active).length, [sekolahList])
+  const suspendedCount = useMemo(() => (sekolahList ?? []).filter((s: any) => !s.active).length, [sekolahList])
+
+  const exportToPDF = async () => {
     if (filteredSchools.length === 0) {
       toast.error("Tidak ada data sekolah untuk diexport.")
       return
     }
+
+    const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ])
 
     const head = [[
       "No", "Nama Sekolah", "Alias", "NPSN", "Jenjang", 
@@ -135,7 +143,7 @@ export default function SuperAdminPage() {
       item.active ? "Aktif" : "Suspended"
     ])
 
-    const doc = new jsPDF("landscape", "mm", "a4")
+    const doc = new JsPDF("landscape", "mm", "a4")
     const pageW = doc.internal.pageSize.getWidth()
 
     // Title
@@ -264,7 +272,7 @@ export default function SuperAdminPage() {
               <div>
                 <p className="text-[10px] text-slate-455 font-black uppercase tracking-wider">Sekolah Aktif</p>
                 <h3 className="text-3xl font-black text-emerald-600 mt-2">
-                  {isLoading ? "..." : (sekolahList ?? []).filter((s: any) => s.active).length}
+                  {isLoading ? "..." : activeCount}
                 </h3>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -278,7 +286,7 @@ export default function SuperAdminPage() {
               <div>
                 <p className="text-[10px] text-slate-455 font-black uppercase tracking-wider">Suspended</p>
                 <h3 className="text-3xl font-black text-rose-600 mt-2">
-                  {isLoading ? "..." : (sekolahList ?? []).filter((s: any) => !s.active).length}
+                  {isLoading ? "..." : suspendedCount}
                 </h3>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">

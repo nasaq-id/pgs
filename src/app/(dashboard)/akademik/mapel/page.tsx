@@ -1,18 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import dynamic from "next/dynamic"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, MoreVertical, GripVertical, BookOpen, Layers, Clock, Wand2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical, BookOpen, Layers, Clock, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -31,22 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipPopup,
-} from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
-import GenerateKurikulumDialog from "@/components/mapel/GenerateKurikulumDialog"
 import ImportExportMapel from "@/components/mapel/ImportExportMapel"
+
+const GenerateKurikulumDialog = dynamic(() => import("@/components/mapel/GenerateKurikulumDialog"), { ssr: false })
 
 interface PengampuItem {
   id: string
@@ -156,7 +143,7 @@ export default function MapelPage() {
       utils.pengampu.invalidate()
     },
   })
-  const { data: guruList } = api.guru.getAll.useQuery({ limit: 1 })
+  const { data: guruList } = api.guru.getLookup.useQuery({ limit: 1 })
 
   const handleSubmit = async (data: MapelFormData) => {
     let mapelId = data.id
@@ -244,16 +231,16 @@ export default function MapelPage() {
   const { data: session } = useSession()
   const sekolahId = session?.user?.sekolahId ?? ""
 
-  // Calculate Mapel Stats
-  const totalMapel = mapelList?.length ?? 0
-  const countWajib = (mapelList ?? []).filter((m) => m.kelompok === "A").length
-  const countPilihan = (mapelList ?? []).filter((m) => m.kelompok === "B" || m.kelompok === "C").length
-  const countMulok = (mapelList ?? []).filter((m) => m.kelompok === "muatan_lokal").length
+  // Calculate Mapel Stats — memoized
+  const totalMapel = useMemo(() => mapelList?.length ?? 0, [mapelList])
+  const countWajib = useMemo(() => (mapelList ?? []).filter((m) => m.kelompok === "A").length, [mapelList])
+  const countPilihan = useMemo(() => (mapelList ?? []).filter((m) => m.kelompok === "B" || m.kelompok === "C").length, [mapelList])
+  const countMulok = useMemo(() => (mapelList ?? []).filter((m) => m.kelompok === "muatan_lokal").length, [mapelList])
 
-  const totalBebanJam = (mapelList ?? []).reduce((acc, m: any) => {
+  const totalBebanJam = useMemo(() => (mapelList ?? []).reduce((acc, m: any) => {
     if (!m.pengampu) return acc
     return acc + m.pengampu.reduce((sum: number, p: any) => sum + (p.jumlahJam || 0), 0)
-  }, 0)
+  }, 0), [mapelList])
 
   return (
     <div className="space-y-6">
@@ -573,7 +560,6 @@ export default function MapelPage() {
                 </TableRow>
               ) : (
                 localRecords.map((r, index) => {
-                  const isMenuOpen = activeMenuId === r.id
                   return (
                     <TableRow
                       key={r.id}
@@ -776,14 +762,16 @@ export default function MapelPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <GenerateKurikulumDialog
-        open={generateOpen}
-        onOpenChange={setGenerateOpen}
-        sekolahLevel={sekolah?.jenjang}
-        sekolahNama={sekolah?.namaSekolah}
-        kelasList={(kelasList ?? []) as any}
-        existingMapel={(mapelList ?? []) as any}
-      />
+      {generateOpen && (
+        <GenerateKurikulumDialog
+          open
+          onOpenChange={setGenerateOpen}
+          sekolahLevel={sekolah?.jenjang}
+          sekolahNama={sekolah?.namaSekolah}
+          kelasList={(kelasList ?? []) as any}
+          existingMapel={(mapelList ?? []) as any}
+        />
+      )}
     </div>
   )
 }

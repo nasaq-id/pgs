@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 import { toast } from "sonner"
 import EMateriFormDialog, { type EMateriFormData, formatTingkatLabel } from "@/components/lms/EMateriFormDialog"
 
@@ -61,16 +62,19 @@ export default function EMateriPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [previewItem, setPreviewItem] = useState<any | null>(null)
 
+  const debouncedSearchMapel = useDebounce(searchMapel)
+  const debouncedSearchMateri = useDebounce(searchMateri)
+
   // tRPC Queries
   const { data: mapelList, isLoading: isLoadingMapel } = api.mapel.getAll.useQuery({
-    search: searchMapel || undefined,
+    search: debouncedSearchMapel || undefined,
     limit: 100,
   })
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
 
   const { data: materiList, isLoading: isLoadingMateri } = api.eMateri.getAll.useQuery({
-    search: searchMateri || undefined,
+    search: debouncedSearchMateri || undefined,
     mataPelajaranId: mapelFilter !== "semua" ? mapelFilter : undefined,
     kelasId: kelasFilter !== "semua" ? kelasFilter : undefined,
     tipeMateri: tipeFilter !== "semua" ? tipeFilter : undefined,
@@ -167,11 +171,11 @@ export default function EMateriPage() {
     setFormOpen(true)
   }
 
-  // Calculate stats
-  const totalMateri = materiList?.length ?? 0
-  const countDokumen = (materiList ?? []).filter((m) => m.tipeMateri === "dokumen").length
-  const countVideo = (materiList ?? []).filter((m) => m.tipeMateri === "video").length
-  const countTerbit = (materiList ?? []).filter((m) => m.status === "terbit").length
+  // Calculate stats — memoized
+  const totalMateri = useMemo(() => materiList?.length ?? 0, [materiList])
+  const countDokumen = useMemo(() => (materiList ?? []).filter((m) => m.tipeMateri === "dokumen").length, [materiList])
+  const countVideo = useMemo(() => (materiList ?? []).filter((m) => m.tipeMateri === "video").length, [materiList])
+  const countTerbit = useMemo(() => (materiList ?? []).filter((m) => m.status === "terbit").length, [materiList])
 
   // Map materi count per mapelId
   const countPerMapel: Record<string, number> = {}

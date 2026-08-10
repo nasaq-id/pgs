@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { Bell, Menu, CalendarDays, MessageCircle, ChevronRight, LogOut, User } from "lucide-react"
 import {
@@ -65,11 +65,13 @@ interface TopbarProps {
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
   const user = session?.user
 
   // Fetch the latest profile data from server so that profile picture updates instantly
   const { data: profile } = api.profil.getProfile.useQuery(undefined, {
     enabled: !!session,
+    staleTime: 5 * 60 * 1000,
   })
 
   const displayName =
@@ -88,45 +90,54 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const calendarRef = useRef<HTMLDivElement>(null)
   const utils = api.useUtils()
 
+  const { data: sekolahData } = api.lembaga.getSekolah.useQuery(undefined, {
+    enabled: !!session,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const { data: monthEvents } = api.kalender.getAll.useQuery({
     bulan: currentMonth.getMonth() + 1,
     tahun: currentMonth.getFullYear(),
+  }, {
+    enabled: showCalendar,
+    staleTime: 5 * 60 * 1000,
   })
 
   // Fetch active academic year
   const { data: activeTa } = api.lembaga.getActiveTahunAjaran.useQuery(undefined, {
     enabled: !!session,
-    refetchInterval: 30000,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: notifications = [] } = api.notifikasi.getRecent.useQuery(
     { limit: 5 },
-    { refetchInterval: 15000 },
+    {
+      enabled: !!session,
+      staleTime: 30 * 1000,
+      refetchInterval: 60 * 1000,
+      refetchIntervalInBackground: false,
+    },
   )
 
   const { data: unreadData } = api.notifikasi.getAll.useQuery(
     { unreadOnly: true, limit: 1 },
-    { refetchInterval: 15000 },
+    {
+      enabled: !!session,
+      staleTime: 30 * 1000,
+      refetchInterval: 60 * 1000,
+      refetchIntervalInBackground: false,
+    },
   )
 
   const unreadCount = unreadData?.total ?? 0
 
-  useEffect(() => {
-    const fetchWhatsApp = async () => {
-      try {
-        const data = await utils.client.lembaga.getSekolah.query()
-        if (data?.whatsapp) setWhatsappNumber(data.whatsapp)
-      } catch (e) {
-        console.error("Failed to fetch WhatsApp", e)
-      }
-    }
-    fetchWhatsApp()
-  }, [utils])
+  const whatsappNumber = sekolahData?.whatsapp || ""
   useEffect(() => {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
@@ -159,7 +170,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       }
     }
     if (notif.link) {
-      window.location.href = notif.link // eslint-disable-line react-hooks/immutability
+      router.push(notif.link)
     }
   }
 
@@ -323,7 +334,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <DropdownMenuItem
               className="text-center text-teal-600 hover:text-teal-700 font-bold hover:bg-teal-50/30 dark:hover:bg-teal-950/20 py-2.5 cursor-pointer uppercase tracking-wider text-[10px]"
               inset={false}
-              onClick={() => { window.location.href = "/notifikasi" }}
+              onClick={() => { router.push("/notifikasi") }}
             >
               Lihat semua notifikasi
             </DropdownMenuItem>
@@ -392,7 +403,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             
             <DropdownMenuItem
               className="focus:bg-[oklch(0.94_0.01_250)] dark:focus:bg-[oklch(0.14_0.01_250)] focus:neumo-inset rounded-xl px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-xs transition-all text-slate-700 dark:text-slate-355 outline-none"
-              onClick={() => window.location.href = "/profil"}
+              onClick={() => router.push("/profil")}
             >
               <User className="h-4 w-4 text-slate-400" />
               <span>Profil Saya</span>

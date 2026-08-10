@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   Plus, Pencil, Trash2, Search, X, Building2, Box, CheckCircle, AlertTriangle,
   School, Monitor, BookOpen, Sofa, Trophy, Hash,
@@ -151,15 +151,15 @@ export default function SarprasPage() {
   // Detail Prasarana modal
   const [detailPrasarana, setDetailPrasarana] = useState<Prasarana | null>(null)
 
-  // Stats
-  const totalSaranaUnits = saranaList.reduce((a, c) => a + c.jumlah, 0)
-  const goodSaranaCount = saranaList.filter(s => s.kondisi === "Baik").reduce((a, c) => a + c.jumlah, 0)
-  const damagedSaranaCount = saranaList.filter(s => s.kondisi !== "Baik").reduce((a, c) => a + c.jumlah, 0)
-  const totalPrasaranaLuas = prasaranaList.reduce((a, c) => a + c.luas, 0)
-  const goodPrasaranaCount = prasaranaList.filter(p => p.kondisi === "Baik").length
+  // Stats — memoized untuk menghindari kalkulasi ulang setiap render
+  const totalSaranaUnits = useMemo(() => saranaList.reduce((a, c) => a + c.jumlah, 0), [saranaList])
+  const goodSaranaCount = useMemo(() => saranaList.filter(s => s.kondisi === "Baik").reduce((a, c) => a + c.jumlah, 0), [saranaList])
+  const damagedSaranaCount = useMemo(() => saranaList.filter(s => s.kondisi !== "Baik").reduce((a, c) => a + c.jumlah, 0), [saranaList])
+  const totalPrasaranaLuas = useMemo(() => prasaranaList.reduce((a, c) => a + c.luas, 0), [prasaranaList])
+  const goodPrasaranaCount = useMemo(() => prasaranaList.filter(p => p.kondisi === "Baik").length, [prasaranaList])
 
-  // Filtered data
-  const filteredSarana = saranaList.filter(s => {
+  // Filtered data — memoized
+  const filteredSarana = useMemo(() => saranaList.filter(s => {
     const q = saranaSearch.toLowerCase()
     const matchesSearch = s.nama.toLowerCase().includes(q) || s.merkSpec.toLowerCase().includes(q)
     const matchesKategori = saranaKategoriFilter === "Semua Kategori" || s.kategori === saranaKategoriFilter
@@ -168,15 +168,15 @@ export default function SarprasPage() {
       || (saranaLokasiFilter === "Belum Ditempatkan" && s.lokasiPrasaranaId === "unassigned")
       || s.lokasiPrasaranaId === saranaLokasiFilter
     return matchesSearch && matchesKategori && matchesKondisi && matchesLokasi
-  })
+  }), [saranaList, saranaSearch, saranaKategoriFilter, saranaKondisiFilter, saranaLokasiFilter])
 
-  const filteredPrasarana = prasaranaList.filter(p => {
+  const filteredPrasarana = useMemo(() => prasaranaList.filter(p => {
     const q = prasaranaSearch.toLowerCase()
     const matchesSearch = p.nama.toLowerCase().includes(q) || p.keterangan.toLowerCase().includes(q)
     const matchesTipe = prasaranaTipeFilter === "Semua Tipe" || p.tipe === prasaranaTipeFilter
     const matchesKondisi = prasaranaKondisiFilter === "Semua Kondisi" || p.kondisi === prasaranaKondisiFilter
     return matchesSearch && matchesTipe && matchesKondisi
-  })
+  }), [prasaranaList, prasaranaSearch, prasaranaTipeFilter, prasaranaKondisiFilter])
 
   // Prasarana CRUD
   const handleOpenAddPrasarana = () => {

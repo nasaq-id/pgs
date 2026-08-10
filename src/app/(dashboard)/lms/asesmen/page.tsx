@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -20,23 +19,24 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Calendar,
   Clock,
   CheckCircle2,
-  XCircle,
-  BarChart3,
   BookOpen,
   HelpCircle,
   Printer,
-  AlertTriangle,
   AlertCircle,
-  Award,
-  Users
 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { toast } from "sonner"
-import AsesmenFormDialog from "@/components/asesmen/AsesmenFormDialog"
-import AsesmenDetailDialog from "@/components/asesmen/AsesmenDetailDialog"
+
+// Lazy-load dialog (secondary actions)
+const AsesmenFormDialog = dynamic(
+  () => import("@/components/asesmen/AsesmenFormDialog").then((m) => m.default),
+  { ssr: false }
+)
+const AsesmenDetailDialog = dynamic(
+  () => import("@/components/asesmen/AsesmenDetailDialog").then((m) => m.default),
+  { ssr: false }
+)
 import AsesmenGradingView from "@/components/asesmen/AsesmenGradingView"
 
 const KATEGORI_LABEL: Record<string, string> = {
@@ -103,7 +103,7 @@ export default function AsesmenPage() {
     { enabled: !!rekapKelasId }
   )
 
-  const { data: siswaRekapList } = api.siswa.getAll.useQuery(
+  const { data: siswaRekapList } = api.siswa.getLookup.useQuery(
     { kelasId: rekapKelasId, status: "aktif", limit: 500 },
     { enabled: !!rekapKelasId }
   )
@@ -119,11 +119,11 @@ export default function AsesmenPage() {
     }),
   })
 
-  const filtered = (asesmenList || []).filter((a) => {
-    if (!search) return true
+  const filtered = useMemo(() => {
+    if (!search || !asesmenList) return asesmenList || []
     const q = search.toLowerCase()
-    return (a.judul || "").toLowerCase().includes(q)
-  })
+    return (asesmenList || []).filter((a) => (a.judul || "").toLowerCase().includes(q))
+  }, [asesmenList, search])
 
   const handleDelete = async () => {
     if (!deleteId) return
@@ -143,8 +143,8 @@ export default function AsesmenPage() {
   const rekapKelasName = selectedRekapKelas ? `Kelas ${selectedRekapKelas.namaKelas}` : "Kelas 7 - A"
 
   // Calculation for Laporan & Ketuntasan Tab
-  const rekapAsesmenList = rekapData?.asesmen || []
-  const rekapEntries = rekapData?.entries || []
+  const rekapAsesmenList = useMemo(() => rekapData?.asesmen ?? [], [rekapData?.asesmen])
+  const rekapEntries = useMemo(() => rekapData?.entries ?? [], [rekapData?.entries])
   const totalInstrumen = rekapAsesmenList.length
 
   const gradedEntries = rekapEntries.filter((e) => e.nilai !== null && e.nilai !== undefined)

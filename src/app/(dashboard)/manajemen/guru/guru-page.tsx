@@ -1,34 +1,29 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, Users, UserCheck, UserX } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Upload, Download, Loader2, KeyRound, FileSpreadsheet, FileText, RefreshCw, Users, UserCheck } from "lucide-react"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import GuruFormDialog from "@/components/guru/GuruFormDialog"
-import GuruDetailDialog from "@/components/guru/GuruDetailDialog"
 import ConfirmDialog from "@/components/shared/ConfirmDialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipPopup,
-} from "@/components/ui/tooltip"
+
+// Lazy-load dialog yang jarang dibuka (secondary action)
+const GuruDetailDialog = dynamic(
+  () => import("@/components/guru/GuruDetailDialog").then((m) => m.default),
+  { ssr: false }
+)
 
 interface GuruItem {
   id: string
@@ -122,6 +117,7 @@ export default function GuruPage() {
   const removeMutation = api.guru.remove.useMutation({
     ...useOptimisticRemove({
       queryKey: [["guru", "getAll"]],
+      invalidateKeys: [["guru", "getLookup"]],
       successMessage: "Data guru berhasil dihapus",
       errorMessage: "Gagal menghapus data guru",
       onSuccess: () => setDeleteId(null),
@@ -146,6 +142,7 @@ export default function GuruPage() {
       setImportPreviewOpen(false)
       setImportPreviewData(null)
       utils.guru.getAll.invalidate()
+      utils.guru.getLookup.invalidate()
     },
     onError: (err) => {
       toast.error(err.message || "Gagal mengimport data guru")
@@ -192,11 +189,13 @@ export default function GuruPage() {
   const handleFormSuccess = () => {
     setFormOpen(false)
     utils.guru.getAll.invalidate()
+    utils.guru.getLookup.invalidate()
   }
 
   const handleExport = async () => {
     setExporting(true)
     try {
+      const XLSX = await import("xlsx")
       const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.guru.getAllExport.query({ search: querySearch || undefined }),
         utils.client.lembaga.getSekolah.query(),
@@ -302,16 +301,15 @@ export default function GuruPage() {
   const handleExportPdf = async () => {
     setExportingPdf(true)
     try {
+      const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ])
       const [res, sekolah, aktifTa] = await Promise.all([
         utils.client.guru.getAllExport.query({ search: querySearch || undefined }),
         utils.client.lembaga.getSekolah.query(),
         utils.client.lembaga.getActiveTahunAjaran.query(),
       ])
-
-      let logoBase64: string | null = null
-      if (sekolah?.logo) {
-        logoBase64 = await urlToBase64(sekolah.logo)
-      }
 
       let customKopBase64: string | null = null
       if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
@@ -335,7 +333,7 @@ export default function GuruPage() {
 
       const head = [["No", "NIP/NUPTK", "NIK", "Nama Lengkap", "JK", "Tempat Lahir", "Tgl Lahir", "Status Pegawai", "Tugas Utama", "No HP", "Email", "Status"]]
 
-      const doc = new jsPDF("landscape", "mm", "a4")
+      const doc = new JsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
 
       const useCustomKop = sekolah?.useCustomKop && customKopBase64
@@ -449,6 +447,7 @@ export default function GuruPage() {
     if (!file) return
     setImportModalOpen(false)
     try {
+      const XLSX = await import("xlsx")
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: "array" })
       const ws = wb.Sheets[wb.SheetNames[0]]
@@ -489,7 +488,8 @@ export default function GuruPage() {
     }
   }
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx")
     const template = [
       ["Nama", "Username", "Jenis Kelamin", "Password"],
       ["John Doe", "johndoe", "Laki-laki", "password123"],
@@ -974,12 +974,7 @@ export default function GuruPage() {
 
       <Dialog open={importModalOpen} onOpenChange={(open) => { if (!open) setImportModalOpen(false) }}>
         <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="space-y-4"
-          >
+          <div className="space-y-4 animate-fade-in">
             <DialogHeader className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
                 IMPORT GURU
@@ -1035,18 +1030,13 @@ export default function GuruPage() {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={importPreviewOpen} onOpenChange={(open) => { if (!open) { setImportPreviewOpen(false); setImportPreviewData(null) } }}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] rounded-[32px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left flex flex-col">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="flex flex-col h-full space-y-4"
-          >
+          <div className="flex flex-col h-full space-y-4 animate-fade-in">
             <DialogHeader className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-650 dark:text-emerald-400">
                 IMPORT GURU PREVIEW
@@ -1151,18 +1141,13 @@ export default function GuruPage() {
                 )}
               </Button>
             </DialogFooter>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
         <DialogContent className="sm:max-w-lg rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl p-6 text-left">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="space-y-4"
-          >
+          <div className="space-y-4 animate-fade-in">
             <DialogHeader className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
                 EXPORT DATA
@@ -1219,7 +1204,7 @@ export default function GuruPage() {
                 Batal
               </Button>
             </div>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
