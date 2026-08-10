@@ -35,7 +35,7 @@ async function run() {
   // Clean up any existing admin user with this email to avoid unique constraint violations
   await db.delete(users).where(eq(users.email, adminEmail))
 
-  const [newAdmin] = await db.insert(users).values({
+  await db.insert(users).values({
     id: "user-admin-smpn2cikalongwetan",
     email: adminEmail,
     firstName: "Admin",
@@ -58,7 +58,7 @@ async function run() {
   // Delete existing user if any to avoid constraint conflicts, or check by id
   await db.delete(users).where(eq(users.email, superEmail))
 
-  const [newSuperAdmin] = await db.insert(users).values({
+  await db.insert(users).values({
     id: "user-super-admin-real",
     email: superEmail,
     firstName: "Super",

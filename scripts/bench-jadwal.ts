@@ -9,13 +9,13 @@ import { performance } from "node:perf_hooks"
 import { randomUUID } from "node:crypto"
 import { eq, and } from "drizzle-orm"
 import { db } from "../src/server/db"
-import { sekolah, pengaturanJadwal, timelineItem } from "../src/server/db/schema"
+import { pengaturanJadwal, timelineItem } from "../src/server/db/schema"
 import { solveSchedule, type GenerateAllocation, type GenerateConstraint } from "../src/server/api/routers/jadwal"
 
 const DAYS: ("senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu")[] = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
 
 function buildTimeline(pengaturanId: string, sekolahId: string, jpPerHari: number) {
-  return DAYS.flatMap((hari, di) => {
+  return DAYS.flatMap((hari) => {
     const items: (typeof timelineItem.$inferInsert)[] = []
     let urutan = 1
     // 1 pembiasaan + 2 istirahat diselingi biar mirip real

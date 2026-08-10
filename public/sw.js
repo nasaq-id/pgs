@@ -1,7 +1,6 @@
-const CACHE = "edumanage-v3"
+const CACHE = "edumanage-v5"
 
 const STATIC_ASSETS = [
-  "/",
   "/icon-192.svg",
   "/icon-512.svg",
 ]
@@ -26,9 +25,23 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // API calls - network first, fallback to cache
+  // Never let the service worker cache Next.js chunks or RSC payloads. These
+  // responses are deployment-specific and mixing versions breaks module
+  // factories during development and after a deployment.
+  const isNextInternalRequest =
+    url.origin !== self.location.origin ||
+    request.method !== "GET" ||
+    url.pathname.startsWith("/_next/") ||
+    url.searchParams.has("_rsc") ||
+    request.headers.has("RSC") ||
+    request.headers.has("Next-Router-State-Tree")
+  if (isNextInternalRequest) return
+
+  // API calls - network only, never cache. All API responses are
+  // authenticated (tRPC, auth session, CSRF). Caching them would leak
+  // user data across sessions on a shared browser and serve stale
+  // session/data while offline.
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirst(request))
     return
   }
 

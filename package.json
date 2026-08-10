@@ -10,13 +10,17 @@
     "seed": "node --import tsx scripts/seed.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
     "@base-ui/react": "^1.6.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-table": "^9.1.2",
     "@trpc/client": "^11.18.0",
     "@trpc/next": "^11.18.0",
     "@trpc/react-query": "^11.18.0",
@@ -53,6 +57,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -64,6 +69,8 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "lighthouse": "^13.4.1",
+    "puppeteer-core": "^25.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
