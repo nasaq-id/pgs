@@ -16,7 +16,11 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
-    "check:perf": "node scripts/lighthouse-audit.mjs"
+    "check:perf": "node scripts/lighthouse-audit.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": "pnpm exec eslint --fix"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
@@ -71,7 +75,9 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "husky": "^9.1.7",
     "lighthouse": "^13.4.1",
+    "lint-staged": "^17.3.0",
     "puppeteer-core": "^25.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
