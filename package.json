@@ -13,7 +13,9 @@
     "db:migrate": "drizzle-kit migrate",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "check:perf": "node scripts/lighthouse-audit.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",

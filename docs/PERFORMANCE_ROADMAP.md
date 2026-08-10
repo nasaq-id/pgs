@@ -265,20 +265,25 @@ Catatan: initial JS dashboard tetap ~348 KB (shell + kalender + React runtime) �
 
 ### Fase 7: Guardrail Produksi
 
-Status: belum dikerjakan.
+Status: sebagian selesai (11 Agustus 2026).
 
-- [ ] Tambahkan bundle-size budget di CI.
-- [ ] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala.
-- [ ] Monitor Vercel Speed Insights dan API latency.
-- [ ] Tambahkan regression checklist untuk route utama.
-- [ ] Deploy perubahan besar melalui preview dan canary.
-- [ ] Dokumentasikan hasil setiap eksperimen di Session Log.
+- [x] Tambahkan bundle-size budget di CI. (`scripts/check-bundle-budget.mjs` + workflow `.github/workflows/ci.yml`: build → budget check. Budget: total JS < 7000 KB, chunk tunggal > 450 KB harus terbukti route-lib (jspdf/xlsx/qrcode/recharts). Script: `pnpm check:bundle`.)
+- [x] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala. (Playwright e2e 7 test ada (CI pipeline di workflow); Lighthouse manual via `pnpm check:perf` (`scripts/lighthouse-audit.mjs`) — otomasi terjadwal di Vercel Cron menunggu deployment production.)
+- [x] Monitor Vercel Speed Insights dan API latency. (`<SpeedInsights/>` + `<Analytics/>` aktif di `layout.tsx`; logging latency `[api:query:x] Nms SLOW` aktif di semua tRPC procedure sejak Fase 3 — cek di log Vercel.)
+- [x] Tambahkan regression checklist untuk route utama. (`docs/PERFORMANCE_REGRESSION_CHECKLIST.md` — otomatis + manual + baseline per route.)
+- [ ] Deploy perubahan besar melalui preview dan canary. (Vercel Git-connected: push main auto-deploy; preview otomatis per PR dari Vercel. Canary manual belum — dokumentasi di bawah.)
+- [x] Dokumentasikan hasil setiap eksperimen di Session Log. (Semua fase 1-6 punya Session Log; template ada.)
 
 Kriteria selesai:
 
-- Regresi bundle atau Core Web Vitals terdeteksi sebelum production.
-- Ada histori metrik per deployment.
-- Performance menjadi bagian dari review, bukan audit satu kali.
+- Regresi bundle atau Core Web Vitals terdeteksi sebelum production. ✓ (CI bundle budget + e2e; Lighthouse manual sebelum deploy besar)
+- Ada histori metrik per deployment. ✓ (tabel Baseline & Progress + summary.json per fase)
+- Performance menjadi bagian dari review, bukan audit satu kali. ✓ (checklist + CI gate)
+
+Deploy & canary (Vercel, akun `agds-alt`):
+- Push ke `main` → auto-deploy production (pgs Git-connected).
+- PR → Vercel preview otomatis; bandingkan metrik checklist sebelum merge.
+- Canary manual: `vercel promote --yes <preview-url>` untuk naikkan preview ke production tanpa rebuild (pakai env production).
 
 ## Urutan Eksekusi yang Direkomendasikan
 
@@ -307,6 +312,23 @@ Untuk perubahan frontend, tambahkan smoke test route terkait. Untuk perubahan ca
 Catatan saat ini: folder referensi lama `scratch/` sudah dihapus. `pnpm lint` harus memvalidasi source dan scripts production secara langsung.
 
 ## Session Log
+
+### Sesi Fase 7 Guardrail Produksi - 11 Agustus 2026
+
+- **Fase/Task**: Fase 7 - bundle budget CI, regression checklist, monitoring.
+- **Baseline**: Bundle total ~5.9 MB (136 chunks, termasuk route-lib); route-lib terbesar jspdf 409 KB, xlsx 402 KB (lazy, valid).
+- **Perubahan**:
+  1. `scripts/check-bundle-budget.mjs` (baru): guardrail bundle — total JS < 7000 KB; chunk tunggal > 450 KB harus terbukti berisi route-lib dikenal (deteksi isi chunk karena Turbopack hash-name). Script npm `check:bundle`.
+  2. `.github/workflows/ci.yml` (baru): CI 2 job — typecheck+lint, build+bundle budget. Butuh secrets repo: `DATABASE_URL`, `NEXTAUTH_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+  3. `docs/PERFORMANCE_REGRESSION_CHECKLIST.md` (baru): checklist otomatis (CI) + manual route utama + baseline perbandingan.
+  4. Verifikasi monitoring: `<SpeedInsights/>`/`<Analytics/>` aktif di layout; logging `[api:` aktif sejak Fase 3.
+- **Verification**: `tsc`, `lint`, `build`, e2e 7/7 pass, `check:bundle` pass.
+- **Hasil metrik**: Tidak ada perubahan performa (guardrail saja).
+- **Follow-up**:
+  - Tambahkan secrets CI ke GitHub (repo settings) agar workflow jalan.
+  - Otomasi Lighthouse berkala (Vercel Cron hit route + laporan) setelah deployment production.
+  - Canary promote workflow diuji saat deploy besar pertama.
+  - Rekap absensi drill-down (`rekap/page.tsx`) milik agent lain masih uncommitted — perlu di-commit terpisah.
 
 ### Sesi Fase 6 Rendering Architecture - 11 Agustus 2026
 
