@@ -10,6 +10,19 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+} from "@/components/ui/tooltip"
+import {
   UserCheck,
   GraduationCap,
   Calendar,
@@ -100,6 +113,8 @@ export default function RekapPresensiPage() {
     name: string
     type: "siswa" | "guru"
   } | null>(null)
+
+  const [drillDownStatus, setDrillDownStatus] = useState<"hadir" | "sakit-izin" | "alpha" | null>(null)
 
   // Queries for options
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 200 })
@@ -263,6 +278,23 @@ export default function RekapPresensiPage() {
       avgPercentage,
     }
   }, [activeList])
+
+  // Memoized drill-down data
+  const drillDownList = useMemo(() => {
+    if (!drillDownStatus) return []
+    return activeList.filter((item: any) => {
+      if (drillDownStatus === "hadir") {
+        return (item.hadirCount + item.terlambatCount) > 0
+      }
+      if (drillDownStatus === "sakit-izin") {
+        return (item.sakitCount + item.izinCount) > 0
+      }
+      if (drillDownStatus === "alpha") {
+        return item.alphaCount > 0
+      }
+      return false
+    })
+  }, [drillDownStatus, activeList])
 
   // Export to Excel (CSV)
   const handleExportCSV = () => {
@@ -589,90 +621,198 @@ export default function RekapPresensiPage() {
           <h2 className="text-3xl font-extrabold tracking-tight">Rekap Presensi</h2>
           <p className="text-sm text-muted-foreground">Rekapitulasi tingkat kehadiran siswa dan guru</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            onClick={handleExportCSV}
-            variant="outline"
-            className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-            <span>Ekspor Excel</span>
-          </Button>
-          <Button
-            onClick={handleExportPDF}
-            variant="outline"
-            className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold"
-          >
-            <Download className="h-4 w-4 text-teal-600" />
-            <span>Cetak PDF</span>
-          </Button>
-        </div>
       </div>
 
       {/* Stat Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
-        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
-            {activeTab === "siswa" ? <GraduationCap className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-              Total {activeTab === "siswa" ? "Siswa" : "Guru"}
-            </span>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
-              {isLoadingSiswa || isLoadingGuru ? (
-                <Skeleton className="h-7 w-16 rounded" />
-              ) : (
-                stats.totalSubjek
-              )}
-            </h3>
-          </div>
-        </div>
-        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
-          <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Rata-rata Kehadiran</span>
-            <h3 className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-0.5">
-              {isLoadingSiswa || isLoadingGuru ? (
-                <Skeleton className="h-7 w-16 rounded" />
-              ) : (
-                `${stats.avgPercentage}%`
-              )}
-            </h3>
-          </div>
-        </div>
-        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 text-amber-500 dark:text-amber-400 rounded-xl shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Terlambat / Izin / Sakit</span>
-            <h3 className="text-2xl font-black text-amber-500 dark:text-amber-400 mt-0.5">
-              {isLoadingSiswa || isLoadingGuru ? (
-                <Skeleton className="h-7 w-16 rounded" />
-              ) : (
-                stats.totalTerlambat + stats.totalIzin + stats.totalSakit
-              )}
-            </h3>
-          </div>
-        </div>
-        <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4">
-          <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 rounded-xl shrink-0">
-            <UserX className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Total Alpha</span>
-            <h3 className="text-2xl font-black text-rose-500 dark:text-rose-400 mt-0.5">
-              {isLoadingSiswa || isLoadingGuru ? (
-                <Skeleton className="h-7 w-16 rounded" />
-              ) : (
-                stats.totalAlpha
-              )}
-            </h3>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        {/* Card 1: Total Siswa / Guru */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4" />
+            }
+          >
+            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
+              {activeTab === "siswa" ? <GraduationCap className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                Total {activeTab === "siswa" ? "Siswa" : "Guru"}
+              </span>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-0.5">
+                {isLoadingSiswa || isLoadingGuru ? (
+                  <Skeleton className="h-7 w-16 rounded" />
+                ) : (
+                  stats.totalSubjek
+                )}
+              </h3>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
+                Terdaftar Aktif
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner side="top">
+              <TooltipPopup>Total {activeTab === "siswa" ? "siswa" : "guru"} terdaftar aktif</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
+
+        {/* Card 2: Total Hadir */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div
+                onClick={() => setDrillDownStatus("hadir")}
+                className="group neumo-card bg-background rounded-[22px] p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all"
+              />
+            }
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-3.5 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-all duration-200">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  Total Hadir
+                </span>
+                <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
+                  {isLoadingSiswa || isLoadingGuru ? (
+                    <Skeleton className="h-7 w-16 rounded" />
+                  ) : (
+                    stats.totalHadir + stats.totalTerlambat
+                  )}
+                </h3>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
+                  Hadir: {stats.totalHadir} · Lambat: {stats.totalTerlambat}
+                </span>
+              </div>
+            </div>
+            <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
+              <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner side="top">
+              <TooltipPopup>Klik untuk melihat daftar {activeTab === "siswa" ? "siswa" : "guru"} yang hadir</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
+
+        {/* Card 3: Sakit & Izin */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div
+                onClick={() => setDrillDownStatus("sakit-izin")}
+                className="group neumo-card bg-background rounded-[22px] p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all"
+              />
+            }
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 text-amber-500 dark:text-amber-400 rounded-xl shrink-0 group-hover:scale-110 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 transition-all duration-200">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  Sakit & Izin
+                </span>
+                <h3 className="text-2xl font-black text-amber-500 dark:text-amber-400 mt-0.5 group-hover:text-amber-700 dark:group-hover:text-amber-350 transition-colors duration-200">
+                  {isLoadingSiswa || isLoadingGuru ? (
+                    <Skeleton className="h-7 w-16 rounded" />
+                  ) : (
+                    stats.totalSakit + stats.totalIzin
+                  )}
+                </h3>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
+                  Sakit: {stats.totalSakit} · Izin: {stats.totalIzin}
+                </span>
+              </div>
+            </div>
+            <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
+              <ChevronRight className="w-4 h-4 text-amber-550 dark:text-amber-400" />
+            </div>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner side="top">
+              <TooltipPopup>Klik untuk melihat daftar {activeTab === "siswa" ? "siswa" : "guru"} sakit atau izin</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
+
+        {/* Card 4: Total Alpha */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div
+                onClick={() => setDrillDownStatus("alpha")}
+                className="group neumo-card bg-background rounded-[22px] p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all"
+              />
+            }
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 rounded-xl shrink-0 group-hover:scale-110 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/40 transition-all duration-200">
+                <UserX className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  Total Alpha
+                </span>
+                <h3 className="text-2xl font-black text-rose-500 dark:text-rose-400 mt-0.5 group-hover:text-rose-700 dark:group-hover:text-rose-350 transition-colors duration-200">
+                  {isLoadingSiswa || isLoadingGuru ? (
+                    <Skeleton className="h-7 w-16 rounded" />
+                  ) : (
+                    stats.totalAlpha
+                  )}
+                </h3>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
+                  Tanpa Keterangan
+                </span>
+              </div>
+            </div>
+            <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
+              <ChevronRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            </div>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner side="top">
+              <TooltipPopup>Klik untuk melihat daftar {activeTab === "siswa" ? "siswa" : "guru"} tanpa keterangan (Alpha)</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
+
+        {/* Card 5: Rata-rata Kehadiran */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div className="neumo-card bg-background rounded-[22px] p-5 flex items-center space-x-4" />
+            }
+          >
+            <div className="p-3.5 bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 rounded-xl shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                Rata-rata Hadir
+              </span>
+              <h3 className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-0.5">
+                {isLoadingSiswa || isLoadingGuru ? (
+                  <Skeleton className="h-7 w-16 rounded" />
+                ) : (
+                  `${stats.avgPercentage}%`
+                )}
+              </h3>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
+                Persentase Kehadiran
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipPositioner side="top">
+              <TooltipPopup>Persentase rata-rata kehadiran {activeTab === "siswa" ? "siswa" : "guru"}</TooltipPopup>
+            </TooltipPositioner>
+          </TooltipPortal>
+        </Tooltip>
       </div>
 
       {/* Tab Switcher + Info Hari Efektif */}
@@ -748,123 +888,153 @@ export default function RekapPresensiPage() {
         </div>
 
         {/* Row 2: Period Filters */}
-        <div className="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-          <Select value={periodeType} onValueChange={(v) => { setPeriodeType(v as PeriodeType); setPage(0); }}>
-            <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
-              <SelectValue placeholder="Pilih Periode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mingguan">Mingguan (7 Hari Terakhir)</SelectItem>
-              <SelectItem value="bulanan">Bulanan</SelectItem>
-              <SelectItem value="semester">Semester</SelectItem>
-              <SelectItem value="kustom">Rentang Tanggal Custom</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {periodeType === "bulanan" && (
-            <>
-              <Select value={selectedMonth} onValueChange={(v) => { if (v) setSelectedMonth(v); setPage(0); }}>
-                <SelectTrigger className="w-40 !h-10 !rounded-2xl text-xs font-bold">
-                  <SelectValue placeholder="Pilih Bulan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BULAN_LIST.map((b) => (
-                    <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => { setSelectedYear(e.target.value); setPage(0); }}
-                className="w-24 !h-10 !rounded-2xl text-xs font-bold"
-                placeholder="Tahun"
-              />
-            </>
-          )}
-
-          {periodeType === "semester" && (
-            <>
-              <Select value={selectedSemester} onValueChange={(v) => { if (v) setSelectedSemester(v as any); setPage(0); }}>
-                <SelectTrigger className="w-48 !h-10 !rounded-2xl text-xs font-bold">
-                  <SelectValue placeholder="Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ganjil">Semester Ganjil (Juli - Desember)</SelectItem>
-                  <SelectItem value="genap">Semester Genap (Januari - Juni)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => { setSelectedYear(e.target.value); setPage(0); }}
-                className="w-24 !h-10 !rounded-2xl text-xs font-bold"
-                placeholder="Tahun"
-              />
-            </>
-          )}
-
-          {periodeType === "kustom" && (
-            <>
-              <Input
-                type="date"
-                value={customStart}
-                onChange={(e) => { setCustomStart(e.target.value); setPage(0); }}
-                className="w-40 !h-10 !rounded-2xl text-xs font-bold"
-              />
-              <span className="text-xs text-muted-foreground">s/d</span>
-              <Input
-                type="date"
-                value={customEnd}
-                onChange={(e) => { setCustomEnd(e.target.value); setPage(0); }}
-                className="w-40 !h-10 !rounded-2xl text-xs font-bold"
-              />
-            </>
-          )}
-
-          {activeTab === "siswa" ? (
-            <>
-              <Select value={kelasFilter} onValueChange={(v) => { setKelasFilter(v ?? "all"); setSiswaFilter("all"); setPage(0); }}>
-                <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
-                  <SelectValue placeholder="Semua Kelas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kelas</SelectItem>
-                  {kelasList?.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
-                      {k.tingkat ? `Kelas ${k.tingkat} - ` : ""}{k.namaKelas}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={siswaFilter} onValueChange={(v) => { setSiswaFilter(v ?? "all"); setPage(0); }}>
-                <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
-                  <SelectValue placeholder="Semua Siswa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Siswa</SelectItem>
-                  {siswaList?.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.namaLengkap} {s.nisn ? `(${s.nisn})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          ) : (
-            <Select value={guruFilter} onValueChange={(v) => { setGuruFilter(v ?? "all"); setPage(0); }}>
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Select value={periodeType} onValueChange={(v) => { setPeriodeType(v as PeriodeType); setPage(0); }}>
               <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
-                <SelectValue placeholder="Semua Guru" />
+                <SelectValue placeholder="Pilih Periode" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Semua Guru</SelectItem>
-                {guruList?.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.namaLengkap} {g.nipnuptk ? `(NIP: ${g.nipnuptk})` : ""}
-                  </SelectItem>
-                ))}
+                <SelectItem value="mingguan">Mingguan (7 Hari Terakhir)</SelectItem>
+                <SelectItem value="bulanan">Bulanan</SelectItem>
+                <SelectItem value="semester">Semester</SelectItem>
+                <SelectItem value="kustom">Rentang Tanggal Custom</SelectItem>
               </SelectContent>
             </Select>
+
+            {periodeType === "bulanan" && (
+              <>
+                <Select value={selectedMonth} onValueChange={(v) => { if (v) setSelectedMonth(v); setPage(0); }}>
+                  <SelectTrigger className="w-40 !h-10 !rounded-2xl text-xs font-bold">
+                    <SelectValue placeholder="Pilih Bulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BULAN_LIST.map((b) => (
+                      <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(e.target.value); setPage(0); }}
+                  className="w-24 !h-10 !rounded-2xl text-xs font-bold"
+                  placeholder="Tahun"
+                />
+              </>
+            )}
+
+            {periodeType === "semester" && (
+              <>
+                <Select value={selectedSemester} onValueChange={(v) => { if (v) setSelectedSemester(v as any); setPage(0); }}>
+                  <SelectTrigger className="w-48 !h-10 !rounded-2xl text-xs font-bold">
+                    <SelectValue placeholder="Semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ganjil">Semester Ganjil (Juli - Desember)</SelectItem>
+                    <SelectItem value="genap">Semester Genap (Januari - Juni)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => { setSelectedYear(e.target.value); setPage(0); }}
+                  className="w-24 !h-10 !rounded-2xl text-xs font-bold"
+                  placeholder="Tahun"
+                />
+              </>
+            )}
+
+            {periodeType === "kustom" && (
+              <>
+                <Input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => { setCustomStart(e.target.value); setPage(0); }}
+                  className="w-40 !h-10 !rounded-2xl text-xs font-bold"
+                />
+                <span className="text-xs text-muted-foreground">s/d</span>
+                <Input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => { setCustomEnd(e.target.value); setPage(0); }}
+                  className="w-40 !h-10 !rounded-2xl text-xs font-bold"
+                />
+              </>
+            )}
+
+            {activeTab === "siswa" ? (
+              <>
+                <Select value={kelasFilter} onValueChange={(v) => { setKelasFilter(v ?? "all"); setSiswaFilter("all"); setPage(0); }}>
+                  <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
+                    <SelectValue placeholder="Semua Kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Kelas</SelectItem>
+                    {kelasList?.map((k) => (
+                      <SelectItem key={k.id} value={k.id}>
+                        {k.tingkat ? `Kelas ${k.tingkat} - ` : ""}{k.namaKelas}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={siswaFilter} onValueChange={(v) => { setSiswaFilter(v ?? "all"); setPage(0); }}>
+                  <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
+                    <SelectValue placeholder="Semua Siswa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Siswa</SelectItem>
+                    {siswaList?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.namaLengkap} {s.nisn ? `(${s.nisn})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            ) : (
+              <Select value={guruFilter} onValueChange={(v) => { setGuruFilter(v ?? "all"); setPage(0); }}>
+                <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
+                  <SelectValue placeholder="Semua Guru" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Guru</SelectItem>
+                  {guruList?.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.namaLengkap} {g.nipnuptk ? `(NIP: ${g.nipnuptk})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {activeList.length > 0 && (
+            <div className="shrink-0 ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 font-semibold h-10 !rounded-2xl text-xs"
+                    >
+                      <Download className="h-4 w-4 text-teal-650" />
+                      <span>Ekspor Rekap</span>
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer py-2.5 gap-2 font-semibold text-xs">
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>Ekspor Excel</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer py-2.5 gap-2 font-semibold text-xs">
+                    <Download className="h-4 w-4 text-teal-650 shrink-0" />
+                    <span>Cetak PDF</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
 
@@ -1046,7 +1216,29 @@ export default function RekapPresensiPage() {
 
       {/* Dialog Detail Log Kehadiran */}
       <Dialog open={!!selectedPerson} onOpenChange={(v) => { if (!v) setSelectedPerson(null); }}>
-        <DialogContent className="max-w-2xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left z-[9999]">
+        <DialogContent showCloseButton={false} className="max-w-2xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left z-[9999]">
+          {/* Custom Close Button at Top-Right with Tooltip */}
+          <div className="absolute top-3.5 right-3.5 z-[10000]">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPerson(null)}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer border border-slate-200/20"
+                  />
+                }
+              >
+                <X className="h-4 w-4" />
+              </TooltipTrigger>
+              <TooltipPortal>
+                <TooltipPositioner side="bottom" className="z-[10001]">
+                  <TooltipPopup>Tutup Detail</TooltipPopup>
+                </TooltipPositioner>
+              </TooltipPortal>
+            </Tooltip>
+          </div>
+
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
@@ -1056,13 +1248,6 @@ export default function RekapPresensiPage() {
                 {selectedPerson?.name} ({selectedPerson?.type === "siswa" ? "Siswa" : "Guru"})
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedPerson(null)}
-              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer border border-slate-200/20"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
           <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-4">
@@ -1118,6 +1303,138 @@ export default function RekapPresensiPage() {
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Drill-Down Rekap Stat Card */}
+      <Dialog open={!!drillDownStatus} onOpenChange={(v) => { if (!v) setDrillDownStatus(null); }}>
+        <DialogContent showCloseButton={false} className="max-w-3xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden text-left z-[9999]">
+          {/* Custom Close Button at Top-Right with Tooltip */}
+          <div className="absolute top-3.5 right-3.5 z-[10000]">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={() => setDrillDownStatus(null)}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-7 w-7 flex items-center justify-center transition-all cursor-pointer border border-slate-200/20"
+                  />
+                }
+              >
+                <X className="h-4 w-4" />
+              </TooltipTrigger>
+              <TooltipPortal>
+                <TooltipPositioner side="bottom" className="z-[10001]">
+                  <TooltipPopup>Tutup Detail</TooltipPopup>
+                </TooltipPositioner>
+              </TooltipPortal>
+            </Tooltip>
+          </div>
+
+          <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
+                Detail Rekap - {drillDownStatus === "hadir" ? "Total Kehadiran" : drillDownStatus === "sakit-izin" ? "Sakit & Izin" : "Total Alpha"}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 font-bold uppercase">
+                Daftar {activeTab === "siswa" ? "siswa" : "guru"} dengan catatan status ini di periode aktif
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-4">
+            {drillDownList.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8 font-semibold">
+                Tidak ada data {activeTab === "siswa" ? "siswa" : "guru"} untuk status ini.
+              </p>
+            ) : (
+              <div className="border border-slate-100 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-900/40 text-slate-500 font-extrabold uppercase tracking-wider border-b border-slate-150 dark:border-slate-800/80">
+                      <th className="py-3 px-4">Nama</th>
+                      {activeTab === "siswa" ? (
+                        <th className="py-3 px-4">Kelas</th>
+                      ) : (
+                        <th className="py-3 px-4">NIP / NUPTK</th>
+                      )}
+                      {drillDownStatus === "hadir" && (
+                        <>
+                          <th className="py-3 px-4 text-center">Tepat Waktu</th>
+                          <th className="py-3 px-4 text-center">Terlambat</th>
+                          <th className="py-3 px-4 text-center">Total Hadir</th>
+                        </>
+                      )}
+                      {drillDownStatus === "sakit-izin" && (
+                        <>
+                          <th className="py-3 px-4 text-center">Sakit</th>
+                          <th className="py-3 px-4 text-center">Izin</th>
+                          <th className="py-3 px-4 text-center">Total</th>
+                        </>
+                      )}
+                      {drillDownStatus === "alpha" && (
+                        <th className="py-3 px-4 text-center text-rose-600 dark:text-rose-400">Alpha</th>
+                      )}
+                      <th className="py-3 px-4 text-center">Persentase</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                    {drillDownList.map((item: any) => (
+                      <tr 
+                        key={item.siswaId || item.guruId} 
+                        onClick={() => {
+                          setSelectedPerson({ id: item.siswaId || item.guruId, name: item.namaLengkap, type: activeTab });
+                          setDrillDownStatus(null);
+                        }}
+                        className="hover:bg-slate-55/60 dark:hover:bg-slate-900/30 transition-colors cursor-pointer"
+                      >
+                        <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">
+                          {item.namaLengkap}
+                        </td>
+                        {activeTab === "siswa" ? (
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold uppercase">
+                              {item.kelasNama}
+                            </span>
+                          </td>
+                        ) : (
+                          <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{item.nipnuptk || "-"}</td>
+                        )}
+                        {drillDownStatus === "hadir" && (
+                          <>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-700 dark:text-slate-300">{item.hadirCount} {isGuruJP ? "JP" : "H"}</td>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-600 dark:text-amber-400">{item.terlambatCount} {isGuruJP ? "JP" : "H"}</td>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-blue-600 dark:text-blue-400">{item.hadirCount + item.terlambatCount} {isGuruJP ? "JP" : "H"}</td>
+                          </>
+                        )}
+                        {drillDownStatus === "sakit-izin" && (
+                          <>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-700 dark:text-slate-300">{item.sakitCount} {isGuruJP ? "JP" : "H"}</td>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-sky-600 dark:text-sky-400">{item.izinCount} {isGuruJP ? "JP" : "H"}</td>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-600 dark:text-amber-400">{item.sakitCount + item.izinCount} {isGuruJP ? "JP" : "H"}</td>
+                          </>
+                        )}
+                        {drillDownStatus === "alpha" && (
+                          <td className="py-3.5 px-4 text-center font-mono font-black text-rose-600 dark:text-rose-400">{item.alphaCount} {isGuruJP ? "JP" : "H"}</td>
+                        )}
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-black ${
+                            item.persentaseHadir >= 90
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400"
+                              : item.persentaseHadir >= 75
+                              ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
+                              : "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400"
+                          }`}>
+                            {item.persentaseHadir}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
