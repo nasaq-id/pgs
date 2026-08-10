@@ -7,7 +7,6 @@ import {
   Trash2,
   Loader2,
   Settings,
-  Printer,
   Sparkles,
   Plus,
   Clock,
@@ -49,7 +48,7 @@ import type JadwalFormDialogType from "@/components/jadwal/JadwalFormDialog"
 import type { JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
 import type PengaturanJadwalDialogType from "@/components/jadwal/PengaturanJadwalDialog"
 import type CetakJadwalType from "@/components/jadwal/CetakJadwal"
-import type ExportExcelJadwalType from "@/components/jadwal/ExportExcelJadwal"
+import type ExportJadwalMenuType from "@/components/jadwal/ExportJadwalMenu"
 import type AiGenerateDialogType from "@/components/jadwal/AiGenerateDialog"
 import { DAYS, DAY_LABEL, toTimeInputValue, formatKelasLabel } from "@/components/jadwal/constants"
 
@@ -65,8 +64,8 @@ const CetakJadwal = dynamic<ComponentProps<typeof CetakJadwalType>>(
   () => import("@/components/jadwal/CetakJadwal").then((m) => m.default),
   { ssr: false }
 )
-const ExportExcelJadwal = dynamic<ComponentProps<typeof ExportExcelJadwalType>>(
-  () => import("@/components/jadwal/ExportExcelJadwal").then((m) => m.default),
+const ExportJadwalMenu = dynamic<ComponentProps<typeof ExportJadwalMenuType>>(
+  () => import("@/components/jadwal/ExportJadwalMenu").then((m) => m.default),
   { ssr: false }
 )
 const AiGenerateDialog = dynamic<ComponentProps<typeof AiGenerateDialogType>>(
@@ -528,18 +527,10 @@ export default function JadwalPage() {
           )}
 
           {canViewAll && (
-            <>
-              <Button
-                onClick={() => setCetakOpen(true)}
-                disabled={!kelasId || !hasData}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 disabled:opacity-50 shadow-md neumo-sm w-full lg:w-auto"
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                <span>Cetak Jadwal</span>
-              </Button>
-
-              <ExportExcelJadwal />
-            </>
+            <ExportJadwalMenu
+              onCetak={() => setCetakOpen(true)}
+              disabled={!kelasId || !hasData}
+            />
           )}
 
           {canEdit && (
