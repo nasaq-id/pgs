@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, asc, gte, lte, like } from "drizzle-orm"
+import { eq, and, asc, gte, lte } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { kalenderEvent } from "@/server/db/schema"

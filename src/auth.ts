@@ -88,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const headersList = await headers()
         host = headersList.get("host") || headersList.get("x-forwarded-host")
         proto = headersList.get("x-forwarded-proto") || "http"
-      } catch (e) {
+      } catch {
         // Headers are not available in this context
       }
       const dynamicBaseUrl = host ? `${proto}://${host}` : baseUrl
@@ -105,7 +105,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (parsedUrl.origin === parsedDynamic.origin) {
           return url
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
       return dynamicBaseUrl

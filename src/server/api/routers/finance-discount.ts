@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, inArray } from "drizzle-orm"
+import { eq, and, desc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { discount } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"

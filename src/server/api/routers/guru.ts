@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, like, or, desc, asc, count } from "drizzle-orm"
+import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
 import { guru } from "@/server/db/schema"
@@ -81,8 +82,10 @@ export const guruRouter = router({
         }
         const orderBy = input.sortOrder === "asc" ? asc(guru[input.sortBy]) : desc(guru[input.sortBy])
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+        const { passwordGuru, ...guruColumns } = getTableColumns(guru)
+          void passwordGuru
         return db
-          .select()
+          .select({ ...guruColumns })
           .from(guru)
           .where(whereClause)
           .orderBy(orderBy)
@@ -101,10 +104,51 @@ export const guruRouter = router({
         const cached = await getCache<typeof guru.$inferSelect[]>(key)
         if (cached !== null) return cached
         const data = await runQuery()
-        await setCache(key, data.map(({ passwordGuru: _pw, ...rest }) => rest), 300)
-        return data
+        const cacheData = data.map((record) => {
+          const copy = { ...record } as Record<string, unknown>
+          delete copy.passwordGuru
+          return copy
+        })
+        await setCache(key, cacheData, 300)
+        return cacheData as typeof guru.$inferSelect[]
       }
       return runQuery()
+    }),
+
+  // Endpoint ringan untuk dropdown/select — kolom minimal, tanpa passwordGuru.
+  getLookup: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        limit: z.number().optional().default(500),
+        offset: z.number().optional().default(0),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const conditions = []
+      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+      if (input.search) {
+        conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
+      }
+      return db
+        .select({
+          id: guru.id,
+          sekolahId: guru.sekolahId,
+          nipnuptk: guru.nipnuptk,
+          namaLengkap: guru.namaLengkap,
+          foto: guru.foto,
+          statusKepegawaian: guru.statusKepegawaian,
+          kategoriPegawai: guru.kategoriPegawai,
+          tugasUtama: guru.tugasUtama,
+          jp: guru.jp,
+          active: guru.active,
+        })
+        .from(guru)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(asc(guru.namaLengkap))
+        .limit(input.limit)
+        .offset(input.offset)
     }),
 
   getById: protectedProcedure
@@ -113,12 +157,15 @@ export const guruRouter = router({
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(guru.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
-      const result = await db.query.guru.findFirst({
-        where: and(...conditions),
-        with: { sekolah: true },
-      })
-      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
-      return result
+      const { passwordGuru, ...guruColumns } = getTableColumns(guru)
+          void passwordGuru
+      const result = await db
+        .select({ ...guruColumns })
+        .from(guru)
+        .where(and(...conditions))
+        .limit(1)
+      if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Guru tidak ditemukan" })
+      return result[0]
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -189,7 +236,9 @@ export const guruRouter = router({
         conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
       }
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
-      return db.select().from(guru).where(whereClause).orderBy(asc(guru.namaLengkap))
+      const { passwordGuru, ...guruColumns } = getTableColumns(guru)
+          void passwordGuru
+      return db.select({ ...guruColumns }).from(guru).where(whereClause).orderBy(asc(guru.namaLengkap))
     }),
 
   update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])

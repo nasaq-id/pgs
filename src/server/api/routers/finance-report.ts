@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { eq, and, sql, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { invoice, payment } from "@/server/db/schema"
+import { invoice } from "@/server/db/schema"
 import { router, protectedProcedure } from "@/server/api/trpc"
 import { getSekolahIdFilter } from "@/server/api/tenant"
 

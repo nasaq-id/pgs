@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, gte, lte, sql, sum, inArray } from "drizzle-orm"
+import { eq, and, like, or, desc, asc, gte, lte, sum, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import {
   poinKategori,
@@ -353,6 +353,12 @@ export const poinRouter = router({
         entityId: results[0]?.id || "",
         metadata: { totalSiswa: targetSiswaIds.length, poin: kategori.poin, jenis: kategori.jenis },
       })
+
+      // Invalidate cache top poin dashboard (bulan berjalan)
+      const now = new Date()
+      await invalidateCache([
+        cacheKey("dashboard:topPoints", sekolahId, `${now.getFullYear()}-${now.getMonth() + 1}`),
+      ])
 
       return { success: true, count: results.length }
     }),

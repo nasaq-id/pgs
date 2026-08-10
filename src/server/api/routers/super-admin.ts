@@ -375,7 +375,7 @@ export const superAdminRouter = router({
 
   getDatabaseSchema: roleProtectedProcedure(["super_admin"])
     .query(async () => {
-      const tables = Object.entries(dbSchema).filter(([_, val]) => is(val, PgTable))
+      const tables = Object.entries(dbSchema).filter(([, val]) => is(val, PgTable))
       const result = tables.map(([key, value]) => {
         const tableName = getTableName(value as any)
         const columnsObj = getTableColumns(value as any)
@@ -432,7 +432,7 @@ export const superAdminRouter = router({
         let stats
         try {
           stats = fs.statSync(dirPath)
-        } catch (e) {
+        } catch {
           return { files: [], tree: null }
         }
 
@@ -441,7 +441,7 @@ export const superAdminRouter = router({
           try {
             const content = fs.readFileSync(dirPath, "utf-8")
             lineCount = content.split("\n").length
-          } catch (e) {}
+          } catch {}
 
           let health: "critical" | "warning" | "healthy" = "healthy"
           let suggestion = "Struktur file sudah optimal. Pertahankan modularitas."
@@ -487,13 +487,13 @@ export const superAdminRouter = router({
         }
 
         if (stats.isDirectory()) {
-          let children: any[] = []
+          const children: any[] = []
           let filesAcc: any[] = []
           
           let entries: string[] = []
           try {
             entries = fs.readdirSync(dirPath)
-          } catch (e) {}
+          } catch {}
 
           for (const entry of entries) {
             if (entry.startsWith(".")) continue
@@ -561,7 +561,7 @@ export const superAdminRouter = router({
         return {
           content
         }
-      } catch (e) {
+      } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Gagal membaca isi berkas."

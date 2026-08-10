@@ -13,14 +13,19 @@ export const pengampuRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-      const data = await db.query.pengampu.findMany({
-        where: eq(pengampu.sekolahId, sekolahId),
-        with: {
-          guru: true,
-          kelas: true,
-          mataPelajaran: true,
-        },
-      })
+      // Kolom minimal: client (AiGenerateDialog) hanya butuh kelasId & jumlahJam.
+      // Sebelumnya mengirim full row guru+kelas+mapel untuk tiap pengampu.
+      const data = await db
+        .select({
+          id: pengampu.id,
+          sekolahId: pengampu.sekolahId,
+          guruId: pengampu.guruId,
+          mataPelajaranId: pengampu.mataPelajaranId,
+          kelasId: pengampu.kelasId,
+          jumlahJam: pengampu.jumlahJam,
+        })
+        .from(pengampu)
+        .where(eq(pengampu.sekolahId, sekolahId))
       return data
     }),
 
@@ -41,13 +46,15 @@ export const pengampuRouter = router({
         },
       })
 
-      const allKelas = await db.query.kelas.findMany({
-        where: eq(kelas.sekolahId, sekolahId),
-      })
+      const allKelas = await db
+        .select({ id: kelas.id, namaKelas: kelas.namaKelas, tingkat: kelas.tingkat })
+        .from(kelas)
+        .where(eq(kelas.sekolahId, sekolahId))
 
-      const allGuru = await db.query.guru.findMany({
-        where: eq(guru.sekolahId, sekolahId),
-      })
+      const allGuru = await db
+        .select({ id: guru.id, namaLengkap: guru.namaLengkap, nipnuptk: guru.nipnuptk })
+        .from(guru)
+        .where(eq(guru.sekolahId, sekolahId))
 
       const mapel = await db.query.mataPelajaran.findFirst({
         where: eq(mataPelajaran.id, input.mataPelajaranId),

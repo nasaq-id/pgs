@@ -1,25 +1,11 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, inArray, sql, desc } from "drizzle-orm"
+import { eq, and, inArray, desc } from "drizzle-orm"
 import { db } from "@/server/db"
 import { invoice, invoiceStatusHistory, billingType, feeStructure, discount } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
-
-const invoiceSchema = z.object({
-  studentId: z.string(),
-  billingTypeId: z.string(),
-  academicYearId: z.string(),
-  periodMonth: z.number().int().min(1).max(12).nullable().optional(),
-  periodYear: z.number().int().nullable().optional(),
-  amount: z.number().positive(),
-  discountAmount: z.number().min(0).default(0),
-  lateFeeAmount: z.number().min(0).default(0),
-  totalAmount: z.number().positive(),
-  dueDate: z.coerce.date(),
-})
-
 
 async function writeStatusHistory(sekolahId: string, invoiceId: string, fromStatus: string | null, toStatus: string, changedBy: string, note?: string) {
   await db.insert(invoiceStatusHistory).values({

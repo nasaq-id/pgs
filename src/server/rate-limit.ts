@@ -22,7 +22,7 @@ export async function checkRateLimit(
     const p = redis.pipeline()
     p.incr(redisKey)
     p.ttl(redisKey)
-    const [countResult, ttlResult] = (await p.exec()) as [number, number]
+    const [countResult] = (await p.exec()) as [number, number]
 
     const count = countResult
 
@@ -38,7 +38,6 @@ export async function checkRateLimit(
 }
 
 /** Bersihkan bucket yang sudah kedaluwarsa. (No-op karena Redis menggunakan TTL otomatis) */
-export async function cleanupRateLimitBuckets(retainMs = 24 * 60 * 60 * 1000) {
+export async function cleanupRateLimitBuckets() {
   // No-op: Redis handles eviction automatically using TTL
 }
-

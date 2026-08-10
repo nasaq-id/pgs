@@ -2,8 +2,9 @@ import { z } from "zod"
 import { eq, or } from "drizzle-orm"
 import { TRPCError } from "@trpc/server"
 import { db } from "@/server/db"
-import { users, siswa, guru, kelas, sekolah } from "@/server/db/schema"
+import { users, siswa, guru, sekolah } from "@/server/db/schema"
 import { router, protectedProcedure, sanitized } from "@/server/api/trpc"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 export const profilRouter = router({
   getProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -11,50 +12,66 @@ export const profilRouter = router({
     const userEmail = user.email
     if (!userEmail) return null
 
-    const userData = await db.query.users.findFirst({
-      where: eq(users.id, user.id),
-    })
-    if (!userData) return null
-
-    let sekolahData = null
-    if (userData.sekolahId) {
-      sekolahData = await db.query.sekolah.findFirst({
-        where: eq(sekolah.id, userData.sekolahId),
-      })
-    }
-
-    let profileData: Record<string, unknown> = {
-      ...userData,
-      sekolah: sekolahData ? { nama: sekolahData.namaSekolah } : null,
-    }
-
-    if (user.role === "siswa") {
-      const siswaData = await db.query.siswa.findFirst({
-        where: or(
-          eq(siswa.usernameSiswa, userEmail),
-          eq(siswa.emailSiswa, userEmail),
-          eq(siswa.nisn, userEmail)
-        ),
-        with: {
-          kelas: true,
+    return getOrSetCache(cacheKey("profil:getProfile", user.id, user.role), async () => {
+      const userData = await db.query.users.findFirst({
+        where: eq(users.id, user.id),
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          sekolahId: true,
+          phone: true,
+          photo: true,
+          active: true,
+          createdAt: true,
+          updatedAt: true,
         },
       })
-      if (siswaData) {
-        profileData = { ...profileData, ...siswaData, roleData: siswaData }
-      }
-    } else if (user.role === "guru") {
-      const guruData = await db.query.guru.findFirst({
-        where: or(
-          eq(guru.email, userEmail),
-          eq(guru.usernameGuru, userEmail)
-        ),
-      })
-      if (guruData) {
-        profileData = { ...profileData, ...guruData, roleData: guruData }
-      }
-    }
+      if (!userData) return null
 
-    return profileData
+      let sekolahData = null
+      if (userData.sekolahId) {
+        sekolahData = await db.query.sekolah.findFirst({
+          where: eq(sekolah.id, userData.sekolahId),
+          columns: { namaSekolah: true },
+        })
+      }
+
+      let profileData: Record<string, unknown> = {
+        ...userData,
+        sekolah: sekolahData ? { nama: sekolahData.namaSekolah } : null,
+      }
+
+      if (user.role === "siswa") {
+        const siswaData = await db.query.siswa.findFirst({
+          where: or(
+            eq(siswa.usernameSiswa, userEmail),
+            eq(siswa.emailSiswa, userEmail),
+            eq(siswa.nisn, userEmail)
+          ),
+          with: {
+            kelas: true,
+          },
+        })
+        if (siswaData) {
+          profileData = { ...profileData, ...siswaData, roleData: siswaData }
+        }
+      } else if (user.role === "guru") {
+        const guruData = await db.query.guru.findFirst({
+          where: or(
+            eq(guru.email, userEmail),
+            eq(guru.usernameGuru, userEmail)
+          ),
+        })
+        if (guruData) {
+          profileData = { ...profileData, ...guruData, roleData: guruData }
+        }
+      }
+
+      return profileData
+    }, 300)
   }),
 
   updateProfilePhoto: protectedProcedure
@@ -65,6 +82,7 @@ export const profilRouter = router({
         .update(users)
         .set({ photo: input.photo, updatedAt: new Date() })
         .where(eq(users.id, user.id))
+      await invalidateCache([cacheKey("profil:getProfile", user.id, user.role)])
       return { success: true, photo: input.photo }
     }),
 
@@ -135,6 +153,7 @@ export const profilRouter = router({
         }
       }
 
+      await invalidateCache([cacheKey("profil:getProfile", user.id, user.role)])
       return { success: true }
     }),
 })

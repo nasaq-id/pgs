@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, asc, inArray } from "drizzle-orm"
+import { eq, and, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
@@ -51,17 +51,6 @@ async function getKelasIdsForSekolah(sekolahId: string | null): Promise<string[]
     .from(kelas)
     .where(eq(kelas.sekolahId, sekolahId))
   return rows.map((r) => r.id)
-}
-
-function timeToMinutes(t: string): number {
-  const [h, m] = t.split(":").map(Number)
-  return h * 60 + m
-}
-
-function minutesToTime(min: number): string {
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`
 }
 
 /**
@@ -203,26 +192,6 @@ async function getAcademicJpSlots(
   return jpItems.length
 }
 
-async function findAvailableSlots(
-  pengaturanJadwalId: string,
-  hari: string,
-  jpCount: number
-): Promise<number | null> {
-  const pengaturan = await db.query.pengaturanJadwal.findFirst({
-    where: eq(pengaturanJadwal.id, pengaturanJadwalId),
-  })
-  if (!pengaturan) return null
-
-  const totalSlots = await getAcademicJpSlots(pengaturanJadwalId, hari)
-  if (totalSlots === 0) return null
-
-  // Find first available contiguous block
-  for (let start = 1; start <= totalSlots - jpCount + 1; start++) {
-    return start
-  }
-  return null
-}
-
 export const jadwalRouter = router({
   getTimelineWithJadwal: protectedProcedure
     .input(z.object({
@@ -312,7 +281,7 @@ export const jadwalRouter = router({
       kelasId: z.string().optional(),
       guruId: z.string().optional(),
       hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]).optional(),
-      limit: z.number().min(1).max(1000).optional().default(500),
+      limit: z.number().min(1).max(10000).optional().default(500),
     }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
@@ -336,7 +305,12 @@ export const jadwalRouter = router({
         .from(jadwalPelajaran)
         .leftJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
         .where(and(...conditions))
-        .orderBy(desc(jadwalPelajaran.jpMulai))
+        .orderBy(
+          asc(jadwalPelajaran.kelasId),
+          asc(jadwalPelajaran.hari),
+          asc(jadwalPelajaran.jpMulai),
+          asc(jadwalPelajaran.id)
+        )
         .limit(input.limit)
 
       return result.map((r) => ({
@@ -1455,7 +1429,6 @@ function runBacktrackingSolver(
   if (index >= blocks.length) return true
 
   const block = blocks[index]
-  const key = `${block.kelasId}-${block.mataPelajaranId}-${block.guruId}`
   const kelasDays = kelasDaysMap.get(block.kelasId) || new Set()
 
   // Least-loaded balancing: cari hari dengan beban JP terendah via map O(1)
@@ -1496,7 +1469,6 @@ function runBacktrackingSolver(
     // Try each possible starting academic JP slot
     for (let startIdx = 0; startIdx <= slots.length - block.jpCount; startIdx++) {
       if (state?.aborted) break
-      const startJp = slots[startIdx]
       let conflict = false
 
       // Check if all slots are within bounds and not occupied

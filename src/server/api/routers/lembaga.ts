@@ -1,18 +1,18 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, ne } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure, publicProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { sekolah, tahunAjaran, pengaturanKalender } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
-import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { requireSekolahId } from "@/server/api/tenant"
 import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 import { DEFAULT_KALDIK, resolveSemesterYear, suggestSemesterDates } from "@/server/kaldik"
 
 export const lembagaRouter = router({
   getPublicSekolahByDomain: publicProcedure
     .input(z.object({ domain: z.string().optional() }))
-    .query(async ({ input }) => {
+    .query(async () => {
       // For now, since custom domain is not yet applied, we query the first active school as default.
       // In the future, we can query based on hostname/domain match.
       const match = await db.query.sekolah.findFirst({

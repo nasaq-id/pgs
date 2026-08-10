@@ -13,7 +13,7 @@ export const createTRPCContext = async () => {
   try {
     const cookieStore = await cookies()
     impersonatedSekolahId = cookieStore.get("impersonated_sekolah_id")?.value || null
-  } catch (e) {
+  } catch {
     // Catch silently in non-request contexts
   }
 
@@ -30,7 +30,25 @@ export const createTRPCContext = async () => {
 const t = initTRPC.context<typeof createTRPCContext>().create()
 
 export const router = t.router
-export const publicProcedure = t.procedure
+
+// Logging latency sampling — log endpoint lambat (>= 500ms) + 1% sampling
+// request cepat. Tidak pernah log payload/input (privasi + volume kecil).
+const latencyLogger = t.middleware(async ({ path, type, next }) => {
+  const startedAt = Date.now()
+  const result = await next()
+  const durationMs = Date.now() - startedAt
+  const isSlow = durationMs >= 500
+  const isSampled = Math.random() < 0.01
+  if (isSlow || isSampled) {
+    console.log(
+      `[api:${type}:${path}] ${durationMs}ms${isSlow ? " SLOW" : ""}`
+    )
+  }
+  return result
+})
+
+const baseProcedure = t.procedure.use(latencyLogger)
+export const publicProcedure = baseProcedure
 
 const isAuthenticated = t.middleware(({ ctx, next }) => {
   if (!ctx.session?.user) {
@@ -43,7 +61,7 @@ const isAuthenticated = t.middleware(({ ctx, next }) => {
   })
 })
 
-export const protectedProcedure = t.procedure.use(isAuthenticated)
+export const protectedProcedure = baseProcedure.use(isAuthenticated)
 
 const hasRole = (roles: string[]) =>
   t.middleware(({ ctx, next }) => {
@@ -62,7 +80,7 @@ const hasRole = (roles: string[]) =>
   })
 
 export const roleProtectedProcedure = (roles: string[]) =>
-  t.procedure.use(isAuthenticated).use(hasRole(roles))
+  baseProcedure.use(isAuthenticated).use(hasRole(roles))
 
 const MAX_STRING_LENGTH = 10000
 

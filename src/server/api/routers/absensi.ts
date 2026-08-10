@@ -936,13 +936,19 @@ export const absensiRouter = router({
         siswaConditions.push(eq(siswa.id, input.siswaId))
       }
 
-      const students = await db.query.siswa.findMany({
-        where: and(...siswaConditions),
-        with: {
-          kelas: true,
-        },
-        orderBy: [asc(siswa.namaLengkap)],
-      })
+      const students = await db
+        .select({
+          id: siswa.id,
+          namaLengkap: siswa.namaLengkap,
+          nisn: siswa.nisn,
+          nisLokal: siswa.nisLokal,
+          kelasId: siswa.kelasId,
+          kelasNama: kelas.namaKelas,
+        })
+        .from(siswa)
+        .leftJoin(kelas, eq(kelas.id, siswa.kelasId))
+        .where(and(...siswaConditions))
+        .orderBy(asc(siswa.namaLengkap))
 
       const attendanceConditions = [
         eq(absensiSiswa.sekolahId, sekolahId),
@@ -982,7 +988,7 @@ export const absensiRouter = router({
           namaLengkap: s.namaLengkap,
           nisn: s.nisn,
           nisLokal: s.nisLokal,
-          kelasNama: s.kelas?.namaKelas || "-",
+          kelasNama: s.kelasNama || "-",
           kelasId: s.kelasId,
           totalHari: 0,
           hadirCount: 0,
@@ -1162,16 +1168,26 @@ export const absensiRouter = router({
         guruConditions.push(eq(guru.id, input.guruId))
       }
 
-      const teachers = await db.query.guru.findMany({
-        where: and(...guruConditions),
-        orderBy: [asc(guru.namaLengkap)],
-      })
+      const teachers = await db
+        .select({
+          id: guru.id,
+          namaLengkap: guru.namaLengkap,
+          nipnuptk: guru.nipnuptk,
+        })
+        .from(guru)
+        .where(and(...guruConditions))
+        .orderBy(asc(guru.namaLengkap))
 
       // 5. Fetch lesson schedules if under per_jp rule
       const schedules = isPerJP
-        ? await db.query.jadwalPelajaran.findMany({
-            where: eq(jadwalPelajaran.sekolahId, sekolahId),
-          })
+        ? await db
+            .select({
+              guruId: jadwalPelajaran.guruId,
+              hari: jadwalPelajaran.hari,
+              jpCount: jadwalPelajaran.jpCount,
+            })
+            .from(jadwalPelajaran)
+            .where(eq(jadwalPelajaran.sekolahId, sekolahId))
         : []
 
       const teacherDaysMap = new Map<string, Set<string>>()

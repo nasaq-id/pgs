@@ -127,7 +127,7 @@
     background-image:
       radial-gradient(at 10% 10%, oklch(0.94 0.015 250) 0%, transparent 50%),
       radial-gradient(at 90% 90%, oklch(0.95 0.015 250) 0%, transparent 50%);
-    background-attachment: fixed;
+     background-attachment: scroll;
     transition: background-color 0.3s ease;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
@@ -313,7 +313,7 @@
   box-shadow:
     5px 5px 12px oklch(0.89 0.015 250),
     -5px -5px 12px oklch(1 0 0);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .neumo:hover {
   box-shadow:
@@ -332,7 +332,7 @@
   box-shadow:
     3px 3px 6px oklch(0.90 0.015 250),
     -3px -3px 6px oklch(1 0 0);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .neumo-sm:hover {
   box-shadow:
@@ -349,7 +349,7 @@
   box-shadow:
     10px 10px 24px oklch(0.89 0.015 250 / 0.6),
     -10px -10px 24px oklch(1 0 0);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .neumo-card:hover {
   box-shadow:
@@ -359,7 +359,7 @@
 
 .neumo-card-clean {
   box-shadow: 10px 10px 24px oklch(0.89 0.015 250 / 0.6);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .neumo-card-clean:hover {
   box-shadow: 8px 8px 18px oklch(0.89 0.015 250 / 0.6);
@@ -369,7 +369,7 @@
   box-shadow:
     inset 4px 4px 8px oklch(0.89 0.015 250 / 0.8),
     inset -4px -4px 8px oklch(1 0 0);
-  transition: all 0.25s ease;
+    transition: box-shadow 0.25s ease;
 }
 
 .dark .neumo,

@@ -4,7 +4,7 @@ import { eq, and, like, or, desc, asc, inArray, isNull, count } from "drizzle-or
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
-import { siswa, kelas, catatanMutasi } from "@/server/db/schema"
+import { siswa, kelas, sekolah, catatanMutasi } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -107,20 +107,19 @@ const siswaCreateSchema = z.object({
 
 const siswaUpdateSchema = siswaCreateSchema.partial()
 
+const siswaListInput = z.object({
+  search: z.string().optional(),
+  status: z.enum(["aktif", "aktif_tanpa_rombel", "tidak_aktif", "mutasi_keluar"]).optional(),
+  kelasId: z.string().optional(),
+  sortBy: z.enum(["namaLengkap", "nisn", "createdAt"]).optional().default("namaLengkap"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
+  limit: z.number().optional().default(50),
+  offset: z.number().optional().default(0),
+})
 
 export const siswaRouter = router({
   getAll: protectedProcedure
-    .input(
-      z.object({
-        search: z.string().optional(),
-        status: z.enum(["aktif", "aktif_tanpa_rombel", "tidak_aktif", "mutasi_keluar"]).optional(),
-        kelasId: z.string().optional(),
-        sortBy: z.enum(["namaLengkap", "nisn", "createdAt"]).optional().default("namaLengkap"),
-        sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
-        limit: z.number().optional().default(50),
-        offset: z.number().optional().default(0),
-      }),
-    )
+    .input(siswaListInput)
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
@@ -140,11 +139,11 @@ export const siswaRouter = router({
       if (input.kelasId) {
         conditions.push(eq(siswa.kelasId, input.kelasId))
       }
-      const orderBy = input.sortOrder === "asc" ? asc(siswa[input.sortBy]) : desc(siswa[input.sortBy])
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      const { passwordSiswa, ...siswaColumns } = getTableColumns(siswa); void passwordSiswa
       const data = await db
         .select({
-          ...getTableColumns(siswa),
+          ...siswaColumns,
         })
         .from(siswa)
         .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
@@ -158,16 +157,70 @@ export const siswaRouter = router({
       return data
     }),
 
+  // Lookup ringan untuk dropdown, presensi, laporan, dan halaman rekap.
+  // Endpoint ini sengaja tidak mengirim biodata keluarga yang besar.
+  getLookup: protectedProcedure
+    .input(siswaListInput)
+    .query(async ({ ctx, input }) => {
+      const sekolahIdFilter = getSekolahIdFilter(ctx)
+      const conditions = []
+      if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
+      if (input.search) {
+        conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+      }
+      if (input.status === "aktif") {
+        conditions.push(eq(siswa.status, "aktif"))
+      } else if (input.status === "aktif_tanpa_rombel") {
+        conditions.push(eq(siswa.status, "aktif"), isNull(siswa.kelasId))
+      } else if (input.status === "tidak_aktif") {
+        conditions.push(inArray(siswa.status, ["lulus", "pindah", "keluar"]))
+      } else if (input.status === "mutasi_keluar") {
+        conditions.push(inArray(siswa.status, ["pindah", "keluar"]))
+      }
+      if (input.kelasId) conditions.push(eq(siswa.kelasId, input.kelasId))
+
+      const orderBy = input.sortOrder === "asc" ? asc(siswa[input.sortBy]) : desc(siswa[input.sortBy])
+      return db
+        .select({
+          id: siswa.id,
+          sekolahId: siswa.sekolahId,
+          kelasId: siswa.kelasId,
+          nisn: siswa.nisn,
+          nisLokal: siswa.nisLokal,
+          namaLengkap: siswa.namaLengkap,
+          jenisKelamin: siswa.jenisKelamin,
+          tempatLahir: siswa.tempatLahir,
+          tanggalLahir: siswa.tanggalLahir,
+          alamat: siswa.alamat,
+          noHpOrtu: siswa.noHpOrtu,
+          emailSiswa: siswa.emailSiswa,
+          foto: siswa.foto,
+          status: siswa.status,
+          usernameSiswa: siswa.usernameSiswa,
+          noHpWhatsapp: siswa.noHpWhatsapp,
+        })
+        .from(siswa)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(orderBy)
+        .limit(input.limit)
+        .offset(input.offset)
+    }),
+
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = [eq(siswa.id, input.id)]
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
-      const result = await db.query.siswa.findFirst({
-        where: and(...conditions),
-        with: { kelas: true, sekolah: true },
-      })
+      const { passwordSiswa, ...siswaColumns } = getTableColumns(siswa); void passwordSiswa
+      const rows = await db
+        .select({ ...siswaColumns, kelasNama: kelas.namaKelas, sekolahNama: sekolah.namaSekolah })
+        .from(siswa)
+        .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
+        .leftJoin(sekolah, eq(siswa.sekolahId, sekolah.id))
+        .where(and(...conditions))
+        .limit(1)
+      const result = rows[0]
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Siswa tidak ditemukan" })
       return result
     }),
@@ -258,9 +311,10 @@ export const siswaRouter = router({
         conditions.push(inArray(siswa.status, ["pindah", "keluar"]))
       }
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      const { passwordSiswa, ...siswaColumns } = getTableColumns(siswa); void passwordSiswa
       return db
         .select({
-          ...getTableColumns(siswa),
+          ...siswaColumns,
           namaKelas: kelas.namaKelas,
         })
         .from(siswa)
@@ -428,7 +482,7 @@ export const siswaRouter = router({
       const conditions = [eq(siswa.id, input.siswaId), eq(siswa.sekolahId, sekolahId)]
 
       const id = crypto.randomUUID()
-      const [updatedSiswa] = await db.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         const updated = await tx
           .update(siswa)
           .set({

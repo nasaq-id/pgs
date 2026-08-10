@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean, index } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { users } from "./users"

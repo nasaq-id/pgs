@@ -4,7 +4,7 @@ import { Toaster } from "sonner"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
-import { PWAProvider } from "@/components/providers/PWAProvider"
+import { DeferredPWAProvider } from "@/components/providers/DeferredPWAProvider"
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "Sistem Informasi Manajemen Sekolah",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.png",
+    icon: "/icon-512.svg",
     shortcut: "/favicon.ico",
     apple: "/apple-icon.png",
   },
@@ -59,7 +59,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
-        <PWAProvider />
+        <DeferredPWAProvider />
         <Toaster richColors position="top-right" />
         <SpeedInsights />
         <Analytics />

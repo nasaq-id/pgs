@@ -59,8 +59,23 @@ export async function compressImage(
   })
 }
 
-export async function uploadToCloudinary(
-  file: File,
+/**
+ * Menambahkan transformasi Cloudinary (resize + format otomatis) pada URL
+ * gambar agar ukuran terkirim proporsional dengan kebutuhan render.
+ * Aman untuk URL non-Cloudinary: dikembalikan apa adanya.
+ */
+export function optimizeImageUrl(
+  url: string | null | undefined,
+  width = 96
+): string {
+  if (!url) return ""
+  const marker = "/image/upload/"
+  const idx = url.indexOf(marker)
+  if (idx === -1) return url
+  return `${url.slice(0, idx + marker.length)}w_${width},q_auto,f_auto/${url.slice(idx + marker.length)}`
+}
+
+export async function uploadToCloudinary(  file: File,
   folderName?: string,
   options?: UploadOptions
 ): Promise<string> {

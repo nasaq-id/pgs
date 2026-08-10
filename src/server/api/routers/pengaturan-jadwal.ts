@@ -17,6 +17,7 @@ export const pengaturanJadwalRouter = router({
       return getOrSetCache(cacheKey("pengaturanJadwal:get", sekolahId), async () => {
         const result = await db.query.pengaturanJadwal.findFirst({
           where: eq(pengaturanJadwal.sekolahId, sekolahId),
+          orderBy: [asc(pengaturanJadwal.createdAt)],
         })
         return result ?? null
       }, 300)
@@ -66,6 +67,7 @@ export const pengaturanJadwalRouter = router({
       const runQuery = async () => {
         const pengaturan = await db.query.pengaturanJadwal.findFirst({
           where: eq(pengaturanJadwal.sekolahId, sekolahId),
+          orderBy: [asc(pengaturanJadwal.createdAt)],
         })
         if (!pengaturan) return []
         const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]

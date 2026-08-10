@@ -26,15 +26,6 @@ function encodeDates(value: unknown): unknown {
   return value
 }
 
-function reviver(_key: string, value: unknown): unknown {
-  if (typeof value === "string" && value.startsWith(DATE_MARKER)) {
-    const iso = value.slice(DATE_MARKER.length)
-    const d = new Date(iso)
-    return Number.isNaN(d.getTime()) ? value : d
-  }
-  return value
-}
-
 /**
  * SDK @upstash/redis otomatis JSON.parse nilai yang valid JSON, jadi hasil
  * get sudah berupa objek (bukan string mentah). Fungsi ini menelusuri

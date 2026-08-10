@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, lte } from "drizzle-orm"
+import { eq, and, like, desc, count } from "drizzle-orm"
 import { db } from "@/server/db"
-import { pengumuman, sekolah } from "@/server/db/schema"
-import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
+import { pengumuman } from "@/server/db/schema"
+import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { createNotifikasi } from "@/server/notifikasi"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -25,8 +25,11 @@ const pengumumanUpdateSchema = pengumumanCreateSchema.partial()
 
 
 const PENGUMUMAN_CACHE_LIMITS = [5, 20, 50, 100]
-const PENGUMUMAN_CACHE_KEYS = (sekolahId: string) =>
-  PENGUMUMAN_CACHE_LIMITS.map((l) => cacheKey("pengumuman:getPublished", sekolahId, `l${l}`))
+const PENGUMUMAN_CACHE_KEYS = (sekolahId: string) => [
+  ...PENGUMUMAN_CACHE_LIMITS.map((l) => cacheKey("pengumuman:getPublished", sekolahId, `l${l}`)),
+  // Cache varian dashboard (queryDashboardAnnouncements)
+  cacheKey("pengumuman:dashboard", sekolahId || "all"),
+]
 
 export const pengumumanRouter = router({
   getAll: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -179,11 +182,13 @@ export const pengumumanRouter = router({
       const sekolahIdFilter = getSekolahIdFilter(ctx)
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(pengumuman.sekolahId, sekolahIdFilter))
-      const all = await db.query.pengumuman.findMany({
-        where: conditions.length > 0 ? and(...conditions) : undefined,
-      })
-      const published = all.filter((p) => p.published).length
-      const draft = all.length - published
-      return { total: all.length, published, draft }
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+      const [totalResult, publishedResult] = await Promise.all([
+        db.select({ value: count() }).from(pengumuman).where(whereClause),
+        db.select({ value: count() }).from(pengumuman).where(and(whereClause, eq(pengumuman.published, true))),
+      ])
+      const total = totalResult[0]?.value ?? 0
+      const published = publishedResult[0]?.value ?? 0
+      return { total, published, draft: total - published }
     }),
 })

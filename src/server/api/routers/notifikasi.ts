@@ -1,9 +1,9 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, asc, or, inArray } from "drizzle-orm"
+import { eq, and, desc, inArray } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
-import { notifikasi, sekolah, pushSubscriptions, users } from "@/server/db/schema"
+import { notifikasi, pushSubscriptions, users } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
 import webpush from "web-push"
 
