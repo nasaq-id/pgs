@@ -267,18 +267,22 @@ Catatan: initial JS dashboard tetap ~348 KB (shell + kalender + React runtime) �
 
 Status: sebagian selesai (11 Agustus 2026).
 
-- [x] Tambahkan bundle-size budget di CI. (`scripts/check-bundle-budget.mjs` + workflow `.github/workflows/ci.yml`: build → budget check. Budget: total JS < 7000 KB, chunk tunggal > 450 KB harus terbukti route-lib (jspdf/xlsx/qrcode/recharts). Script: `pnpm check:bundle`.)
-- [x] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala. (Playwright e2e 7 test ada di workflow CI — job `e2e` via manual trigger `workflow_dispatch` (butuh akun test, hindari rate limit di PR). Lighthouse manual via `pnpm check:perf` (`scripts/lighthouse-audit.mjs`) — otomasi terjadwal di Vercel Cron menunggu deployment production.)
+- [x] Tambahkan bundle-size budget. (`scripts/check-bundle-budget.mjs` — total JS < 7000 KB, chunk tunggal > 450 KB harus terbukti route-lib (jspdf/xlsx/qrcode/recharts). Script: `pnpm check:bundle`. **Catatan**: GitHub Actions TIDAK jalan di repo private free plan (startup_failure) — guardrail dijalankan lokal via husky pre-commit + manual. Workflow `.github/workflows/ci.yml` disimpan untuk dipakai bila repo di-upgrade/public.)
+- [x] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala. (Playwright e2e 7 test — dijalankan lokal (`pnpm test:e2e`), tersedia juga di workflow CI via manual trigger bila Actions aktif. Lighthouse manual via `pnpm check:perf` (`scripts/lighthouse-audit.mjs`) — otomasi terjadwal di Vercel Cron menunggu deployment production.)
 - [x] Monitor Vercel Speed Insights dan API latency. (`<SpeedInsights/>` + `<Analytics/>` aktif di `layout.tsx`; logging latency `[api:query:x] Nms SLOW` aktif di semua tRPC procedure sejak Fase 3 — cek di log Vercel.)
 - [x] Tambahkan regression checklist untuk route utama. (`docs/PERFORMANCE_REGRESSION_CHECKLIST.md` — otomatis + manual + baseline per route.)
 - [ ] Deploy perubahan besar melalui preview dan canary. (Vercel Git-connected: push main auto-deploy; preview otomatis per PR dari Vercel. Canary manual belum — dokumentasi di bawah.)
 - [x] Dokumentasikan hasil setiap eksperimen di Session Log. (Semua fase 1-6 punya Session Log; template ada.)
 
+Guardrail lokal (aktif saat ini — pengganti GitHub Actions):
+- Husky `pre-commit`: `pnpm exec tsc --noEmit` + `lint-staged` (eslint --fix untuk file staged). Terpasang via `pnpm prepare`.
+- Jalankan manual sebelum deploy: `pnpm exec tsc --noEmit && pnpm lint && pnpm build && pnpm check:bundle && pnpm test:e2e`.
+
 Kriteria selesai:
 
-- Regresi bundle atau Core Web Vitals terdeteksi sebelum production. ✓ (CI bundle budget + e2e; Lighthouse manual sebelum deploy besar)
+- Regresi bundle atau Core Web Vitals terdeteksi sebelum production. ✓ (pre-commit tsc/eslint + bundle budget + e2e manual; Lighthouse sebelum deploy besar)
 - Ada histori metrik per deployment. ✓ (tabel Baseline & Progress + summary.json per fase)
-- Performance menjadi bagian dari review, bukan audit satu kali. ✓ (checklist + CI gate)
+- Performance menjadi bagian dari review, bukan audit satu kali. ✓ (checklist + pre-commit gate)
 
 Deploy & canary (Vercel, akun `agds-alt`):
 - Push ke `main` → auto-deploy production (pgs Git-connected).
@@ -312,6 +316,20 @@ Untuk perubahan frontend, tambahkan smoke test route terkait. Untuk perubahan ca
 Catatan saat ini: folder referensi lama `scratch/` sudah dihapus. `pnpm lint` harus memvalidasi source dan scripts production secara langsung.
 
 ## Session Log
+
+### Sesi Fase 7 Guardrail Lokal (pengganti GitHub Actions) - 11 Agustus 2026
+
+- **Fase/Task**: Fase 7 - CI pindah ke guardrail lokal.
+- **Temuan**: GitHub Actions `startup_failure` untuk SEMUA workflow (termasuk minimal test) — repo private di akun free (`nohypelabs`, plan: free). Branch protection API mengonfirmasi: "Upgrade to GitHub Pro or make this repository public". 6 secrets sudah di-set ke repo (tetap tersimpan untuk masa depan).
+- **Keputusan (user)**: pindah guardrail ke lokal + Vercel, bukan upgrade Pro / public.
+- **Perubahan**:
+  1. Husky pre-commit (`pnpm exec tsc --noEmit` + lint-staged eslint --fix untuk file staged) — terpasang via `pnpm prepare`.
+  2. `lint-staged` 17.3.0 + `husky` di devDependencies.
+  3. `.github/workflows/ci.yml` dipertahankan (tanpa dijalankan) untuk dipakai bila repo di-upgrade/public.
+  4. Secrets GitHub (DATABASE_URL, NEXTAUTH_SECRET, UPSTASH_*, E2E_*) tetap tersimpan.
+- **Verification**: pre-commit hook berjalan (commit 747ca71 melewati tsc + lint-staged); `pnpm check:bundle` pass; e2e 7/7 pass.
+- **Hasil metrik**: Tidak ada perubahan performa.
+- **Follow-up**: Vercel deployment production dari push `aeffdbd` terakhir — cek status deploy; verifikasi Speed Insights terisi data setelah traffic production.
 
 ### Sesi Fase 7 Guardrail Produksi - 11 Agustus 2026
 
