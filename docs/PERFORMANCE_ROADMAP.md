@@ -203,6 +203,10 @@ Kriteria selesai:
 - Navigasi internal tidak melakukan full document reload tanpa alasan bisnis. ✓ (7 lokasi → 5 diperbaiki, 2 intentional hard nav)
 - INP tidak memburuk saat filter, pagination, atau dialog dibuka. ✓ (filter useMemo, dialog lazy)
 
+Catatan baseline & pengukuran Fase 4:
+- Fase 4 tidak diukur ulang dengan Lighthouse terpisah — perubahannya (lazy-load dialog, useMemo/debounce filter, navigasi SPA) tidak mengubah metrik Lighthouse utama (LCP/payload), jadi angka pembandingnya = Baseline Fase 1 dan hasilnya sudah tercakup dalam pengukuran F5/F6 (lihat tabel Baseline & Progress di atas).
+- Pengukuran yang relevan untuk Fase 4 (INP, scroll responsif) butuh field data / device nyata — belum tersedia, masuk Fase 7 (Speed Insights).
+
 ### Fase 5: Asset dan Bundle
 
 Status: selesai (11 Agustus 2026).
