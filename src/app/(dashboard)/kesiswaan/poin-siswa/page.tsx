@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import { Shield, TrendingUp, TrendingDown, Award, AlertCircle, FileText, User, ChevronRight, Loader2 } from "lucide-react"
+import { Shield, TrendingUp, TrendingDown, Award, AlertCircle, FileText, User, Loader2 } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { format } from "date-fns"
-import { id } from "date-fns/locale"
 
 export default function EpoinDashboardPage() {
   const { data: dashboardData, isLoading: isDashboardLoading } = api.poin.getDashboardGuruAdmin.useQuery()

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Printer, Check, QrCode, CreditCard, ChevronRight, Sliders, Layout, Settings2, RefreshCw, X, ShieldAlert, Sparkles } from "lucide-react"
+import { Search, Printer, Check, QrCode, CreditCard, Sliders, Layout, RefreshCw, Sparkles } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -57,7 +57,7 @@ export default function IdCardPage() {
   const [showLogo, setShowLogo] = useState(true)
   const [showBackSide, setShowBackSide] = useState(true)
   const [customTitle, setCustomTitle] = useState("")
-  const [customRules, setCustomRules] = useState<string[]>([
+  const [customRules] = useState<string[]>([
     "Kartu ini wajib dibawa dan dikenakan selama berada di lingkungan sekolah.",
     "Kartu tidak boleh dipindahtangankan, dicoret-coret, atau dirusak.",
     "Apabila kartu ini hilang, segera laporkan ke bagian tata usaha sekolah.",
@@ -68,7 +68,7 @@ export default function IdCardPage() {
   const { data: sekolahInfo } = api.lembaga.getSekolah.useQuery()
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   
-  const { data: siswaList, isLoading: isLoadingSiswa } = api.siswa.getAll.useQuery({
+  const { data: siswaList, isLoading: isLoadingSiswa } = api.siswa.getLookup.useQuery({
     search: querySearch || undefined,
     status: "aktif",
     kelasId: selectedKelas === "all" ? undefined : selectedKelas,

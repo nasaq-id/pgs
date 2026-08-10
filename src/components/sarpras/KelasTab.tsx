@@ -4,11 +4,10 @@ import { useState } from "react"
 import { useSession } from "next-auth/react"
 import {
   Plus, Pencil, Trash2, Loader2, Search, BarChart2, Printer,
-  Layers, Users, AlertCircle, CheckCircle
+  Layers, Users, AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -28,7 +27,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
   TooltipTrigger,
@@ -38,6 +36,7 @@ import {
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 import KelasFormDialog, { type KelasFormData } from "@/components/kelas/KelasFormDialog"
 import LaporanKelasDialog from "@/components/sarpras/LaporanKelasDialog"
 import { toast } from "sonner"
@@ -60,9 +59,9 @@ export default function KelasTab() {
   const [editData, setEditData] = useState<KelasFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search })
-  const { data: guruList } = api.guru.getAll.useQuery({})
-  const { data: siswaList } = api.siswa.getAll.useQuery({})
+  const { data: kelasList, isLoading } = api.kelas.getAll.useQuery({ search: useDebounce(search) })
+  const { data: guruList } = api.guru.getLookup.useQuery({})
+  const { data: siswaList } = api.siswa.getLookup.useQuery({})
   const { data: profile } = api.profil.getProfile.useQuery()
   const utils = api.useUtils()
 
@@ -75,6 +74,7 @@ export default function KelasTab() {
   const updateMutation = api.kelas.update.useMutation({
     onSuccess: () => {
       utils.kelas.getAll.invalidate()
+      utils.siswa.getLookup.invalidate()
     },
   })
 

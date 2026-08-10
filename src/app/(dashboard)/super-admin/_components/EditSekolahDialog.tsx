@@ -66,7 +66,7 @@ export default function EditSekolahDialog({
         npsn: npsn || undefined,
         jenjang,
       })
-    } catch (err) {
+    } catch {
       // Handled by onError
     } finally {
       setLoading(false)

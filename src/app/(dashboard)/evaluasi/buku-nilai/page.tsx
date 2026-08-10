@@ -29,19 +29,19 @@ import {
   Sparkles,
   BookOpen,
   Award,
-  Lock,
-  Eye,
-  EyeOff,
-  UserCheck,
   CheckCircle2,
-  HelpCircle,
   FileText
 } from "lucide-react"
 import { toast } from "sonner"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 import { drawGlobalKop } from "@/lib/pdf-helper"
-import * as XLSX from "xlsx"
+
+async function loadPdfTools() {
+  const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ])
+  return { JsPDF, autoTable }
+}
 
 // Helper function to map class level to Fase
 function getFaseFromTingkat(tingkat: string | null | undefined): string {
@@ -62,48 +62,6 @@ function getFaseFromTingkat(tingkat: string | null | undefined): string {
   if (clean.includes("1") || clean.includes("I") || clean.includes("2") || clean.includes("II")) return "Fase A"
 
   return "Fase A"
-}
-
-// Helpers to draw vector logos inside PDF
-function drawTutWuriLogo(doc: jsPDF, x: number, y: number, size: number) {
-  doc.setFillColor(30, 144, 255) // DodgerBlue
-  doc.circle(x + size / 2, y + size / 2, size / 2, "F")
-  
-  doc.setFillColor(255, 215, 0) // Gold
-  const cx = x + size / 2
-  const cy = y + size / 2
-  const r = size * 0.3
-  
-  doc.triangle(cx, cy - r, cx - r * 0.86, cy + r * 0.5, cx + r * 0.86, cy + r * 0.5, "F")
-  doc.triangle(cx, cy + r, cx - r * 0.86, cy - r * 0.5, cx + r * 0.86, cy - r * 0.5, "F")
-
-  doc.setFillColor(255, 255, 255)
-  doc.circle(cx, cy, size * 0.15, "F")
-  
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(4)
-  doc.setTextColor(255, 255, 255)
-  doc.text("TUT WURI", cx, cy - size * 0.22, { align: "center" })
-}
-
-function drawKemenagLogo(doc: jsPDF, x: number, y: number, size: number) {
-  doc.setFillColor(34, 139, 34) // ForestGreen
-  doc.circle(x + size / 2, y + size / 2, size / 2, "F")
-
-  doc.setFillColor(255, 215, 0) // Gold
-  const cx = x + size / 2
-  const cy = y + size / 2
-  doc.circle(cx, cy, size * 0.35, "F")
-
-  doc.setFillColor(34, 139, 34)
-  doc.rect(cx - size * 0.15, cy - size * 0.05, size * 0.3, size * 0.1, "F")
-  doc.setFillColor(255, 255, 255)
-  doc.circle(cx, cy - size * 0.1, size * 0.08, "F")
-
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(4)
-  doc.setTextColor(255, 255, 255)
-  doc.text("KEMENAG", cx, cy - size * 0.22, { align: "center" })
 }
 
 export default function BukuNilaiPage() {
@@ -173,7 +131,7 @@ export default function BukuNilaiPage() {
   // Real-time calculations of sumatif averages and NA
   const calculatedData = useMemo(() => {
     if (!bukuNilaiQuery.data) return []
-    const { siswa: students, asesmen: assessments, scores, settings } = bukuNilaiQuery.data
+    const { siswa: students, scores, settings } = bukuNilaiQuery.data
     const currentBobotSumatif = settings.bobotSumatif
     const currentBobotSas = settings.bobotSas
 
@@ -318,16 +276,17 @@ export default function BukuNilaiPage() {
   }
 
   // Print Rapor PDF for single student
-  const handleCetakRapor = (studentId: string) => {
+  const handleCetakRapor = async (studentId: string) => {
     if (!bukuNilaiQuery.data) return
     const row = calculatedData.find((r) => r.student.id === studentId)
     if (!row) return
 
-    const { settings } = bukuNilaiQuery.data
+    const { JsPDF, autoTable } = await loadPdfTools()
+
     const classRecord = bukuNilaiQuery.data.kelas
     const activeMapel = mapelList.find((m) => m.id === mataPelajaranId)
 
-    const doc = new jsPDF("portrait", "mm", "a4")
+    const doc = new JsPDF("portrait", "mm", "a4")
     const pageW = doc.internal.pageSize.getWidth()
     const pageH = doc.internal.pageSize.getHeight()
 
@@ -400,12 +359,13 @@ export default function BukuNilaiPage() {
   }
 
   // Print Leger PDF
-  const handleCetakLegerPdf = () => {
+  const handleCetakLegerPdf = async () => {
     if (!legerQuery.data || !kelasId) return
+    const { JsPDF, autoTable } = await loadPdfTools()
     const { siswa: students, mapel: subjects, nilai: grades } = legerQuery.data
     const selectedClass = kelasList.find((k) => k.id === kelasId)
 
-    const doc = new jsPDF("landscape", "mm", "a4")
+    const doc = new JsPDF("landscape", "mm", "a4")
     const pageW = doc.internal.pageSize.getWidth()
     const pageH = doc.internal.pageSize.getHeight()
 
@@ -473,8 +433,9 @@ export default function BukuNilaiPage() {
   }
 
   // Export Leger to Excel
-  const handleExportLegerExcel = () => {
+  const handleExportLegerExcel = async () => {
     if (!legerQuery.data || !kelasId) return
+    const XLSX = await import("xlsx")
     const { siswa: students, mapel: subjects, nilai: grades } = legerQuery.data
     const selectedClass = kelasList.find((k) => k.id === kelasId)
 
@@ -548,7 +509,7 @@ export default function BukuNilaiPage() {
     if (mapelList.length > 0 && !mataPelajaranId) {
       setMataPelajaranId(mapelList[0]?.id || "")
     }
-  }, [kelasList, mapelList])
+  }, [kelasList, mapelList, kelasId, mataPelajaranId])
 
   const isLoading = bukuNilaiQuery.isLoading || (activeTab === "leger" && legerQuery.isLoading)
 
@@ -558,11 +519,12 @@ export default function BukuNilaiPage() {
   })
 
   // PDF report downloader for student
-  const handleDownloadSiswaRapor = () => {
+  const handleDownloadSiswaRapor = async () => {
     if (!siswaRaporQuery.data) return
+    const { JsPDF, autoTable } = await loadPdfTools()
     const { siswa: std, rapor: grades, sekolah: sch } = siswaRaporQuery.data
 
-    const doc = new jsPDF("portrait", "mm", "a4")
+    const doc = new JsPDF("portrait", "mm", "a4")
     const pageW = doc.internal.pageSize.getWidth()
     const pageH = doc.internal.pageSize.getHeight()
 
@@ -746,7 +708,7 @@ export default function BukuNilaiPage() {
             {grades.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground text-sm">Belum ada nilai resmi yang di-publish untuk Anda.</div>
             ) : (
-              grades.map((row, idx) => (
+              grades.map((row) => (
                 <div key={row.nilaiId} className="neumo-card bg-background rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">{row.namaMapel}</span>
@@ -957,7 +919,7 @@ export default function BukuNilaiPage() {
                 </Card>
                 {/* Mobile cards for Olah Nilai */}
                 <div className="md:hidden space-y-2">
-                  {calculatedData.map((row, idx) => {
+                  {calculatedData.map((row) => {
                     const finalNa = row.nilaiAkhir
                     const asesmen = bukuNilaiQuery.data?.asesmen || []
                     return (
@@ -1157,9 +1119,8 @@ export default function BukuNilaiPage() {
                   </Card>
                   {/* Mobile cards for Leger Kelas */}
                   <div className="md:hidden space-y-2">
-                    {legerQuery.data.siswa.map((std, idx) => {
+                    {legerQuery.data.siswa.map((std) => {
                       let total = 0
-                      let count = 0
                       return (
                         <div key={std.id} className="neumo-card bg-background rounded-2xl p-4 space-y-2">
                           <div className="flex items-center justify-between">
@@ -1184,7 +1145,7 @@ export default function BukuNilaiPage() {
                               const val = legerQuery.data.nilai.find(
                                 (g) => g.siswaId === std.id && g.mataPelajaranId === m.id
                               )?.nilaiAkhir ?? null
-                              if (val !== null) { total += val; count++ }
+                              if (val !== null) total += val
                               return (
                                 <div key={m.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-2 text-center">
                                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block leading-tight">{m.namaMapel}</span>

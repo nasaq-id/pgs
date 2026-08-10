@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
-  Compass, Eye, EyeOff, ShieldAlert, Sparkles, Users, GraduationCap,
-  School, ArrowRight, BookMarked, Award, CheckCircle2,
+  Eye, EyeOff, ShieldAlert, Sparkles, Users, GraduationCap,
+  School, ArrowRight, CheckCircle2,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -46,7 +46,7 @@ export default function LoginPage() {
         router.push("/")
         router.refresh()
       }
-    } catch (err) {
+    } catch {
       toast.error("Terjadi kesalahan sistem saat mencoba masuk.")
       setError("Terjadi kesalahan sistem")
       setLoading(false)

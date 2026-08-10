@@ -211,7 +211,7 @@ export default function DaftarSekolahDialog({
         adminEmail,
         adminPassword,
       })
-    } catch (err) {
+    } catch {
       // Handled by onError
     } finally {
       setLoading(false)

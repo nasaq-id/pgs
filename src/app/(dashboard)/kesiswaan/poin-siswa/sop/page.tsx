@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
-import { Shield, BookOpen, AlertCircle, CheckCircle, Users, Scale, MessageSquare, Clock, Printer, RefreshCw, Sliders, Calendar, FileCheck2, TrendingUp, TrendingDown, Award, AlertTriangle, X } from "lucide-react"
+import { useState, useMemo } from "react"
+import { BookOpen, AlertCircle, CheckCircle, Scale, MessageSquare, Clock, Printer, RefreshCw, Award, AlertTriangle, X } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 
 const SOP_PRINT_CSS = `
@@ -21,7 +21,6 @@ export default function SopEpoinPage() {
 
   const { data: aturanList } = api.poin.getAllAturan.useQuery()
   const { data: thresholdData } = api.poin.getMonitoringThreshold.useQuery()
-  const { data: kategoriList } = api.poin.getAllKategori.useQuery({})
 
   const negativeThresholds = useMemo(() => {
     if (!aturanList) return []
@@ -193,7 +192,7 @@ export default function SopEpoinPage() {
           </div>
           <div className="space-y-3 text-[11px] text-slate-500 font-semibold">
             {negativeThresholds.length > 0 ? (
-              negativeThresholds.map((rule, idx) => (
+              negativeThresholds.map((rule) => (
                 <div key={rule.id} className="flex justify-between items-center border-b border-slate-100 pb-1.5">
                   <span>{rule.poinMin} s/d {rule.poinMax} Poin</span>
                   <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-black uppercase">{rule.status}</span>

@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Loader2, Calendar, ClipboardList, Info, Landmark } from "lucide-react"
+import { Calendar, ClipboardList, Info, Landmark } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { parseLocalDate } from "@/lib/utils"
@@ -30,7 +29,7 @@ export default function MutasiFormDialog({ open, onOpenChange, onSuccess }: Muta
   const [saving, setSaving] = useState(false)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
-  const { data: activeSiswaList = [], isLoading: loadingSiswa } = api.siswa.getAll.useQuery(
+  const { data: activeSiswaList = [], isLoading: loadingSiswa } = api.siswa.getLookup.useQuery(
     { status: "aktif", limit: 1000 },
     { enabled: open }
   )

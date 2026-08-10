@@ -9,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
-import * as XLSX from "xlsx"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 
@@ -43,7 +42,8 @@ export default function ImportExportMapel({
   const [importing, setImporting] = useState(false)
   const utils = api.useUtils()
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import("xlsx")
     const rows = (mapelList ?? []).map((m) => ({
       Kode: m.kodeMapel || "",
       "Nama Mapel": m.namaMapel,
@@ -79,6 +79,7 @@ export default function ImportExportMapel({
   const handleFile = async (file: File) => {
     setImporting(true)
     try {
+      const XLSX = await import("xlsx")
       const buf = await file.arrayBuffer()
       const wb = XLSX.read(buf, { type: "array" })
       const sheet = wb.Sheets[wb.SheetNames[0]]

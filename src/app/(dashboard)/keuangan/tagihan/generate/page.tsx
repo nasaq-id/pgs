@@ -3,21 +3,15 @@
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/trpc/client"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Loader2, ArrowLeft, Sparkles, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
 } from "@/components/ui/alert-dialog"
 
 export default function GenerateTagihanPage() {
@@ -33,7 +27,7 @@ export default function GenerateTagihanPage() {
 
   const { data: billingTypes } = api.keuangan.settings.billingType.list.useQuery()
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
-  const { data: siswaList } = api.siswa.getAll.useQuery({})
+  const { data: siswaList } = api.siswa.getLookup.useQuery({})
   const generateMutation = api.keuangan.billing.generate.useMutation()
 
   useEffect(() => {

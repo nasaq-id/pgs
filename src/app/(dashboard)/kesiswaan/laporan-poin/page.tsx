@@ -44,7 +44,7 @@ export default function LaporanPoinPage() {
   const [siswaSearch, setSiswaSearch] = useState("")
   const [selectedSiswa, setSelectedSiswa] = useState<any>(null)
 
-  const { data: siswaList } = api.siswa.getAll.useQuery({ limit: 500 })
+  const { data: siswaList } = api.siswa.getLookup.useQuery({ limit: 500 })
 
   const { data: laporanData, isLoading } = api.poin.getLaporanData.useQuery({
     tanggalMulai: tanggalMulai ? new Date(tanggalMulai) : undefined,

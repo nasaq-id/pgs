@@ -1,13 +1,12 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { useState } from "react"
 import { api } from "@/lib/trpc/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ResponsiveTable from "@/components/ui/responsive-table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -42,7 +41,6 @@ function fmtDate(d: Date | string | null | undefined) {
 
 export default function DetailTagihanSiswaPage() {
   const params = useParams()
-  const router = useRouter()
   const siswaId = params.siswaId as string
 
   const [bayarOpen, setBayarOpen] = useState(false)
@@ -52,13 +50,10 @@ export default function DetailTagihanSiswaPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [saving, setSaving] = useState(false)
 
-  const { data: siswa } = api.siswa.getAll.useQuery({})
+  const { data: siswaData } = api.siswa.getById.useQuery({ id: siswaId })
   const { data: invoices, isLoading, refetch } = api.keuangan.billing.getByStudent.useQuery({ studentId: siswaId })
-  const { data: billingTypes } = api.keuangan.settings.billingType.list.useQuery()
   const recordCashMutation = api.keuangan.payment.recordCash.useMutation()
   const cancelMutation = api.keuangan.billing.cancel.useMutation()
-
-  const siswaData = siswa?.find((s: any) => s.id === siswaId)
 
   const handleBayar = async () => {
     if (!selectedInvoice || !bayarAmount) return
@@ -144,9 +139,6 @@ export default function DetailTagihanSiswaPage() {
             keyExtractor={(inv: any) => inv.id}
             emptyMessage="Siswa ini belum memiliki tagihan."
             mobileCardTitle={(inv: any) => {
-              const total = Number(inv.totalAmount)
-              const paid = Number(inv.paidAmount)
-              const sisa = total - paid
               return (
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200">

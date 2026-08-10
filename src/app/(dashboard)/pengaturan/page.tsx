@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { uploadToCloudinary, compressImage } from "@/lib/cloudinary"
-import { Settings, Upload, Loader2, School, Image as ImageIcon, FileText, Check, Save } from "lucide-react"
+import { Upload, Loader2, School, Image as ImageIcon, FileText, Check, Save } from "lucide-react"
 
 export default function PengaturanPage() {
   const { data: sekolah, isLoading } = api.lembaga.getSekolah.useQuery()

@@ -157,7 +157,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 1000 }, { enabled: open })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 1000 }, { enabled: open })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 1000 }, { enabled: open })
-  const { data: allJadwal, isLoading } = api.jadwal.getAll.useQuery({ limit: 1000 }, { enabled: open })
+  const { data: allJadwal, isLoading } = api.jadwal.getAll.useQuery({ limit: 10000 }, { enabled: open })
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({}, { enabled: open })
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({}, { enabled: open })
 
@@ -547,67 +547,6 @@ export default function CetakJadwal({ open, onClose }: Props) {
     )
   }
 
-  const renderClassLegend = (mapData: LegendItem[]) => {
-    if (mapData.length === 0) return null
-    const uniqueItems = Array.from(
-      new Map(mapData.map((item) => [`${item.mapelKode}-${item.guru}`, item])).values()
-    )
-    const midpoint = Math.ceil(uniqueItems.length / 2)
-    const leftGroups = uniqueItems.slice(0, midpoint)
-    const rightGroups = uniqueItems.slice(midpoint)
-
-    const renderTable = (items: LegendItem[]) => {
-      if (items.length === 0) return null
-      return (
-        <div className="overflow-hidden rounded-xl border border-slate-200 print:border-slate-300 bg-white shadow-2xs">
-          <table className="w-full text-left text-xs print:text-[8px] border-collapse">
-            <thead>
-              <tr className="bg-slate-100/90 print:bg-slate-100 border-b border-slate-200 text-slate-700 print:text-slate-900 font-black">
-                <th className="py-2 px-2 print:py-1 print:px-1.5 border-r border-slate-200 text-[10px] print:text-[8px] uppercase tracking-wider text-center w-[50px]">Kode</th>
-                <th className="py-2 px-3 print:py-1 print:px-2 border-r border-slate-200 text-[10px] print:text-[8px] uppercase tracking-wider">Mata Pelajaran</th>
-                <th className="py-2 px-3 print:py-1 print:px-2 text-[10px] print:text-[8px] uppercase tracking-wider">Guru Pengampu</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 print:divide-slate-200">
-              {items.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="py-1.5 px-2 print:py-0.5 print:px-1 border-r border-slate-100 print:border-slate-200 text-center font-mono font-black text-indigo-700 print:text-indigo-900 bg-indigo-50/40 print:bg-slate-100/60 align-middle">
-                    {item.code || "-"}
-                  </td>
-                  <td className="py-1.5 px-3 print:py-0.5 print:px-2 border-r border-slate-100 print:border-slate-200 font-bold text-slate-900 align-middle leading-tight">
-                    {item.mapel}
-                  </td>
-                  <td className="py-1.5 px-3 print:py-0.5 print:px-2 font-medium text-slate-700 print:text-slate-900 align-middle leading-tight">
-                    {item.guru}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-    }
-
-    return (
-      <div className="mt-6 bg-white print:bg-white rounded-2xl print:rounded-xl border border-slate-200 print:border-slate-300 overflow-hidden shadow-2xs avoid-break text-left">
-        <div className="bg-[#4f46e5] print:bg-indigo-700 text-white px-4 py-2 print:px-3 print:py-1.5 flex items-center justify-between">
-          <span className="font-black text-xs print:text-[9.5px] uppercase tracking-wider flex items-center gap-2">
-            📌 KETERANGAN MATA PELAJARAN & GURU PENGAMPU
-          </span>
-          <span className="text-[10px] print:text-[8px] font-bold bg-white/20 px-2.5 py-0.5 rounded-full text-white">
-            {mapData.length} Mapel
-          </span>
-        </div>
-        <div className="p-3 print:p-2 bg-slate-50/50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2 items-start">
-            {renderTable(leftGroups)}
-            {renderTable(rightGroups)}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   // ── Mode Keseluruhan (Master Roster per Hari) ──
   const renderKeseluruhan = () => (
     <div className="space-y-6 text-left">
@@ -736,13 +675,6 @@ export default function CetakJadwal({ open, onClose }: Props) {
   const renderPerKelas = () => (
     <div className="space-y-12 text-left">
       {selectedClasses.map((c, index) => {
-        const usedCodes = new Set<string>()
-        jadwalRecords.filter((j) => j.kelasId === c.id).forEach((j) => {
-          const code = getKode(j)
-          if (code) usedCodes.add(code)
-        })
-        const classLegendMap = legendMap.filter((item) => usedCodes.has(item.code))
-
         return (
           <div key={c.id} className={`${index < selectedClasses.length - 1 ? "break-after-page" : ""} avoid-break space-y-3 print:space-y-1.5 text-left`}>
             {renderKopHeader()}
@@ -842,7 +774,6 @@ export default function CetakJadwal({ open, onClose }: Props) {
               })}
             </div>
 
-            {renderClassLegend(classLegendMap)}
             {renderSignatures()}
 
             {index < selectedClasses.length - 1 && (

@@ -9,13 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import ResponsiveTable from "@/components/ui/responsive-table"
 import FilterBar from "@/components/keuangan/FilterBar"
-import { DollarSign, Search, Plus, ArrowRight, Eye, Loader2, CheckCircle2, XCircle, FileText } from "lucide-react"
+import { Plus, Eye, Loader2, CheckCircle2, XCircle, FileText } from "lucide-react"
 import { toast } from "sonner"
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
@@ -69,10 +68,9 @@ export default function TagihanPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
 
-  const { data: siswaList, isLoading: siswaLoading } = api.siswa.getAll.useQuery({})
+  const { data: siswaList, isLoading: siswaLoading } = api.siswa.getLookup.useQuery({})
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
   const { data: invoices, isLoading: invLoading, refetch } = api.keuangan.billing.getAll.useQuery({ limit: 500 })
-  const { data: billingTypes } = api.keuangan.settings.billingType.list.useQuery()
 
   const recordCashMutation = api.keuangan.payment.recordCash.useMutation()
   const cancelMutation = api.keuangan.billing.cancel.useMutation()

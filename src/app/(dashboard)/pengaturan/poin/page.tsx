@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Pencil, Trash2, Loader2, Search, Check, X } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -58,7 +58,6 @@ function formatPoin(val: number) {
 
 export default function PengaturanPoinPage() {
   const [tab, setTab] = useState<Tab>("Kategori Sikap")
-  const utils = api.useUtils()
 
   return (
     <div className="space-y-6">

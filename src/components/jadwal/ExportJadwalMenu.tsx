@@ -68,7 +68,7 @@ export default function ExportJadwalMenu({ onCetak, disabled }: Props) {
           utils.client.kelas.getAll.query({ limit: 1000 }),
           utils.client.mapel.getAll.query({ limit: 1000 }),
           utils.client.guru.getAll.query({ limit: 1000 }),
-          utils.client.jadwal.getAll.query({ limit: 1000 }),
+          utils.client.jadwal.getAll.query({ limit: 10000 }),
           utils.client.pengaturanJadwal.getTimeline.query({}),
         ])
 

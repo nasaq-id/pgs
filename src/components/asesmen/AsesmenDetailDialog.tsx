@@ -66,8 +66,6 @@ export default function AsesmenDetailDialog({ open, asesmenId, onClose }: Props)
   const submitMutation = api.asesmen.submitTugas.useMutation()
   const nilaiMutation = api.asesmen.nilaiSiswa.useMutation()
   const komentarMutation = api.asesmen.createKomentar.useMutation()
-  const utils = api.useUtils()
-
   const [jawabanTeks, setJawabanTeks] = useState("")
   const [berkasUrl, setBerkasUrl] = useState("")
   const [nilaiInputs, setNilaiInputs] = useState<Record<string, string>>({})

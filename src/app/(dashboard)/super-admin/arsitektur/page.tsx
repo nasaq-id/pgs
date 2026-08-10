@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { api } from "@/lib/trpc/client"
 import {
   Folder, FileCode, ChevronRight, ChevronDown, RefreshCw, Layers,
-  CheckCircle, ShieldAlert, AlertTriangle, Search, Info, HelpCircle, HardDrive
+  CheckCircle, ShieldAlert, AlertTriangle, Search, Info, HardDrive
 } from "lucide-react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
@@ -186,7 +186,7 @@ export default function CodebaseHealthPage() {
     try {
       await refetch()
       toast.success("Berhasil melakukan re-audit struktur file codebase!")
-    } catch (e) {
+    } catch {
       toast.error("Gagal menganalisis codebase.")
     }
   }

@@ -2,20 +2,20 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { createServerSideHelpers } from "@trpc/react-query/server"
 import { appRouter } from "@/server/api/root"
 import { createTRPCContext } from "@/server/api/trpc"
-import { auth } from "@/auth"
 import MonitoringSpApresiasiPage from "./monitoring-sp-page"
 
 export const dynamic = "force-dynamic"
 
 export default async function MonitoringSpServerPage() {
   const queryClient = new QueryClient()
+  const ctx = await createTRPCContext()
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: await createTRPCContext(),
+    ctx,
     queryClient,
   })
 
-  const session = await auth()
+  const session = ctx.session
 
   if (session?.user) {
     const jobs = [
@@ -23,7 +23,7 @@ export default async function MonitoringSpServerPage() {
       helpers.poin.getMonitoringThreshold.prefetch(),
       helpers.poin.getDashboardGuruAdmin.prefetch(),
       helpers.poin.getAllAturan.prefetch(),
-      helpers.siswa.getAll.prefetch({ limit: 1000 }),
+      helpers.siswa.getLookup.prefetch({ limit: 1000 }),
       helpers.poin.getAllSikap.prefetch({ limit: 500 }),
       helpers.kelas.getAll.prefetch({}),
     ]

@@ -117,7 +117,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
   <div class="photo">${s.foto ? `<img src="${s.foto}"/>` : '<span style="font-size:28px;color:rgba(255,255,255,.7)">&#x1F464;</span>'}</div>
   <div class="hi">
     <h2>${s.namaLengkap || "-"}</h2>
-    <p>NISN: ${s.nisn || "-"} ${s.kelas?.namaKelas ? `| ${s.kelas.namaKelas}` : ""}</p>
+    <p>NISN: ${s.nisn || "-"} ${s.kelasNama ? `| ${s.kelasNama}` : ""}</p>
     <div class="badges">
       ${s.status ? `<span class="badge b-green">${s.status.charAt(0).toUpperCase() + s.status.slice(1)}</span>` : ""}
       ${s.jenisKelamin ? `<span class="badge b-blue">${s.jenisKelamin === "L" ? "Laki-laki" : "Perempuan"}</span>` : ""}
@@ -215,7 +215,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
               <div>
                 <h3 className="text-xl font-bold">{siswa.namaLengkap || "-"}</h3>
                 <p className="text-emerald-100 text-sm mt-0.5">
-                  NISN: {siswa.nisn || "-"} {siswa.kelas?.namaKelas ? `· ${siswa.kelas.namaKelas}` : ""}
+                  NISN: {siswa.nisn || "-"} {siswa.kelasNama ? `· ${siswa.kelasNama}` : ""}
                 </p>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <Badge className={`text-xs ${siswa.status === "aktif" ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-700"}`}>

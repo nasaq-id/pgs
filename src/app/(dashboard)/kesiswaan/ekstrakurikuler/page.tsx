@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 import EkstrakurikulerFormDialog, { type EkstrakurikulerFormData } from "@/components/ekstrakurikuler/EkstrakurikulerFormDialog"
 
 const HARI_LABEL: Record<string, string> = {
@@ -62,8 +63,8 @@ export default function EkstrakurikulerPage() {
   const [editData, setEditData] = useState<EkstrakurikulerFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const { data: ekskulList, isLoading } = api.ekstrakurikuler.getAll.useQuery({ search })
-  const { data: guruList } = api.guru.getAll.useQuery({ limit: 200 })
+  const { data: ekskulList, isLoading } = api.ekstrakurikuler.getAll.useQuery({ search: useDebounce(search) })
+  const { data: guruList } = api.guru.getLookup.useQuery({ limit: 200 })
   const utils = api.useUtils()
 
   const createMutation = api.ekstrakurikuler.create.useMutation({

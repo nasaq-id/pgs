@@ -62,7 +62,7 @@ export default function ResetPasswordDialog({
         userId: selectedAdminId,
         newPassword: newAdminPassword,
       })
-    } catch (err) {
+    } catch {
       // Handled by onError
     } finally {
       setLoading(false)

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Shield, Settings, Plus, Pencil, Trash2, Loader2, Award, AlertCircle, Check, Database, Save, ToggleLeft, ToggleRight, RotateCcw, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
+import { useState } from "react"
+import { Shield, Settings, Pencil, Trash2, Loader2, Check, Database, Save, ToggleLeft, ToggleRight, TrendingUp } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -384,7 +384,7 @@ export default function PengaturanEpoinPage() {
                 <div className="flex-1">
                   <p className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1">Wajib Validasi Guru BK</p>
                   <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                    Jika aktif, setiap poin yang diinput oleh Guru Piket/Pengajar akan masuk ke antrean "Menunggu Validasi" untuk disetujui oleh Guru BK.
+                     Jika aktif, setiap poin yang diinput oleh Guru Piket/Pengajar akan masuk ke antrean &quot;Menunggu Validasi&quot; untuk disetujui oleh Guru BK.
                   </p>
                 </div>
                 <button
@@ -474,7 +474,7 @@ export default function PengaturanEpoinPage() {
                   </tr>
                 ) : !kategoriList || kategoriList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">Belum ada kategori sikap dikonfigurasi. Klik 'Inisialisasi Default' untuk membuat data awal.</td>
+                     <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">Belum ada kategori sikap dikonfigurasi. Klik &apos;Inisialisasi Default&apos; untuk membuat data awal.</td>
                   </tr>
                 ) : (
                   kategoriList.map((kat) => {

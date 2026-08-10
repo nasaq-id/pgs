@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -261,7 +260,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
       setInsertType("istirahat")
       setInsertAfterUrutan(null)
       toast.success("Kegiatan berhasil ditambahkan")
-    } catch (err: any) {
+    } catch {
       toast.error("Gagal menambahkan kegiatan")
     } finally {
       setSaving(false)
@@ -301,7 +300,7 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
           urutan: targetUrutan,
         })
         toast.success("Jam Pelajaran (JP) berhasil disisipkan")
-      } catch (err: any) {
+      } catch {
         toast.error("Gagal menyisipkan JP")
       } finally {
         setSaving(false)

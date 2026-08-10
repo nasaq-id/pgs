@@ -2,7 +2,6 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { createServerSideHelpers } from "@trpc/react-query/server"
 import { appRouter } from "@/server/api/root"
 import { createTRPCContext } from "@/server/api/trpc"
-import { auth } from "@/auth"
 import { cookies } from "next/headers"
 import DashboardPage from "./dashboard-page"
 
@@ -10,13 +9,14 @@ export const dynamic = "force-dynamic"
 
 export default async function DashboardServerPage() {
   const queryClient = new QueryClient()
+  const ctx = await createTRPCContext()
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: await createTRPCContext(),
+    ctx,
     queryClient,
   })
 
-  const session = await auth()
+  const session = ctx.session
   const role = session?.user?.role as string | undefined
 
   let impersonating = false

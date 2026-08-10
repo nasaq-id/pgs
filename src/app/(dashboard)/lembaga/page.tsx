@@ -1,18 +1,9 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { User, Mail, Globe, ImageIcon, Pencil, MessageCircle, Camera, Loader2, Upload, School, Award, BookOpen, MapPin, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { User, Mail, Globe, Pencil, MessageCircle, Camera, Loader2, Upload, School, BookOpen, Star } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipPopup,
-} from "@/components/ui/tooltip"
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>

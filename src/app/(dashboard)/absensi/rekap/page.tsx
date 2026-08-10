@@ -2,28 +2,20 @@
 
 import { useState, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
-import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { drawGlobalKop, type SekolahKopData } from "@/lib/pdf-helper"
-import jsPDF from "jspdf"
-import { autoTable } from "jspdf-autotable"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
-  ClipboardCheck,
-  Users,
   UserCheck,
   GraduationCap,
   Calendar,
   Download,
   Search,
-  Filter,
   CheckCircle2,
-  AlertTriangle,
   Clock,
   UserX,
   FileSpreadsheet,
@@ -82,12 +74,11 @@ const BULAN_LIST = [
 ]
 
 export default function RekapPresensiPage() {
-  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<TabType>("siswa")
   const [periodeType, setPeriodeType] = useState<PeriodeType>("bulanan")
   
   // Date states
-  const now = new Date()
+  const [now] = useState(() => new Date())
   const [selectedMonth, setSelectedMonth] = useState<string>(String(now.getMonth() + 1))
   const [selectedYear, setSelectedYear] = useState<string>(String(now.getFullYear()))
   const [selectedSemester, setSelectedSemester] = useState<"ganjil" | "genap">("ganjil")
@@ -112,7 +103,7 @@ export default function RekapPresensiPage() {
 
   // Queries for options
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 200 })
-  const { data: siswaList } = api.siswa.getAll.useQuery(
+  const { data: siswaList } = api.siswa.getLookup.useQuery(
     { kelasId: kelasFilter !== "all" ? kelasFilter : undefined, limit: 1000 },
     { enabled: activeTab === "siswa" }
   )
@@ -163,7 +154,7 @@ export default function RekapPresensiPage() {
     }
 
     return { startDate: start, endDate: end, dateRangeLabel: label }
-  }, [periodeType, selectedMonth, selectedYear, selectedSemester, customStart, customEnd])
+  }, [now, periodeType, selectedMonth, selectedYear, selectedSemester, customStart, customEnd])
 
   // Fetch Rekap Data
   const { data: rekapSiswaData, isLoading: isLoadingSiswa } = api.absensi.getRekapSiswa.useQuery(
@@ -213,7 +204,6 @@ export default function RekapPresensiPage() {
   const activeList = activeTab === "siswa" ? filteredSiswaSummary : filteredGuruSummary
   const totalPages = Math.ceil(activeList.length / limit)
   const paginatedData = activeList.slice(page * limit, (page + 1) * limit)
-  const hasMore = activeList.length > (page + 1) * limit
 
   // Guru mode Jam Pelajaran (JP): kolom & satuan rekap jadi JP
   const isGuruJP = activeTab === "guru" && !!rekapGuruData?.isPerJP
@@ -378,19 +368,18 @@ export default function RekapPresensiPage() {
     }
 
     try {
+      const [{ default: JsPDF }, { autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ])
       const sekolah = await utils.client.lembaga.getSekolah.query()
-
-      let logoBase64: string | null = null
-      if (sekolah?.logo) {
-        logoBase64 = await urlToBase64(sekolah.logo)
-      }
 
       let customKopBase64: string | null = null
       if (sekolah?.useCustomKop && sekolah?.customKopGambar) {
         customKopBase64 = await urlToBase64(sekolah.customKopGambar)
       }
 
-      const doc = new jsPDF("landscape", "mm", "a4")
+      const doc = new JsPDF("landscape", "mm", "a4")
       const pageW = doc.internal.pageSize.getWidth()
       const pageH = doc.internal.pageSize.getHeight()
 
@@ -533,7 +522,7 @@ export default function RekapPresensiPage() {
               9: { cellWidth: 28, halign: "center" },
             },
         margin: { top: 15, bottom: 15, left: 14, right: 14 },
-        didDrawPage: (data) => {
+        didDrawPage: () => {
           // Footer on every page
           doc.setFontSize(7)
           doc.setTextColor(150, 150, 150)
@@ -760,7 +749,7 @@ export default function RekapPresensiPage() {
 
         {/* Row 2: Period Filters */}
         <div className="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-          <Select value={periodeType} onValueChange={(v) => { v && setPeriodeType(v as PeriodeType); setPage(0); }}>
+          <Select value={periodeType} onValueChange={(v) => { setPeriodeType(v as PeriodeType); setPage(0); }}>
             <SelectTrigger className="w-44 !h-10 !rounded-2xl text-xs font-bold">
               <SelectValue placeholder="Pilih Periode" />
             </SelectTrigger>

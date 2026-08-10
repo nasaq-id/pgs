@@ -3,12 +3,11 @@
 import { useState, useEffect, useMemo } from "react"
 import { api } from "@/lib/trpc/client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Loader2, ClipboardCheck } from "lucide-react"
+import { ClipboardCheck } from "lucide-react"
 import { toast } from "sonner"
 
 function FieldWrap({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
@@ -44,7 +43,7 @@ export default function AsesmenFormDialog({ open, item, onClose, onSaved }: Prop
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: currentGuru } = api.lms.getCurrentGuru.useQuery()
-  const { data: guruList } = api.guru.getAll.useQuery(
+  const { data: guruList } = api.guru.getLookup.useQuery(
     { limit: 500 },
     { enabled: !currentGuru },
   )

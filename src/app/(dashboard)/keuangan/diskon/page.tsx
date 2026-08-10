@@ -47,7 +47,7 @@ export default function DiskonPage() {
   const [note, setNote] = useState("")
 
   const { data: discounts, isLoading, refetch } = api.keuangan.discount.list.useQuery({})
-  const { data: siswaList } = api.siswa.getAll.useQuery({})
+  const { data: siswaList } = api.siswa.getLookup.useQuery({})
   const createMutation = api.keuangan.discount.create.useMutation()
   const approveMutation = api.keuangan.discount.approve.useMutation()
   const toggleMutation = api.keuangan.discount.toggle.useMutation()

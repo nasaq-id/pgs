@@ -20,7 +20,6 @@ import {
   X,
   Check,
   AlertTriangle,
-  Info,
   Eye,
   RotateCcw,
   Trash2,

@@ -2,10 +2,12 @@
 
 import { useState, useCallback } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
 import { Home, QrCode, ClipboardCheck, Bell, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
-import QRScannerModal from "./QRScannerModal"
+
+const QRScannerModal = dynamic(() => import("./QRScannerModal"), { ssr: false })
 
 export default function MobileBottomNav() {
   const pathname = usePathname()
@@ -101,7 +103,7 @@ export default function MobileBottomNav() {
 
         </div>
       </div>
-      <QRScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} />
+      {scannerOpen && <QRScannerModal open onClose={() => setScannerOpen(false)} />}
     </>
   )
 }

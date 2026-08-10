@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react"
-import { Shield, Users, Calendar, User, FileText, Upload, Plus, Search, Loader2, Check, X, AlertCircle } from "lucide-react"
+import { User, FileText, Upload, Plus, Search, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
@@ -15,7 +15,7 @@ export default function InputDataPoinPage() {
   const utils = api.useUtils()
 
   const [activeTab, setActiveTab] = useState<"input" | "rekap" | "menunggu">("input")
-  const [wajibValidasiBk, setWajibValidasiBk] = useState(true)
+  const [wajibValidasiBk] = useState(true)
 
   // ── Tab 1: Input Poin State ──
   const [jenisPoin, setJenisPoin] = useState<"negatif" | "positif">("negatif")
@@ -36,8 +36,8 @@ export default function InputDataPoinPage() {
   const [filterRekapJenis, setFilterRekapJenis] = useState<string>("all")
 
   // ── Database Queries & Mutations ──
-  const { data: siswaList } = api.siswa.getAll.useQuery({ limit: 1000 })
-  const { data: kategoriList, isLoading: isLoadingKategori } = api.poin.getAllKategori.useQuery({ aktifOnly: true })
+  const { data: siswaList } = api.siswa.getLookup.useQuery({ limit: 1000 })
+  const { data: kategoriList } = api.poin.getAllKategori.useQuery({ aktifOnly: true })
   const { data: aturanList } = api.poin.getAllAturan.useQuery()
   const { data: daftarKelas } = api.kelas.getAll.useQuery({})
   const { data: riwayatSikap, isLoading: isLoadingRiwayat } = api.poin.getAllSikap.useQuery({ limit: 150 })
@@ -751,7 +751,7 @@ export default function InputDataPoinPage() {
                           <div className="font-extrabold text-slate-800">{cleanName}</div>
                           {item.deskripsi && (
                             <p className="text-[10px] text-slate-450 font-normal mt-1 leading-normal italic">
-                              "{item.deskripsi}"
+                              &quot;{item.deskripsi}&quot;
                             </p>
                           )}
                         </td>
@@ -819,7 +819,7 @@ export default function InputDataPoinPage() {
 
                     <div className="text-[11px] text-slate-655 space-y-1">
                       <p className="font-extrabold text-slate-700">{cleanName}</p>
-                      {item.deskripsi && <p className="italic text-slate-450 font-normal">"{item.deskripsi}"</p>}
+                      {item.deskripsi && <p className="italic text-slate-450 font-normal">&quot;{item.deskripsi}&quot;</p>}
                     </div>
 
                     <div className="flex justify-between items-center border-t border-slate-100 pt-3 text-[10px]">

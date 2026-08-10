@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 import PrestasiFormDialog, { type PrestasiFormData } from "@/components/prestasi/PrestasiFormDialog"
 
 const TINGKAT_LABEL: Record<string, string> = {
@@ -67,8 +68,8 @@ export default function PrestasiPage() {
   const [editData, setEditData] = useState<PrestasiFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const { data: prestasiList, isLoading } = api.prestasi.getAll.useQuery({ search })
-  const { data: siswaList } = api.siswa.getAll.useQuery({ limit: 200 })
+  const { data: prestasiList, isLoading } = api.prestasi.getAll.useQuery({ search: useDebounce(search) })
+  const { data: siswaList } = api.siswa.getLookup.useQuery({ limit: 200 })
   const utils = api.useUtils()
 
   const createMutation = api.prestasi.create.useMutation({

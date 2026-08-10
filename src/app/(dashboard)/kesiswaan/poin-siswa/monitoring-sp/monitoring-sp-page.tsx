@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
-import { Shield, FileText, Calendar, User, Eye, Download, Trash2, Plus, ArrowRight, Loader2, Check, AlertCircle, Edit, Settings, Search, TrendingUp, TrendingDown } from "lucide-react"
+import { FileText, Eye, Download, Loader2, Check, Search } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function MonitoringSpApresiasiPage() {
   const utils = api.useUtils()
@@ -40,7 +40,7 @@ export default function MonitoringSpApresiasiPage() {
   // ── Rekap Tab State ──
   const [rekapSearch, setRekapSearch] = useState("")
   const [rekapFilterKelas, setRekapFilterKelas] = useState("all")
-  const { data: semuaSiswa } = api.siswa.getAll.useQuery({ limit: 1000 })
+  const { data: semuaSiswa } = api.siswa.getLookup.useQuery({ limit: 1000 })
   const { data: semuaSikap } = api.poin.getAllSikap.useQuery({ limit: 500 })
   const { data: daftarKelas } = api.kelas.getAll.useQuery({})
 
@@ -389,7 +389,7 @@ className={`px-5 py-3 text-xs font-black uppercase tracking-wider transition-all
                         </td>
                         <td className="py-4 px-4">
                           <div className="font-extrabold text-slate-850">{actionPlan}</div>
-                          {item.deskripsi && <p className="text-[10px] text-slate-450 italic font-normal mt-1">"{item.deskripsi}"</p>}
+                          {item.deskripsi && <p className="text-[10px] text-slate-450 italic font-normal mt-1">&quot;{item.deskripsi}&quot;</p>}
                         </td>
                         <td className="py-4 px-4 text-slate-500 font-extrabold">
                           {item.guru?.namaLengkap || "Wali Kelas / BK"}

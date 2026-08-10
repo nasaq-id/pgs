@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
+import { useDebounce } from "@/hooks/useDebounce"
 
 interface RuangKelasFormData {
   id?: string
@@ -169,7 +170,7 @@ export default function RuangKelasPage() {
   const [editData, setEditData] = useState<RuangKelasFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const { data: ruangList, isLoading } = api.ruangKelas.getAll.useQuery({ search })
+  const { data: ruangList, isLoading } = api.ruangKelas.getAll.useQuery({ search: useDebounce(search) })
   const utils = api.useUtils()
 
   const createMutation = api.ruangKelas.create.useMutation({

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { api } from "@/lib/trpc/client"
 import {
   Database, Search, RefreshCw, ArrowRight, GitFork, Key,
-  Sparkles, Layers, Hash, Calendar, HelpCircle, CheckCircle
+  Sparkles, Layers, Hash, CheckCircle
 } from "lucide-react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
@@ -91,7 +91,7 @@ export default function DatabaseSchemaPage() {
     try {
       await refetch()
       toast.success("Berhasil mensinkronisasi skema database terbaru dari codebase!")
-    } catch (error) {
+    } catch {
       toast.error("Gagal melakukan sinkronisasi skema.")
     }
   }

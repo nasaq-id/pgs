@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import dynamic from "next/dynamic"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import MobileBottomNav from "./MobileBottomNav"
-import DashboardTour from "./DashboardTour"
 import { cn } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { ShieldAlert, LogOut } from "lucide-react"
+
+const DashboardTour = dynamic(() => import("./DashboardTour"), { ssr: false })
 
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -190,21 +191,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       )}
 
-      <motion.div
-        animate={{ width: isDesktop ? (effectiveMinimized ? 80 : 308) : 308 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      <div
+        style={{ width: isDesktop ? (effectiveMinimized ? 80 : 308) : 308 }}
         onPointerEnter={handleSidebarEnter}
         onPointerLeave={handleSidebarLeave}
         onFocus={handleSidebarEnter}
         onBlur={handleSidebarBlur}
         className={cn(
-          "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-0 overflow-hidden",
+          "hidden lg:fixed lg:left-0 lg:z-50 lg:flex lg:flex-col lg:p-0 overflow-hidden transition-[width] duration-300 ease-out",
           isImpersonating ? "lg:top-11 lg:bottom-0" : "lg:inset-y-0",
           effectiveMinimized ? "sidebar-minimized" : ""
         )}
       >
         <Sidebar isMinimized={effectiveMinimized} setIsMinimized={handleSetMinimized} />
-      </motion.div>
+      </div>
  
       {sidebarOpen && (
         <>
@@ -221,27 +221,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </>
       )}
 
-      <motion.div
-        animate={{ paddingLeft: isDesktop ? (effectiveMinimized ? 80 : 298) : 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full flex-grow flex flex-col"
+      <div
+        style={{ paddingLeft: isDesktop ? (effectiveMinimized ? 80 : 298) : 0 }}
+        className="w-full flex-grow flex flex-col transition-[padding-left] duration-300 ease-out"
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="pt-4 lg:pt-5 pb-20 lg:pb-6 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="w-full"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div key={pathname} className="w-full animate-fade-in">
+            {children}
+          </div>
         </main>
-      </motion.div>
+      </div>
 
       {pathname === "/" && <DashboardTour />}
       <MobileBottomNav />

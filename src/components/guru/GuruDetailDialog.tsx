@@ -248,7 +248,7 @@ export default function GuruDetailDialog({ open, onOpenChange, guruId }: GuruDet
               try {
                 if (guru.riwayatPendidikan) pMap = JSON.parse(guru.riwayatPendidikan)
               } catch {}
-              const entries = Object.entries(pMap).filter(([_, val]) => val && val.namaSekolah)
+              const entries = Object.entries(pMap).filter(([, val]) => val && val.namaSekolah)
               if (entries.length === 0) return null
               return (
                 <SectionBlock title="Riwayat Pendidikan" color="bg-emerald-50 text-emerald-800">

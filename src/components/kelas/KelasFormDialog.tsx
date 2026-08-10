@@ -56,7 +56,7 @@ export default function KelasFormDialog({ open, onClose, onSubmit, initial, guru
   const [siswaSearch, setSiswaSearch] = useState("")
   const [loadingSiswa, setLoadingSiswa] = useState(false)
 
-  const { data: allSiswa } = api.siswa.getAll.useQuery({ status: "aktif_tanpa_rombel", limit: 1000, sortBy: "namaLengkap" })
+  const { data: allSiswa } = api.siswa.getLookup.useQuery({ status: "aktif_tanpa_rombel", limit: 1000, sortBy: "namaLengkap" })
   const { data: sekolah } = api.lembaga.getSekolah.useQuery()
 
   useEffect(() => {

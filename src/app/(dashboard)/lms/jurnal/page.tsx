@@ -5,11 +5,7 @@ import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { cn, parseLocalDate } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -18,13 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Calendar, Clock, CheckCircle2, AlertTriangle, BookOpen, User, Sparkles } from "lucide-react"
-import { toast } from "sonner"
+import { Calendar, BookOpen } from "lucide-react"
 import JurnalFormDialog from "@/components/jurnal/JurnalFormDialog"
 
 export default function JurnalMengajarPage() {
   const { data: session } = useSession()
-  const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
   const isGuru = session?.user?.role === "guru"
 
   const [tanggal, setTanggal] = useState("")

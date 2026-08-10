@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,9 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import JSZip from "jszip"
-import QRCode from "qrcode"
-import { ClipboardCheck, Save, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff, Users, UserCheck, Info } from "lucide-react"
+import { ClipboardCheck, Loader2, Calendar, QrCode, ShieldAlert, CheckCircle2, Scan, Download, Printer, X, User, Clock, Search, Check, Flame, PowerOff, Users, UserCheck, Info } from "lucide-react"
 import {
   Tooltip,
   TooltipTrigger,
@@ -31,6 +28,14 @@ import { StatusSegmented, STATUS_LABELS, STATUS_DOT_CLASS, STATUS_ACTIVE_CLASS, 
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
+}
+
+async function createQrDataUrl(
+  data: string,
+  options: { width: number; margin: number; errorCorrectionLevel: "M" },
+) {
+  const { default: QRCode } = await import("qrcode")
+  return QRCode.toDataURL(data, options)
 }
 
 export default function AbsensiPage() {
@@ -89,29 +94,6 @@ export default function AbsensiPage() {
   const [siswaQrUrl, setSiswaQrUrl] = useState<string | null>(null)
   const [guruQrUrl, setGuruQrUrl] = useState<string | null>(null)
   const [adminQrUrl, setAdminQrUrl] = useState<string | null>(null)
-  const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null)
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) return
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setGpsCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        })
-      },
-      (error) => {
-        console.warn("Background GPS tracking failed:", error)
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
-    )
-
-    return () => {
-      navigator.geolocation.clearWatch(watchId)
-    }
-  }, [])
-
   useEffect(() => {
     setTanggal(new Date().toISOString().split("T")[0])
   }, [])
@@ -121,19 +103,12 @@ export default function AbsensiPage() {
     enabled: role === "guru",
   })
   const { data: classes } = api.kelas.getAll.useQuery({})
-  const { data: siswaAll } = api.siswa.getAll.useQuery({ limit: 10000 })
+  const { data: siswaAll } = api.siswa.getLookup.useQuery({ limit: 10000 })
   const { data: guruAll } = api.guru.getAll.useQuery({}, {
     enabled: role === "super_admin" || role === "admin_sekolah" || role === "tu",
   })
 
   const isWaliKelas = !!(ownGuru && classes?.some((c) => c.waliKelasId === ownGuru.id))
-  const isWakaOrKepsek = !!(
-    ownGuru &&
-    (ownGuru.tugasUtama?.toLowerCase().includes("kepala") ||
-      ownGuru.tugasUtama?.toLowerCase().includes("waka") ||
-      ownGuru.tugasTambahan?.toLowerCase().includes("kepala") ||
-      ownGuru.tugasTambahan?.toLowerCase().includes("waka"))
-  )
 
   const canManageGlobal = role === "super_admin" || role === "admin_sekolah"
   const canTakeAttendance = role === "super_admin" || role === "admin_sekolah" || role === "tu" || isWaliKelas
@@ -257,21 +232,21 @@ export default function AbsensiPage() {
   useEffect(() => {
     if (role === "siswa" && currentSiswaInfo) {
       const qrData = currentSiswaInfo.nisn || currentSiswaInfo.nisLokal || currentSiswaInfo.id
-      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setSiswaQrUrl).catch(() => {})
+      void createQrDataUrl(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setSiswaQrUrl).catch(() => {})
     }
   }, [role, currentSiswaInfo])
 
   useEffect(() => {
     if (role === "guru" && ownGuru) {
       const qrData = ownGuru.nipnuptk || ownGuru.nik || ownGuru.id
-      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setGuruQrUrl).catch(() => {})
+      void createQrDataUrl(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setGuruQrUrl).catch(() => {})
     }
   }, [role, ownGuru])
 
   useEffect(() => {
     if (role === "super_admin" || role === "admin_sekolah" || role === "tu") {
       const qrData = session?.user?.email || session?.user?.id || ""
-      QRCode.toDataURL(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setAdminQrUrl).catch(() => {})
+      void createQrDataUrl(qrData, { width: 200, margin: 2, errorCorrectionLevel: "M" }).then(setAdminQrUrl).catch(() => {})
     }
   }, [role, session])
 
@@ -388,7 +363,6 @@ export default function AbsensiPage() {
           setCreatedSiswaIds((prev) => new Set(prev).add(id))
         }
       } else {
-        const existing = existingGuruMap.get(id) || createdGuruIds.has(id)
         const existingRow = existingGuruMap.get(id)
         await saveGuruAbsensi.mutateAsync({
           ...(existingRow ? { id: existingRow.id } : {}),
@@ -568,8 +542,8 @@ export default function AbsensiPage() {
     }
 
     try {
-      let coords = gpsCoords
-      if (!coords && navigator.geolocation) {
+      let coords: { latitude: number; longitude: number } | null = null
+      if (navigator.geolocation) {
         coords = await new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -735,6 +709,7 @@ export default function AbsensiPage() {
     setBulkProgress("Mempersiapkan...")
 
     try {
+      const [{ default: JSZip }] = await Promise.all([import("jszip")])
       const zip = new JSZip()
       let count = 0
 
@@ -743,7 +718,7 @@ export default function AbsensiPage() {
         setBulkProgress(`Membuat QR (${count}/${filteredSiswa.length}): ${std.namaLengkap}`)
 
         const qrText = std.nisn || std.nisLokal || std.id
-        const qrDataUrl = await QRCode.toDataURL(qrText, {
+        const qrDataUrl = await createQrDataUrl(qrText, {
           width: 300,
           margin: 2,
           errorCorrectionLevel: "M",
@@ -831,7 +806,7 @@ export default function AbsensiPage() {
         setBulkProgress(`Membuat QR (${count}/${filteredSiswa.length}): ${std.namaLengkap}`)
 
         const qrText = std.nisn || std.nisLokal || std.id
-        const qrDataUrl = await QRCode.toDataURL(qrText, {
+        const qrDataUrl = await createQrDataUrl(qrText, {
           width: 300,
           margin: 1,
           errorCorrectionLevel: "M",
@@ -1024,7 +999,7 @@ export default function AbsensiPage() {
 
   const handleDownloadQR = async (data: string, name: string) => {
     try {
-      const qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
+      const qrDataUrl = await createQrDataUrl(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
       const link = document.createElement("a")
       link.href = qrDataUrl
       link.download = `QR_Absensi_${name.replace(/\s+/g, "_")}.png`
@@ -1044,7 +1019,7 @@ export default function AbsensiPage() {
 
     let qrDataUrl = ""
     try {
-      qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
+      qrDataUrl = await createQrDataUrl(data, { width: 300, margin: 2, errorCorrectionLevel: "M" })
     } catch {
       toast.error("Gagal membuat QR Code")
       return
@@ -1245,11 +1220,11 @@ export default function AbsensiPage() {
   }
 
   useEffect(() => {
+    const scanner = scannerRef.current
     if (activeTab !== "scan") {
       handleStopCamera()
     }
     return () => {
-      const scanner = scannerRef.current
       scanner.stopped = true
       if (scanner.instance) {
         try {

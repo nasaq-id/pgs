@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -210,7 +209,6 @@ export default function SiswaFormDialog({ open, onOpenChange, initialData, onSuc
   const isIbuTidakBekerja = form.pekerjaanIbu === "Tidak Bekerja"
   const isWaliTidakBekerja = form.pekerjaanWali === "Tidak Bekerja"
 
-  const alamatIbuTerisiOtomatis = form.alamatIbuSamaDenganAyah === "true"
 
   const emailError = form.emailSiswa && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailSiswa) ? "Format email tidak valid" : ""
 

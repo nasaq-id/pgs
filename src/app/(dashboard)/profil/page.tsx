@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, ChevronRight, Edit3, Loader2 } from "lucide-react"
+import { Camera, Mail, Shield, Building2, Phone, MapPin, BookOpen, Cake, User, Users, Award, CalendarDays, FileText, Clock, Edit3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/trpc/client"
@@ -111,7 +111,7 @@ export default function ProfilPage() {
   }
 
   const updatePhoto = api.profil.updateProfilePhoto.useMutation({
-    onSuccess: (res) => {
+    onSuccess: () => {
       utils.profil.getProfile.invalidate()
       updateSession()
     },

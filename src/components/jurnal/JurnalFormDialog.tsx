@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, BookOpen, Activity, AlertTriangle, Users, CheckCircle2, FileText, Check } from "lucide-react"
+import { Loader2, BookOpen } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/trpc/client"
 import { cn, parseLocalDate, parseLocalTime } from "@/lib/utils"
@@ -87,7 +85,6 @@ export default function JurnalFormDialog({
   const [materiKonten, setMateriKonten] = useState("")
   const [kegiatanPembelajaran, setKegiatanPembelajaran] = useState("")
   const [catatan, setCatatan] = useState("")
-  const [status, setStatus] = useState<"draft" | "selesai">("selesai")
   const [guruId, setGuruId] = useState("")
   const [saving, setSaving] = useState(false)
   const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
@@ -105,9 +102,9 @@ export default function JurnalFormDialog({
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
-  const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 }, { enabled: isAdmin })
+  const { data: guruList } = api.guru.getLookup.useQuery({ limit: 500 }, { enabled: isAdmin })
 
-  const { data: siswaList } = api.siswa.getAll.useQuery(
+  const { data: siswaList } = api.siswa.getLookup.useQuery(
     { kelasId, status: "aktif", limit: 500 },
     { enabled: !!kelasId },
   )
@@ -128,7 +125,6 @@ export default function JurnalFormDialog({
       setMateriKonten(item.materiKonten || "")
       setKegiatanPembelajaran(item.kegiatanPembelajaran || "")
       setCatatan(item.catatan || "")
-      setStatus(item.status || "selesai")
       setGuruId(item.guruId)
       setSelectedJadwalId(item.jadwalPelajaranId || "")
     } else if (initialJadwalSlot) {
@@ -144,7 +140,6 @@ export default function JurnalFormDialog({
       setMateriKonten("")
       setKegiatanPembelajaran("")
       setCatatan("")
-      setStatus("selesai")
     } else {
       setJudulJurnal("")
       setKelasId("")
@@ -156,7 +151,6 @@ export default function JurnalFormDialog({
       setMateriKonten("")
       setKegiatanPembelajaran("")
       setCatatan("")
-      setStatus("selesai")
       setGuruId(defaultGuruId || "")
       setSelectedJadwalId("")
     }

@@ -1,12 +1,12 @@
 "use client"
 
-import { useRef, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { User, Printer, Loader2, Users, GraduationCap, Search, Phone } from "lucide-react"
+import { User, Printer, Loader2, Users, GraduationCap, Search } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { formatKelasLabel, formatTingkatLabel } from "@/components/jadwal/constants"
 
@@ -23,17 +23,18 @@ export default function KelasDetailDialog({ open, onOpenChange, kelasId }: Kelas
     { enabled: open && !!kelasId },
   )
 
+  const students = detail?.students
   const filteredStudents = useMemo(() => {
-    if (!detail?.students) return []
-    if (!searchQuery.trim()) return detail.students
+    if (!students) return []
+    if (!searchQuery.trim()) return students
     const q = searchQuery.toLowerCase()
-    return detail.students.filter(
+    return students.filter(
       (s) =>
         s.namaLengkap.toLowerCase().includes(q) ||
         (s.nisn && s.nisn.includes(q)) ||
         (s.nisLokal && s.nisLokal.includes(q)),
     )
-  }, [detail?.students, searchQuery])
+  }, [students, searchQuery])
 
   const percent = useMemo(() => {
     if (!detail) return 0

@@ -298,6 +298,16 @@ export default function QRScannerModal({ open, onClose }: Props) {
     handleRetryRef.current = handleRetry
   }, [handleRetry])
 
+  // Keep the open/close lifecycle stable while always calling the latest callbacks.
+  const stopScannerRef = useRef(stopScanner)
+  const clearDwellTimerRef = useRef(clearDwellTimer)
+  const handleQrDetectedRef = useRef(handleQrDetected)
+  useEffect(() => {
+    stopScannerRef.current = stopScanner
+    clearDwellTimerRef.current = clearDwellTimer
+    handleQrDetectedRef.current = handleQrDetected
+  }, [stopScanner, clearDwellTimer, handleQrDetected])
+
   /* ─── Lifecycle ─── */
   useEffect(() => {
     stateRef.current = state
@@ -305,8 +315,8 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) {
-      stopScanner()
-      clearDwellTimer()
+      stopScannerRef.current()
+      clearDwellTimerRef.current()
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
       setState("idle")
       setCameraReady(false)
@@ -333,7 +343,7 @@ export default function QRScannerModal({ open, onClose }: Props) {
               .start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 280, height: 280 } },
-                (text: string) => handleQrDetected(text),
+                 (text: string) => handleQrDetectedRef.current(text),
                 () => {},
               )
               .then(() => {
@@ -358,9 +368,9 @@ export default function QRScannerModal({ open, onClose }: Props) {
 
     return () => {
       clearTimeout(timer)
-      clearDwellTimer()
+       clearDwellTimerRef.current()
       if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
-      stopScanner()
+      stopScannerRef.current()
     }
   }, [open])
 

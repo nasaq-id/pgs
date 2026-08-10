@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -27,13 +26,8 @@ import {
   Printer,
   Download,
   CheckCircle2,
-  AlertTriangle,
-  Clock,
   UserCheck,
-  Sparkles,
-  Lock,
   RefreshCw,
-  Maximize2,
   ShieldAlert,
   X,
   Loader2
@@ -42,9 +36,6 @@ import { toast } from "sonner"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 
 export default function PresensiGuruPage() {
-  const { data: session } = useSession()
-  const isGuru = session?.user?.role === "guru"
-  const isAdmin = session?.user?.role === "super_admin" || session?.user?.role === "admin_sekolah"
 
   const [activeTab, setActiveTab] = useState<"scan" | "qrcode" | "logs">("scan")
   const [manualCode, setManualCode] = useState("")
@@ -194,7 +185,7 @@ export default function PresensiGuruPage() {
           await stopCamera()
         }
       }
-    } catch (err) {
+    } catch {
       // Handled in onError of scanMutation / barcodeScanMutation
       scanProcessingLockRef.current = false
     }
@@ -698,7 +689,7 @@ export default function PresensiGuruPage() {
             <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center shrink-0">
               2
             </span>
-            <span>Klik tombol <strong>"Scan QR Sekolah"</strong> dan arahkan kamera HP ke QR Code ini.</span>
+            <span>Klik tombol <strong>&quot;Scan QR Sekolah&quot;</strong> dan arahkan kamera HP ke QR Code ini.</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center shrink-0">

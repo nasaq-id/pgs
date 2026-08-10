@@ -13,11 +13,6 @@ import {
   BookOpen,
   Flag,
   Coffee,
-  Grid,
-  List,
-  Calendar,
-  X,
-  FileSpreadsheet,
   RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"

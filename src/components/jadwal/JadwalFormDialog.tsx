@@ -6,11 +6,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -101,7 +98,6 @@ export default function JadwalFormDialog({
   const [mataPelajaranId, setMataPelajaranId] = useState("")
   const [guruId, setGuruId] = useState("")
   const [selectedJpMulai, setSelectedJpMulai] = useState<number | null>(null)
-  const [durasiMenit, setDurasiMenit] = useState(40)
 
   const { data: pengampuData } = api.pengampu.getByKelas.useQuery(
     { kelasId: kelasId ?? "" },
@@ -203,14 +199,12 @@ export default function JadwalFormDialog({
       setSelectedJpMulai(initial.jpMulai ?? null)
       const initJpCount = initial.jpCount || 1
       setJpCount(initJpCount)
-      setDurasiMenit(initJpCount * durasiJP)
     } else {
       setHari(contextHari || "senin")
       setMataPelajaranId("")
       setGuruId("")
       setSelectedJpMulai(initialJp ?? null)
       setJpCount(1)
-      setDurasiMenit(durasiJP)
     }
   }, [open, initial, contextHari, durasiJP, initialJp])
 
@@ -226,7 +220,6 @@ export default function JadwalFormDialog({
       const maxJp = Math.max(1, baseSisa)
       if (jpCount > maxJp) {
         setJpCount(1)
-        setDurasiMenit(durasiJP)
       }
     }
   }, [mataPelajaranId, pengampuMap, sisaJpMap, initial, durasiJP, jpCount])
@@ -337,7 +330,6 @@ export default function JadwalFormDialog({
                       const num = parseInt(v)
                       if (!isNaN(num)) {
                         setJpCount(num)
-                        setDurasiMenit(num * durasiJP)
                       }
                     }
                   }}

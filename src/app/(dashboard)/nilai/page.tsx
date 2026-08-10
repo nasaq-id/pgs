@@ -28,7 +28,7 @@ export default function NilaiPage() {
 
   const { data: kelasList } = api.kelas.getAll.useQuery({})
   const { data: mapelList } = api.mapel.getAll.useQuery({})
-  const { data: siswaAll } = api.siswa.getAll.useQuery({})
+  const { data: siswaAll } = api.siswa.getLookup.useQuery({})
 
   const nilaiQuery = api.nilai.getByKelas.useQuery(
     { kelasId, mataPelajaranId: mataPelajaranId || undefined },
@@ -267,7 +267,7 @@ export default function NilaiPage() {
           </Card>
           {/* Mobile cards */}
           <div className="md:hidden space-y-2">
-            {siswaDiKelas.map((s, idx) => {
+            {siswaDiKelas.map((s) => {
               const record = nilaiMap[s.id] || { nilaiTugas: null, nilaiUts: null, nilaiUas: null, nilaiAkhir: null }
               return (
                 <div key={s.id} className="neumo-card bg-background rounded-2xl p-4 space-y-3">
