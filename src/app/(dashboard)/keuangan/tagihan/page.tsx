@@ -181,8 +181,8 @@ export default function TagihanPage() {
     setSaving(false)
   }
 
-  const detailTotalTagihan = selectedInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
-  const detailTerbayar = selectedInvoices.reduce((sum, inv) => sum + Number(inv.paidAmount), 0)
+  const detailTotalTagihan = useMemo(() => selectedInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0), [selectedInvoices])
+  const detailTerbayar = useMemo(() => selectedInvoices.reduce((sum, inv) => sum + Number(inv.paidAmount), 0), [selectedInvoices])
   const detailSisa = detailTotalTagihan - detailTerbayar
 
   return (
