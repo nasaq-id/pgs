@@ -41,6 +41,7 @@ import {
 import { toast } from "sonner"
 import { parseLocalDate } from "@/lib/utils"
 
+
 function getPaginationPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | "...")[] = [1]
