@@ -49,7 +49,7 @@ jobs:
       - name: Bundle budget guardrail
         run: pnpm check:bundle
 
-  # E2E hanya via manual trigger (workflow_dispatch) — butuh akun test yang
+  # E2E hanya via manual trigger (workflow_dispatch) - butuh akun test yang
   # terhubung ke DB production; tidak otomatis di PR untuk hindari rate limit.
   e2e:
     name: Playwright E2E
