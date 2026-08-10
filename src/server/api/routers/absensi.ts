@@ -159,7 +159,25 @@ export const absensiRouter = router({
         sekolahId,
         tanggal: getSchoolDayDate(new Date(a.tanggal)),
       }))
-      const result = await db.insert(absensiSiswa).values(values as any).returning()
+
+      const result = await db.transaction(async (tx) => {
+        // Mencegah duplikasi data: hapus record lama siswa & tanggal terkait sebelum menulis data baru
+        for (const a of values) {
+          const startOfDay = new Date(a.tanggal)
+          startOfDay.setUTCHours(0, 0, 0, 0)
+          const endOfDay = new Date(a.tanggal)
+          endOfDay.setUTCHours(23, 59, 59, 999)
+
+          await tx.delete(absensiSiswa).where(
+            and(
+              eq(absensiSiswa.siswaId, a.siswaId),
+              between(absensiSiswa.tanggal, startOfDay, endOfDay)
+            )
+          )
+        }
+        return tx.insert(absensiSiswa).values(values as any).returning()
+      })
+
       await logAudit(ctx, { action: "bulk_create", entity: "absensi_siswa", metadata: { count: result.length } })
 
       const hariKeys = new Set<string>()
@@ -945,8 +963,15 @@ export const absensiRouter = router({
       }
 
       // Hari operasional per kelas: sesi absensi yang benar-benar dijalankan di sistem.
-      // Hari ini (belum genap selesai) dikecualikan — alfa baru dihitung besok.
+      // Hari ini dikecualikan kecuali jika waktu operasional sekolah (jam pulang) sudah selesai.
       const todayKey = getSchoolDayDate(new Date()).toISOString().split("T")[0]
+      const settings = await db.query.pengaturanAbsensi.findFirst({
+        where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+      })
+      const jamPulangStr = settings?.jamPulangSiswa ?? "14:00"
+      const limitPulangMinutes = timeStringToMinutes(jamPulangStr)
+      const nowMinutes = getMinutesSinceMidnightInSchoolTime(new Date())
+
       const sessionRows = await db
         .select({ kelasId: absensiHari.kelasId, tanggal: absensiHari.tanggal })
         .from(absensiHari)
@@ -962,7 +987,11 @@ export const absensiRouter = router({
         if (!row.kelasId) continue
         const dateKey = row.tanggal.toISOString().split("T")[0]
         if (!hariEfektifSet.has(dateKey)) continue
-        if (dateKey >= todayKey) continue
+
+        // Pengecualian dinamis untuk hari ini:
+        if (dateKey > todayKey) continue
+        if (dateKey === todayKey && nowMinutes < limitPulangMinutes) continue
+
         let set = classOperatedDays.get(row.kelasId)
         if (!set) {
           set = new Set<string>()
