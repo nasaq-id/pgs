@@ -268,7 +268,7 @@ Catatan: initial JS dashboard tetap ~348 KB (shell + kalender + React runtime) �
 Status: sebagian selesai (11 Agustus 2026).
 
 - [x] Tambahkan bundle-size budget di CI. (`scripts/check-bundle-budget.mjs` + workflow `.github/workflows/ci.yml`: build → budget check. Budget: total JS < 7000 KB, chunk tunggal > 450 KB harus terbukti route-lib (jspdf/xlsx/qrcode/recharts). Script: `pnpm check:bundle`.)
-- [x] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala. (Playwright e2e 7 test ada (CI pipeline di workflow); Lighthouse manual via `pnpm check:perf` (`scripts/lighthouse-audit.mjs`) — otomasi terjadwal di Vercel Cron menunggu deployment production.)
+- [x] Tambahkan authenticated Lighthouse atau Playwright trace secara berkala. (Playwright e2e 7 test ada di workflow CI — job `e2e` via manual trigger `workflow_dispatch` (butuh akun test, hindari rate limit di PR). Lighthouse manual via `pnpm check:perf` (`scripts/lighthouse-audit.mjs`) — otomasi terjadwal di Vercel Cron menunggu deployment production.)
 - [x] Monitor Vercel Speed Insights dan API latency. (`<SpeedInsights/>` + `<Analytics/>` aktif di `layout.tsx`; logging latency `[api:query:x] Nms SLOW` aktif di semua tRPC procedure sejak Fase 3 — cek di log Vercel.)
 - [x] Tambahkan regression checklist untuk route utama. (`docs/PERFORMANCE_REGRESSION_CHECKLIST.md` — otomatis + manual + baseline per route.)
 - [ ] Deploy perubahan besar melalui preview dan canary. (Vercel Git-connected: push main auto-deploy; preview otomatis per PR dari Vercel. Canary manual belum — dokumentasi di bawah.)
