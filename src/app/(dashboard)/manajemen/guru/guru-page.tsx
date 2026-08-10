@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { api } from "@/lib/trpc/client"
+import { optimizeImageUrl } from "@/lib/cloudinary"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -770,7 +771,7 @@ export default function GuruPage() {
                         <div className="flex items-center space-x-2.5">
                           <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
                             {g.foto ? (
-                              <img src={g.foto} alt={g.namaLengkap} className="w-full h-full object-cover" />
+                              <img src={optimizeImageUrl(g.foto, 96)} alt={g.namaLengkap} className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">
                                 {g.namaLengkap.substring(0, 2)}

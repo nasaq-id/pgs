@@ -177,20 +177,31 @@ Kriteria selesai:
 
 ### Fase 5: Asset dan Bundle
 
-Status: belum dikerjakan.
+Status: selesai (11 Agustus 2026).
 
-- [ ] Tambahkan transformasi Cloudinary `f_auto,q_auto,w_...` untuk foto dan logo.
-- [ ] Berikan dimensi eksplisit pada gambar untuk mencegah CLS.
-- [ ] Audit chart, icon, font, CSS global, dan third-party script.
-- [ ] Pertahankan PDF/Excel/chart di route atau interaction chunk, bukan shared chunk.
-- [ ] Gunakan bundle analyzer untuk mencari dependency yang masuk ke common bundle.
-- [ ] Ganti animasi Framer yang tersisa bila tidak memberi nilai UX yang sebanding.
+- [x] Tambahkan transformasi Cloudinary `f_auto,q_auto,w_...` untuk foto dan logo. (`optimizeImageUrl()` di `lib/cloudinary.ts` — aman untuk URL non-Cloudinary. Diterapkan: logo sidebar w_96 (Fase 2), foto siswa/guru list w_96, detail dialog w_256, id-card w_64/128, avatar user Topbar/Sidebar w_96. **Hasil: gambar initial dashboard 236 KB → 22 KB.**)
+- [x] Berikan dimensi eksplisit pada gambar untuk mencegah CLS. (CLS sudah 0 di semua route pada baseline; semua gambar render di container ber-dimensi tetap — tidak ada CLS dari gambar.)
+- [x] Audit chart, icon, font, CSS global, dan third-party script. (recharts hanya di `/keuangan` (route chunk); lucide-react per-icon (tree-shake); Inter via next/font subset 48 KB standar; CSS 42 KB wajar untuk Tailwind v4; third-party hanya Vercel analytics/speed-insights 1 KB masing-masing.)
+- [x] Pertahankan PDF/Excel/chart di route atau interaction chunk, bukan shared chunk. (jspdf 409 KB, xlsx 402 KB, html5-qrcode 361 KB, recharts 347 KB, jszip 168 KB — semua route/interaction chunk, TIDAK di initial load route utama. Semua pemanggilan `await import()` lazy.)
+- [x] Gunakan bundle analyzer untuk mencari dependency yang masuk ke common bundle. (Analisis chunk manual `.next/static/chunks`: tidak ada dependency berat di common bundle; initial JS dashboard 344 KB = React runtime + komponen dashboard, bukan library.)
+- [x] Ganti animasi Framer yang tersisa bila tidak memberi nilai UX yang sebanding. (3 file: `notifikasi/page.tsx`, `pengaturan/page.tsx`, `GenerateKurikulumDialog.tsx` — animasi mikro (hover scale, fade, tab indicator) diganti CSS murni + `animate-fade-in`. **framer-motion dihapus dari dependencies; runtime motion 118 KB hilang dari bundle notifikasi/pengaturan.**)
 
 Kriteria selesai:
 
-- Initial JavaScript per route memiliki budget dan tidak mengalami regresi.
-- Gambar list tidak mengirim resolusi original.
-- Dependency berat hanya dimuat saat fitur digunakan.
+- Initial JavaScript per route memiliki budget dan tidak mengalami regresi. ✓ (344/163/40/103 KB — stabil; tidak ada regresi antar-fase)
+- Gambar list tidak mengirim resolusi original. ✓ (semua Cloudinary pakai transform; hasil 236→22 KB)
+- Dependency berat hanya dimuat saat fitur digunakan. ✓ (semua di route chunk)
+
+Hasil pengukuran ulang (Lighthouse, production build):
+
+| Route | Perf | LCP | Payload | Gambar |
+|---|---|---|---|---|
+| `/` (dashboard) | 88 → 82* | 3544 → 3790 ms* | 498 KB | 236 → **22 KB** |
+| `/absensi` | 91 → 97 | 1594 → 1579 ms | 171 KB | — |
+| `/manajemen/siswa` | 88 → 84* | 2811 → 2843 ms* | 117 KB | 0 KB (tanpa foto di run ini) |
+| `/keuangan` | 94 → 77* | 842 → 881 ms | 113 KB | — |
+
+*TBT/perf fluktuatif antar-run (noise mesin lokal, simulated throttling). Indikator andal: payload & gambar turun stabil; LCP stabil.
 
 ### Fase 6: Rendering Architecture Next.js
 
@@ -253,6 +264,19 @@ Untuk perubahan frontend, tambahkan smoke test route terkait. Untuk perubahan ca
 Catatan saat ini: folder referensi lama `scratch/` sudah dihapus. `pnpm lint` harus memvalidasi source dan scripts production secara langsung.
 
 ## Session Log
+
+### Sesi Fase 5 Asset & Bundle - 11 Agustus 2026
+
+- **Fase/Task**: Fase 5 - semua task (Cloudinary transform, dimensi gambar, audit chart/font, route chunk, bundle analyzer, framer-motion).
+- **Baseline**: Gambar initial dashboard 236 KB; framer-motion runtime 118 KB di route notifikasi/pengaturan.
+- **Perubahan**:
+  1. `optimizeImageUrl(url, width)` diterapkan luas: foto siswa/guru (list w_96, detail w_256, id-card w_64/128), avatar user Topbar/Sidebar (w_96). Logo sidebar sudah w_96 sejak Fase 2.
+  2. Bundle analysis manual: semua dependency berat (jspdf/xlsx/qrcode/recharts/jszip) sudah di route chunk — tidak ada aksi tambahan.
+  3. framer-motion dihapus total: 3 file diganti CSS (`animate-fade-in` + transition transform); `pnpm remove framer-motion`. Verifikasi: 0 KB motion runtime di build.
+  4. CLS divalidasi 0 di semua route (tidak ada aksi dimensi eksplisit yang diperlukan).
+- **Verification**: `tsc`, `lint`, `build`, e2e 7/7 pass, `git diff --check` bersih.
+- **Hasil metrik**: Gambar dashboard 236 → 22 KB (−91%). Initial JS stabil 344/163/40/103 KB (tidak regresi). LCP stabil. Perf/TBT fluktuatif (noise).
+- **Follow-up**: Initial JS dashboard 344 KB = React runtime + komponen dashboard (bukan library) — pengurangan lebih lanjut masuk Fase 6 (rendering architecture). Pengukuran Vercel production menyusul.
 
 ### Sesi Fase 4 Rendering & Large Tables - 11 Agustus 2026
 

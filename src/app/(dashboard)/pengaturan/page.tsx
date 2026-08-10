@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import { api } from "@/lib/trpc/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { uploadToCloudinary, compressImage } from "@/lib/cloudinary"
+import { uploadToCloudinary, compressImage, optimizeImageUrl } from "@/lib/cloudinary"
 import { Upload, Loader2, School, Image as ImageIcon, FileText, Check, Save } from "lucide-react"
 
 export default function PengaturanPage() {
@@ -180,15 +179,10 @@ export default function PengaturanPage() {
               </div>
 
               {/* Conditional Settings Fields */}
-              <AnimatePresence mode="wait">
-                {useCustomKop ? (
-                  <motion.div
+              {useCustomKop ? (
+                  <div
                     key="custom-kop"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-5 text-left"
+                    className="space-y-5 text-left animate-fade-in"
                   >
                     {/* Upload Banner */}
                     <div className="space-y-2">
@@ -258,14 +252,10 @@ export default function PengaturanPage() {
                         * Standard tinggi Kop Surat adalah 30mm s.d. 40mm. Lebar kop otomatis meregang penuh sesuai kertas dokumen.
                       </p>
                     </div>
-                  </motion.div>
-                ) : (                  <motion.div
+                  </div>
+                ) : (                  <div
                     key="text-kop"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-4 text-left"
+                    className="space-y-4 text-left animate-fade-in"
                   >
                     {/* Logos configuration */}
                     <div className="grid grid-cols-2 gap-4">
@@ -304,7 +294,7 @@ export default function PengaturanPage() {
                         <div className="flex flex-col items-center justify-center border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3 bg-slate-50/20 dark:bg-slate-950/10 min-h-[90px] text-center">
                           {sekolah?.logo ? (
                             <div className="relative size-12 rounded-lg overflow-hidden bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-250/60 dark:border-slate-800/60">
-                              <img src={sekolah.logo} alt="Logo Lembaga" className="object-contain size-full p-1" />
+                              <img src={optimizeImageUrl(sekolah.logo, 256)} alt="Logo Lembaga" className="object-contain size-full p-1" />
                             </div>
                           ) : (
                             <span className="text-[9px] text-muted-foreground italic">Logo Kosong</span>
@@ -360,9 +350,8 @@ export default function PengaturanPage() {
                         />
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
             </div>
 
             {/* Action Buttons */}
@@ -458,7 +447,7 @@ export default function PengaturanPage() {
 
                     {/* Logo Lembaga (Kanan) */}
                     {sekolah?.logo ? (
-                      <img src={sekolah.logo} alt="Logo Sekolah" className="w-12 h-12 object-contain shrink-0" />
+                      <img src={optimizeImageUrl(sekolah.logo, 128)} alt="Logo Sekolah" className="w-12 h-12 object-contain shrink-0" />
                     ) : (
                       <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center rounded-xl text-slate-400 shrink-0 select-none">
                         <School className="size-5" />

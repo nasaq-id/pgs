@@ -23,7 +23,7 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/trpc/client"
-import { uploadToCloudinary, compressImage } from "@/lib/cloudinary"
+import { uploadToCloudinary, compressImage, optimizeImageUrl } from "@/lib/cloudinary"
 import {
   Dialog,
   DialogContent,
@@ -212,7 +212,7 @@ export default function LembagaPage() {
               <div className="w-28 h-28 bg-slate-50 dark:bg-slate-90 rounded-full flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-800 relative overflow-hidden group shadow-inner">
                 {sekolah?.logo ? (
                   <img 
-                    src={sekolah.logo} 
+                    src={optimizeImageUrl(sekolah.logo, 256)}
                     alt={sekolah.namaSekolah} 
                     className="w-full h-full object-cover"
                   />

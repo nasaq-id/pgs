@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { api } from "@/lib/trpc/client"
 import { Sparkles, Search, X, BookOpen, Users, Loader2, Info } from "lucide-react"
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import {
   generatePreviewKurikulum,
@@ -160,11 +159,8 @@ export default function GenerateKurikulumDialog({
         showCloseButton={false}
         className="sm:max-w-3xl p-0 rounded-3xl bg-background border-0 shadow-2xl overflow-hidden"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
-          className="p-6 max-h-[85vh] overflow-y-auto custom-scrollbar"
+        <div
+          className="p-6 max-h-[85vh] overflow-y-auto custom-scrollbar animate-fade-in"
         >
           <DialogHeader className="text-left mb-4">
             <div className="flex items-center justify-between gap-3">
@@ -430,7 +426,7 @@ export default function GenerateKurikulumDialog({
               </div>
             </div>
           )}
-        </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   )

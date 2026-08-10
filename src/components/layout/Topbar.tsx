@@ -12,6 +12,7 @@ import {
   TooltipPopup,
 } from "@/components/ui/tooltip"
 import { api } from "@/lib/trpc/client"
+import { optimizeImageUrl } from "@/lib/cloudinary"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -374,7 +375,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             >
               {userPhoto ? (
                 <div className="w-7.5 h-7.5 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
-                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                  <img src={optimizeImageUrl(userPhoto, 96)} alt={displayName} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-7.5 h-7.5 bg-teal-100 dark:bg-teal-950/60 rounded-lg flex items-center justify-center text-teal-700 dark:text-teal-400 font-bold text-xs shadow-sm border border-slate-100 dark:border-slate-800 uppercase flex-shrink-0">

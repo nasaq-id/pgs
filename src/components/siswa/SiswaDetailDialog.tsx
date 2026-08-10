@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 
 import { User, Printer, Loader2, UserRound, Users, Home, CreditCard } from "lucide-react"
 import { api } from "@/lib/trpc/client"
+import { optimizeImageUrl } from "@/lib/cloudinary"
 
 interface SiswaDetailDialogProps {
   open: boolean
@@ -207,7 +208,7 @@ export default function SiswaDetailDialog({ open, onOpenChange, siswaId }: Siswa
             <div className="flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
               <div className="w-20 h-24 rounded-xl border-2 border-white/40 overflow-hidden glass-subtle flex items-center justify-center flex-shrink-0">
                 {siswa.foto ? (
-                  <img src={siswa.foto} alt={siswa.namaLengkap} className="w-full h-full object-cover" />
+                  <img src={optimizeImageUrl(siswa.foto, 256)} alt={siswa.namaLengkap} className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-10 h-10 text-white/60" />
                 )}

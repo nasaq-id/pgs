@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { api } from "@/lib/trpc/client"
+import { optimizeImageUrl } from "@/lib/cloudinary"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -461,7 +462,7 @@ export default function IdCardPage() {
                             </TableCell>
                             <TableCell className="text-center">
                               {siswa.foto ? (
-                                <img src={siswa.foto} alt="" className="h-7 w-7 rounded-full object-cover mx-auto border shadow-sm" />
+                                <img src={optimizeImageUrl(siswa.foto, 64)} alt="" className="h-7 w-7 rounded-full object-cover mx-auto border shadow-sm" />
                               ) : (
                                 <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground mx-auto border font-semibold">
                                   {siswa.namaLengkap.slice(0, 2).toUpperCase()}
@@ -504,7 +505,7 @@ export default function IdCardPage() {
                           <p className="text-[10px] text-slate-400 font-mono">{siswa.nisn || siswa.nisLokal || "-"}</p>
                         </div>
                         {siswa.foto ? (
-                          <img src={siswa.foto} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
+                          <img src={optimizeImageUrl(siswa.foto, 64)} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground border font-semibold shrink-0">
                             {siswa.namaLengkap.slice(0, 2).toUpperCase()}
@@ -581,7 +582,7 @@ export default function IdCardPage() {
                             </TableCell>
                             <TableCell className="text-center">
                               {guru.foto ? (
-                                <img src={guru.foto} alt="" className="h-7 w-7 rounded-full object-cover mx-auto border shadow-sm" />
+                                <img src={optimizeImageUrl(guru.foto, 64)} alt="" className="h-7 w-7 rounded-full object-cover mx-auto border shadow-sm" />
                               ) : (
                                 <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground mx-auto border font-semibold">
                                   {guru.namaLengkap.slice(0, 2).toUpperCase()}
@@ -624,7 +625,7 @@ export default function IdCardPage() {
                           <p className="text-[10px] text-slate-400 font-mono">{guru.nipnuptk || guru.nik || "-"}</p>
                         </div>
                         {guru.foto ? (
-                          <img src={guru.foto} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
+                          <img src={optimizeImageUrl(guru.foto, 64)} alt="" className="h-8 w-8 rounded-full object-cover border shadow-sm shrink-0" />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground border font-semibold shrink-0">
                             {guru.namaLengkap.slice(0, 2).toUpperCase()}
@@ -677,7 +678,7 @@ export default function IdCardPage() {
                     }`}>
                       {showLogo && (
                         sekolahInfo?.logo ? (
-                          <img src={sekolahInfo.logo} alt="Logo" className={`${orientation === "portrait" ? "h-8 w-8" : "h-10 w-10 mt-2"} object-contain`} />
+                          <img src={optimizeImageUrl(sekolahInfo.logo, 128)} alt="Logo" className={`${orientation === "portrait" ? "h-8 w-8" : "h-10 w-10 mt-2"} object-contain`} />
                         ) : (
                           <div className={`rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 ${
                             orientation === "portrait" ? "h-8 w-8" : "h-10 w-10 mt-2"
@@ -707,7 +708,7 @@ export default function IdCardPage() {
                       <div className="relative mb-3 flex-shrink-0">
                         {previewItem.data.foto ? (
                           <img 
-                            src={previewItem.data.foto} 
+                            src={optimizeImageUrl(previewItem.data.foto, 128)}
                             alt={previewItem.data.namaLengkap} 
                             className="h-24 w-20 object-cover rounded-lg border-2 border-white shadow-md bg-muted"
                           />
@@ -957,7 +958,7 @@ export default function IdCardPage() {
                 }`}>
                   {showLogo && (
                     sekolahInfo?.logo ? (
-                      <img src={sekolahInfo.logo} alt="Logo" className={`${orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"} object-contain`} />
+                      <img src={optimizeImageUrl(sekolahInfo.logo, 128)} alt="Logo" className={`${orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"} object-contain`} />
                     ) : (
                       <div className={`rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 ${
                         orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"
@@ -983,7 +984,7 @@ export default function IdCardPage() {
                   {/* Photo */}
                   <div className="relative mb-2 flex-shrink-0">
                     {siswa.foto ? (
-                      <img src={siswa.foto} alt="" className="h-20 w-16 object-cover rounded-md border border-slate-300" />
+                      <img src={optimizeImageUrl(siswa.foto, 128)} alt="" className="h-20 w-16 object-cover rounded-md border border-slate-300" />
                     ) : (
                       <div className="h-20 w-16 rounded-md border border-slate-300 bg-slate-100 flex flex-col items-center justify-center text-slate-400">
                         <CreditCard className="h-6 w-6 opacity-30" />
@@ -1071,7 +1072,7 @@ export default function IdCardPage() {
                 }`}>
                   {showLogo && (
                     sekolahInfo?.logo ? (
-                      <img src={sekolahInfo.logo} alt="Logo" className={`${orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"} object-contain`} />
+                      <img src={optimizeImageUrl(sekolahInfo.logo, 128)} alt="Logo" className={`${orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"} object-contain`} />
                     ) : (
                       <div className={`rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 ${
                         orientation === "portrait" ? "h-6 w-6" : "h-8 w-8 mt-1"
@@ -1097,7 +1098,7 @@ export default function IdCardPage() {
                   {/* Photo */}
                   <div className="relative mb-2 flex-shrink-0">
                     {guru.foto ? (
-                      <img src={guru.foto} alt="" className="h-20 w-16 object-cover rounded-md border border-slate-300" />
+                      <img src={optimizeImageUrl(guru.foto, 128)} alt="" className="h-20 w-16 object-cover rounded-md border border-slate-300" />
                     ) : (
                       <div className="h-20 w-16 rounded-md border border-slate-300 bg-slate-100 flex flex-col items-center justify-center text-slate-400">
                         <CreditCard className="h-6 w-6 opacity-30" />

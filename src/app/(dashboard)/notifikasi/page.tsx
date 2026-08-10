@@ -8,7 +8,6 @@ import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   Bell,
   CheckCircle2,
@@ -150,7 +149,7 @@ export default function NotifikasiPage() {
           </div>
           <div className="flex items-center gap-3">
             {notifications.some((n) => !n.dibaca) && (
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <div className="hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -160,10 +159,10 @@ export default function NotifikasiPage() {
                   <Check className="h-4 w-4 mr-1.5 shrink-0" />
                   Tandai Semua Dibaca
                 </Button>
-              </motion.div>
+              </div>
             )}
             {isAdmin && (
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <div className="hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -173,7 +172,7 @@ export default function NotifikasiPage() {
                   <Plus className="h-4 w-4 mr-1.5 shrink-0" />
                   Kirim Notifikasi
                 </Button>
-              </motion.div>
+              </div>
             )}
           </div>
         </div>
@@ -189,11 +188,7 @@ export default function NotifikasiPage() {
             }`}
           >
             {activeTab === "semua" && (
-              <motion.div
-                layoutId="activeNotifTabIndicator"
-                className="absolute inset-0 neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-xl"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
+              <div className="absolute inset-0 neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-xl animate-fade-in" />
             )}
             <span className="relative z-20">Semua</span>
           </button>
@@ -207,11 +202,7 @@ export default function NotifikasiPage() {
             }`}
           >
             {activeTab === "unread" && (
-              <motion.div
-                layoutId="activeNotifTabIndicator"
-                className="absolute inset-0 neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-xl"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
+              <div className="absolute inset-0 neumo-sm bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-xl animate-fade-in" />
             )}
             <span className="relative z-20">Belum Dibaca</span>
           </button>
@@ -240,19 +231,14 @@ export default function NotifikasiPage() {
         ) : (
           /* Increased gap to space-y-6 to prevent shadows overlapping (Neomorphic Spacing) */
           <div className="space-y-6 text-left">
-            <AnimatePresence mode="popLayout">
               {notifications.map((notif, index) => {
                 const isUnread = !notif.dibaca
                 return (
-                  <motion.div
+                  <div
                     key={notif.id}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.25, delay: Math.min(0.15, index * 0.03) }}
-                    whileHover={{ y: -3, scale: 1.002 }}
+                    style={{ animationDelay: `${Math.min(150, index * 30)}ms` }}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-2xl p-5 flex items-start gap-4 transition-all relative group border-l-4 ${
+                    className={`animate-fade-in hover:-translate-y-0.5 neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-2xl p-5 flex items-start gap-4 transition-all relative group border-l-4 ${
                       isUnread ? "border-l-teal-500/80" : "border-l-transparent"
                     } ${notif.link ? "cursor-pointer" : ""}`}
                   >
@@ -290,10 +276,9 @@ export default function NotifikasiPage() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
-                  </motion.div>
+                  </div>
                 )
               })}
-            </AnimatePresence>
           </div>
         )}
 

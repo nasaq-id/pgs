@@ -641,7 +641,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/20 text-muted-foreground hover:text-teal-600 transition-all duration-200 border border-transparent hover:border-teal-200/30"
               >
                 {userPhoto ? (
-                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                  <img src={optimizeImageUrl(userPhoto, 96)} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <span className="font-bold text-xs uppercase">{initials}</span>
                 )}
@@ -670,7 +670,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
             >
               {userPhoto ? (
                 <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex-shrink-0">
-                  <img src={userPhoto} alt={displayName} className="w-full h-full object-cover" />
+                  <img src={optimizeImageUrl(userPhoto, 96)} alt={displayName} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-9 h-9 bg-teal-100 dark:bg-teal-950/60 rounded-xl flex items-center justify-center text-teal-700 dark:text-teal-400 font-bold text-xs shadow-sm border border-slate-100 dark:border-slate-800 uppercase flex-shrink-0">
