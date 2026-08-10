@@ -2,7 +2,7 @@
 
 Dokumen kerja lintas sesi untuk optimasi performance Portal Guna Sekolah.
 
-Status terakhir: 10 Agustus 2026
+Status terakhir: 11 Agustus 2026
 
 ## Cara Menggunakan Dokumen Ini
 
@@ -13,6 +13,34 @@ Status terakhir: 10 Agustus 2026
 5. Centang task yang selesai dan isi Session Log.
 
 Setiap fase idealnya menjadi satu PR atau satu deploy preview agar dampaknya dapat dibandingkan.
+
+## Baseline & Progress
+
+Baseline resmi diambil 10 Agustus 2026 (Lighthouse 13.4.1, mobile simulated throttling, production build lokal, login nyata). Angka per fase dicatat di bawah tiap fase; tabel ini merangkum perbandingan keseluruhan.
+
+| Route | Metrik | Baseline (F1) | Setelah F2 | Setelah F3 | Setelah F5 | Setelah F6 | Δ F1→F6 |
+|---|---|---|---|---|---|---|---|
+| `/` dashboard | LCP | 5413 ms | 3771 ms | 3544 ms | 3790 ms | **3804 ms*** | −30% |
+| | Payload | 714 KB | 498 KB | 498 KB | 498 KB | 504 KB | −29% |
+| | Perf | 75 | 86 | 88 | 82 | **85** | +10 |
+| `/absensi` | LCP | 1587 ms | 1589 ms | 1594 ms | 1579 ms | **1621 ms** | stabil |
+| | Payload | 171 KB | 171 KB | 171 KB | 170 KB | 172 KB | stabil |
+| | Perf | 93 | 83* | 91 | 97 | **99** | +6 |
+| `/manajemen/siswa` | LCP | 3286 ms | 2811 ms | 2811 ms | 2843 ms | **2710 ms** | −18% |
+| | Payload | 120 KB | 117 KB | 119 KB | 108 KB | 106 KB | −12% |
+| | Perf | 88 | 87 | 88 | 84 | **89** | +1 |
+| `/keuangan` | LCP | 845 ms | 821 ms | 842 ms | 881 ms | **875 ms** | stabil |
+| | Payload | 113 KB | 113 KB | 112 KB | 112 KB | 112 KB | stabil |
+| | Perf | 96 | 96 | 94 | 77* | **88** | −8* |
+
+*Perf/TBT fluktuatif antar-run (noise mesin lokal + simulated throttling). Indikator andal: LCP & payload.
+
+Gambar initial dashboard: 236 KB (F1) → **22 KB** (F5, transform Cloudinary). Initial JS dashboard: 344 KB (F1) → ~348 KB (F6; stats sudah server-rendered, sisa = shell+kalender+React runtime).
+
+Catatan pengukuran:
+- Semua angka lokal (localhost → Supabase/Upstash via internet) — RTT ~205 ms/query; di Vercel production angka TTFB/API akan lebih rendah.
+- API p95 lokal tidak representatif production (fluktuasi RTT), hanya dipakai untuk perbandingan relatif per fase.
+- Target: LCP < 2500 ms, INP < 200 ms (perlu field data/Speed Insights), CLS < 0.1, TTFB < 800 ms.
 
 ## Prinsip Pengukuran
 
