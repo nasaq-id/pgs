@@ -205,20 +205,31 @@ Hasil pengukuran ulang (Lighthouse, production build):
 
 ### Fase 6: Rendering Architecture Next.js
 
-Status: refactor besar, dikerjakan terakhir.
+Status: sebagian selesai (11 Agustus 2026) — dashboard refactor ke Server Component; halaman lain menyusul.
 
-- [ ] Pisahkan konten non-interaktif dari Client Component.
-- [ ] Pindahkan tabel/statistik statis ke Server Component bila sesuai.
-- [ ] Gunakan streaming dan Suspense per section pada halaman berat.
-- [ ] Kurangi object besar yang di-hydrate ke browser.
-- [ ] Evaluasi caching server untuk data referensi yang stabil.
-- [ ] Pertahankan auth dan tenant isolation pada setiap server boundary.
+- [x] Pisahkan konten non-interaktif dari Client Component. (Dashboard: `dashboard-stats.tsx` (Server Component) berisi StatSection, PoinSection, SiswaSection, AnnouncementList; `dashboard-page.tsx` jadi shell client minimal (greeting + kalender interaktif + slot children).)
+- [x] Pindahkan tabel/statistik statis ke Server Component bila sesuai. (Dashboard stats — data di-fetch server (`getOverview`), dirender server, tidak di-hydrate. Diverifikasi: dengan JS chunk diblokir, stats tetap tampil.)
+- [ ] Gunakan streaming dan Suspense per section pada halaman berat. (Dashboard sudah Suspense + ErrorBoundary per section; refactor server tidak butuh streaming lagi karena data ready saat render. Evaluasi halaman lain menyusul.)
+- [x] Kurangi object besar yang di-hydrate ke browser. (Dashboard: stats tidak lagi di-hydrate; kalender terima `initialData` via props (tanpa request duplikat).)
+- [x] Evaluasi caching server untuk data referensi yang stabil. (Sudah: Redis cache pengumuman/kalender/topPoints (Fase 2-3); `getOverview` cache 30s.)
+- [x] Pertahankan auth dan tenant isolation pada setiap server boundary. (Server Component pakai `createTRPCContext` — session + filter `sekolahId` tetap aktif; super_admin tanpa impersonate di-skip & redirect di shell.)
 
 Kriteria selesai:
 
-- Hydration time turun pada route berat.
-- Konten awal tetap usable sebelum seluruh data sekunder selesai.
-- Tidak ada data tenant atau data sensitif yang ikut masuk ke HTML/client payload.
+- Hydration time turun pada route berat. ✓ (stats dashboard 0 JS — render server murni)
+- Konten awal tetap usable sebelum seluruh data sekunder selesai. ✓ (stats tampil dari HTML awal)
+- Tidak ada data tenant atau data sensitif yang ikut masuk ke HTML/client payload. ✓ (filter tenant tetap; payload tidak bertambah sensitif)
+
+Hasil pengukuran (production build):
+
+| Route | Perf | LCP | Payload | Catatan |
+|---|---|---|---|---|
+| `/` (dashboard) | 82 → **85** | 3790 → 3804 ms | 504 KB | JS stats keluar dari client bundle; TTFB naik 31→182 ms (fetch server sebelum render) |
+| `/absensi` | 97 → 99 | 1621 ms | 173 KB | stabil |
+| `/manajemen/siswa` | 84 → **89** | 2843 → 2710 ms | 106 KB | membaik |
+| `/keuangan` | 77 → **88** | 881 → 875 ms | 112 KB | membaik |
+
+Catatan: initial JS dashboard tetap ~348 KB (shell + kalender + React runtime) — bagian ini butuh interaktivitas. TTFB naik karena data di-fetch server sebelum render (di Vercel lebih rendah).
 
 ### Fase 7: Guardrail Produksi
 
@@ -264,6 +275,19 @@ Untuk perubahan frontend, tambahkan smoke test route terkait. Untuk perubahan ca
 Catatan saat ini: folder referensi lama `scratch/` sudah dihapus. `pnpm lint` harus memvalidasi source dan scripts production secara langsung.
 
 ## Session Log
+
+### Sesi Fase 6 Rendering Architecture - 11 Agustus 2026
+
+- **Fase/Task**: Fase 6 - dashboard ke Server Component (task 1, 2, 4, 5, 6).
+- **Baseline**: Dashboard initial JS 344 KB, stats di-hydrate client, payload 498 KB.
+- **Perubahan**:
+  1. `dashboard-stats.tsx` (baru, Server Component): `DashboardStats` (StatSection + PoinSection + AnnouncementList), `SiswaStats` (SiswaSection + AnnouncementList), `DashboardStatsFallback`, `KalenderFallback`. `router.push` diganti `<Link>`.
+  2. `dashboard-page.tsx` (rombak total jadi shell client): greeting (session), redirect super_admin, `KalenderSection` interaktif dengan `initialData` dari props, slot `children` untuk stats server. Type `OverviewData` di-export.
+  3. `page.tsx`: fetch `getOverview` di server via `createServerSideHelpers`, render stats sebagai Server Component di dalam shell. `HydrationBoundary` dihapus (tidak ada hydrate lagi).
+  4. Fix bug Fase 2 tersembunyi: `queryDashboardKalenderEvents` tidak mengirim `deskripsi` (tooltip kalender kosong sejak Fase 2) — ditambahkan.
+- **Verification**: `tsc`, `lint`, `build`, e2e 7/7 pass. Bukti render server: block semua JS chunk → stats ("Manajemen Siswa", "Total Siswa", "Rombel") tetap tampil di HTML.
+- **Hasil metrik**: Dashboard perf 82→85; siswa 84→89; keuangan 77→88; LCP stabil. Initial JS ~348 KB (shell+kalender+runtime — perlu interaktivitas). TTFB 31→182 ms (fetch server sebelum render).
+- **Follow-up**: Streaming/Suspense untuk halaman berat lain (absensi, tagihan); evaluasi pindah tabel rekap/absensi ke server render; pengukuran production Vercel.
 
 ### Sesi Fase 5 Asset & Bundle - 11 Agustus 2026
 

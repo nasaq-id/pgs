@@ -519,6 +519,7 @@ export async function queryDashboardKalenderEvents(
         tanggalMulai: kalenderEvent.tanggalMulai,
         tanggalSelesai: kalenderEvent.tanggalSelesai,
         isLiburNasional: kalenderEvent.isLiburNasional,
+        deskripsi: kalenderEvent.deskripsi,
       })
       .from(kalenderEvent)
       .where(

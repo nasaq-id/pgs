@@ -2,105 +2,105 @@
   {
     "name": "dashboard",
     "url": "http://localhost:3000/",
-    "fetchTime": "2026-08-10T21:48:57.549Z",
+    "fetchTime": "2026-08-10T22:18:08.112Z",
     "scores": {
-      "performance": 82,
+      "performance": 85,
       "bestPractices": 96
     },
     "metrics": {
-      "lcpMs": 3789.9994,
+      "lcpMs": 3803.7984000000006,
       "cls": 0,
-      "tbtMs": 292,
-      "ttfbMs": 188,
-      "fcpMs": 1270.9997
+      "tbtMs": 220.9921000000004,
+      "ttfbMs": 182,
+      "fcpMs": 1214.2236
     },
     "requests": {
-      "total": 46,
+      "total": 45,
       "api": 1,
-      "transferBytes": 510126
+      "transferBytes": 516139
     },
     "apiLatency": {
       "count": 1,
-      "p50": 618.7580000013113,
-      "p95": 618.7580000013113
+      "p50": 448.5789999961853,
+      "p95": 448.5789999961853
     }
   },
   {
     "name": "absensi",
     "url": "http://localhost:3000/absensi",
-    "fetchTime": "2026-08-10T21:49:05.954Z",
+    "fetchTime": "2026-08-10T22:18:16.257Z",
     "scores": {
-      "performance": 97,
+      "performance": 99,
       "bestPractices": 96
     },
     "metrics": {
-      "lcpMs": 1578.976559906006,
+      "lcpMs": 1620.7947560729983,
       "cls": 0.02813464028114888,
-      "tbtMs": 199.4999999999999,
-      "ttfbMs": 41,
-      "fcpMs": 709.515
+      "tbtMs": 129.5,
+      "ttfbMs": 33,
+      "fcpMs": 701.672
     },
     "requests": {
-      "total": 51,
+      "total": 50,
       "api": 2,
-      "transferBytes": 174398
+      "transferBytes": 176640
     },
     "apiLatency": {
       "count": 2,
-      "p50": 323.8829999938607,
-      "p95": 430.6119999960065
+      "p50": 351.16700000315905,
+      "p95": 404.53099999576807
     }
   },
   {
     "name": "siswa",
     "url": "http://localhost:3000/manajemen/siswa",
-    "fetchTime": "2026-08-10T21:49:16.504Z",
+    "fetchTime": "2026-08-10T22:18:26.643Z",
     "scores": {
-      "performance": 84,
+      "performance": 89,
       "bestPractices": 96
     },
     "metrics": {
-      "lcpMs": 2842.745585327149,
+      "lcpMs": 2709.9870853271486,
       "cls": 0.001895681419221678,
-      "tbtMs": 454.9575576782229,
-      "ttfbMs": 81,
-      "fcpMs": 660.3714423217773
+      "tbtMs": 310.9999999999999,
+      "ttfbMs": 79,
+      "fcpMs": 700.4155
     },
     "requests": {
-      "total": 53,
+      "total": 52,
       "api": 4,
-      "transferBytes": 110097
+      "transferBytes": 108856
     },
     "apiLatency": {
       "count": 4,
-      "p50": 1267.9769999980927,
-      "p95": 2217.41400000453
+      "p50": 1555.167000003159,
+      "p95": 2272.012999996543
     }
   },
   {
     "name": "keuangan",
     "url": "http://localhost:3000/keuangan",
-    "fetchTime": "2026-08-10T21:49:29.311Z",
+    "fetchTime": "2026-08-10T22:18:37.160Z",
     "scores": {
-      "performance": 77,
+      "performance": 88,
       "bestPractices": 96
     },
     "metrics": {
-      "lcpMs": 880.7180351257325,
+      "lcpMs": 874.7040813903809,
       "cls": 0,
-      "tbtMs": 1131,
-      "ttfbMs": 173,
-      "fcpMs": 680.0125
+      "tbtMs": 479.9176368713379,
+      "ttfbMs": 130,
+      "fcpMs": 660.0813631286621
     },
     "requests": {
-      "total": 47,
+      "total": 46,
       "api": 2,
-      "transferBytes": 114809
+      "transferBytes": 114301
     },
     "apiLatency": {
       "count": 2,
-      "p50": 1802.2449999973178,
-      "p95": 1840.8940000012517
+      "p50": 1828.7819999977946,
+      "p95": 1831.7420000061393
     }
   }
 ]

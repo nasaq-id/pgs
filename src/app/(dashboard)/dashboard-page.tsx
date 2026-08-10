@@ -1,322 +1,89 @@
 "use client"
 
-import { useState, useEffect, Suspense, Component, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import {
-  Users, GraduationCap, BookOpen, Wallet,
-  ClipboardCheck, TrendingUp, Building2, Star,
-  Megaphone, Sparkles, ArrowRight, Award, TrendingDown,
-  ChevronLeft, ChevronRight, Loader2,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, TrendingUp, BookOpen } from "lucide-react"
 import { api } from "@/lib/trpc/client"
-import { Skeleton } from "@/components/ui/skeleton"
-
-function fmtRupiahCompact(num: number) {
-  return new Intl.NumberFormat("id-ID", { notation: "compact", style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num)
-}
-
-function fmtRupiah(num: number) {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num)
-}
 
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
 
-// Query suspense bersama — prefetch server sudah mengisi cache, jadi render langsung saat hydrate.
-// Key harus sama persis dengan prefetch: { tahun: tahun berjalan, bulan: bulan berjalan }
-function useOverview(bulan?: number, tahun?: number) {
-  return api.dashboard.getOverview.useSuspenseQuery(
-    { tahun: tahun ?? new Date().getFullYear(), bulan: bulan ?? new Date().getMonth() + 1 },
-    { staleTime: 30000 }
-  )
+// Data overview (response dashboard.getOverview) — dirender server, di-pass
+// ke shell sebagai initialData kalender agar tidak ada request duplikat.
+export type OverviewData = {
+  studentSummary?: { total: number; newThisMonth: number } | null
+  staffSummary?: { total: number; newThisMonth: number } | null
+  classSummary?: { total: number; distinctTingkat: number } | null
+  pendingPayment?: { count: number } | null
+  attendance?: { rate: number; present: number; total: number } | null
+  receivables?: { total: number } | null
+  ruangKelas?: { total: number; totalKapasitas: number } | null
+  topPoints?: {
+    positive: { siswaId: string; totalPoin: number; namaLengkap: string }[]
+    negative: { siswaId: string; totalPoin: number; namaLengkap: string }[]
+    totalNegativeThisMonth: number
+  } | null
+  dashboardSiswa?: {
+    totalPoin: number
+    leaderboard: { siswaId: string; totalPoin: number; namaLengkap: string }[]
+  } | null
+  announcements?: {
+    id: string
+    judul: string
+    tanggalPublish: Date | string | null
+  }[] | null
+  calendarEvents?: {
+    id: string
+    judul: string
+    tipe: string
+    tanggalMulai: Date | string
+    tanggalSelesai: Date | string | null
+    isLiburNasional: boolean | null
+    deskripsi?: string | null
+  }[] | null
 }
 
-type OverviewData = NonNullable<ReturnType<typeof useOverview>[0]>
-
-// ErrorBoundary per seksi — satu seksi gagal tidak merusak halaman
-class SectionBoundary extends Component<{ children: ReactNode; label?: string }, { hasError: boolean }> {
-  state = { hasError: false }
-  static getDerivedStateFromError() {
-    return { hasError: true }
-  }
-  componentDidCatch(err: Error) {
-    console.error(`[dashboard:${this.props.label}]`, err)
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="neumo-card bg-background p-6 rounded-[2rem] text-center">
-          <p className="text-xs font-bold text-rose-500">Seksi ini gagal dimuat</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Coba muat ulang halaman</p>
-        </div>
-      )
+function useOverview(initialData: OverviewData | null | undefined, bulan?: number, tahun?: number) {
+  const now = new Date()
+  const b = bulan ?? now.getMonth() + 1
+  const t = tahun ?? now.getFullYear()
+  const isCurrentMonth = b === now.getMonth() + 1 && t === now.getFullYear()
+  return api.dashboard.getOverview.useQuery(
+    { tahun: t, bulan: b },
+    {
+      staleTime: 30000,
+      initialData: isCurrentMonth ? (initialData as never) : undefined,
     }
-    return this.props.children
-  }
-}
-
-function StatCard({ icon: Icon, label, value, sub }: {
-  icon: React.ComponentType<any>; label: string; value: string | number; sub?: string
-}) {
-  return (
-    <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] flex flex-col justify-between h-[120px] hover:scale-[1.01] transition-all duration-300">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
-        <div className="w-7 h-7 neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] rounded-lg flex items-center justify-center text-muted-foreground">
-          <Icon className="w-3.5 h-3.5" />
-        </div>
-      </div>
-      <div>
-        <p className="text-2xl font-extrabold text-foreground">{value}</p>
-        {sub && <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{sub}</p>}
-      </div>
-    </div>
   )
 }
 
-function CompactCard({ icon: Icon, label, value, sub, isNull }: {
-  icon: React.ComponentType<any>; label: string; value: string | number | React.ReactNode; sub?: string; isNull?: boolean
-}) {
-  if (isNull) {
-    return (
-      <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] opacity-60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-muted-foreground/50">
-            <Icon className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{label}</p>
-            <p className="text-xl font-black text-foreground">&mdash;</p>
-            <p className="text-[10px] text-muted-foreground font-medium">Data belum tersedia</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-5 rounded-[1.75rem] hover:scale-[1.01] transition-all duration-300">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center text-muted-foreground">
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{label}</p>
-          <p className="text-xl font-extrabold text-foreground">{value}</p>
-          {sub && <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{sub}</p>}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AnnouncementList({ d }: { d: OverviewData }) {
-  if (!d?.announcements || d.announcements.length === 0) return null
-  return (
-    <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] p-6 rounded-[2rem]">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Megaphone className="h-5 w-5 text-primary" />
-        </div>
-        <p className="text-xs font-extrabold text-slate-700">Pengumuman</p>
-      </div>
-      <div className="space-y-2">
-        {d.announcements.slice(0, 5).map((a: any) => (
-          <a key={a.id} href="/konten/pengumuman" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-            <div className="min-w-0 flex-1 mr-3">
-              <p className="text-sm font-bold text-slate-800 truncate">{a.judul}</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {a.tanggalPublish ? new Date(a.tanggalPublish).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}
-              </p>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── SEKSI 1: Statistik (Aktivitas + Ringkasan + Perlu Perhatian) ───
-function StatSection() {
-  const [d] = useOverview()
-  const router = useRouter()
-  return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
-          Aktivitas Hari Ini
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-[#d5f2e8] dark:bg-[oklch(0.20_0.02_140)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => router.push("/manajemen/siswa")}>
-            <div className="flex items-start justify-between">
-              <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-emerald-800 dark:text-emerald-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-emerald-500/20">
-                <Star size={12} className="fill-amber-400 text-amber-400" />
-                {d?.studentSummary?.total ?? 0}
-              </span>
-              <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm group-hover:bg-slate-900 transition-colors">
-                <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-emerald-100 tracking-tight leading-none">Manajemen Siswa</h3>
-              <p className="text-[11px] text-emerald-800/70 dark:text-emerald-300/70 font-semibold mt-1">Kelola data & rekap profil</p>
-            </div>
-          </div>
-          <div className="bg-[#e0e7ff] dark:bg-[oklch(0.20_0.02_250)] neumo-sm p-6 rounded-[2rem] flex flex-col justify-between h-[180px] hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => router.push("/manajemen/guru")}>
-            <div className="flex items-start justify-between">
-              <span className="px-3 py-1 bg-white/70 dark:bg-slate-900/40 text-indigo-900 dark:text-indigo-300 rounded-full text-[11px] font-extrabold flex items-center gap-1 shadow-sm border border-transparent dark:border-indigo-500/20">
-                <Star size={12} className="fill-amber-400 text-amber-400" />
-                {d?.staffSummary?.total ?? 0}
-              </span>
-              <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm">
-                <ArrowRight size={18} className="text-slate-800 dark:text-slate-200" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-indigo-100 tracking-tight leading-none">Pendidik & Tendik</h3>
-              <p className="text-[11px] text-indigo-900/70 dark:text-indigo-300/70 font-semibold mt-1">Staf pengajar & kurikulum</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Ringkasan</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="Total Siswa" value={d?.studentSummary?.total ?? "—"} sub={d?.studentSummary ? `${d.studentSummary.newThisMonth} baru` : undefined} />
-          <StatCard icon={GraduationCap} label="Guru & Tendik" value={d?.staffSummary?.total ?? "—"} sub={d?.staffSummary ? `${d.staffSummary.newThisMonth} baru` : undefined} />
-          <StatCard icon={BookOpen} label="Rombel" value={d?.classSummary?.total ?? "—"} sub={d?.classSummary ? `${d.classSummary.distinctTingkat} jenjang` : undefined} />
-          <StatCard icon={Wallet} label="Tagihan Pending" value={d?.pendingPayment?.count ?? "—"} sub="Belum dibayar" />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Perlu Perhatian Hari Ini</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <CompactCard
-            icon={ClipboardCheck} label="Kehadiran Hari Ini"
-            value={d?.attendance ? `${d.attendance.rate}%` : "—"}
-            sub={d?.attendance ? `${d.attendance.present} dari ${d.attendance.total} siswa hadir` : undefined}
-            isNull={d?.attendance == null}
-          />
-          <CompactCard
-            icon={TrendingUp} label="Total Tunggakan SPP"
-            value={d?.receivables ? fmtRupiahCompact(d.receivables.total) : "—"}
-            sub={d?.receivables && d.receivables.total > 0 ? fmtRupiah(d.receivables.total) : d?.receivables?.total === 0 ? "Tidak ada tunggakan" : undefined}
-          />
-          <CompactCard
-            icon={Building2} label="Ruang Kelas Aktif"
-            value={d?.ruangKelas?.total ?? "—"}
-            sub={d?.ruangKelas ? `Kapasitas ${d.ruangKelas.totalKapasitas} siswa` : undefined}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── SEKSI 2: Poin Kedisiplinan + Pengumuman ───
-function PoinSection() {
-  const [d] = useOverview()
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6">
-          <div className="flex items-center justify-between border-b border-emerald-50 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black shadow-md shadow-emerald-500/10">
-                <Award size={16} />
-              </div>
-              <div>
-                <p className="font-extrabold text-slate-800 text-sm tracking-tight">Top 5 Siswa Teladan</p>
-                <p className="text-[10px] text-slate-400 font-bold">Poin Positif Tertinggi</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full uppercase">Sikap Baik</span>
-          </div>
-          <div className="space-y-3">
-            {d?.topPoints?.positive?.length ? (
-              d?.topPoints?.positive.map((item: any, i: number) => (
-                <div key={item.siswaId} className="flex items-center justify-between hover:bg-slate-50/50 p-1.5 rounded-xl transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 font-black text-xs flex items-center justify-center">{i + 1}</span>
-                    <div>
-                      <p className="text-xs font-black text-slate-800">{item.namaLengkap}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-emerald-600">+{item.totalPoin} Poin</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400 font-semibold text-center py-4">Belum ada data</p>
-            )}
-          </div>
-        </div>
-
-        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6">
-          <div className="flex items-center justify-between border-b border-rose-50 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center font-black shadow-md shadow-rose-500/10">
-                <TrendingDown size={16} />
-              </div>
-              <div>
-                <p className="font-extrabold text-slate-800 text-sm tracking-tight">Top 5 Pelanggaran</p>
-                <p className="text-[10px] text-slate-400 font-bold">Total: {d?.topPoints?.totalNegativeThisMonth ?? "—"} poin</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-black bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full uppercase">Perlu Pembinaan</span>
-          </div>
-          <div className="space-y-3">
-            {d?.topPoints?.negative?.length ? (
-              d?.topPoints?.negative.map((item: any, i: number) => (
-                <div key={item.siswaId} className="flex items-center justify-between hover:bg-slate-50/50 p-1.5 rounded-xl transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center">{i + 1}</span>
-                    <div>
-                      <p className="text-xs font-black text-slate-800">{item.namaLengkap}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-rose-600">{item.totalPoin} Poin</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400 font-semibold text-center py-4">Belum ada data</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <AnnouncementList d={d} />
-    </div>
-  )
-}
-
-// ─── SEKSI 3: Kalender & Agenda ───
-function KalenderSection() {
+// ─── SEKSI 3: Kalender & Agenda (interaktif) ───
+function KalenderSection({ initialData }: { initialData: OverviewData | null | undefined }) {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
-  const [d] = useOverview(calendarMonth + 1, calendarYear)
+  const { data: d } = useOverview(initialData, calendarMonth + 1, calendarYear)
 
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {
       setCalendarMonth(11)
-      setCalendarYear(prev => prev - 1)
+      setCalendarYear((prev) => prev - 1)
     } else {
-      setCalendarMonth(prev => prev - 1)
+      setCalendarMonth((prev) => prev - 1)
     }
   }
 
   const handleNextMonth = () => {
     if (calendarMonth === 11) {
       setCalendarMonth(0)
-      setCalendarYear(prev => prev + 1)
+      setCalendarYear((prev) => prev + 1)
     } else {
-      setCalendarMonth(prev => prev + 1)
+      setCalendarMonth((prev) => prev + 1)
     }
   }
 
   const getEventsForDay = (day: number) => {
     if (!d?.calendarEvents) return []
-    return d?.calendarEvents.filter((event: any) => {
+    return d?.calendarEvents.filter((event) => {
       const startDate = new Date(event.tanggalMulai)
       startDate.setHours(0, 0, 0, 0)
 
@@ -371,7 +138,9 @@ function KalenderSection() {
           </div>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black uppercase text-slate-400 tracking-wider">
-          {["Min","Sen","Sel","Rab","Kam","Jum","Sab"].map(dd => <span key={dd}>{dd}</span>)}
+          {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((dd) => (
+            <span key={dd}>{dd}</span>
+          ))}
         </div>
         <div className="grid grid-cols-7 gap-1 text-center">
           {Array.from({ length: new Date(calendarYear, calendarMonth, 1).getDay() }).map((_, i) => (
@@ -381,9 +150,9 @@ function KalenderSection() {
             const day = idx + 1
             const today = day === new Date().getDate() && calendarMonth === new Date().getMonth() && calendarYear === new Date().getFullYear()
             const dayEvents = getEventsForDay(day)
-            const hasHoliday = dayEvents.some((e: any) => e.isLiburNasional || e.tipe === "libur")
-            const hasKegiatan = dayEvents.some((e: any) => e.tipe === "kegiatan")
-            const hasLainnya = dayEvents.some((e: any) => e.tipe === "lainnya")
+            const hasHoliday = dayEvents.some((e) => e.isLiburNasional || e.tipe === "libur")
+            const hasKegiatan = dayEvents.some((e) => e.tipe === "kegiatan")
+            const hasLainnya = dayEvents.some((e) => e.tipe === "lainnya")
 
             const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay()
             const colIndex = (firstDayIndex + idx) % 7
@@ -412,7 +181,7 @@ function KalenderSection() {
                       {new Date(calendarYear, calendarMonth, day).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short" })}
                     </p>
                     <div className="space-y-2">
-                      {dayEvents.map((ev: any, i: number) => (
+                      {dayEvents.map((ev, i) => (
                         <div key={ev.id || i} className="space-y-0.5">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${
@@ -463,118 +232,20 @@ function KalenderSection() {
   )
 }
 
-// ─── SEKSI SISWA ───
-function SiswaSection() {
-  const [d] = useOverview()
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-teal-600 to-emerald-700 text-white p-6 rounded-[2rem] shadow-lg shadow-teal-700/10 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-teal-100 bg-white/10 px-3 py-1 rounded-full">
-                Kedisiplinan & Prestasi
-              </span>
-              <Award size={20} className="text-amber-300" />
-            </div>
-            <p className="text-sm font-bold text-teal-100">Total Poin Anda</p>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-5xl font-black tracking-tight">{d?.dashboardSiswa?.totalPoin ?? 0}</span>
-              <span className="text-xs font-bold text-teal-200">Poin</span>
-            </div>
-          </div>
-          <div className="border-t border-white/10 pt-4 mt-4 grid grid-cols-2 gap-2 text-center">
-            <div className="bg-white/10 p-2.5 rounded-xl border border-white/5">
-              <p className="text-[9px] font-black uppercase tracking-wider text-teal-100">Positif</p>
-              <p className="text-base font-black text-emerald-300 mt-0.5">+{d?.dashboardSiswa?.totalPoin && d.dashboardSiswa.totalPoin > 0 ? d.dashboardSiswa.totalPoin : 0}</p>
-            </div>
-            <div className="bg-white/10 p-2.5 rounded-xl border border-white/5">
-              <p className="text-[9px] font-black uppercase tracking-wider text-teal-100">Negatif</p>
-              <p className="text-base font-black text-rose-300 mt-0.5">0</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Star size={16} className="text-amber-400 fill-amber-400" />
-                Top 5 Poin Positif
-              </p>
-              <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full uppercase">Teladan</span>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {d?.dashboardSiswa?.leaderboard?.length ? (
-                d?.dashboardSiswa.leaderboard.slice(0, 5).map((item: any, i: number) => (
-                  <div key={item.siswaId} className="flex items-center justify-between py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                        i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-slate-100 text-slate-700" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-slate-50 text-slate-500"
-                      }`}>{i + 1}</span>
-                      <p className="text-xs font-black text-slate-700">{item.namaLengkap}</p>
-                    </div>
-                    <span className="text-xs font-black text-emerald-600">+{item.totalPoin} Poin</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400 font-semibold py-4 text-center">Belum ada data</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <AnnouncementList d={d} />
-    </div>
-  )
-}
-
-// ─── FALLBACKS ───
-function StatFallback() {
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Skeleton className="h-[180px] rounded-[2rem]" />
-        <Skeleton className="h-[180px] rounded-[2rem]" />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[120px] rounded-[1.75rem]" />)}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => <Skeleton key={i} className="h-[104px] rounded-[1.75rem]" />)}
-      </div>
-    </div>
-  )
-}
-
-function PoinFallback() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {[1, 2].map(i => <Skeleton key={i} className="h-[280px] rounded-[2rem]" />)}
-    </div>
-  )
-}
-
-function KalenderFallback() {
-  return <Skeleton className="h-[440px] rounded-[2rem]" />
-}
-
-function SiswaFallback() {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Skeleton className="h-48 rounded-[2rem]" />
-      <Skeleton className="h-48 rounded-[2rem]" />
-    </div>
-  )
-}
-
-// ─── HALAMAN ───
-export default function Dashboard() {
+// ─── HALAMAN (shell client minimal; stats dirender server sebagai children) ───
+export default function DashboardShell({
+  initialOverview,
+  role,
+  children,
+}: {
+  initialOverview: OverviewData | null | undefined
+  role?: string | null
+  children: ReactNode
+}) {
   const { data: session } = useSession()
   const user = session?.user
   const displayName = user?.name || user?.email?.split("@")[0] || "Admin"
-  const role = user?.role
+  const effectiveRole = role || user?.role
   const router = useRouter()
 
   const [isImpersonating, setIsImpersonating] = useState(false)
@@ -587,12 +258,12 @@ export default function Dashboard() {
     const impersonating = !!getImpersonationCookie()
     setIsImpersonating(impersonating)
 
-    if (role === "super_admin" && !impersonating) {
+    if (effectiveRole === "super_admin" && !impersonating) {
       router.push("/super-admin")
     }
-  }, [role, router])
+  }, [effectiveRole, router])
 
-  if (role === "super_admin" && !isImpersonating) {
+  if (effectiveRole === "super_admin" && !isImpersonating) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
@@ -605,39 +276,20 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center gap-2 text-amber-500 text-xs font-black uppercase tracking-wider">
           <Sparkles size={14} />
-          <span>{role === "siswa" ? "Portal Siswa" : "Sistem Manajemen Sekolah"}</span>
+          <span>{effectiveRole === "siswa" ? "Portal Siswa" : "Sistem Manajemen Sekolah"}</span>
         </div>
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mt-1">
-          {role === "siswa" ? "Assalamu&apos;alaikum," : "Welcome back,"}{" "}
+          {effectiveRole === "siswa" ? "Assalamu&apos;alaikum," : "Welcome back,"}{" "}
           <span className="text-teal-600">{displayName}</span>
         </h1>
       </div>
 
-      {role === "siswa" ? (
-        <Suspense fallback={<SiswaFallback />}>
-          <SectionBoundary label="siswa">
-            <SiswaSection />
-          </SectionBoundary>
-        </Suspense>
+      {effectiveRole === "siswa" ? (
+        children
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <Suspense fallback={<StatFallback />}>
-              <SectionBoundary label="statistik">
-                <StatSection />
-              </SectionBoundary>
-            </Suspense>
-            <Suspense fallback={<PoinFallback />}>
-              <SectionBoundary label="poin">
-                <PoinSection />
-              </SectionBoundary>
-            </Suspense>
-          </div>
-          <Suspense fallback={<KalenderFallback />}>
-            <SectionBoundary label="kalender">
-              <KalenderSection />
-            </SectionBoundary>
-          </Suspense>
+          <div className="lg:col-span-2 space-y-8">{children}</div>
+          <KalenderSection initialData={initialOverview} />
         </div>
       )}
     </div>
