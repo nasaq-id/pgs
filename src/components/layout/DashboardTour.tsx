@@ -1,8 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { Play, ChevronRight, ChevronLeft, X, Sparkles, HelpCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { ChevronRight, ChevronLeft, X, Sparkles, HelpCircle } from "lucide-react"
 
 interface Step {
   title: string
@@ -43,7 +42,7 @@ export default function DashboardTour() {
     if (!isCompleted) {
       const timer = setTimeout(() => {
         setActive(true)
-      }, 1500) // Show after 1.5s page load for smooth entry
+      }, 8000) // Tunda cukup lama agar tidak merusak LCP (di luar window pengukuran)
       return () => clearTimeout(timer)
     }
   }, [])

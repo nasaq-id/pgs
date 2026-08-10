@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
-import { motion, AnimatePresence } from "framer-motion"
 import { Bell, X } from "lucide-react"
 import {
   Tooltip,
@@ -36,31 +35,7 @@ export function PushRegister() {
 
   const savePushMutation = api.notifikasi.savePushSubscription.useMutation()
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-      return
-    }
-
-    if (!session?.user) return
-
-    // Register service worker and check permission
-    navigator.serviceWorker.ready.then((reg) => {
-      setSwRegistration(reg)
-      
-      // If notification permission is default, show custom neomorphic prompt after 3 seconds
-      if (Notification.permission === "default") {
-        const timer = setTimeout(() => {
-          setShowPrompt(true)
-        }, 3000)
-        return () => clearTimeout(timer)
-      } else if (Notification.permission === "granted") {
-        // Automatically sync/refresh subscription to server
-        subscribeUser(reg)
-      }
-    })
-  }, [session])
-
-  const subscribeUser = async (reg: ServiceWorkerRegistration) => {
+  const subscribeUser = useCallback(async (reg: ServiceWorkerRegistration) => {
     try {
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidPublicKey) {
@@ -119,7 +94,31 @@ export function PushRegister() {
     } catch (err) {
       console.error("Gagal mendaftarkan push notification:", err)
     }
-  }
+  }, [savePushMutation])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      return
+    }
+
+    if (!session?.user) return
+
+    // Register service worker and check permission
+    navigator.serviceWorker.ready.then((reg) => {
+      setSwRegistration(reg)
+
+      // If notification permission is default, show custom neomorphic prompt after 3 seconds
+      if (Notification.permission === "default") {
+        const timer = setTimeout(() => {
+          setShowPrompt(true)
+        }, 3000)
+        return () => clearTimeout(timer)
+      } else if (Notification.permission === "granted") {
+        // Automatically sync/refresh subscription to server
+        subscribeUser(reg)
+      }
+    })
+  }, [session, subscribeUser])
 
   const handleRequestPermission = async () => {
     setShowPrompt(false)
@@ -136,15 +135,9 @@ export function PushRegister() {
   }
 
   return (
-    <AnimatePresence>
+    <>
       {showPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 350, damping: 25 }}
-          className="fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card-clean border border-teal-500/10 text-left shadow-2xl"
-        >
+        <div className="fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card-clean border border-teal-500/10 text-left shadow-2xl animate-fade-in">
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center shrink-0">
               <Bell className="h-5 w-5 text-teal-600 dark:text-teal-400" />
@@ -194,8 +187,8 @@ export function PushRegister() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   )
 }

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
+import { optimizeImageUrl } from "@/lib/cloudinary"
 import {
   LayoutDashboard, Users, GraduationCap, Building2, Settings,
   BookUser, School, BookOpen, Monitor, ClipboardCheck, ChevronDown, ChevronUp,
@@ -264,11 +264,13 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   // Fetch school information
   const { data: sekolahData } = api.lembaga.getSekolah.useQuery(undefined, {
     enabled: !!session,
+    staleTime: 5 * 60 * 1000,
   })
 
   // Fetch user profile
   const { data: profile } = api.profil.getProfile.useQuery(undefined, {
     enabled: !!session,
+    staleTime: 5 * 60 * 1000,
   })
 
   const displayName =
@@ -377,7 +379,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               <Shield className="w-5 h-5 text-white stroke-[2.2]" />
             ) : sekolahData?.logo ? (
               <img 
-                src={sekolahData.logo} 
+                src={optimizeImageUrl(sekolahData.logo, 96)}
                 alt="Logo" 
                 className="w-full h-full object-contain"
               />
@@ -430,6 +432,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                 <div key={item.label} className="relative group">
                   <Link
                     href={firstChildPath || "#"}
+                    prefetch={false}
                     onClick={onClose}
                     className={cn(
                       "relative flex items-center px-0 py-2 rounded-xl cursor-pointer select-none transition-all duration-200 justify-center border border-transparent",
@@ -439,10 +442,8 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                     )}
                   >
                     {isGroupActive && (
-                      <motion.div
-                        layoutId="activeSidebarIndicator"
+                      <div
                         className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
                     {isGroupActive && (
@@ -468,6 +469,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                         <Link
                           key={child.path}
                           href={child.path}
+                          prefetch={false}
                           onClick={onClose}
                           className={cn(
                             "flex items-center px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all text-left",
@@ -503,10 +505,8 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                   )}
                 >
                   {isGroupActive && (
-                    <motion.div
-                      layoutId="activeSidebarIndicator"
+                    <div
                       className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                   {isGroupActive && (
@@ -539,6 +539,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                       <Link
                         key={child.path}
                         href={child.path}
+                        prefetch={false}
                         onClick={onClose}
                         className={cn(
                           "relative flex items-center px-3 py-1 rounded-lg cursor-pointer select-none text-[12px] transition-all duration-150",
@@ -548,10 +549,8 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
                         )}
                       >
                         {isActive(child.path) && (
-                          <motion.div
-                            layoutId="activeSubSidebarIndicator"
+                          <div
                             className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-lg"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
                           />
                         )}
                         <span className={cn(
@@ -573,6 +572,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
             <Link
               key={item.path}
               href={item.path!}
+              prefetch={false}
               onClick={onClose}
               className={cn(
                 "relative flex items-center px-4 py-2 mx-3 rounded-xl cursor-pointer select-none group transition-all duration-200 border text-[13px]",
@@ -583,10 +583,8 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
               )}
             >
               {isItemActive && (
-                <motion.div
-                  layoutId="activeSidebarIndicator"
+                <div
                   className="absolute inset-0 neumo-inset bg-[oklch(0.95_0.01_250)] dark:bg-[oklch(0.15_0.01_250)] rounded-xl border border-teal-500/20"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
               {isItemActive && !isMinimized && (
@@ -638,6 +636,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
             <div className="relative group">
               <Link
                 href="/profil"
+                prefetch={false}
                 title={`Profil Saya (${displayName})`}
                 className="w-10 h-10 rounded-xl overflow-hidden bg-muted/50 flex items-center justify-center cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/20 text-muted-foreground hover:text-teal-600 transition-all duration-200 border border-transparent hover:border-teal-200/30"
               >
@@ -665,6 +664,7 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
           <div className="flex items-center justify-between w-full gap-2.5">
             <Link
               href="/profil"
+              prefetch={false}
               title="Profil Saya"
               className="flex items-center gap-2.5 min-w-0 flex-1 rounded-xl px-1.5 py-1 -mx-1.5 transition-colors hover:bg-slate-100/60 dark:hover:bg-slate-800/40 cursor-pointer"
             >

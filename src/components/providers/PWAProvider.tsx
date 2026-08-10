@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import { Download, X, Smartphone, Share2, Zap, WifiOff } from "lucide-react"
 import {
   Tooltip,
@@ -24,13 +23,19 @@ export function PWAProvider() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
+    if (process.env.NODE_ENV !== "production") return
 
     // 1. Daftarkan Service Worker (persyaratan installable PWA)
-    window.addEventListener("load", () => {
+    const registerServiceWorker = () => {
       navigator.serviceWorker
         .register("/sw.js")
         .catch((err) => console.warn("Service Worker gagal didaftarkan:", err))
-    })
+    }
+    if (document.readyState === "complete") {
+      registerServiceWorker()
+    } else {
+      window.addEventListener("load", registerServiceWorker, { once: true })
+    }
 
     // 2. Tangkap event install prompt (Chrome/Edge/Android)
     const onBeforeInstallPrompt = (e: Event) => {
@@ -48,18 +53,20 @@ export function PWAProvider() {
     // 3. iOS Safari: tidak mendukung beforeinstallprompt — tampilkan panduan manual
     const standalone = window.matchMedia("(display-mode: standalone)").matches
     const isIOSDevice = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    let iosTimer: number | null = null
     if (isIOSDevice && !standalone) {
       setIsIos(true)
-      const timer = setTimeout(() => {
+      iosTimer = window.setTimeout(() => {
         // Tampilkan hanya jika belum pernah menutup (session)
         if (!sessionStorage.getItem("pgs-pwa-dismissed")) setShowBanner(true)
       }, 5000)
-      return () => clearTimeout(timer)
     }
 
     return () => {
+      window.removeEventListener("load", registerServiceWorker)
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt)
       window.removeEventListener("appinstalled", onAppInstalled)
+      if (iosTimer !== null) window.clearTimeout(iosTimer)
     }
   }, [])
 
@@ -89,15 +96,9 @@ export function PWAProvider() {
   }
 
   return (
-    <AnimatePresence>
+    <>
       {showBanner && (
-        <motion.div
-          initial={{ opacity: 0, y: -50, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 350, damping: 25 }}
-          className="fixed top-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card-clean border border-teal-500/10 text-left shadow-2xl"
-        >
+        <div className="fixed top-6 right-6 z-[9999] max-w-sm w-full p-5 rounded-2xl bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] neumo-card-clean border border-teal-500/10 text-left shadow-2xl animate-fade-in">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] flex items-center justify-center shrink-0">
@@ -207,8 +208,8 @@ export function PWAProvider() {
               </TooltipPortal>
             </Tooltip>
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   )
 }

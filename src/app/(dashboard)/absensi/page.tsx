@@ -2,26 +2,26 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { createServerSideHelpers } from "@trpc/react-query/server"
 import { appRouter } from "@/server/api/root"
 import { createTRPCContext } from "@/server/api/trpc"
-import { auth } from "@/auth"
 import AbsensiPage from "./absensi-page"
 
 export const dynamic = "force-dynamic"
 
 export default async function AbsensiServerPage() {
   const queryClient = new QueryClient()
+  const ctx = await createTRPCContext()
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: await createTRPCContext(),
+    ctx,
     queryClient,
   })
 
-  const session = await auth()
+  const session = ctx.session
   const role = session?.user?.role as string | undefined
 
   if (session?.user) {
     const jobs = [
       helpers.kelas.getAll.prefetch({}),
-      helpers.siswa.getAll.prefetch({ limit: 10000 }),
+      helpers.siswa.getLookup.prefetch({ limit: 10000 }),
     ]
     if (role === "guru") {
       jobs.push(helpers.lms.getCurrentGuru.prefetch())
