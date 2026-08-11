@@ -3,7 +3,7 @@ import { redis } from "@/lib/redis"
 
 const WINDOW_MS = 15 * 60 * 1000
 const MAX_AUTH_ATTEMPTS = 60
-const MAX_TRPC_ATTEMPTS = 100
+const MAX_TRPC_ATTEMPTS = 600
 
 function getClientKey(req: NextRequest) {
   const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -52,7 +52,13 @@ export async function middleware(req: NextRequest) {
     const result = await rateLimit(`auth:${key}`, MAX_AUTH_ATTEMPTS)
     if (!result.ok) {
       return NextResponse.json(
-        { error: "Terlalu banyak percobaan login. Coba lagi nanti." },
+        {
+          error: {
+            message: "Terlalu banyak percobaan login. Coba lagi nanti.",
+            code: -32029,
+            data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+          },
+        },
         { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
       )
     }
@@ -62,7 +68,13 @@ export async function middleware(req: NextRequest) {
     const result = await rateLimit(`trpc:${key}`, MAX_TRPC_ATTEMPTS)
     if (!result.ok) {
       return NextResponse.json(
-        { error: "Terlalu banyak permintaan. Coba lagi nanti." },
+        {
+          error: {
+            message: "Terlalu banyak permintaan. Coba lagi nanti.",
+            code: -32029,
+            data: { code: "TOO_MANY_REQUESTS", httpStatus: 429 },
+          },
+        },
         { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
       )
     }
