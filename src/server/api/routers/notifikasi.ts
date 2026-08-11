@@ -116,6 +116,16 @@ export const notifikasiRouter = router({
       })
 
       if (existing) {
+        // Data identik — tidak perlu tulis DB (anti-spam: client buggy yang
+        // spam savePushSubscription tidak menghasilkan query UPDATE).
+        if (
+          existing.userId === ctx.session.user.id &&
+          existing.p256dh === input.keys.p256dh &&
+          existing.auth === input.keys.auth
+        ) {
+          return { success: true }
+        }
+
         await db
           .update(pushSubscriptions)
           .set({
