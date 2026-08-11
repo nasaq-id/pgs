@@ -806,8 +806,11 @@ export default function CetakJadwal({ open, onClose }: Props) {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body * {
-            visibility: hidden !important;
+          /* Sembunyikan seluruh layout dashboard (sidebar, konten, dll) TANPA
+             menyisakan ruang — display:none (bukan visibility:hidden yang tetap
+             menempati layout dan mendorong modal ke halaman berikutnya). */
+          body > *:not(.cetak-jadwal-modal) {
+            display: none !important;
           }
           .cetak-jadwal-modal {
             position: static !important;
@@ -832,9 +835,6 @@ export default function CetakJadwal({ open, onClose }: Props) {
             border: none !important;
             border-radius: 0 !important;
             overflow: visible !important;
-          }
-          .print-area, .print-area * {
-            visibility: visible !important;
           }
           .print-area {
             position: static !important;
