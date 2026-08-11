@@ -3,7 +3,23 @@ import { redis } from "@/lib/redis"
 
 const WINDOW_MS = 15 * 60 * 1000
 const MAX_AUTH_ATTEMPTS = 60
-const MAX_TRPC_ATTEMPTS = 600
+const MAX_TRPC_ATTEMPTS = 2000
+
+// Lua atomik: jika sudah >= max, TIDAK increment (anti banjir retry dari
+// client yang diblokir — counter tidak bisa membengkak seperti incr+dulu-cek).
+// Return: [1, count] = diizinkan, [0, ttl] = diblokir (ttl detik tersisa).
+const RATE_LIMIT_LUA = `
+local count = tonumber(redis.call('GET', KEYS[1]) or '0')
+local max = tonumber(ARGV[1])
+if count >= max then
+  return {0, redis.call('TTL', KEYS[1])}
+end
+local new = redis.call('INCR', KEYS[1])
+if new == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[2])
+end
+return {1, new}
+`
 
 function getClientKey(req: NextRequest) {
   const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -19,21 +35,14 @@ async function rateLimit(
     const redisKey = `ratelimit:${key}`
     const windowSec = Math.ceil(WINDOW_MS / 1000)
 
-    const p = redis.pipeline()
-    p.incr(redisKey)
-    p.ttl(redisKey)
-    const [countResult, ttlResult] = (await p.exec()) as [number, number]
+    const [ok, ttlOrCount] = (await redis.eval(
+      RATE_LIMIT_LUA,
+      [redisKey],
+      [max, windowSec]
+    )) as [number, number]
 
-    const count = countResult
-    let ttl = ttlResult
-
-    if (count === 1) {
-      await redis.expire(redisKey, windowSec)
-      ttl = windowSec
-    }
-
-    if (count > max) {
-      return { ok: false, retryAfter: ttl > 0 ? ttl : windowSec }
+    if (ok === 0) {
+      return { ok: false, retryAfter: ttlOrCount > 0 ? ttlOrCount : windowSec }
     }
 
     return { ok: true }

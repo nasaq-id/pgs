@@ -622,9 +622,12 @@ export default function AbsensiPage() {
       setScannerState("cooldown")
       scannerStateRef.current = "cooldown"
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+      // Rate-limit: jeda lebih lama supaya tidak retry loop (counter tetap
+      // hangus walau request diblokir — pesan TOO_MANY_REQUESTS dari server).
+      const isRateLimited = /terlalu banyak/i.test(err.message || "")
       cooldownTimerRef.current = setTimeout(() => {
         resetAndRestartScanner()
-      }, 2500)
+      }, isRateLimited ? 15000 : 2500)
     }
   }
 
@@ -664,6 +667,13 @@ export default function AbsensiPage() {
         message: err.message || (lateData?.action === "pulang" ? "Gagal mengirimkan alasan pulang cepat" : "Gagal mengirimkan alasan terlambat"),
       })
       toast.error(err.message || "Gagal Kirim Alasan")
+      setScannerState("cooldown")
+      scannerStateRef.current = "cooldown"
+      if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current)
+      const isRateLimited = /terlalu banyak/i.test(err.message || "")
+      cooldownTimerRef.current = setTimeout(() => {
+        resetAndRestartScanner()
+      }, isRateLimited ? 15000 : 2500)
     } finally {
       setSubmittingLateReason(false)
     }
