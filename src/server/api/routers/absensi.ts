@@ -391,9 +391,17 @@ export const absensiRouter = router({
       const endOfToday = new Date(schoolToday)
       endOfToday.setUTCHours(23, 59, 59, 999)
 
-      const student = await db.query.siswa.findFirst({
-        where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.nisn, code), eq(siswa.id, code), eq(siswa.nisLokal, code))),
-      })
+      // Paralel: lookup siswa + settings — keduanya independen (hemat 1 RTT;
+      // fungsi dijalankan berurutan sebelumnya — berisiko melewati timeout
+      // 10s Vercel Hobby saat RTT DB tinggi).
+      const [student, settings] = await Promise.all([
+        db.query.siswa.findFirst({
+          where: and(eq(siswa.sekolahId, sekolahId), or(eq(siswa.nisn, code), eq(siswa.id, code), eq(siswa.nisLokal, code))),
+        }),
+        db.query.pengaturanAbsensi.findFirst({
+          where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+        }),
+      ])
 
       if (student) {
         if (!student.kelasId) {
@@ -402,10 +410,6 @@ export const absensiRouter = router({
 
         // Guru dapat memindai QR siswa seperti admin (semua kelas di sekolahnya).
         // Isolasi multi-tenant tetap dijaga via `sekolahId` di atas.
-
-        const settings = await db.query.pengaturanAbsensi.findFirst({
-          where: eq(pengaturanAbsensi.sekolahId, sekolahId),
-        })
 
         // Geofencing verification
         if (settings?.latitude && settings?.longitude) {
@@ -478,14 +482,9 @@ export const absensiRouter = router({
             }
           }
 
-          // Defensive re-check to prevent race condition duplicates
-          const recheckAbsen = await db.query.absensiSiswa.findFirst({
-            where: and(eq(absensiSiswa.siswaId, student.id), between(absensiSiswa.tanggal, startOfToday, endOfToday)),
-          })
-          if (recheckAbsen) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Absensi sudah dicatat. Silakan refresh halaman." })
-          }
-
+          // Anti-duplikat dijamin di level DB (unique index siswa_id+tanggal)
+          // + onConflictDoNothing di bawah — recheck query tidak diperlukan
+          // lagi dan hanya menambah 1 RTT (memicu timeout 10s Hobby).
           const [created] = await db
             .insert(absensiSiswa)
             .values({
@@ -505,9 +504,10 @@ export const absensiRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Absensi sudah dicatat. Silakan refresh halaman." })
           }
 
-          await ensureHariAbsensi(sekolahId, "siswa", schoolToday, student.kelasId)
-
-          await logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } })
+          await Promise.all([
+            ensureHariAbsensi(sekolahId, "siswa", schoolToday, student.kelasId),
+            logAudit(ctx, { action: "scan_checkin_siswa", entity: "absensi_siswa", entityId: created.id, metadata: { name: student.namaLengkap } }),
+          ])
 
           return { success: true, type: "siswa" as const, name: student.namaLengkap, action: "masuk" as const, status }
         } else {
@@ -601,15 +601,16 @@ export const absensiRouter = router({
               : `[PULANG CEPAT DARURAT MASAL]`
           }
 
-          await db
-            .update(absensiSiswa)
-            .set({ 
-              jamPulang: now,
-              keterangan: keteranganValue,
-            })
-            .where(eq(absensiSiswa.id, existingAbsen.id))
-
-          await logAudit(ctx, { action: "scan_checkout_siswa", entity: "absensi_siswa", entityId: existingAbsen.id, metadata: { name: student.namaLengkap } })
+          await Promise.all([
+            db
+              .update(absensiSiswa)
+              .set({
+                jamPulang: now,
+                keterangan: keteranganValue,
+              })
+              .where(eq(absensiSiswa.id, existingAbsen.id)),
+            logAudit(ctx, { action: "scan_checkout_siswa", entity: "absensi_siswa", entityId: existingAbsen.id, metadata: { name: student.namaLengkap } }),
+          ])
           return { success: true, type: "siswa", name: student.namaLengkap, action: "pulang", status: existingAbsen.status }
         }
       }
@@ -623,18 +624,19 @@ export const absensiRouter = router({
         const days = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"]
         const todayDay = days[schoolToday.getUTCDay()]
 
-        // Get schedules for this teacher today
-        const schedules = await db.query.jadwalPelajaran.findMany({
-          where: and(eq(jadwalPelajaran.guruId, teacher.id), eq(jadwalPelajaran.hari, todayDay as any)),
-        })
-
-        const existingAbsen = await db.query.absensiGuru.findFirst({
-          where: and(eq(absensiGuru.guruId, teacher.id), between(absensiGuru.tanggal, startOfToday, endOfToday)),
-        })
-
-        const settings = await db.query.pengaturanAbsensi.findFirst({
-          where: eq(pengaturanAbsensi.sekolahId, sekolahId),
-        })
+        // Paralel: schedules + absen existing + settings — semuanya independen
+        // (hemat 2 RTT vs berurutan; cegah timeout 10s Vercel Hobby).
+        const [schedules, existingAbsen, settings] = await Promise.all([
+          db.query.jadwalPelajaran.findMany({
+            where: and(eq(jadwalPelajaran.guruId, teacher.id), eq(jadwalPelajaran.hari, todayDay as any)),
+          }),
+          db.query.absensiGuru.findFirst({
+            where: and(eq(absensiGuru.guruId, teacher.id), between(absensiGuru.tanggal, startOfToday, endOfToday)),
+          }),
+          db.query.pengaturanAbsensi.findFirst({
+            where: eq(pengaturanAbsensi.sekolahId, sekolahId),
+          }),
+        ])
 
         const jamMasukStr = settings?.jamMasuk || "07:00"
         const jamPulangStr = settings?.jamPulang || "14:00"
@@ -697,9 +699,10 @@ export const absensiRouter = router({
             })
             .returning()
 
-          await ensureHariAbsensi(sekolahId, "guru", schoolToday)
-
-          await logAudit(ctx, { action: "scan_checkin_guru", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } })
+          await Promise.all([
+            ensureHariAbsensi(sekolahId, "guru", schoolToday),
+            logAudit(ctx, { action: "scan_checkin_guru", entity: "absensi_guru", entityId: created.id, metadata: { name: teacher.namaLengkap } }),
+          ])
 
           if (isLate && !input.alasan) {
             return {
@@ -759,15 +762,16 @@ export const absensiRouter = router({
               : `[PULANG CEPAT DARURAT MASAL]`
           }
 
-          await db
-            .update(absensiGuru)
-            .set({ 
-              jamPulang: now,
-              keterangan: keteranganValue,
-            })
-            .where(eq(absensiGuru.id, existingAbsen.id))
-
-          await logAudit(ctx, { action: "scan_checkout_guru", entity: "absensi_guru", entityId: existingAbsen.id, metadata: { name: teacher.namaLengkap } })
+          await Promise.all([
+            db
+              .update(absensiGuru)
+              .set({
+                jamPulang: now,
+                keterangan: keteranganValue,
+              })
+              .where(eq(absensiGuru.id, existingAbsen.id)),
+            logAudit(ctx, { action: "scan_checkout_guru", entity: "absensi_guru", entityId: existingAbsen.id, metadata: { name: teacher.namaLengkap } }),
+          ])
           return { success: true, type: "guru", name: teacher.namaLengkap, action: "pulang", status: existingAbsen.status }
         }
       }
