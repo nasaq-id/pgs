@@ -17,6 +17,8 @@
     "test:e2e:report": "playwright show-report",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:perf": "node scripts/lighthouse-audit.mjs",
+    "analyze": "next experimental-analyze",
+    "analyze:output": "next experimental-analyze --output",
     "prepare": "husky"
   },
   "lint-staged": {
