@@ -533,7 +533,8 @@ export async function queryDashboardKalenderEvents(
       .limit(input.limit ?? 60)
   }
 
-  const key = cacheKey("kalender:dashboard", sekolahId, `${input.tahun}-${input.bulan}`)
+  // v2: + deskripsi di proyeksi kolom (sebelumnya tooltip kalender kosong)
+  const key = cacheKey("kalender:dashboard:v2", sekolahId, `${input.tahun}-${input.bulan}`)
   return getOrSetCache(key, runQuery, 300)
 }
 

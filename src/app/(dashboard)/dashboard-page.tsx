@@ -3,45 +3,15 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Sparkles, Loader2, TrendingUp, BookOpen } from "lucide-react"
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, TrendingUp, BookOpen, RefreshCw } from "lucide-react"
 import { api } from "@/lib/trpc/client"
+import type { AppRouterOutput } from "@/server/api/root"
 
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
 
-// Data overview (response dashboard.getOverview) — dirender server, di-pass
-// ke shell sebagai initialData kalender agar tidak ada request duplikat.
-export type OverviewData = {
-  studentSummary?: { total: number; newThisMonth: number } | null
-  staffSummary?: { total: number; newThisMonth: number } | null
-  classSummary?: { total: number; distinctTingkat: number } | null
-  pendingPayment?: { count: number } | null
-  attendance?: { rate: number; present: number; total: number } | null
-  receivables?: { total: number } | null
-  ruangKelas?: { total: number; totalKapasitas: number } | null
-  topPoints?: {
-    positive: { siswaId: string; totalPoin: number; namaLengkap: string }[]
-    negative: { siswaId: string; totalPoin: number; namaLengkap: string }[]
-    totalNegativeThisMonth: number
-  } | null
-  dashboardSiswa?: {
-    totalPoin: number
-    leaderboard: { siswaId: string; totalPoin: number; namaLengkap: string }[]
-  } | null
-  announcements?: {
-    id: string
-    judul: string
-    tanggalPublish: Date | string | null
-  }[] | null
-  calendarEvents?: {
-    id: string
-    judul: string
-    tipe: string
-    tanggalMulai: Date | string
-    tanggalSelesai: Date | string | null
-    isLiburNasional: boolean | null
-    deskripsi?: string | null
-  }[] | null
-}
+// Data overview = output ter-infer dari router (bukan hand-written) —
+// tetap sinkron saat router berubah.
+export type OverviewData = AppRouterOutput["dashboard"]["getOverview"]
 
 function useOverview(initialData: OverviewData | null | undefined, bulan?: number, tahun?: number) {
   const now = new Date()
@@ -52,7 +22,7 @@ function useOverview(initialData: OverviewData | null | undefined, bulan?: numbe
     { tahun: t, bulan: b },
     {
       staleTime: 30000,
-      initialData: isCurrentMonth ? (initialData as never) : undefined,
+      initialData: isCurrentMonth ? (initialData ?? undefined) : undefined,
     }
   )
 }
@@ -61,7 +31,42 @@ function useOverview(initialData: OverviewData | null | undefined, bulan?: numbe
 function KalenderSection({ initialData }: { initialData: OverviewData | null | undefined }) {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth())
-  const { data: d } = useOverview(initialData, calendarMonth + 1, calendarYear)
+  const { data: d, isLoading, isError, refetch } = useOverview(initialData, calendarMonth + 1, calendarYear)
+
+  // Saat pindah bulan (data bulan lain belum ada), tampilkan skeleton —
+  // jangan render kalender kosong tanpa indikasi.
+  if (isLoading && !d) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Kalender & Agenda</h2>
+        </div>
+        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6 h-96 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError && !d) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Kalender & Agenda</h2>
+        </div>
+        <div className="neumo-card bg-[oklch(0.96_0.01_250)] dark:bg-[oklch(0.16_0.01_250)] rounded-[2rem] p-6 text-center">
+          <p className="text-xs font-bold text-rose-500">Kalender gagal dimuat</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-teal-600 bg-teal-50 dark:bg-teal-950/20 rounded-xl cursor-pointer hover:bg-teal-100 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {

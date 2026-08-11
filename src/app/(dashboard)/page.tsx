@@ -5,6 +5,7 @@ import { createTRPCContext } from "@/server/api/trpc"
 import { cookies } from "next/headers"
 import DashboardShell, { type OverviewData } from "./dashboard-page"
 import { DashboardStats, SiswaStats, DashboardStatsFallback } from "./dashboard-stats"
+import DashboardStatsClient from "./dashboard-stats-client"
 
 export const dynamic = "force-dynamic"
 
@@ -20,8 +21,7 @@ function makeHelpers(ctx: Awaited<ReturnType<typeof createTRPCContext>>) {
 
 async function fetchOverview(helpers: ServerHelpers): Promise<OverviewData> {
   const now = new Date()
-  const data = await helpers.dashboard.getOverview.fetch({ tahun: now.getFullYear(), bulan: now.getMonth() + 1 })
-  return data as unknown as OverviewData
+  return helpers.dashboard.getOverview.fetch({ tahun: now.getFullYear(), bulan: now.getMonth() + 1 })
 }
 
 export default async function DashboardServerPage() {
@@ -42,9 +42,14 @@ export default async function DashboardServerPage() {
   // di-hydrate ke client. Kalender (interaktif) menerima data via props
   // sebagai initialData agar tidak ada request duplikat.
   let overview: OverviewData | null = null
+  let serverFetchFailed = false
   if (canView) {
     const helpers = await makeHelpers(ctx)
-    overview = await fetchOverview(helpers).catch(() => null)
+    try {
+      overview = await fetchOverview(helpers)
+    } catch {
+      serverFetchFailed = true
+    }
   }
 
   return (
@@ -55,6 +60,9 @@ export default async function DashboardServerPage() {
         ) : (
           <DashboardStats data={overview} />
         )
+      ) : canView && serverFetchFailed ? (
+        // Fetch server gagal — fallback client dengan retry + error UI
+        <DashboardStatsClient role={role} />
       ) : (
         <DashboardStatsFallback />
       )}
