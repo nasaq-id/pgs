@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/trpc/client"
 import { Bell, X } from "lucide-react"
@@ -34,6 +34,12 @@ export function PushRegister() {
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null)
 
   const savePushMutation = api.notifikasi.savePushSubscription.useMutation()
+  const savePushRef = useRef(savePushMutation)
+  const syncedUserRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    savePushRef.current = savePushMutation
+  }, [savePushMutation])
 
   const subscribeUser = useCallback(async (reg: ServiceWorkerRegistration) => {
     try {
@@ -62,7 +68,7 @@ export function PushRegister() {
           const p256dh = existing.getKey("p256dh")
           const auth = existing.getKey("auth")
           if (p256dh && auth) {
-            await savePushMutation.mutateAsync({
+            await savePushRef.current.mutateAsync({
               endpoint: existing.endpoint,
               keys: {
                 p256dh: arrayBufferToBase64(p256dh),
@@ -83,7 +89,7 @@ export function PushRegister() {
       const auth = subscription.getKey("auth")
 
       if (p256dh && auth) {
-        await savePushMutation.mutateAsync({
+        await savePushRef.current.mutateAsync({
           endpoint: subscription.endpoint,
           keys: {
             p256dh: arrayBufferToBase64(p256dh),
@@ -94,14 +100,20 @@ export function PushRegister() {
     } catch (err) {
       console.error("Gagal mendaftarkan push notification:", err)
     }
-  }, [savePushMutation])
+  }, [])
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       return
     }
 
-    if (!session?.user) return
+    if (!session?.user?.id) return
+
+    // Sinkronkan subscription hanya SEKALI per user session. Tanpa guard ini,
+    // effect re-run tiap render (subscribeUser stabil tapi session objek baru)
+    // dan membanjiri server dengan POST savePushSubscription berulang.
+    if (syncedUserRef.current === session.user.id) return
+    syncedUserRef.current = session.user.id
 
     // Register service worker and check permission
     navigator.serviceWorker.ready.then((reg) => {
@@ -118,7 +130,7 @@ export function PushRegister() {
         subscribeUser(reg)
       }
     })
-  }, [session, subscribeUser])
+  }, [session?.user?.id, subscribeUser])
 
   const handleRequestPermission = async () => {
     setShowPrompt(false)
