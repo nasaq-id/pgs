@@ -123,13 +123,40 @@ export default function SiswaListView({ activeTab }: SiswaListViewProps) {
 
   const queryStatus = activeTab === "aktif" ? subStatus : activeTab
 
-  const { data: siswaList, isLoading } = api.siswa.getAll.useQuery({
+  const { data: siswaList, isLoading, isFetching } = api.siswa.getAll.useQuery({
     search: querySearch || undefined,
     status: queryStatus || undefined,
     kelasId: kelasFilter || undefined,
     limit,
     offset: page * limit,
   })
+
+  const lastToastedSearchRef = useRef("")
+
+  // Debounce search input to querySearch
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuerySearch(search)
+      setPage(0)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  // Toast if student is not registered in the system
+  useEffect(() => {
+    if (querySearch && !isLoading && !isFetching) {
+      if (siswaList && siswaList.length === 0) {
+        if (lastToastedSearchRef.current !== querySearch) {
+          toast.error("siswa tidak terdaftar di sistem, silahkan tambahkan terlebih dahulu data siswa tersebut")
+          lastToastedSearchRef.current = querySearch
+        }
+      } else {
+        lastToastedSearchRef.current = ""
+      }
+    } else if (!querySearch) {
+      lastToastedSearchRef.current = ""
+    }
+  }, [siswaList, querySearch, isLoading, isFetching])
 
   const [formOpen, setFormOpen] = useState(false)
   const [mutasiOpen, setMutasiOpen] = useState(false)

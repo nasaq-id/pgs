@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, like, or, desc, asc, inArray, isNull, count } from "drizzle-orm"
+import { eq, and, like, ilike, or, desc, asc, inArray, isNull, count } from "drizzle-orm"
 import { getTableColumns } from "drizzle-orm/utils"
 import { db } from "@/server/db"
 import bcrypt from "bcryptjs"
@@ -125,7 +125,7 @@ export const siswaRouter = router({
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
-        conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+        conditions.push(or(ilike(siswa.namaLengkap, `%${input.search}%`), ilike(siswa.nisn, `%${input.search}%`)))
       }
       if (input.status === "aktif") {
         conditions.push(eq(siswa.status, "aktif"))
@@ -166,7 +166,7 @@ export const siswaRouter = router({
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
-        conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+        conditions.push(or(ilike(siswa.namaLengkap, `%${input.search}%`), ilike(siswa.nisn, `%${input.search}%`)))
       }
       if (input.status === "aktif") {
         conditions.push(eq(siswa.status, "aktif"))
@@ -299,7 +299,7 @@ export const siswaRouter = router({
       const conditions = []
       if (sekolahIdFilter) conditions.push(eq(siswa.sekolahId, sekolahIdFilter))
       if (input.search) {
-        conditions.push(or(like(siswa.namaLengkap, `%${input.search}%`), like(siswa.nisn, `%${input.search}%`)))
+        conditions.push(or(ilike(siswa.namaLengkap, `%${input.search}%`), ilike(siswa.nisn, `%${input.search}%`)))
       }
       if (input.status === "aktif") {
         conditions.push(eq(siswa.status, "aktif"))
