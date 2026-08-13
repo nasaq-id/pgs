@@ -14,6 +14,7 @@ import {
   Flag,
   Coffee,
   RotateCcw,
+  BarChart2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -65,6 +66,10 @@ const ExportJadwalMenu = dynamic<ComponentProps<typeof ExportJadwalMenuType>>(
 )
 const AiGenerateDialog = dynamic<ComponentProps<typeof AiGenerateDialogType>>(
   () => import("@/components/jadwal/AiGenerateDialog").then((m) => m.default),
+  { ssr: false }
+)
+const ReviewAndAnalysisModal = dynamic(() =>
+  import("@/components/jadwal/ReviewAndAnalysisModal").then((m) => m.ReviewAndAnalysisModal),
   { ssr: false }
 )
 
@@ -189,6 +194,7 @@ export default function JadwalPage() {
   const [resetOpen, setResetOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetMode, setResetMode] = useState<"all" | "kelas">("all")
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -219,6 +225,10 @@ export default function JadwalPage() {
       ? { guruId: (profile?.id || "none") as string }
       : { kelasId: kelasId || undefined },
     { enabled: isGuru ? !!profile?.id : (isSiswa ? !!kelasId : true) }
+  )
+  const { data: allJadwalList } = api.jadwal.getAll.useQuery(
+    { limit: 10000 },
+    { enabled: canEdit || canViewAll }
   )
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({})
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({})
@@ -517,6 +527,14 @@ export default function JadwalPage() {
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 <span>AI Auto-Generate</span>
+              </Button>
+
+              <Button
+                onClick={() => setReviewOpen(true)}
+                className="flex items-center justify-center font-bold px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
+              >
+                <BarChart2 className="w-4 h-4 mr-2" />
+                <span>Audit Jadwal (AI Review)</span>
               </Button>
             </>
           )}
@@ -1114,6 +1132,16 @@ export default function JadwalPage() {
             guruRecords={guruRecords}
             existingJadwal={jadwalRecords as any}
           />
+      {(canEdit || canViewAll) && (
+        <ReviewAndAnalysisModal
+          isOpen={reviewOpen}
+          onClose={() => setReviewOpen(false)}
+          classes={kelasRecords}
+          schedules={(allJadwalList ?? []) as any}
+          subjects={mapelRecords}
+          teachers={guruRecords}
+        />
+      )}
         </>
       )}
 
