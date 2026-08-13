@@ -15,6 +15,7 @@ const mapelCreateSchema = z.object({
   kodeMapel: z.string().nullable().optional(),
   kelompok: z.enum(["A", "B", "C", "muatan_lokal"]).nullable().optional(),
   kkm: z.number().optional(),
+  jumlahJam: z.number().optional(),
   aktif: z.boolean().optional(),
   urutan: z.number().optional(),
 })

@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { createPortal } from "react-dom"
 import dynamic from "next/dynamic"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical, BookOpen, Layers, Clock, Wand2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical, BookOpen, Layers, Clock, Wand2, Printer, FileSpreadsheet, Users, X, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -31,9 +33,8 @@ import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import MapelFormDialog, { type MapelFormData } from "@/components/mapel/MapelFormDialog"
 import PengampuDialog from "@/components/mapel/PengampuDialog"
-import ImportExportMapel from "@/components/mapel/ImportExportMapel"
-
 const GenerateKurikulumDialog = dynamic(() => import("@/components/mapel/GenerateKurikulumDialog"), { ssr: false })
+const SubjectExportModal = dynamic(() => import("@/components/mapel/SubjectExportModal").then((mod) => mod.SubjectExportModal), { ssr: false })
 
 interface PengampuItem {
   id: string
@@ -68,12 +69,15 @@ export default function MapelPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<MapelFormData | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [pengampuOpen, setPengampuOpen] = useState(false)
   const [generateOpen, setGenerateOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string; jumlahJam: number } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  const [detailSubject, setDetailSubject] = useState<any>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
@@ -107,7 +111,6 @@ export default function MapelPage() {
   }, [])
 
   const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({
-    search,
     tingkat: tingkatFilter || undefined,
   })
   const utils = api.useUtils()
@@ -115,6 +118,21 @@ export default function MapelPage() {
   useEffect(() => {
     setLocalRecords((mapelList ?? []) as MapelRecord[])
   }, [mapelList])
+
+  const filteredRecords = useMemo(() => {
+    if (!search.trim()) return localRecords
+    const query = search.toLowerCase()
+    return localRecords.filter(r => 
+      r.namaMapel.toLowerCase().includes(query) || 
+      (r.kodeMapel && r.kodeMapel.toLowerCase().includes(query)) ||
+      (r.kelompok && r.kelompok.toLowerCase().includes(query))
+    )
+  }, [localRecords, search])
+
+  const subjectToDelete = useMemo(() => {
+    if (!deleteId) return null
+    return localRecords.find(r => r.id === deleteId)
+  }, [deleteId, localRecords])
 
   const createMutation = api.mapel.create.useMutation({
     onSuccess: () => {
@@ -154,6 +172,8 @@ export default function MapelPage() {
           namaMapel: data.namaMapel,
           kodeMapel: data.kodeMapel || null,
           kelompok: (data.kelompok as "A" | "B" | "C" | "muatan_lokal") || null,
+          jumlahJam: data.jumlahJam,
+          aktif: data.aktif,
         },
       })
     } else {
@@ -161,6 +181,8 @@ export default function MapelPage() {
         namaMapel: data.namaMapel,
         kodeMapel: data.kodeMapel || null,
         kelompok: (data.kelompok as "A" | "B" | "C" | "muatan_lokal") || null,
+        jumlahJam: data.jumlahJam,
+        aktif: data.aktif,
         sekolahId,
       })
       mapelId = res?.id
@@ -188,7 +210,7 @@ export default function MapelPage() {
           const assignments = Array.from(guruToClassesMap.entries()).map(([gId, kIds]) => ({
             guruId: gId,
             kelasIds: kIds,
-            jumlahJam: 4,
+            jumlahJam: data.jumlahJam ?? 4,
           }))
 
           await savePengampuMutation.mutateAsync({
@@ -206,6 +228,7 @@ export default function MapelPage() {
     if (!deleteId) return
     await removeMutation.mutateAsync({ id: deleteId })
     setDeleteId(null)
+    setDeleteConfirmText("")
   }
 
   const handleDragStart = useCallback((index: number) => {
@@ -342,10 +365,15 @@ export default function MapelPage() {
               <Wand2 className="h-4 w-4" />
               <span>Generate Kurikulum</span>
             </button>
-            <ImportExportMapel
-              mapelList={(mapelList ?? []) as any}
-              onDone={() => utils.mapel.getAll.invalidate()}
-            />
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer transform active:scale-95 w-full h-10"
+              title="Cetak & Export data mata pelajaran"
+            >
+              <Printer className="h-4 w-4" />
+              <span>Cetak dan Export</span>
+            </button>
             <button
               className="col-span-2 lg:col-span-1 w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/5 transition-all flex items-center justify-center cursor-pointer transform active:scale-95 shrink-0"
               title="Tambahkan mata pelajaran baru secara manual"
@@ -369,12 +397,12 @@ export default function MapelPage() {
                 <Skeleton className="h-14 w-full" />
               </div>
             ))
-          ) : localRecords.length === 0 ? (
+          ) : filteredRecords.length === 0 ? (
             <div className="neumo-card bg-background rounded-[22px] p-8 text-center text-slate-400 font-semibold">
               {search ? "Tidak ditemukan" : "Belum ada mata pelajaran"}
             </div>
           ) : (
-            localRecords.map((r, index) => {
+            filteredRecords.map((r, index) => {
               const isMenuOpen = activeMenuId === r.id
               return (
                 <div
@@ -461,16 +489,23 @@ export default function MapelPage() {
                       </span>
                     </div>
 
-                    <div className="flex space-x-1.5 items-center">
+                    <div className="flex space-x-1.5 items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setDetailSubject(r)}
+                        className="p-1.5 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-650 dark:hover:bg-teal-600 hover:text-white text-teal-650 dark:text-teal-400 rounded-lg transition-all cursor-pointer border border-transparent"
+                        title="Lihat Detail Mapel"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => {
                           setPengampuMapel({ id: r.id, namaMapel: r.namaMapel, jumlahJam: r.jumlahJam ?? 0 })
                           setPengampuOpen(true)
                         }}
-                        className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        className="p-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-650 dark:hover:bg-indigo-600 hover:text-white text-indigo-650 dark:text-indigo-400 rounded-lg transition-all cursor-pointer border border-transparent"
                         title="Plotting Pengajar"
                       >
-                        <span>Plot Pengajar</span>
+                        <Users className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
@@ -483,44 +518,18 @@ export default function MapelPage() {
                           })
                           setFormOpen(true)
                         }}
-                        className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900 text-amber-600 dark:text-amber-400 font-black rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                        className="p-1.5 bg-slate-50 dark:bg-slate-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 hover:text-teal-600 dark:hover:text-teal-400 text-slate-500 rounded-lg transition-all cursor-pointer border border-transparent hover:border-teal-100"
                         title="Edit"
                       >
-                        Edit
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveMenuId(activeMenuId === r.id ? null : r.id)
-                          }}
-                          className={cn(
-                            "w-7 h-7 flex items-center justify-center border rounded-lg transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/20",
-                            isMenuOpen
-                              ? "border-slate-800 text-slate-800 dark:border-slate-650 dark:text-slate-200"
-                              : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
-                          )}
-                        >
-                          <MoreHorizontal size={14} strokeWidth={2.5} />
-                        </button>
-                        {isMenuOpen && (
-                          <div
-                            ref={menuRef}
-                            className="absolute right-0 bottom-full mb-2 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xl z-50 min-w-[150px] p-1.5 space-y-1 block animate-fade-in text-left"
-                          >
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setDeleteId(r.id)
-                              }}
-                              className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-455 font-bold text-xs transition-colors cursor-pointer text-left"
-                            >
-                              <Trash2 size={13} className="text-rose-500 shrink-0" />
-                              <span>Hapus Mapel</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        onClick={() => setDeleteId(r.id)}
+                        className="p-1.5 bg-slate-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-455 text-slate-450 rounded-lg transition-all cursor-pointer border border-transparent hover:border-rose-100"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -538,6 +547,7 @@ export default function MapelPage() {
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Kode Mapel</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Nama Mata Pelajaran</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Kelompok</TableHead>
+                <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3 text-center">JP / Minggu</TableHead>
                 <TableHead className="text-center text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Status</TableHead>
                 <TableHead className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Guru Pengampu</TableHead>
                 <TableHead className="text-center w-24 text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider py-3">Aksi</TableHead>
@@ -547,19 +557,19 @@ export default function MapelPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
-              ) : localRecords.length === 0 ? (
+              ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
+                  <TableCell colSpan={8} className="text-center py-20 text-slate-400 dark:text-slate-500 font-semibold">
                     Tidak ada data mata pelajaran ditemukan
                   </TableCell>
                 </TableRow>
               ) : (
-                localRecords.map((r, index) => {
+                filteredRecords.map((r, index) => {
                   return (
                     <TableRow
                       key={r.id}
@@ -591,6 +601,9 @@ export default function MapelPage() {
                         <span className="px-2 py-0.5 border border-slate-150 dark:border-slate-800 rounded-lg text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/30 tracking-wide">
                           {KELOMPOK_LABEL[r.kelompok ?? ""] ?? r.kelompok ?? "—"}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-center font-extrabold text-xs text-slate-700 dark:text-slate-300">
+                        {r.jumlahJam ?? 2} JP
                       </TableCell>
                       <TableCell className="text-center">
                         <span
@@ -634,80 +647,49 @@ export default function MapelPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="relative text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setActiveMenuId(activeMenuId === r.id ? null : r.id)
-                          }}
-                          className={cn(
-                            "w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border rounded-lg hover:border-slate-350 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm mx-auto cursor-pointer focus:outline-none",
-                            activeMenuId === r.id
-                              ? "border-slate-800 text-slate-800 dark:border-slate-650 dark:text-slate-200"
-                              : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
-                          )}
-                        >
-                          <MoreHorizontal className="w-5 h-5 stroke-[2.5]" />
-                        </button>
-
-                        {activeMenuId === r.id && (
-                          <div
-                            ref={menuRef}
-                            className={cn(
-                              "absolute right-12 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xl z-50 min-w-[190px] p-2 space-y-1 block animate-fade-in text-left",
-                              index >= localRecords.length - 3 ? "bottom-0" : "top-0"
-                            )}
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-center items-center gap-1.5">
+                          <button
+                            onClick={() => setDetailSubject(r)}
+                            className="p-1.5 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-650 dark:hover:bg-teal-600 hover:text-white text-teal-650 dark:text-teal-400 rounded-lg transition-all cursor-pointer border border-transparent"
+                            title="Lihat Detail Mapel"
                           >
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setPengampuMapel({ id: r.id, namaMapel: r.namaMapel, jumlahJam: r.jumlahJam ?? 0 })
-                                setPengampuOpen(true)
-                              }}
-                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-655 dark:text-slate-300 font-semibold text-xs transition-colors group cursor-pointer text-left"
-                            >
-                              <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-500 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors shrink-0">
-                                <span className="text-xs font-bold leading-none shrink-0">👥</span>
-                              </div>
-                              <span>Plotting Pengajar</span>
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setEditData({
-                                  id: r.id,
-                                  namaMapel: r.namaMapel,
-                                  kodeMapel: r.kodeMapel ?? "",
-                                  kelompok: r.kelompok ?? "",
-                                  aktif: r.aktif,
-                                })
-                                setFormOpen(true)
-                              }}
-                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-655 dark:text-slate-300 font-semibold text-xs transition-colors group cursor-pointer text-left"
-                            >
-                              <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-455 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors shrink-0">
-                                <Pencil size={14} strokeWidth={2.5} />
-                              </div>
-                              <span>Edit Pelajaran</span>
-                            </button>
-
-                            <div className="h-px bg-slate-100 dark:bg-slate-850 my-1 mx-2"></div>
-
-                            <button
-                              onClick={() => {
-                                setActiveMenuId(null)
-                                setDeleteId(r.id)
-                              }}
-                              className="w-full flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-455 font-semibold text-xs transition-colors group cursor-pointer text-left"
-                            >
-                              <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-450 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors shrink-0">
-                                <Trash2 size={14} strokeWidth={2.5} />
-                              </div>
-                              <span>Hapus Pelajaran</span>
-                            </button>
-                          </div>
-                        )}
+                            <BookOpen className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPengampuMapel({ id: r.id, namaMapel: r.namaMapel, jumlahJam: r.jumlahJam ?? 0 })
+                              setPengampuOpen(true)
+                            }}
+                            className="p-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-650 dark:hover:bg-indigo-600 hover:text-white text-indigo-650 dark:text-indigo-400 rounded-lg transition-all cursor-pointer border border-transparent"
+                            title="Plotting Pengajar"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditData({
+                                id: r.id,
+                                namaMapel: r.namaMapel,
+                                kodeMapel: r.kodeMapel ?? "",
+                                kelompok: r.kelompok ?? "",
+                                aktif: r.aktif,
+                              })
+                              setFormOpen(true)
+                            }}
+                            className="p-1.5 bg-slate-50 dark:bg-slate-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 hover:text-teal-600 dark:hover:text-teal-400 text-slate-500 rounded-lg transition-all cursor-pointer border border-transparent hover:border-teal-100"
+                            title="Edit"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(r.id)}
+                            className="p-1.5 bg-slate-50 dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-455 text-slate-400 rounded-lg transition-all cursor-pointer border border-transparent hover:border-rose-100"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -740,28 +722,119 @@ export default function MapelPage() {
         saving={createMutation.isPending || updateMutation.isPending}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Mata Pelajaran</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus mata pelajaran ini? Tindakan ini tidak dapat
-              dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={removeMutation.isPending}>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={removeMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SubjectExportModal
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        subjects={(mapelList ?? []) as any}
+        classes={(kelasList ?? []) as any}
+        institution={sekolah}
+      />
+
+      {/* ================= CUSTOM ENTERPRISE DELETE MODAL ================= */}
+      {deleteId && typeof window !== 'undefined' && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !removeMutation.isPending) {
+              setDeleteId(null)
+              setDeleteConfirmText("")
+            }
+          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/10 dark:bg-slate-950/20 p-4 animate-in fade-in duration-200"
+        >
+          <div className="bg-background rounded-3xl w-full max-w-md mx-4 relative overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 my-auto flex flex-col text-left animate-in fade-in zoom-in-95 duration-200">
+            {/* Header / Icon */}
+            <div className="flex items-center space-x-3.5 mb-5 shrink-0">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-455 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-slate-850 dark:text-slate-100 leading-snug">
+                  Hapus Mata Pelajaran
+                </h3>
+                <p className="text-xs text-rose-500 font-extrabold mt-0.5">
+                  Tindakan ini permanen dan tidak dapat dibatalkan!
+                </p>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-4 mb-6 text-xs text-slate-505 leading-relaxed">
+              <p>
+                Menghapus mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-black">"{subjectToDelete?.namaMapel}"</strong> juga akan menghapus seluruh data plotting pengampu kelas serta jadwal terkait di sistem.
+              </p>
+
+              {/* Subject details card */}
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-900/20 border border-slate-150 dark:border-slate-800/60 rounded-2xl">
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kode Mapel</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mt-0.5">{subjectToDelete?.kodeMapel || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Nama Mapel</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mt-0.5">{subjectToDelete?.namaMapel}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Tingkat / Kelas</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mt-0.5">
+                    {(() => {
+                      const classesAssigned = subjectToDelete?.pengampu?.map((p: any) => p.kelas?.namaKelas).filter(Boolean) || []
+                      return classesAssigned.length > 0 ? Array.from(new Set(classesAssigned)).join(", ") : "Semua Kelas"
+                    })()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kategori</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mt-0.5">
+                    {KELOMPOK_LABEL[subjectToDelete?.kelompok ?? ""] ?? subjectToDelete?.kelompok ?? "Mapel Wajib"}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-1.5 p-3.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-150 dark:border-slate-800 rounded-2xl">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500 block">
+                  Konfirmasi Keamanan (Enterprise-grade)
+                </Label>
+                <p className="text-[11px] text-slate-400">
+                  Ketik nama lengkap mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-bold">"{subjectToDelete?.namaMapel}"</strong> di bawah ini untuk mengonfirmasi penghapusan:
+                </p>
+                <Input
+                  placeholder="Ketik nama mata pelajaran..."
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="mt-2 h-9 px-3 text-xs font-bold rounded-xl neumo-inset bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0"
+                  disabled={removeMutation.isPending}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Footer Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteId(null)
+                  setDeleteConfirmText("")
+                }}
+                disabled={removeMutation.isPending}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-350 font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer text-center"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={removeMutation.isPending || deleteConfirmText.trim().toLowerCase() !== subjectToDelete?.namaMapel.trim().toLowerCase()}
+                className="flex-1 py-2.5 bg-rose-600 dark:bg-rose-700 hover:bg-rose-700 dark:hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-rose-500/10"
+              >
+                {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>Ya, Hapus</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {generateOpen && (
         <GenerateKurikulumDialog
           open
@@ -771,6 +844,181 @@ export default function MapelPage() {
           kelasList={(kelasList ?? []) as any}
           existingMapel={(mapelList ?? []) as any}
         />
+      )}
+
+      {/* ================= SUBJECT DETAIL MODAL ================= */}
+      {detailSubject && typeof window !== 'undefined' && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDetailSubject(null)
+          }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/10 dark:bg-slate-950/20 p-4"
+        >
+          <div className="bg-background rounded-3xl w-full max-w-xl mx-4 relative overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 my-auto max-h-[90vh] flex flex-col">
+            {/* Close Button */}
+            <button
+              onClick={() => setDetailSubject(null)}
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-xl transition-all cursor-pointer"
+              title="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-start space-x-3.5 pr-8 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800/60 shrink-0">
+              <div className="p-3 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 rounded-2xl shrink-0">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <span className="px-2.5 py-0.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-100 dark:border-teal-900 rounded-lg text-xs font-mono font-black uppercase">
+                    {detailSubject.kodeMapel || "-"}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg border text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border-teal-100/50 dark:border-teal-900">
+                    {KELOMPOK_LABEL[detailSubject.kelompok ?? ""] ?? detailSubject.kelompok ?? "Wajib"}
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-slate-850 dark:text-slate-100 mt-1.5 leading-snug">
+                  {detailSubject.namaMapel}
+                </h3>
+                <p className="text-xs text-slate-450 dark:text-slate-500 font-medium mt-0.5">
+                  Detail informasi mata pelajaran dan penugasan guru pengampu per kelas.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto custom-scrollbar space-y-6 pr-1 flex-1">
+              {/* Main Subject Specs Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Kode Mapel</span>
+                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5 block">{detailSubject.kodeMapel || "-"}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Beban Mengajar</span>
+                  <span className="text-xs font-extrabold text-teal-700 dark:text-teal-400 mt-0.5 block">{detailSubject.jumlahJam || 2} JP / Minggu</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Status</span>
+                  <span className={`text-xs font-extrabold mt-0.5 block ${detailSubject.aktif ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {detailSubject.aktif ? "Aktif" : "Tidak Aktif"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Guru Pengampu Section */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-750 dark:text-slate-350">
+                      Guru Pengampu & Plotting
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const subToPlot = detailSubject
+                      setDetailSubject(null)
+                      setPengampuMapel({ id: subToPlot.id, namaMapel: subToPlot.namaMapel, jumlahJam: subToPlot.jumlahJam ?? 0 })
+                      setPengampuOpen(true)
+                    }}
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>Atur Plotting Guru</span>
+                  </button>
+                </div>
+
+                {/* Teacher Assignments Cards */}
+                {(() => {
+                  const parsedAssignments = detailSubject.pengampu || []
+
+                  if (parsedAssignments.length === 0) {
+                    return (
+                      <div className="p-5 bg-amber-50/30 dark:bg-amber-950/15 border border-amber-200/50 dark:border-amber-900/50 rounded-2xl text-center space-y-2">
+                        <p className="text-xs font-bold text-amber-800 dark:text-amber-400">
+                          Belum Ada Guru Pengampu yang Diplotting
+                        </p>
+                        <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                          Mata pelajaran ini belum memiliki guru pengampu yang ditugaskan untuk kelas manapun.
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div className="space-y-2.5">
+                      {parsedAssignments.map((item: any, idx: number) => {
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-3.5 bg-background border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xs hover:border-indigo-150 dark:hover:border-indigo-900 transition-all">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-150 dark:border-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-extrabold text-sm shadow-xs">
+                                {item.guru?.namaLengkap ? item.guru.namaLengkap.charAt(0).toUpperCase() : "G"}
+                              </div>
+                              <div>
+                                <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">{item.guru?.namaLengkap || "Belum Ditunjuk"}</h5>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Guru Pengampu #{idx + 1}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-0.5">Kelas Ditugaskan</span>
+                              <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900 rounded-lg text-xs font-bold inline-block">
+                                {item.kelas?.namaKelas || "Semua Kelas"}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* Footer Modal Buttons */}
+            <div className="flex items-center space-x-3 pt-5 mt-4 border-t border-slate-100 dark:border-slate-800/60 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const subToEdit = detailSubject
+                  setDetailSubject(null)
+                  setEditData({
+                    id: subToEdit.id,
+                    namaMapel: subToEdit.namaMapel,
+                    kodeMapel: subToEdit.kodeMapel ?? "",
+                    kelompok: subToEdit.kelompok ?? "",
+                    aktif: subToEdit.aktif,
+                  })
+                  setFormOpen(true)
+                }}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer flex items-center space-x-1.5"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit Mapel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const subToDelete = detailSubject
+                  setDetailSubject(null)
+                  setDeleteId(subToDelete.id)
+                }}
+                className="px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900 text-rose-600 dark:text-rose-455 font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer flex items-center space-x-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailSubject(null)}
+                className="flex-1 py-2.5 bg-teal-600 dark:bg-teal-700 hover:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer shadow-md shadow-teal-500/10 text-center"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -141,7 +141,7 @@ export default function PengaturanPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Settings Panel Card (Left 5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <Card className="rounded-[28px] border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-md p-6">
+          <Card className="p-6">
             <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-4">
               Konfigurasi Kop
             </h3>
@@ -377,7 +377,7 @@ export default function PengaturanPage() {
         <div className="lg:col-span-7 space-y-4 text-left">
           <p className="text-xs font-black uppercase text-slate-400 tracking-wider pl-1">Pratinjau Kop Surat (Skala Cetak)</p>
           
-          <Card className="rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-xl overflow-hidden aspect-[1.414/1] w-full flex flex-col p-8 relative select-none">
+          <Card className="p-8">
             {/* Paper Layout Mockup Header */}
             <div className="w-full flex-1 flex flex-col relative border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/20 dark:bg-slate-950/20 overflow-hidden">
               

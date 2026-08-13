@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { createPortal } from "react-dom"
 import { Loader2, Plus, X, ChevronDown, Check, Search } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 interface AssignmentRow {
   guruId: string
@@ -67,7 +66,7 @@ function SearchableGuruSelect({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-[60] rounded-2xl glass text-popover-foreground p-2 space-y-2 max-h-60 overflow-y-auto shadow-2xl animate-in fade-in-50 zoom-in-95 border border-border/40">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-[60] rounded-2xl bg-popover text-popover-foreground p-2 space-y-2 max-h-60 overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800">
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -75,7 +74,7 @@ function SearchableGuruSelect({
               placeholder="Cari nama guru..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-background/80 border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-foreground"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-background border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-foreground"
               autoFocus
             />
           </div>
@@ -94,8 +93,8 @@ function SearchableGuruSelect({
                   }}
                   className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer font-medium transition-colors ${
                     g.id === value
-                      ? "bg-teal-50 dark:bg-teal-950/40 text-teal-650 dark:text-teal-400 font-bold"
-                      : "hover:bg-accent text-foreground"
+                      ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 font-bold"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/60 text-foreground"
                   }`}
                 >
                   <span>{g.namaLengkap}</span>
@@ -111,12 +110,17 @@ function SearchableGuruSelect({
 }
 
 export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPelajaranNama, jumlahJam: mapelJumlahJam }: Props) {
+  const [mounted, setMounted] = useState(false)
   const { data, isLoading } = api.pengampu.getByMapel.useQuery({ mataPelajaranId }, { enabled: open })
   const saveMutation = api.pengampu.save.useMutation()
 
   const defaultJumlahJam = mapelJumlahJam && mapelJumlahJam > 0 ? mapelJumlahJam : 4
 
   const [rows, setRows] = useState<AssignmentRow[]>([])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!data) return
@@ -139,44 +143,37 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
   const allKelas = data?.allKelas ?? []
   const allGuru = data?.allGuru ?? []
 
-  const takenClassIds = (exceptRowIndex: number): Set<string> => {
-    const taken = new Set<string>()
-    for (let i = 0; i < rows.length; i++) {
-      if (i === exceptRowIndex) continue
-      for (const kid of rows[i].kelasIds) taken.add(kid)
-    }
-    return taken
-  }
-
-  const updateRow = (index: number, patch: Partial<AssignmentRow>) => {
-    setRows((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], ...patch }
-      return next
-    })
-  }
-
-  const removeRow = (index: number) => {
-    if (rows.length <= 1) {
-      setRows([{ guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam }])
-      return
-    }
-    setRows((prev) => prev.filter((_, i) => i !== index))
+  const updateRow = (idx: number, patch: Partial<AssignmentRow>) => {
+    setRows((curr) => curr.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
   }
 
   const addRow = () => {
-    setRows((prev) => [...prev, { guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam }])
+    setRows((curr) => [...curr, { guruId: "", kelasIds: [], jumlahJam: defaultJumlahJam }])
+  }
+
+  const removeRow = (idx: number) => {
+    setRows((curr) => curr.filter((_, i) => i !== idx))
   }
 
   const toggleKelas = (rowIndex: number, kelasId: string) => {
     const row = rows[rowIndex]
-    const has = row.kelasIds.includes(kelasId)
-    updateRow(rowIndex, {
-      kelasIds: has ? row.kelasIds.filter((k) => k !== kelasId) : [...row.kelasIds, kelasId],
-    })
+    const next = row.kelasIds.includes(kelasId)
+      ? row.kelasIds.filter((id) => id !== kelasId)
+      : [...row.kelasIds, kelasId]
+    updateRow(rowIndex, { kelasIds: next })
   }
 
-  const toggleAllKelasRow = (rowIndex: number, availableKelas: Array<{ id: string }>) => {
+  const takenClassIds = (excludeRowIndex: number) => {
+    const s = new Set<string>()
+    rows.forEach((r, i) => {
+      if (i !== excludeRowIndex) {
+        r.kelasIds.forEach((id) => s.add(id))
+      }
+    })
+    return s
+  }
+
+  const toggleAllKelasRow = (rowIndex: number, availableKelas: typeof allKelas) => {
     const currentIds = rows[rowIndex].kelasIds
     const availIds = availableKelas.map((k) => k.id)
     const allChecked = availIds.length > 0 && availIds.every((id) => currentIds.includes(id))
@@ -210,133 +207,171 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
 
   const isPending = saveMutation.isPending
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto relative overflow-visible">
-        <DialogHeader>
-          <DialogTitle>Plotting Pengajar — {mataPelajaranNama}</DialogTitle>
-        </DialogHeader>
+  if (!open || !mounted) return null
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  return createPortal(
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/10 dark:bg-slate-950/20 p-4 animate-in fade-in duration-200"
+    >
+      <div className="bg-background rounded-3xl w-full max-w-xl mx-4 relative shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 my-auto max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/60 shrink-0">
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-850 dark:text-slate-100">
+              Plotting Pengajar — {mataPelajaranNama}
+            </h3>
+            <p className="text-xs text-slate-450 dark:text-slate-500 font-bold mt-0.5">
+              Atur guru pengampu dan plotting kelas untuk mata pelajaran ini.
+            </p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {rows.map((row, i) => {
-              const taken = takenClassIds(i)
-              const availableKelas = allKelas.filter((k) => !taken.has(k.id) || row.kelasIds.includes(k.id))
-              const isAllClassesChecked =
-                availableKelas.length > 0 && availableKelas.every((k) => row.kelasIds.includes(k.id))
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-655 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-xl transition-all cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-              return (
-                <div key={i} className="rounded-2xl border border-border/80 p-4 space-y-3 bg-card/50">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Guru Pengampu</Label>
-                      <SearchableGuruSelect
-                        value={row.guruId}
-                        onChange={(v) =>
-                          updateRow(i, { guruId: v, kelasIds: row.guruId !== v ? [] : row.kelasIds })
-                        }
-                        guruList={allGuru}
-                      />
-                    </div>
-                    {rows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(i)}
-                        className="mt-6 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar py-6 pr-1 space-y-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-teal-600 dark:text-teal-400" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {rows.map((row, i) => {
+                const taken = takenClassIds(i)
+                const availableKelas = allKelas.filter((k) => !taken.has(k.id) || row.kelasIds.includes(k.id))
+                const isAllClassesChecked =
+                  availableKelas.length > 0 && availableKelas.every((k) => row.kelasIds.includes(k.id))
 
-                  {row.guruId && (
-                    <div className="space-y-3 pt-1 border-t border-border/50">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">Jumlah JP per Kelas</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={20}
-                          value={row.jumlahJam}
-                          onChange={(e) => {
-                            const v = parseInt(e.target.value)
-                            if (v >= 1 && v <= 20) updateRow(i, { jumlahJam: v })
-                          }}
+                return (
+                  <div key={i} className="rounded-2xl border border-slate-150 dark:border-slate-800 p-4 space-y-3 bg-slate-50/30 dark:bg-slate-900/10">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-xs font-semibold text-slate-500">Guru Pengampu</Label>
+                        <SearchableGuruSelect
+                          value={row.guruId}
+                          onChange={(v) =>
+                            updateRow(i, { guruId: v, kelasIds: row.guruId !== v ? [] : row.kelasIds })
+                          }
+                          guruList={allGuru}
                         />
                       </div>
+                      {rows.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeRow(i)}
+                          className="mt-6 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-semibold text-muted-foreground">Pilih Kelas</Label>
-                          {availableKelas.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => toggleAllKelasRow(i, availableKelas)}
-                              className="text-xs font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer"
-                            >
-                              {isAllClassesChecked ? "Batal Pilih Semua" : "Pilih Semua Kelas"}
-                            </button>
-                          )}
+                    {row.guruId && (
+                      <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-slate-500">Jumlah JP per Kelas</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={row.jumlahJam}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value)
+                              if (v >= 1 && v <= 20) updateRow(i, { jumlahJam: v })
+                            }}
+                            className="h-9 px-3 text-xs font-bold rounded-xl"
+                          />
                         </div>
 
-                        {availableKelas.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">Semua kelas sudah diampu guru lain</p>
-                        ) : (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                            {availableKelas.map((k) => {
-                              const checked = row.kelasIds.includes(k.id)
-                              return (
-                                <label
-                                  key={k.id}
-                                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs cursor-pointer transition-colors border select-none ${
-                                    checked
-                                      ? "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/60 text-teal-650 dark:text-teal-400 font-bold"
-                                      : "border-border/60 hover:bg-accent text-foreground"
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleKelas(i, k.id)}
-                                    className="accent-teal-600 h-3.5 w-3.5 rounded"
-                                  />
-                                  <span>{k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}</span>
-                                </label>
-                              )
-                            })}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold text-slate-500">Pilih Kelas</Label>
+                            {availableKelas.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleAllKelasRow(i, availableKelas)}
+                                className="text-xs font-bold text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer"
+                              >
+                                {isAllClassesChecked ? "Batal Pilih Semua" : "Pilih Semua Kelas"}
+                              </button>
+                            )}
                           </div>
-                        )}
+
+                          {availableKelas.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">Semua kelas sudah diampu guru lain</p>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                              {availableKelas.map((k) => {
+                                const checked = row.kelasIds.includes(k.id)
+                                return (
+                                  <label
+                                    key={k.id}
+                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] cursor-pointer transition-colors border select-none ${
+                                      checked
+                                        ? "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800/60 text-teal-700 dark:text-teal-400 font-bold"
+                                        : "border-slate-150 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-350"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => toggleKelas(i, k.id)}
+                                      className="accent-teal-600 h-3.5 w-3.5 rounded cursor-pointer"
+                                    />
+                                    <span className="truncate">{k.tingkat ? `${k.tingkat} ${k.namaKelas}` : k.namaKelas}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                    )}
+                  </div>
+                )
+              })}
 
-            <Button variant="outline" className="w-full gap-2 rounded-xl" onClick={addRow}>
-              <Plus className="h-4 w-4" /> Tambah Guru Pengampu
-            </Button>
-          </div>
-        )}
+              <button
+                type="button"
+                className="w-full py-2 border border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 transition-all cursor-pointer"
+                onClick={addRow}
+              >
+                <Plus className="h-4 w-4" /> Tambah Guru Pengampu
+              </button>
+            </div>
+          )}
+        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
+        {/* Footer */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 shrink-0 flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer text-center"
+          >
             Batal
-          </Button>
-          <Button
+          </button>
+          <button
+            type="button"
             onClick={handleSave}
             disabled={isPending || isLoading}
-            className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+            className="flex-1 py-2.5 bg-teal-600 dark:bg-teal-700 hover:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-teal-500/10"
           >
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Simpan
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <span>Simpan</span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
