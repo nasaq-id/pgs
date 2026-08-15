@@ -71,6 +71,8 @@ export default function TahunAjaranPage() {
     onSuccess: () => {
       toast.success("Pengaturan kalender berhasil disimpan")
       utils.pengaturanKalender.get.invalidate()
+      utils.lembaga.getTahunAjaran.invalidate()
+      utils.lembaga.getActiveTahunAjaran.invalidate()
     },
     onError: (err) => toast.error(err.message || "Gagal menyimpan pengaturan kalender"),
   })

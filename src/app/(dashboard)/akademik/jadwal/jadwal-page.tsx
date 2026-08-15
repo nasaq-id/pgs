@@ -38,22 +38,51 @@ import {
 import { api } from "@/lib/trpc/client"
 import { useOptimisticRemove } from "@/hooks/useOptimisticRemove"
 import { useSession } from "next-auth/react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import dynamic from "next/dynamic"
 import type { ComponentProps } from "react"
 import type JadwalFormDialogType from "@/components/jadwal/JadwalFormDialog"
 import type { JadwalFormData } from "@/components/jadwal/JadwalFormDialog"
-import type PengaturanJadwalDialogType from "@/components/jadwal/PengaturanJadwalDialog"
 import type CetakJadwalType from "@/components/jadwal/CetakJadwal"
 import type ExportJadwalMenuType from "@/components/jadwal/ExportJadwalMenu"
 import type AiGenerateDialogType from "@/components/jadwal/AiGenerateDialog"
 import { DAYS, DAY_LABEL, toTimeInputValue, formatKelasLabel } from "@/components/jadwal/constants"
+const MAPEL_COLORS = [
+  { bg: "bg-emerald-50/70 dark:bg-emerald-950/20", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-300/60 dark:border-emerald-800/40" },
+  { bg: "bg-indigo-50/70 dark:bg-indigo-950/20", text: "text-indigo-700 dark:text-indigo-400", border: "border-indigo-300/60 dark:border-indigo-800/40" },
+  { bg: "bg-amber-50/70 dark:bg-amber-950/20", text: "text-amber-700 dark:text-amber-400", border: "border-amber-300/60 dark:border-amber-800/40" },
+  { bg: "bg-rose-50/70 dark:bg-rose-950/20", text: "text-rose-700 dark:text-rose-400", border: "border-rose-300/60 dark:border-rose-800/40" },
+  { bg: "bg-sky-50/70 dark:bg-sky-950/20", text: "text-sky-700 dark:text-sky-400", border: "border-sky-300/60 dark:border-sky-800/40" },
+  { bg: "bg-violet-50/70 dark:bg-violet-950/20", text: "text-violet-700 dark:text-violet-400", border: "border-violet-300/60 dark:border-violet-800/40" },
+  { bg: "bg-pink-50/70 dark:bg-pink-950/20", text: "text-pink-700 dark:text-pink-400", border: "border-pink-300/60 dark:border-pink-800/40" },
+  { bg: "bg-cyan-50/70 dark:bg-cyan-950/20", text: "text-cyan-700 dark:text-cyan-400", border: "border-cyan-300/60 dark:border-cyan-800/40" },
+  { bg: "bg-teal-50/70 dark:bg-teal-950/20", text: "text-teal-700 dark:text-teal-400", border: "border-teal-300/60 dark:border-teal-800/40" },
+  { bg: "bg-orange-50/70 dark:bg-orange-950/20", text: "text-orange-700 dark:text-orange-400", border: "border-orange-300/60 dark:border-orange-800/40" },
+]
+
+function getMapelColor(mapelId: string | undefined) {
+  if (!mapelId) return MAPEL_COLORS[0]
+  let hash = 0
+  for (let i = 0; i < mapelId.length; i++) {
+    hash = mapelId.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % MAPEL_COLORS.length
+  return MAPEL_COLORS[index]
+}
+
+const PengaturanJadwalPanel = dynamic(
+  () => import("@/components/jadwal/PengaturanJadwalPanel").then((m) => m.default)
+)
 
 const JadwalFormDialog = dynamic<ComponentProps<typeof JadwalFormDialogType>>(
   () => import("@/components/jadwal/JadwalFormDialog").then((m) => m.default),
-  { ssr: false }
-)
-const PengaturanJadwalDialog = dynamic<ComponentProps<typeof PengaturanJadwalDialogType>>(
-  () => import("@/components/jadwal/PengaturanJadwalDialog").then((m) => m.default),
   { ssr: false }
 )
 const CetakJadwal = dynamic<ComponentProps<typeof CetakJadwalType>>(
@@ -188,7 +217,6 @@ export default function JadwalPage() {
   const [addForHari, setAddForHari] = useState<string | null>(null)
   const [addJpMulai, setAddJpMulai] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [pengaturanOpen, setPengaturanOpen] = useState(false)
   const [cetakOpen, setCetakOpen] = useState(false)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
@@ -199,6 +227,9 @@ export default function JadwalPage() {
   // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [scheduleViewMode, setScheduleViewMode] = useState<'mingguan' | 'harian'>('mingguan')
+
+  // Top-level tabs (mengikuti struktur prototipe: Pengaturan Jadwal vs Distribusi Jadwal)
+  const [activeMainTab, setActiveMainTab] = useState<'pengaturan' | 'distribusi'>('distribusi')
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 500 })
   const kelasRecords = useMemo(() => (kelasList ?? []) as KelasRecord[], [kelasList])
@@ -277,7 +308,12 @@ export default function JadwalPage() {
 
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
-  const jadwalRecords = useMemo(() => (jadwalList ?? []) as JadwalRecord[], [jadwalList])
+  const jadwalRecords = useMemo(() => {
+    if (kelasId === "semua") {
+      return (allJadwalList ?? []) as JadwalRecord[]
+    }
+    return (jadwalList ?? []) as JadwalRecord[]
+  }, [kelasId, allJadwalList, jadwalList])
   const pengaturanData = (pengaturan ?? null) as PengaturanData | null
   const timelineRecords = useMemo(() => (timelineList ?? []) as TimelineRecord[], [timelineList])
 
@@ -292,8 +328,9 @@ export default function JadwalPage() {
   )
 
   const aktifDays = useMemo(() => {
-    return DAYS
-  }, [])
+    const daysInTimeline = new Set(timelineRecords.map((t) => t.hari))
+    return DAYS.filter((day) => daysInTimeline.has(day))
+  }, [timelineRecords])
 
   const timelineByDay = useMemo(() => {
     const map = new Map<string, TimelineRecord[]>()
@@ -403,6 +440,42 @@ export default function JadwalPage() {
         <p className="text-muted-foreground">Atur jadwal kegiatan belajar mengajar</p>
       </div>
 
+      {/* Top-level Tab Switcher (Pengaturan Jadwal vs Distribusi Jadwal) */}
+      {canEdit && (
+        <div className="flex space-x-1 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-1 border border-slate-200/80 dark:border-slate-800 rounded-2xl max-w-md shadow-xs shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("pengaturan")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+              activeMainTab === "pengaturan"
+                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+            }`}
+          >
+            Pengaturan Jadwal
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("distribusi")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+              activeMainTab === "distribusi"
+                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+            }`}
+          >
+            Distribusi Jadwal
+          </button>
+        </div>
+      )}
+
+      {/* Pengaturan Jadwal inline panel (tab pengaturan) */}
+      {activeMainTab === "pengaturan" && canEdit && (
+        <PengaturanJadwalPanel onDone={() => setActiveMainTab("distribusi")} />
+      )}
+
+      {/* Distribusi Jadwal content (tab distribusi) */}
+      {activeMainTab === "distribusi" && (
+        <>
       {/* Premium selection panel */}
       <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -412,6 +485,8 @@ export default function JadwalPage() {
           <h3 className="text-xl lg:text-2xl font-extrabold tracking-tight mt-3">
             {isGuru ? (
               <span>Tinjau Agenda: <span className="text-teal-400">{(profile?.namaLengkap as string) || "Guru"}</span></span>
+            ) : kelasId === "semua" ? (
+              <span>Matriks Sekolah: <span className="text-teal-400">Semua Rombel</span></span>
             ) : (
               <span>Tinjau Mingguan: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span></span>
             )}
@@ -430,14 +505,20 @@ export default function JadwalPage() {
             <div className="w-full sm:w-auto">
               <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
               <Select
-                value={kelasId}
+                value={kelasId || "semua"}
                 onValueChange={(v) => v && setManualKelasId(v)}
-                options={kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) }))}
+                options={[
+                  { value: "semua", label: "Semua Kelas (Matriks)" },
+                  ...kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) })),
+                ]}
               >
                  <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
                   <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground">
+                  <SelectItem value="semua" label="Semua Kelas (Matriks)" className="!text-slate-800 dark:!text-slate-200 focus:!text-slate-900 dark:focus:!text-white focus:!bg-slate-100 dark:focus:!bg-slate-800">
+                    Semua Kelas (Matriks)
+                  </SelectItem>
                   {kelasRecords.map((k) => (
                     <SelectItem key={k.id} value={k.id} label={formatKelasLabel(k)} className="!text-slate-800 dark:!text-slate-200 focus:!text-slate-900 dark:focus:!text-white focus:!bg-slate-100 dark:focus:!bg-slate-800">
                       {formatKelasLabel(k)}
@@ -514,14 +595,6 @@ export default function JadwalPage() {
           {canEdit && (
             <>
               <Button
-                onClick={() => setPengaturanOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                <span>Pengaturan Jadwal</span>
-              </Button>
-
-              <Button
                 onClick={() => setAiGenerateOpen(true)}
                 className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
               >
@@ -593,34 +666,42 @@ export default function JadwalPage() {
       ) : (
         <div className="space-y-6">
           {/* Day selection tab buttons - Enhanced with Neumorphism card style */}
-          {scheduleViewMode === "harian" && (
+          {(scheduleViewMode === "harian" || kelasId === "semua") && (
             <div className="neumo-card bg-background p-4 rounded-3xl text-left space-y-2 border-0">
               <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">
-                Saring Berdasarkan Hari Kerja
+                {kelasId === "semua" ? "Pilih Hari Matriks" : "Saring Berdasarkan Hari Kerja"}
               </span>
               <div className="flex gap-2 overflow-x-auto pb-1 whitespace-nowrap">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDays([])}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
-                    selectedDays.length === 0
-                      ? "bg-teal-600 text-white neumo-sm"
-                      : "bg-background text-slate-600 neumo-sm hover:scale-[1.01]"
-                  }`}
-                >
-                  Semua Hari
-                </button>
-                {DAYS.map((day) => {
-                  const isSel = selectedDays.includes(day)
+                {kelasId !== "semua" && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDays([])}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                      selectedDays.length === 0
+                        ? "bg-teal-600 text-white neumo-sm"
+                        : "bg-background text-slate-600 neumo-sm hover:scale-[1.01]"
+                    }`}
+                  >
+                    Semua Hari
+                  </button>
+                )}
+                {aktifDays.map((day) => {
+                  const isSel = kelasId === "semua"
+                    ? (selectedDays[0] || aktifDays[0] || "senin") === day
+                    : selectedDays.includes(day)
                   return (
                     <button
                       key={day}
                       type="button"
                       onClick={() => {
-                        if (selectedDays.includes(day)) {
-                          setSelectedDays(selectedDays.filter((d) => d !== day))
-                        } else {
+                        if (kelasId === "semua") {
                           setSelectedDays([day])
+                        } else {
+                          if (selectedDays.includes(day)) {
+                            setSelectedDays(selectedDays.filter((d) => d !== day))
+                          } else {
+                            setSelectedDays([day])
+                          }
                         }
                       }}
                       className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
@@ -637,7 +718,17 @@ export default function JadwalPage() {
             </div>
           )}
 
-          {scheduleViewMode === "mingguan" ? (
+          {kelasId === "semua" ? (
+            /* ================= MATRIX VIEW (ALL CLASSES) ================= */
+            <MatrixView
+              day={selectedDays[0] || aktifDays[0] || "senin"}
+              dayItems={timelineByDay.get(selectedDays[0] || aktifDays[0] || "senin") ?? []}
+              kelasRecords={kelasRecords}
+              jadwalRecords={jadwalRecords}
+              mapelMap={mapelMap}
+              guruMap={guruMap}
+            />
+          ) : scheduleViewMode === "mingguan" ? (
             /* ================= WEEKLY GRID VIEW ================= */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
               {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {
@@ -738,13 +829,15 @@ export default function JadwalPage() {
                               const tStart = startSlot?.jamMulai || item.jamMulai
                               const tEnd = endSlot?.jamSelesai || item.jamSelesai
 
+                              const color = getMapelColor(entry.mataPelajaranId)
+
                               return (
                                 <div
                                   key={`jp-${item.id}`}
-                                  className="group relative p-3 bg-background dark:bg-slate-900 border-0 rounded-2xl hover:scale-[1.01] transition-all flex flex-col justify-between text-left neumo-sm hover:shadow-md"
+                                  className={`group relative p-3 ${color.bg} border-l-4 ${color.border} rounded-2xl hover:scale-[1.01] transition-all flex flex-col justify-between text-left shadow-xs hover:shadow-md`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="bg-teal-50 dark:bg-slate-800 text-teal-700 dark:text-teal-400 border-0 rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                                    <span className={`px-2 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-black uppercase tracking-wider`}>
                                       JP {academicJp}
                                     </span>
                                     <span className="text-[9px] font-mono font-bold text-slate-400">
@@ -754,7 +847,7 @@ export default function JadwalPage() {
 
                                   <div className="mt-2 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="px-1.5 py-0.5 bg-teal-50 dark:bg-slate-800 text-teal-700 dark:text-teal-400 border-0 rounded text-[9px] font-mono font-black uppercase">
+                                      <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} border-0 rounded text-[9px] font-mono font-black uppercase`}>
                                         {mapel?.kodeMapel || "MAPEL"}
                                       </span>
                                       <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
@@ -799,26 +892,75 @@ export default function JadwalPage() {
                                 </div>
                               )
                             } else {
+                              // Find other slots occupied by a teacher in this day/JP to check for clashes
+                              const findTeacherOccupancy = (guruId: string, jpIndex: number) => {
+                                return (allJadwalList ?? []).filter(
+                                  (e) => e.hari === day && e.guruId === guruId && e.jpMulai !== null && e.jpCount !== null &&
+                                         jpIndex >= e.jpMulai && jpIndex < e.jpMulai + e.jpCount
+                                )
+                              }
+
+                              // Find teachers who teach this class at some point in the schedule, but are busy in another class during this day & JP
+                              const classTeachers = Array.from(new Set(
+                                (allJadwalList ?? [])
+                                  .filter((e) => e.kelasId === kelasId)
+                                  .map((e) => e.guruId)
+                              ))
+
+                              const busyTeachers = classTeachers
+                                .map((guruId) => {
+                                  const busyIn = findTeacherOccupancy(guruId, academicJp).filter((c) => c.kelasId !== kelasId)
+                                  if (busyIn.length > 0) {
+                                    const teacher = guruMap.get(guruId)
+                                    const clNames = busyIn.map((c) => {
+                                      const cl = kelasRecords.find((x) => x.id === c.kelasId)
+                                      return cl ? cl.namaKelas : "Kelas Lain"
+                                    })
+                                    return `${teacher?.namaLengkap || "Guru"} (${clNames.join(", ")})`
+                                  }
+                                  return null
+                                })
+                                .filter(Boolean) as string[]
+
                               // Empty JP slot - Sunken style
                               return (
                                 <div
                                   key={`jp-empty-${item.id}`}
-                                  className="p-3 bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl flex items-center justify-between text-left neumo-inset"
+                                  className="p-3 bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl flex flex-col justify-between text-left neumo-inset space-y-1.5"
                                 >
-                                  <div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
-                                    <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">
-                                      {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
-                                    </span>
+                                  <div className="flex items-center justify-between w-full">
+                                    <div>
+                                      <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
+                                      <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">
+                                        {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
+                                      </span>
+                                    </div>
+                                    {canEdit && (
+                                      <button
+                                        onClick={() => openAdd(day, academicJp)}
+                                        className="p-1.5 bg-background hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer shrink-0"
+                                        title="Isi Jadwal JP"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                   </div>
-                                  {canEdit && (
-                                    <button
-                                      onClick={() => openAdd(day, academicJp)}
-                                      className="p-1.5 bg-background hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer"
-                                      title="Isi Jadwal JP"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </button>
+
+                                  {!isGuru && (
+                                    <div className="text-[8px] text-slate-400 font-medium leading-tight border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5 mt-1">
+                                      {busyTeachers.length > 0 ? (
+                                        <>
+                                          <span className="font-bold text-slate-450 uppercase block mb-0.5 text-[7px] tracking-wide">Guru Sibuk:</span>
+                                          {busyTeachers.map((t, idx) => (
+                                            <span key={idx} className="block truncate text-slate-500">{t}</span>
+                                          ))}
+                                        </>
+                                      ) : (
+                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-[7px] uppercase tracking-wider">
+                                          ✓ Guru Free
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               )
@@ -1039,6 +1181,8 @@ export default function JadwalPage() {
           )}
         </div>
       )}
+        </>
+      )}
 
       {/* Dialog components */}
       {canEdit && (
@@ -1053,7 +1197,7 @@ export default function JadwalPage() {
             }}
             onOpenPengaturan={() => {
               setFormOpen(false)
-              setPengaturanOpen(true)
+              setActiveMainTab("pengaturan")
             }}
             onSubmit={handleSubmit}
             initial={editEntry}
@@ -1065,11 +1209,6 @@ export default function JadwalPage() {
             contextHari={addForHari ?? undefined}
             initialJp={addJpMulai}
             kelasId={kelasId}
-          />
-
-          <PengaturanJadwalDialog
-            open={pengaturanOpen}
-            onClose={() => setPengaturanOpen(false)}
           />
 
           <AlertDialog open={resetOpen} onOpenChange={(open) => !resetting && setResetOpen(open)}>
@@ -1177,3 +1316,180 @@ export default function JadwalPage() {
     </div>
   )
 }
+
+function MatrixView({
+  day,
+  dayItems,
+  kelasRecords,
+  jadwalRecords,
+  mapelMap,
+  guruMap,
+}: {
+  day: string
+  dayItems: TimelineRecord[]
+  kelasRecords: KelasRecord[]
+  jadwalRecords: JadwalRecord[]
+  mapelMap: Map<string, MapelRecord>
+  guruMap: Map<string, GuruRecord>
+}) {
+  const jpItems = dayItems.filter((t) => t.tipe === "jp")
+
+  // Find other slots occupied by a teacher in this day/JP to check for clashes
+  const findTeacherOccupancy = (guruId: string, jpIndex: number) => {
+    return jadwalRecords.filter(
+      (e) => e.hari === day && e.guruId === guruId && e.jpMulai !== null && e.jpCount !== null &&
+             jpIndex >= e.jpMulai && jpIndex < e.jpMulai + e.jpCount
+    )
+  }
+
+  return (
+    <div className="neumo-card bg-background rounded-3xl p-6 border-0 overflow-x-auto shadow-md">
+      <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm animate-pulse" />
+        <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">
+          Matriks Jadwal Hari {day.toUpperCase()} (Semua Rombel)
+        </h4>
+      </div>
+
+      <Table className="min-w-[800px]">
+        <TableHeader>
+          <TableRow className="border-slate-100 dark:border-slate-800 hover:bg-transparent">
+            <TableHead className="w-32 font-bold text-xs uppercase text-slate-400">Jam / JP</TableHead>
+            {kelasRecords.map((k) => (
+              <TableHead key={k.id} className="text-center font-black text-xs uppercase text-slate-700 dark:text-slate-205">
+                {k.namaKelas}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {dayItems.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={kelasRecords.length + 1} className="text-center py-12 text-slate-400 font-bold uppercase text-xs">
+                Hari Libur / Tidak Ada Kegiatan Belajar Mengajar
+              </TableCell>
+            </TableRow>
+          ) : (
+            dayItems.map((item) => {
+              if (item.tipe !== "jp") {
+                // Render special row for agenda items like break/ceremony across all classes
+                let bgStyle = "bg-slate-50/50 dark:bg-slate-900/30 text-slate-400"
+                if (item.tipe === "istirahat") bgStyle = "bg-indigo-50/20 dark:bg-indigo-950/10 text-indigo-600 dark:text-indigo-400"
+                if (item.tipe === "upacara") bgStyle = "bg-amber-50/20 dark:bg-amber-950/10 text-amber-600 dark:text-amber-400"
+
+                return (
+                  <TableRow key={item.id} className={`border-slate-100 dark:border-slate-800 ${bgStyle}`}>
+                    <TableCell className="font-mono text-[10px] font-extrabold whitespace-nowrap">
+                      {item.jamMulai} - {item.jamSelesai}
+                    </TableCell>
+                    <TableCell colSpan={kelasRecords.length} className="text-center font-black uppercase text-[10px] tracking-widest">
+                      {item.label || item.tipe}
+                    </TableCell>
+                  </TableRow>
+                )
+              }
+
+              // It's a JP slot
+              const jpIndex = jpItems.findIndex((x) => x.id === item.id)
+              const academicJp = jpIndex + 1
+
+              return (
+                <TableRow key={item.id} className="border-slate-100 dark:border-slate-800 hover:bg-slate-50/20 dark:hover:bg-slate-800/10">
+                  <TableCell className="font-mono text-[10px] font-extrabold text-slate-500 whitespace-nowrap py-4">
+                    <span className="block text-[8px] text-slate-450 uppercase">JP {academicJp}</span>
+                    {item.jamMulai} - {item.jamSelesai}
+                  </TableCell>
+
+                  {kelasRecords.map((k) => {
+                    const entries = jadwalRecords.filter(
+                      (e) => e.kelasId === k.id && e.hari === day && e.jpMulai !== null && e.jpCount !== null
+                    )
+                    const entry = entries.find(
+                      (e) => academicJp >= e.jpMulai! && academicJp < e.jpMulai! + e.jpCount!
+                    )
+
+                    if (!entry) {
+                      // Find teachers who teach this class at some point in the schedule, but are busy in another class during this day & JP
+                      const classTeachers = Array.from(new Set(
+                        jadwalRecords
+                          .filter((e) => e.kelasId === k.id)
+                          .map((e) => e.guruId)
+                      ))
+
+                      const busyTeachers = classTeachers
+                        .map((guruId) => {
+                          const busyIn = findTeacherOccupancy(guruId, academicJp).filter((c) => c.kelasId !== k.id)
+                          if (busyIn.length > 0) {
+                            const teacher = guruMap.get(guruId)
+                            const clNames = busyIn.map((c) => {
+                              const cl = kelasRecords.find((x) => x.id === c.kelasId)
+                              return cl ? cl.namaKelas : "Kelas Lain"
+                            })
+                            return `${teacher?.namaLengkap || "Guru"} (${clNames.join(", ")})`
+                          }
+                          return null
+                        })
+                        .filter(Boolean) as string[]
+
+                      return (
+                        <TableCell key={k.id} className="p-3 border border-dashed border-slate-100 dark:border-slate-800/60 bg-slate-50/10 dark:bg-slate-900/5 text-center">
+                          <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider block">Kosong</span>
+                          {busyTeachers.length > 0 ? (
+                             <div className="mt-1.5 text-[8px] text-slate-400 font-medium leading-tight">
+                               <span className="font-bold text-slate-400/80 uppercase block mb-0.5 text-[7px] tracking-wide">Guru Sibuk:</span>
+                               {busyTeachers.map((t, idx) => (
+                                 <span key={idx} className="block truncate max-w-[125px] mx-auto text-slate-455">{t}</span>
+                               ))}
+                             </div>
+                           ) : (
+                             <span className="text-[7px] font-bold text-emerald-650 dark:text-emerald-400 block mt-1 uppercase tracking-wider">
+                               ✓ Guru Free
+                             </span>
+                           )}
+                        </TableCell>
+                      )
+                    }
+
+                    const mapel = mapelMap.get(entry.mataPelajaranId)
+                    const teacher = guruMap.get(entry.guruId)
+                    
+                    // Check if teacher is teaching in another class at the same time
+                    const concurrentClasses = findTeacherOccupancy(entry.guruId, academicJp)
+                      .filter((c) => c.kelasId !== k.id)
+                      .map((c) => {
+                        const cl = kelasRecords.find((x) => x.id === c.kelasId)
+                        return cl ? cl.namaKelas : "Kelas Lain"
+                      })
+
+                    const hasClash = concurrentClasses.length > 0
+                    const color = getMapelColor(entry.mataPelajaranId)
+
+                    return (
+                      <TableCell key={k.id} className={`p-3 text-center border-r border-b border-slate-100 dark:border-slate-800/50 ${hasClash ? "bg-rose-50/30 dark:bg-rose-950/15 border-l-4 border-l-rose-500" : `${color.bg} border-l-4 ${color.border}`} transition-all`}>
+                        <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-mono font-black uppercase`}>
+                          {mapel?.kodeMapel || "MAPEL"}
+                        </span>
+                        <h6 className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase line-clamp-1">
+                          {mapel?.namaMapel || "—"}
+                        </h6>
+                        <span className="text-[10px] text-slate-500 font-bold block mt-0.5 truncate max-w-[120px] mx-auto">
+                          {teacher?.namaLengkap || "—"}
+                        </span>
+                        {hasClash && (
+                          <span className="text-[8px] font-black text-rose-500 block mt-1 uppercase tracking-wider">
+                            Bentrok: {concurrentClasses.join(", ")}
+                          </span>
+                        )}
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              )
+            })
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+

@@ -47,6 +47,7 @@ interface KelasRecord {
   id: string
   namaKelas: string
   tingkat: string | null
+  tahunAjaranId?: string | null
 }
 
 interface MapelRecord {
@@ -228,6 +229,7 @@ export default function AiGenerateDialog({
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null)
 
   // Teacher exception states matching reference ZIP structure
   const [teacherExceptions, setTeacherExceptions] = useState<Record<string, string[]>>({})
@@ -547,31 +549,13 @@ export default function AiGenerateDialog({
     return constraints
   }
 
+  const generateKelasMutation = api.jadwal.generateKelas.useMutation()
+  const generateSekolahMutation = api.jadwal.generateSekolah.useMutation()
+  const publishBatchMutation = api.jadwal.publishBatch.useMutation()
+  const discardBatchMutation = api.jadwal.discardBatch.useMutation()
+
   const handlePreview = async () => {
-    if (filteredPengampu.length === 0) {
-      toast.error("Belum ada data Plotting Pengajar (Pengampu) di database untuk kelas yang dipilih.")
-      return
-    }
-    setPreviewLoading(true)
-    setPreviewError(null)
-    setPreviewData(null)
-    try {
-      const data = await previewMutation.mutateAsync({
-        kelasId: targetKelasId === "all" ? undefined : targetKelasId,
-        hariLibur: hariLibur as any[],
-        constraints: buildConstraints(),
-      })
-      if (!data.ok) {
-        setPreviewError(data.error || "Gagal menyusun preview jadwal.")
-        setPreviewData(null)
-      } else {
-        setPreviewData(data)
-      }
-    } catch (err: any) {
-      setPreviewError(err.message || "Gagal memuat preview jadwal.")
-    } finally {
-      setPreviewLoading(false)
-    }
+    toast.info("Gunakan tombol 'Generate Otomatis' untuk menyusun draf jadwal, lalu tinjau hasilnya di layar konfirmasi.")
   }
 
   const handleGenerate = async () => {
@@ -580,61 +564,100 @@ export default function AiGenerateDialog({
       return
     }
 
-    const constraints = buildConstraints()
-
-    // Open terminal progress modal
     setProgressModalOpen(true)
     setProgressStatus("processing")
-    setProgressPercent(5)
-    setProgressDisplay(0)
+    setProgressPercent(10)
+    setProgressDisplay(10)
     setProgressLogs([
-      "[Sistem] Menyiapkan data plotting & timeline...",
+      "[Sistem] Menginisialisasi AI Auto-Scheduler...",
+      "[Sistem] Membaca data timeline & plotting pengajar...",
+      "[Sistem] Menjalankan backtracking search dengan heuristic MRV...",
     ])
 
-    // Mulai subscription — progress asli datang dari server
-    setGenInput({
-      kelasId: targetKelasId === "all" ? undefined : targetKelasId,
-      hariLibur: hariLibur as string[],
-      constraints,
-    })
-    setGenStarted(true)
+    try {
+      const activeTahunAjaranId = kelasRecords[0]?.tahunAjaranId || undefined
+
+      let res
+      if (targetKelasId === "all") {
+        setProgressLogs((prev) => [...prev, "[Sistem] Menyusun jadwal untuk semua kelas paralel..."])
+        res = await generateSekolahMutation.mutateAsync({
+          tahunAjaranId: activeTahunAjaranId,
+          hariLibur: hariLibur,
+        })
+      } else {
+        const targetKelasName = kelasRecords.find(k => k.id === targetKelasId)?.namaKelas || targetKelasId
+        setProgressLogs((prev) => [...prev, `[Sistem] Menyusun jadwal khusus untuk kelas ${targetKelasName}...`])
+        res = await generateKelasMutation.mutateAsync({
+          kelasId: targetKelasId,
+          tahunAjaranId: activeTahunAjaranId,
+          hariLibur: hariLibur,
+        })
+      }
+
+      if (res.success) {
+        setProgressPercent(100)
+        setProgressDisplay(100)
+        setProgressStatus("success")
+        setActiveBatchId(res.batchId)
+
+        const skippedLogs = ((res as any).tanpaPlotting || []).map(
+          (c: any) => `[Sistem] Lewati Rombel ${c.namaKelas}: Tidak ada data Plotting Pengajar.`
+        )
+
+        setProgressLogs((prev) => [
+          ...prev,
+          ...skippedLogs,
+          `[Success] AI Auto-Scheduler berhasil menyusun draf jadwal pelajaran!`,
+          `[Success] Draf disimpan sementara dalam Batch ID: ${res.batchId}`,
+        ])
+        toast.success("Draf jadwal berhasil disusun oleh AI!")
+      } else {
+        const errors = (res.gagal || []).map(g => `• Kelas ${g.kelasId}: ${g.error}`).join("\n")
+        throw new Error(`Sebagian kelas gagal dijadwalkan:\n${errors}`)
+      }
+    } catch (err: any) {
+      setProgressPercent(100)
+      setProgressDisplay(100)
+      setProgressStatus("error")
+      setProgressLogs((prev) => [
+        ...prev,
+        `[Error] Gagal menyusun: ${err.message || String(err)}`,
+      ])
+      toast.error(err.message || "Gagal menyusun jadwal otomatis.")
+    }
   }
 
-  api.jadwal.generateWithProgress.useSubscription(
-    genInput as any,
-    {
-      enabled: genStarted && !!genInput,
-      onData(event) {
-        if (event.type === "progress") {
-          setProgressPercent(event.percent)
-          setProgressLogs((prev) => [...prev, `[Sistem] ${event.message}`])
-        } else if (event.type === "done") {
-          setProgressPercent(100)
-          setProgressDisplay(100)
-          setGenStarted(false)
-          setProgressStatus("success")
-          const r = event.result
-          const detik = ((r?.durationMs ?? 0) / 1000).toFixed(1)
-          setProgressLogs((prev) => [
-            ...prev,
-            `[Success] Penyusunan jadwal berhasil difinalisasi oleh solver!`,
-            `[Success] ${r?.totalBlocks ?? 0} blok / ${r?.totalJp ?? 0} JP tersusun tanpa bentrok — selesai dalam ${detik} detik.`,
-          ])
-          toast.success("Jadwal pelajaran berhasil digenerate otomatis oleh AI!")
-          utils.jadwal.getAll.invalidate()
-        } else if (event.type === "error") {
-          setGenStarted(false)
-          setProgressStatus("error")
-          setProgressLogs((prev) => [...prev, `[Error] Gagal menyusun: ${event.message}`])
-        }
-      },
-      onError(err) {
-        setGenStarted(false)
-        setProgressStatus("error")
-        setProgressLogs((prev) => [...prev, `[Error] Gagal menyusun: ${err.message || "Kesalahan solver internal"}`])
-      },
+  const handlePublish = async () => {
+    if (!activeBatchId) return
+    setProgressStatus("processing")
+    setProgressLogs((prev) => [...prev, "[Sistem] Menerbitkan draf jadwal ke database...", "[Sistem] Menghapus jadwal lama untuk kelas terpengaruh..."])
+    try {
+      const res = await publishBatchMutation.mutateAsync({ batchId: activeBatchId })
+      toast.success(`Jadwal pelajaran berhasil diterbitkan! (${res.kelasTerpengaruh} kelas diperbarui)`)
+      utils.jadwal.getAll.invalidate()
+      utils.jadwal.getTimelineWithJadwal.invalidate()
+      setProgressModalOpen(false)
+      onClose()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menerbitkan jadwal.")
+      setProgressStatus("success")
     }
-  )
+  }
+
+  const handleDiscard = async () => {
+    if (!activeBatchId) return
+    setProgressStatus("processing")
+    setProgressLogs((prev) => [...prev, "[Sistem] Membatalkan draf jadwal...", "[Sistem] Menghapus entri draf dari database..."])
+    try {
+      await discardBatchMutation.mutateAsync({ batchId: activeBatchId })
+      toast.info("Draf jadwal dibuang.")
+      setProgressModalOpen(false)
+      setActiveBatchId(null)
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membuang draf jadwal.")
+      setProgressStatus("success")
+    }
+  }
 
   return (
     <>
@@ -1324,28 +1347,36 @@ export default function AiGenerateDialog({
               </div>
 
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                Jadwal Pelajaran Berhasil Digenerate!
+                Jadwal Draf Berhasil Digenerate!
               </h3>
-              <p className="text-xs text-slate-500 font-bold mt-2 max-w-sm">
-                Asisten AI telah memetakan slot mengajar dengan efisiensi optimal tanpa ada bentrok guru maupun rombel kelas.
+              <p className="text-xs text-slate-500 font-bold mt-2 max-w-sm text-center">
+                Hasil draf jadwal pelajaran sementara disimpan di server. Apakah Anda ingin mempublikasikan draf ini atau membatalkannya?
               </p>
 
               <div className="w-full mt-6 text-left">
                 <div className="bg-slate-950 rounded-2xl p-4 font-mono text-[11px] text-slate-300 space-y-1.5 leading-relaxed border border-slate-800 shadow-inner">
-                  <div className="text-emerald-400 font-extrabold">[Success] Penyusunan jadwal berhasil difinalisasi!</div>
+                  <div className="text-emerald-400 font-extrabold">[Success] Penyusunan jadwal draf berhasil difinalisasi!</div>
                   <div className="text-slate-400">[Sistem] Seluruh JP mata pelajaran sukses dipetakan.</div>
                 </div>
               </div>
 
-              <Button
-                onClick={() => {
-                  setProgressModalOpen(false)
-                  onClose()
-                }}
-                className="w-full mt-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl transition-all text-xs uppercase tracking-widest cursor-pointer shadow-lg"
-              >
-                Tutup & Tinjau Jadwal
-              </Button>
+              <div className="flex gap-3 w-full mt-8">
+                <Button
+                  variant="outline"
+                  onClick={handleDiscard}
+                  className="flex-1 py-3 rounded-xl text-xs font-extrabold uppercase cursor-pointer text-rose-600 border-rose-200 hover:bg-rose-50"
+                  disabled={publishBatchMutation.isPending || discardBatchMutation.isPending}
+                >
+                  Discard (Batal)
+                </Button>
+                <Button
+                  onClick={handlePublish}
+                  className="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-lg"
+                  disabled={publishBatchMutation.isPending || discardBatchMutation.isPending}
+                >
+                  {publishBatchMutation.isPending ? "Publishing..." : "Publish (Simpan)"}
+                </Button>
+              </div>
             </div>
           )}
 

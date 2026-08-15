@@ -2,10 +2,11 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, asc, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
-import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran, guru } from "@/server/db/schema"
+import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran, guru, tahunAjaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { JadwalGeneratorService, JadwalGenerationError } from "./jadwal-generator.service"
 
 const jadwalCreateSchema = z.object({
   id: z.string().optional(),
@@ -193,6 +194,207 @@ async function getAcademicJpSlots(
 }
 
 export const jadwalRouter = router({
+  generateKelas: protectedProcedure
+    .input(
+      z.object({
+        kelasId: z.string(),
+        tahunAjaranId: z.string().optional(),
+        hariLibur: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      let tahunAjaranId = input.tahunAjaranId
+
+      if (!tahunAjaranId) {
+        const activeTahun = await db.query.tahunAjaran.findFirst({
+          where: and(
+            eq(tahunAjaran.sekolahId, sekolahId),
+            eq(tahunAjaran.active, true)
+          )
+        })
+        if (!activeTahun) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Tahun ajaran aktif tidak ditemukan. Harap atur tahun ajaran aktif di menu Lembaga.",
+          })
+        }
+        tahunAjaranId = activeTahun.id
+      }
+
+      const service = new JadwalGeneratorService(sekolahId)
+      try {
+        const { batchId, assignments } = await service.generateForKelas({
+          kelasId: input.kelasId,
+          tahunAjaranId,
+          hariLibur: input.hariLibur,
+        })
+        return {
+          success: true as const,
+          batchId,
+          jumlahJPTerjadwal: assignments.reduce((acc, a) => acc + a.jpCount, 0),
+        }
+      } catch (err) {
+        if (err instanceof JadwalGenerationError) {
+          throw new TRPCError({
+            code: "UNPROCESSABLE_CONTENT",
+            message: err.message,
+            cause: err.detail,
+          })
+        }
+        throw err
+      }
+    }),
+
+  generateSekolah: protectedProcedure
+    .input(z.object({
+      tahunAjaranId: z.string().optional(),
+      hariLibur: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      let tahunAjaranId = input.tahunAjaranId
+
+      if (!tahunAjaranId) {
+        const activeTahun = await db.query.tahunAjaran.findFirst({
+          where: and(
+            eq(tahunAjaran.sekolahId, sekolahId),
+            eq(tahunAjaran.active, true)
+          )
+        })
+        if (!activeTahun) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Tahun ajaran aktif tidak ditemukan. Harap atur tahun ajaran aktif di menu Lembaga.",
+          })
+        }
+        tahunAjaranId = activeTahun.id
+      }
+
+      const service = new JadwalGeneratorService(sekolahId)
+      const result = await service.generateForSekolah({
+        tahunAjaranId,
+        hariLibur: input.hariLibur,
+      })
+      return {
+        success: result.gagal.length === 0,
+        ...result,
+      }
+    }),
+
+  previewBatch: protectedProcedure
+    .input(z.object({ batchId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const rows = await db
+        .select({
+          id: jadwalPelajaran.id,
+          kelasId: jadwalPelajaran.kelasId,
+          kelasNama: kelas.namaKelas,
+          mataPelajaranId: jadwalPelajaran.mataPelajaranId,
+          mataPelajaranNama: mataPelajaran.namaMapel,
+          guruId: jadwalPelajaran.guruId,
+          guruNama: guru.namaLengkap,
+          hari: jadwalPelajaran.hari,
+          jpMulai: jadwalPelajaran.jpMulai,
+          jpCount: jadwalPelajaran.jpCount,
+          jamMulai: jadwalPelajaran.jamMulai,
+          jamSelesai: jadwalPelajaran.jamSelesai,
+        })
+        .from(jadwalPelajaran)
+        .innerJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
+        .innerJoin(mataPelajaran, eq(jadwalPelajaran.mataPelajaranId, mataPelajaran.id))
+        .innerJoin(guru, eq(jadwalPelajaran.guruId, guru.id))
+        .where(
+          and(
+            eq(jadwalPelajaran.sekolahId, sekolahId),
+            eq(jadwalPelajaran.batchId, input.batchId),
+            eq(jadwalPelajaran.status, "DRAFT")
+          )
+        )
+        .orderBy(asc(kelas.namaKelas), asc(jadwalPelajaran.hari), asc(jadwalPelajaran.jpMulai))
+
+      return rows.map((r) => ({
+        id: r.id,
+        kelasId: r.kelasId,
+        kelas: r.kelasNama,
+        mataPelajaranId: r.mataPelajaranId,
+        mataPelajaran: r.mataPelajaranNama,
+        guruId: r.guruId,
+        guru: r.guruNama,
+        hari: r.hari,
+        jpMulai: r.jpMulai,
+        jpCount: r.jpCount,
+        jamMulai: r.jamMulai ? r.jamMulai.toISOString() : null,
+        jamSelesai: r.jamSelesai ? r.jamSelesai.toISOString() : null,
+      }))
+    }),
+
+  publishBatch: protectedProcedure
+    .input(z.object({ batchId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const draftRows = await db
+        .select({ id: jadwalPelajaran.id, kelasId: jadwalPelajaran.kelasId })
+        .from(jadwalPelajaran)
+        .where(
+          and(
+            eq(jadwalPelajaran.sekolahId, sekolahId),
+            eq(jadwalPelajaran.batchId, input.batchId),
+            eq(jadwalPelajaran.status, "DRAFT")
+          )
+        )
+
+      if (draftRows.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tidak ada draf dengan batchId ini." })
+      }
+
+      const uniqueKelasIds = [...new Set(draftRows.map((r) => r.kelasId))]
+
+      await db.transaction(async (tx) => {
+        // 1. Delete published schedules for affected classes
+        await tx
+          .delete(jadwalPelajaran)
+          .where(
+            and(
+              eq(jadwalPelajaran.sekolahId, sekolahId),
+              inArray(jadwalPelajaran.kelasId, uniqueKelasIds),
+              eq(jadwalPelajaran.status, "PUBLISHED")
+            )
+          )
+
+        // 2. Promote draft schedules to published
+        await tx
+          .update(jadwalPelajaran)
+          .set({ status: "PUBLISHED" })
+          .where(
+            and(
+              eq(jadwalPelajaran.sekolahId, sekolahId),
+              eq(jadwalPelajaran.batchId, input.batchId),
+              eq(jadwalPelajaran.status, "DRAFT")
+            )
+          )
+      })
+
+      return { success: true, kelasTerpengaruh: uniqueKelasIds.length, jumlahJP: draftRows.length }
+    }),
+
+  discardBatch: protectedProcedure
+    .input(z.object({ batchId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      await db
+        .delete(jadwalPelajaran)
+        .where(
+          and(
+            eq(jadwalPelajaran.sekolahId, sekolahId),
+            eq(jadwalPelajaran.batchId, input.batchId),
+            eq(jadwalPelajaran.status, "DRAFT")
+          )
+        )
+      return { success: true }
+    }),
+
   getTimelineWithJadwal: protectedProcedure
     .input(z.object({
       kelasId: z.string(),
@@ -222,6 +424,7 @@ export const jadwalRouter = router({
         where: and(
           eq(jadwalPelajaran.kelasId, input.kelasId),
           eq(jadwalPelajaran.hari, input.hari as any),
+          eq(jadwalPelajaran.status, "PUBLISHED"),
           sekolahIdFilter ? eq(jadwalPelajaran.sekolahId, sekolahIdFilter) : undefined,
         ),
       })
@@ -254,6 +457,7 @@ export const jadwalRouter = router({
         .from(jadwalPelajaran)
         .where(and(
           eq(jadwalPelajaran.kelasId, input.kelasId),
+          eq(jadwalPelajaran.status, "PUBLISHED"),
           sekolahIdFilter ? eq(jadwalPelajaran.sekolahId, sekolahIdFilter) : undefined,
         ))
 
@@ -285,7 +489,10 @@ export const jadwalRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions: any[] = [eq(jadwalPelajaran.kelasId, kelas.id)]
+      const conditions: any[] = [
+        eq(jadwalPelajaran.kelasId, kelas.id),
+        eq(jadwalPelajaran.status, "PUBLISHED")
+      ]
 
       if (input.kelasId) {
         conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))

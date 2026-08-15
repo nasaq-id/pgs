@@ -1,8 +1,8 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { db } from "@/server/db"
-import { pengaturanKalender } from "@/server/db/schema"
+import { pengaturanKalender, tahunAjaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
@@ -53,7 +53,7 @@ export const pengaturanKalenderRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
 
       for (const [key, value] of Object.entries(input) as [string, unknown][]) {
-        if (typeof value === "string" && !isValidMmDd(value)) {
+        if (key !== "id" && typeof value === "string" && !isValidMmDd(value)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: `Tanggal default tidak valid: ${key}` })
         }
       }
@@ -61,6 +61,9 @@ export const pengaturanKalenderRouter = router({
       const existing = await db.query.pengaturanKalender.findFirst({
         where: eq(pengaturanKalender.sekolahId, sekolahId),
       })
+
+      let resultRecord: any
+
       if (existing) {
         const result = await db
           .update(pengaturanKalender)
@@ -76,24 +79,56 @@ export const pengaturanKalenderRouter = router({
           .returning()
         await logAudit(ctx, { action: "update", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
         await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
-        return result[0]
+        resultRecord = result[0]
+      } else {
+        const id = input.id || crypto.randomUUID()
+        const result = await db
+          .insert(pengaturanKalender)
+          .values({
+            id,
+            sekolahId,
+            tanggalMulaiGanjil: input.tanggalMulaiGanjil,
+            tanggalSelesaiGanjil: input.tanggalSelesaiGanjil,
+            tanggalMulaiGenap: input.tanggalMulaiGenap,
+            tanggalSelesaiGenap: input.tanggalSelesaiGenap,
+            selaraskanSenin: input.selaraskanSenin,
+          })
+          .returning()
+        await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
+        await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
+        resultRecord = result[0]
       }
-      const id = input.id || crypto.randomUUID()
-      const result = await db
-        .insert(pengaturanKalender)
-        .values({
-          id,
-          sekolahId,
+
+      // Automatically update the active tahun ajaran's dates based on new calendar defaults
+      const activeTa = await db.query.tahunAjaran.findFirst({
+        where: and(
+          eq(tahunAjaran.sekolahId, sekolahId),
+          eq(tahunAjaran.active, true)
+        )
+      })
+
+      if (activeTa) {
+        const year = resolveSemesterYear(activeTa.namaTahunAjaran, activeTa.semester)
+        const suggested = suggestSemesterDates(year, activeTa.semester, {
           tanggalMulaiGanjil: input.tanggalMulaiGanjil,
           tanggalSelesaiGanjil: input.tanggalSelesaiGanjil,
           tanggalMulaiGenap: input.tanggalMulaiGenap,
           tanggalSelesaiGenap: input.tanggalSelesaiGenap,
           selaraskanSenin: input.selaraskanSenin,
         })
-        .returning()
-      await logAudit(ctx, { action: "create", entity: "pengaturan_kalender", entityId: result[0]?.id, metadata: {} })
-      await invalidateCache([cacheKey("pengaturanKalender:get", sekolahId)])
-      return result[0]
+
+        await db.update(tahunAjaran)
+          .set({
+            tanggalMulai: new Date(suggested.tanggalMulai),
+            tanggalSelesai: new Date(suggested.tanggalSelesai),
+            updatedAt: new Date(),
+          })
+          .where(eq(tahunAjaran.id, activeTa.id))
+
+        await invalidateCache([cacheKey("lembaga:getActiveTahunAjaran", sekolahId)])
+      }
+
+      return resultRecord
     }),
 
   setHariLiburMingguan: roleProtectedProcedure(["super_admin", "admin_sekolah"])

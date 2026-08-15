@@ -14,6 +14,7 @@ export const pengampu = pgTable("pengampu", {
   kelasId: text("kelas_id").notNull().references(() => kelas.id, { onDelete: "cascade" }),
   tahunAjaranId: text("tahun_ajaran_id").references(() => tahunAjaran.id, { onDelete: "set null" }),
   jumlahJam: integer("jumlah_jam").notNull().default(4),
+  maxJpPerPertemuan: integer("max_jp_per_pertemuan").notNull().default(3),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("pengampu_sekolah_id_idx").on(table.sekolahId),

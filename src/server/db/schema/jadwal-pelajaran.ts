@@ -16,11 +16,15 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   jamSelesai: timestamp("jam_selesai"),
   jpMulai: integer("jp_mulai"),
   jpCount: integer("jp_count"),
+  status: text("status", { enum: ["DRAFT", "PUBLISHED"] }).notNull().default("PUBLISHED"),
+  batchId: text("batch_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("jadwal_pelajaran_sekolah_id_idx").on(table.sekolahId),
   index("jadwal_pelajaran_kelas_id_hari_idx").on(table.kelasId, table.hari),
   index("jadwal_pelajaran_guru_id_idx").on(table.guruId),
+  index("jadwal_pelajaran_batch_id_idx").on(table.batchId),
+  index("jadwal_pelajaran_kelas_id_status_idx").on(table.kelasId, table.status),
 ])
 
 export const jadwalPelajaranRelations = relations(jadwalPelajaran, ({ one }) => ({

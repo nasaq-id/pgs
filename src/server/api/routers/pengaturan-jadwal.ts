@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, asc } from "drizzle-orm"
+import { eq, and, asc, gt, sql, inArray } from "drizzle-orm"
 import { db } from "@/server/db"
 import { pengaturanJadwal, timelineItem } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
@@ -151,26 +151,14 @@ export const pengaturanJadwalRouter = router({
       const [deleted] = await db.delete(timelineItem).where(and(eq(timelineItem.id, input.id), eq(timelineItem.sekolahId, sekolahId))).returning()
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Item timeline tidak ditemukan" })
 
-      // Re-sequence remaining items for the same day
-      const remaining = await db
-        .select()
-        .from(timelineItem)
+      // Re-sequence urutan dalam 1 statement SQL (geser -1 untuk semua item setelah yang dihapus)
+      await db.update(timelineItem)
+        .set({ urutan: sql`${timelineItem.urutan} - 1` })
         .where(and(
           eq(timelineItem.pengaturanJadwalId, deleted.pengaturanJadwalId),
           eq(timelineItem.hari, deleted.hari),
+          gt(timelineItem.urutan, deleted.urutan),
         ))
-        .orderBy(asc(timelineItem.urutan))
-
-      for (let i = 0; i < remaining.length; i++) {
-        const item = remaining[i]
-        const newUrutan = i + 1
-        if (item.urutan !== newUrutan) {
-          await db
-            .update(timelineItem)
-            .set({ urutan: newUrutan })
-            .where(eq(timelineItem.id, item.id))
-        }
-      }
 
       await recalculateJpTimes(deleted.pengaturanJadwalId)
       await logAudit(ctx, { action: "delete", entity: "timeline_item", entityId: input.id })
@@ -214,6 +202,56 @@ export const pengaturanJadwalRouter = router({
       if (sisaJp) await recalculateJpTimes(pengaturan.id)
 
       await logAudit(ctx, { action: "clear_timeline_day", entity: "timeline_item", metadata: { hari: input.hari, tipe: input.tipe ?? null, count: deleted.length } })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+      return { success: true, count: deleted.length }
+    }),
+
+  /**
+   * Hapus SELURUH timeline item (semua hari) milik pengaturan sekolah.
+   * Hard delete — 1 statement SQL, tanpa re-sequence (data kosong total).
+   */
+  clearAllTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
+
+      const deleted = await db.delete(timelineItem).where(eq(timelineItem.pengaturanJadwalId, pengaturan.id)).returning()
+
+      await logAudit(ctx, { action: "clear_all_timeline", entity: "timeline_item", metadata: { count: deleted.length } })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+      return { success: true, count: deleted.length }
+    }),
+
+  /**
+   * Hapus timeline item untuk beberapa hari sekaligus (multi-day).
+   * Hard delete — 1 statement SQL (IN clause), tanpa re-sequence per item.
+   */
+  clearTimelineDays: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      hari: z.array(z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]).optional()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
+
+      const hari = (input.hari ?? []).filter((h): h is "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu" => Boolean(h))
+      if (hari.length === 0) {
+        return { success: true, count: 0 }
+      }
+
+      const deleted = await db.delete(timelineItem).where(and(
+        eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+        inArray(timelineItem.hari, hari),
+      )).returning()
+
+      await logAudit(ctx, { action: "clear_timeline_days", entity: "timeline_item", metadata: { hari, count: deleted.length } })
       await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
       return { success: true, count: deleted.length }
     }),
@@ -278,35 +316,29 @@ async function recalculateJpTimes(pengaturanJadwalId: string) {
   const [startH, startM] = (pengaturan.jamMulai ?? "07:00").split(":").map(Number)
   const startMinutes = startH * 60 + startM
 
-  const existingItems = await db
-    .select()
-    .from(timelineItem)
-    .where(and(
-      eq(timelineItem.pengaturanJadwalId, pengaturanJadwalId),
-      eq(timelineItem.tipe, "jp"),
-    ))
-    .orderBy(asc(timelineItem.hari), asc(timelineItem.urutan))
+  // Recac semua jam JP dalam 1 statement SQL memakai window function row_number
+  // per hari (urutan berdasarkan `urutan`). Menghindari N round-trip per JP.
+  const hourStart = Math.floor(startMinutes / 60)
+  const minStart = startMinutes % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const base = `${pad(hourStart)}:${pad(minStart)}`
 
-  const byHari = new Map<string, typeof existingItems>()
-  for (const item of existingItems) {
-    const arr = byHari.get(item.hari) || []
-    arr.push(item)
-    byHari.set(item.hari, arr)
-  }
-
-  for (const [, items] of byHari) {
-    for (let idx = 0; idx < items.length; idx++) {
-      const item = items[idx]
-      const jpStartMin = startMinutes + idx * durasi
-      const jpEndMin = jpStartMin + durasi
-
-      const jamMulai = `${String(Math.floor(jpStartMin / 60)).padStart(2, "0")}:${String(jpStartMin % 60).padStart(2, "0")}`
-      const jamSelesai = `${String(Math.floor(jpEndMin / 60)).padStart(2, "0")}:${String(jpEndMin % 60).padStart(2, "0")}`
-
-      await db
-        .update(timelineItem)
-        .set({ jamMulai, jamSelesai })
-        .where(eq(timelineItem.id, item.id))
-    }
-  }
+  await db.execute(sql`
+    UPDATE timeline_item t
+    SET
+      jam_mulai = to_char(
+        (${base}::time + ((rn - 1) * ${durasi}) * interval '1 minute')::time,
+        'HH24:MI'
+      ),
+      jam_selesai = to_char(
+        (${base}::time + (rn * ${durasi}) * interval '1 minute')::time,
+        'HH24:MI'
+      )
+    FROM (
+      SELECT id, ROW_NUMBER() OVER (PARTITION BY hari ORDER BY urutan) AS rn
+      FROM timeline_item
+      WHERE pengaturan_jadwal_id = ${pengaturanJadwalId} AND tipe = 'jp'
+    ) jp
+    WHERE t.id = jp.id
+  `)
 }
