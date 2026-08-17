@@ -28,6 +28,7 @@ import {
   Copy,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -199,11 +200,12 @@ export default function EMateriPage() {
   const debouncedSearchMapel = useDebounce(searchQuery)
 
   // tRPC Queries — search di-server; filter tingkat di-client (normalisasi angka/romawi).
-  // limit 200 ≠ cache default (100) → selalu fresh dari DB, sinkron realtime dengan page mapel.
-  const { data: mapelList, isLoading: isLoadingMapel } = api.mapel.getAll.useQuery({
+  // limit 200 ≠ cache default (100) → selalu fresh dari DB saat di-fetch ulang.
+  // Tanpa interval/auto-fetch — sinkronisasi mapel dilakukan manual via tombol Refresh.
+  const { data: mapelList, isLoading: isLoadingMapel, isFetching: isFetchingMapel } = api.mapel.getAll.useQuery({
     search: debouncedSearchMapel || undefined,
     limit: 200,
-  }, { refetchOnWindowFocus: true })
+  })
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 200 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
 
@@ -329,6 +331,16 @@ export default function EMateriPage() {
   }, [isGuru, materiRecords, guruId, profile, materiSearchQuery, selectedTypeFilter])
 
   const utils = api.useUtils()
+
+  // Refresh manual data mapel (sinkron dengan page mapel) — tanpa fetch otomatis
+  const handleRefreshMapel = async () => {
+    try {
+      await utils.mapel.getAll.invalidate()
+      toast.success("Daftar mata pelajaran diperbarui")
+    } catch {
+      toast.error("Gagal memperbarui daftar mata pelajaran")
+    }
+  }
 
   const createMutation = api.eMateri.create.useMutation({
     onSuccess: () => {
@@ -673,6 +685,17 @@ export default function EMateriPage() {
               : "Pilih mata pelajaran untuk mengakses modul ajar digital dari Guru"}
           </p>
         </div>
+
+        <Button
+          variant="outline"
+          onClick={handleRefreshMapel}
+          disabled={isFetchingMapel}
+          className="rounded-2xl text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0 gap-2"
+          title="Sinkronkan daftar mata pelajaran terbaru dari halaman Mapel"
+        >
+          <RefreshCw className={cn("w-4 h-4", isFetchingMapel && "animate-spin")} />
+          {isFetchingMapel ? "Memperbarui..." : "Sinkron Mapel"}
+        </Button>
       </div>
 
       {/* Tab Navigation khusus Guru: Materi Saya vs Jelajahi Mapel */}
