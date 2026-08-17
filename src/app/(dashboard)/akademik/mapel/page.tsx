@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom"
 import dynamic from "next/dynamic"
 import { useSession } from "next-auth/react"
-import { Plus, Pencil, Trash2, Loader2, Search, MoreHorizontal, GripVertical, BookOpen, Layers, Clock, Wand2, Printer, FileSpreadsheet, Users, X, AlertTriangle } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, Search, GripVertical, BookOpen, Layers, Clock, Wand2, Printer, Users, X, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -17,16 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/trpc/client"
@@ -76,9 +66,7 @@ export default function MapelPage() {
   const [pengampuMapel, setPengampuMapel] = useState<{ id: string; namaMapel: string; jumlahJam: number } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [localRecords, setLocalRecords] = useState<MapelRecord[]>([])
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [detailSubject, setDetailSubject] = useState<any>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 })
   const { data: sekolah } = api.lembaga.getSekolah.useQuery()
@@ -96,19 +84,6 @@ export default function MapelPage() {
     { value: "semua", label: "Semua Tingkat" },
     ...rawTingkatList.map((t) => ({ value: t, label: t.toLowerCase().startsWith("kelas") ? t : `Tingkat ${t}` })),
   ]
-
-  // Close active actions dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenuId(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [])
 
   const { data: mapelList, isLoading } = api.mapel.getAll.useQuery({
     tingkat: tingkatFilter || undefined,
@@ -403,7 +378,6 @@ export default function MapelPage() {
             </div>
           ) : (
             filteredRecords.map((r, index) => {
-              const isMenuOpen = activeMenuId === r.id
               return (
                 <div
                   key={r.id}
@@ -760,7 +734,7 @@ export default function MapelPage() {
             {/* Description */}
             <div className="space-y-4 mb-6 text-xs text-slate-505 leading-relaxed">
               <p>
-                Menghapus mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-black">"{subjectToDelete?.namaMapel}"</strong> juga akan menghapus seluruh data plotting pengampu kelas serta jadwal terkait di sistem.
+                Menghapus mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-black">&quot;{subjectToDelete?.namaMapel}&quot;</strong> juga akan menghapus seluruh data plotting pengampu kelas serta jadwal terkait di sistem.
               </p>
 
               {/* Subject details card */}
@@ -795,7 +769,7 @@ export default function MapelPage() {
                   Konfirmasi Keamanan (Enterprise-grade)
                 </Label>
                 <p className="text-[11px] text-slate-400">
-                  Ketik nama lengkap mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-bold">"{subjectToDelete?.namaMapel}"</strong> di bawah ini untuk mengonfirmasi penghapusan:
+                  Ketik nama lengkap mata pelajaran <strong className="text-slate-800 dark:text-slate-200 font-bold">&quot;{subjectToDelete?.namaMapel}&quot;</strong> di bawah ini untuk mengonfirmasi penghapusan:
                 </p>
                 <Input
                   placeholder="Ketik nama mata pelajaran..."
