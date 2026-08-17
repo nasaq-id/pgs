@@ -83,7 +83,7 @@ export default function EMateriFormDialog({
   const userRole = session?.user?.role
 
   const [mataPelajaranId, setMataPelajaranId] = useState(contextMapelId || "")
-  const [kelasId, setKelasId] = useState("all")
+  const [kelasId, setKelasId] = useState("")
   const [judul, setJudul] = useState("")
   const [bab, setBab] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
@@ -113,7 +113,7 @@ export default function EMateriFormDialog({
     if (!open) return
     if (initial) {
       setMataPelajaranId(initial.mataPelajaranId ?? "")
-      setKelasId(initial.kelasId || "all")
+      setKelasId(initial.kelasId || "")
       setJudul(initial.judul ?? "")
       setBab(initial.bab ?? "")
       setDeskripsi(initial.deskripsi ?? "")
@@ -123,7 +123,7 @@ export default function EMateriFormDialog({
       setStatus(initial.status ?? "terbit")
     } else {
       setMataPelajaranId(contextMapelId || "")
-      setKelasId("all")
+      setKelasId("")
       setJudul("")
       setBab("")
       setDeskripsi("")
@@ -163,6 +163,8 @@ export default function EMateriFormDialog({
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!mataPelajaranId || !judul.trim()) return
+    // Kelas penerima wajib dipilih — materi tidak boleh global tanpa target
+    if (!kelasId) return
 
     const selectedKelasObj = kelasRecords.find((k) => k.id === kelasId)
     const tingkat = selectedKelasObj?.tingkat ?? (kelasId !== "all" ? kelasId : null)
@@ -322,14 +324,14 @@ export default function EMateriFormDialog({
             </div>
           </div>
 
-          {/* Target Kelas */}
+          {/* Target Kelas — wajib dipilih */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Kelas Penerima / Target <span className="text-slate-400 font-normal">(Opsional)</span>
+              Kelas Penerima / Target <span className="text-rose-500">*</span>
             </Label>
-            <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "all")}>
+            <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "")}>
               <SelectTrigger className="rounded-2xl h-10">
-                <SelectValue placeholder="Semua Tingkat" />
+                <SelectValue placeholder="Pilih Kelas / Tingkat..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" label="Semua Tingkat">Semua Tingkat</SelectItem>
@@ -343,9 +345,9 @@ export default function EMateriFormDialog({
                 })}
               </SelectContent>
             </Select>
-            {kelasId === "all" && (
-              <p className="text-[10px] text-slate-400 pl-1">
-                Materi akan terlihat untuk semua tingkat kelas mapel ini. Pilih kelas spesifik untuk membatasi.
+            {!kelasId && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 pl-1">
+                Pilih kelas penerima untuk materi ini (misal: Kelas 7-A). Pilih &quot;Semua Tingkat&quot; hanya jika memang berlaku lintas kelas.
               </p>
             )}
           </div>
@@ -481,7 +483,7 @@ export default function EMateriFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || saving || !mataPelajaranId || !judul.trim() || (urlRequired && !url.trim())}
+              disabled={submitting || saving || !mataPelajaranId || !judul.trim() || !kelasId || (urlRequired && !url.trim())}
               className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer"
             >
               {(submitting || saving) ? (
