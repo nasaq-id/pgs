@@ -22,6 +22,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SearchableSelect } from "@/components/ui/searchable-select"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+  TooltipProvider,
+} from "@/components/ui/tooltip"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -583,30 +591,64 @@ export default function JadwalPage() {
 
       {/* Top-level Tab Switcher (Pengaturan Jadwal vs Distribusi Jadwal) */}
       {canEdit && (
-        <div className="flex space-x-1 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-1 border border-slate-200/80 dark:border-slate-800 rounded-2xl max-w-md shadow-xs shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("pengaturan")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              activeMainTab === "pengaturan"
-                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-            }`}
-          >
-            Pengaturan Jadwal
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("distribusi")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              activeMainTab === "distribusi"
-                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-            }`}
-          >
-            Distribusi Jadwal
-          </button>
-        </div>
+        <TooltipProvider>
+          <div role="tablist" aria-label="Mode jadwal pelajaran" className="flex bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-1 border border-slate-200/80 dark:border-slate-800 rounded-2xl max-w-md shadow-xs shrink-0">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMainTab === "pengaturan"}
+                    onClick={() => setActiveMainTab("pengaturan")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer border select-none ${
+                      activeMainTab === "pengaturan"
+                        ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border-teal-100 dark:border-teal-900"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 border-transparent"
+                    }`}
+                  >
+                    <Settings className="w-3.5 h-3.5 shrink-0" />
+                    Pengaturan Jadwal
+                  </button>
+                }
+              />
+              <TooltipPortal>
+                <TooltipPositioner>
+                  <TooltipPopup className="max-w-[240px] text-[10px]">
+                    Konfigurasi durasi JP, jam mulai, dan susunan kegiatan per hari
+                  </TooltipPopup>
+                </TooltipPositioner>
+              </TooltipPortal>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMainTab === "distribusi"}
+                    onClick={() => setActiveMainTab("distribusi")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer border select-none ${
+                      activeMainTab === "distribusi"
+                        ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border-teal-100 dark:border-teal-900"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 border-transparent"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                    Distribusi Jadwal
+                  </button>
+                }
+              />
+              <TooltipPortal>
+                <TooltipPositioner>
+                  <TooltipPopup className="max-w-[240px] text-[10px]">
+                    Atur &amp; tinjau jadwal per rombel atau per guru
+                  </TooltipPopup>
+                </TooltipPositioner>
+              </TooltipPortal>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       )}
 
       {/* Pengaturan Jadwal inline panel (tab pengaturan) */}
@@ -618,25 +660,26 @@ export default function JadwalPage() {
       {activeMainTab === "distribusi" && (
         <>
       {/* Premium selection panel */}
-      <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-emerald-500/10 dark:bg-emerald-950/20 backdrop-blur-md border border-emerald-500/20 dark:border-emerald-900/50 text-slate-900 dark:text-slate-100 rounded-3xl p-6 lg:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="min-w-0">
-          <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest bg-teal-950/80 px-2.5 py-1 rounded-full border border-teal-500/20">
+          <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider bg-emerald-100/80 dark:bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-300/80 dark:border-emerald-700/60 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             {isGuru ? "Jadwal Mengajar Anda" : isSiswa ? "Jadwal Belajar Kelas Anda" : adminFilterMode === "guru" ? "Cari Jadwal Guru" : "Panel Distribusi Jadwal"}
           </span>
           <h3 className="text-xl lg:text-2xl font-extrabold tracking-tight mt-3">
             {isGuru ? (
-              <span>Tinjau Agenda: <span className="text-teal-400">{(profile?.namaLengkap as string) || "Guru"}</span></span>
+              <span>Tinjau Agenda: <span className="text-emerald-700 dark:text-emerald-400 font-black">{profile?.namaLengkap as string || "Guru"}</span></span>
             ) : isSiswa ? (
-              <span>Jadwal Kelas: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span></span>
+              <span>Jadwal Kelas: <span className="text-emerald-700 dark:text-emerald-400 font-black">{selectedKelasMain || "Pilih Rombel"}</span></span>
             ) : adminFilterMode === "guru" ? (
-              <span>Jadwal Mengajar Guru: <span className="text-indigo-400">{selectedTeacherObj?.namaLengkap || "Pilih Guru"}</span></span>
+              <span>Jadwal Mengajar Guru: <span className="text-indigo-700 dark:text-indigo-400 font-black">{selectedTeacherObj?.namaLengkap || "Pilih Guru"}</span></span>
             ) : kelasId === "semua" ? (
-              <span>Matriks Sekolah: <span className="text-teal-400">Semua Rombel</span></span>
+              <span>Matriks Sekolah: <span className="text-emerald-700 dark:text-emerald-400 font-black">Semua Rombel</span></span>
             ) : (
-              <span>Tinjau Mingguan: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span></span>
+              <span>Tinjau Mingguan: <span className="text-emerald-700 dark:text-emerald-400 font-black">{selectedKelasMain || "Pilih Rombel"}</span></span>
             )}
           </h3>
-          <p className="text-slate-300 text-xs mt-1.5 max-w-md font-medium">
+          <p className="text-slate-600 dark:text-slate-400 text-xs mt-1.5 max-w-md font-medium">
             {isGuru
               ? "Tinjauan lengkap jam pelajaran mengajar Anda yang terdaftar secara resmi di sekolah."
               : isSiswa
@@ -647,7 +690,7 @@ export default function JadwalPage() {
           </p>
           {isSiswa && (
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              <div className="flex items-center gap-1.5 bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-200 px-3 py-1.5 rounded-xl border border-teal-100 dark:border-teal-900 font-bold">
+              <div className="flex items-center gap-1.5 bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 px-3 py-1.5 rounded-xl border border-teal-100 dark:border-teal-900 font-bold">
                 <Users className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                 <span className="text-[11px]">
                   Wali Kelas:{" "}
@@ -661,7 +704,7 @@ export default function JadwalPage() {
                   </strong>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold">
                 <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                 <span className="text-[11px]">
                   Tahun Ajaran:{" "}
@@ -680,30 +723,30 @@ export default function JadwalPage() {
           {/* Admin filter mode toggle: Filter Rombel vs Cari Jadwal Guru */}
           {!isSiswa && !isGuru && (
             <div className="w-full sm:w-auto">
-              <label className="block text-[11px] font-medium text-slate-300 mb-1">Mode Filter</label>
-              <div className="flex bg-slate-800/80 p-1 border border-slate-700/80 rounded-xl">
+              <label className="block text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1">Mode Filter</label>
+              <div className="flex items-center bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm p-1.5 border border-slate-300/80 dark:border-slate-700 rounded-2xl shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setAdminFilterMode("kelas")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
                     adminFilterMode === "kelas"
-                      ? "bg-teal-500 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold"
                   }`}
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
+                  <BookOpen className="w-4 h-4" />
                   Filter Rombel
                 </button>
                 <button
                   type="button"
                   onClick={() => setAdminFilterMode("guru")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
                     adminFilterMode === "guru"
-                      ? "bg-indigo-500 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold"
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-4 h-4" />
                   Cari Jadwal Guru
                 </button>
               </div>
@@ -713,7 +756,7 @@ export default function JadwalPage() {
           {/* Rombel picker (mode kelas) — hide for students and teachers */}
           {!isSiswa && !isGuru && adminFilterMode === "kelas" && (
             <div className="w-full sm:w-auto">
-              <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
+              <label className="block text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1">Rombel Kelas</label>
               <Select
                 value={kelasId || "semua"}
                 onValueChange={(v) => v && setManualKelasId(v)}
@@ -722,7 +765,7 @@ export default function JadwalPage() {
                   ...kelasRecords.map((k) => ({ value: k.id, label: formatKelasLabel(k) })),
                 ]}
               >
-                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
+                 <SelectTrigger className="w-full sm:w-48 !h-10 !rounded-xl text-xs font-bold bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm border-slate-300/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-emerald-500 !shadow-none !ring-0 !focus-visible:ring-0">
                   <SelectValue placeholder="Pilih Kelas" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground">
@@ -742,7 +785,7 @@ export default function JadwalPage() {
           {/* Teacher picker (mode guru) */}
           {!isSiswa && !isGuru && adminFilterMode === "guru" && (
             <div className="w-full sm:w-auto min-w-[220px] sm:min-w-[280px]">
-              <label className="block text-[11px] font-medium text-slate-300 mb-1">Pilih / Cari Guru</label>
+              <label className="block text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1">Pilih / Cari Guru</label>
               <SearchableSelect
                 options={guruRecords.map((t) => ({
                   value: t.id,
@@ -753,13 +796,13 @@ export default function JadwalPage() {
                 placeholder="Cari Nama Guru / NIP..."
                 searchPlaceholder="Cari nama / NIP guru..."
                 contentClassName="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                className="w-full bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm border border-slate-300/80 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100"
               />
             </div>
           )}
 
           <div className="w-full sm:w-auto">
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">Filter Hari</label>
+            <label className="block text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1">Filter Hari</label>
             <Select
               value={selectedDays.length === 0 ? "all" : selectedDays[0]}
               onValueChange={(val) => {
@@ -774,7 +817,7 @@ export default function JadwalPage() {
                 ...DAYS.map((day) => ({ value: day, label: DAY_LABEL[day] })),
               ]}
             >
-              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl text-xs font-bold !bg-teal-600 !text-white [&[data-slot=select-value]]:!text-white hover:!bg-teal-700 !shadow-none !ring-0 !focus-visible:ring-0 [&[data-open]]:!ring-0 [&[data-state=open]]:!ring-0 [&_svg]:!text-white [&[data-open]_svg]:!text-white [&[data-state=open]_svg]:!text-white">
+              <SelectTrigger className="w-full sm:w-40 !h-10 !rounded-xl text-xs font-bold bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm border-slate-300/80 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-emerald-500 !shadow-none !ring-0 !focus-visible:ring-0">
                 <SelectValue placeholder="Pilih Hari" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground">
@@ -789,15 +832,15 @@ export default function JadwalPage() {
           </div>
 
           <div className="w-full sm:w-auto">
-            <label className="block text-[8px] font-black text-slate-300 uppercase tracking-wider mb-1">Mode Tampilan</label>
-            <div className="flex bg-slate-800/80 p-1 border border-slate-700/80 rounded-xl">
+            <label className="block text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Mode Tampilan</label>
+            <div className="flex w-full sm:w-auto bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm p-1 border border-slate-300/70 dark:border-slate-700 rounded-2xl shadow-2xs">
               <button
                 type="button"
                 onClick={() => setScheduleViewMode("mingguan")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex-1 sm:flex-none text-center px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                   scheduleViewMode === "mingguan"
-                    ? "bg-teal-500 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold"
                 }`}
               >
                 Mingguan (PC Grid)
@@ -805,10 +848,10 @@ export default function JadwalPage() {
               <button
                 type="button"
                 onClick={() => setScheduleViewMode("harian")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex-1 sm:flex-none text-center px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                   scheduleViewMode === "harian"
-                    ? "bg-teal-500 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold"
                 }`}
               >
                 Harian (Timeline)
@@ -820,7 +863,7 @@ export default function JadwalPage() {
 
       {/* Teacher Info Card — mode Cari Jadwal Guru (admin) */}
       {!isSiswa && !isGuru && adminFilterMode === "guru" && selectedTeacherObj && (
-        <div className="bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 rounded-3xl p-5 shadow-md neumo-sm flex flex-col md:flex-row md:items-center justify-between gap-5 animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 rounded-3xl p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-5 animate-in fade-in duration-200">
           <div className="flex items-center space-x-4 min-w-0">
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black rounded-2xl flex items-center justify-center text-xl shadow-md uppercase shrink-0">
               {selectedTeacherObj.namaLengkap?.charAt(0) || "G"}
@@ -875,7 +918,7 @@ export default function JadwalPage() {
           <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
             <Button
               onClick={() => { setCetakGuruId(selectedTeacherObj.id); setCetakOpen(true) }}
-              className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
+              className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-xs neumo-sm"
             >
               <Printer className="w-4 h-4 mr-2" />
               <span>Cetak Jadwal Guru</span>
@@ -884,25 +927,25 @@ export default function JadwalPage() {
         </div>
       )}
 
-      {/* Quick Actions Bar - Enhanced with Neumorphism card style */}
+      {/* Quick Actions Bar - mengikuti prototipe: soft translucent buttons */}
       {(canEdit || canViewAll) && (
-        <div className="grid grid-cols-2 gap-3 mb-6 neumo-card bg-background p-4 rounded-3xl border-0 lg:flex lg:flex-wrap lg:justify-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end gap-2.5 sm:gap-3 mb-6 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-3.5 sm:p-4 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xs">
           {canEdit && (
             <>
               <Button
                 onClick={() => setAiGenerateOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
+                className="w-full lg:w-auto flex items-center justify-center font-black px-4 py-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-950 dark:text-indigo-200 dark:border-indigo-800/60 shadow-2xs rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer backdrop-blur-xs"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
+                <Sparkles className="w-4 h-4 mr-2 text-indigo-700 dark:text-indigo-300 shrink-0" />
                 <span>AI Auto-Generate</span>
               </Button>
 
               <Button
                 onClick={() => setReviewOpen(true)}
-                className="flex items-center justify-center font-bold px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
+                className="w-full lg:w-auto flex items-center justify-center font-black px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-950 dark:text-amber-200 dark:border-amber-800/60 shadow-2xs rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer backdrop-blur-xs"
               >
-                <BarChart2 className="w-4 h-4 mr-2" />
-                <span>Audit Jadwal (AI Review)</span>
+                <BarChart2 className="w-4 h-4 mr-2 text-amber-700 dark:text-amber-300 shrink-0" />
+                <span>Review & Analisis Jadwal</span>
               </Button>
             </>
           )}
@@ -911,14 +954,14 @@ export default function JadwalPage() {
             <Button
               onClick={handlePublishSchedule}
               disabled={publishNotifMutation.isPending || publishJadwalMutation.isPending}
-              className="flex items-center justify-center font-bold px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
+              className="w-full lg:w-auto flex items-center justify-center font-black px-4 py-2.5 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-950 dark:text-blue-200 dark:border-blue-800/60 shadow-2xs rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer backdrop-blur-xs"
               title={
                 pengaturanData?.lastPublishedAt
                   ? "Kirim pembaruan jadwal"
                   : "Kirim pemberitahuan jadwal"
               }
             >
-              <Bell className="w-4 h-4 mr-2" />
+              <Bell className="w-4 h-4 mr-2 text-blue-700 dark:text-blue-300 shrink-0" />
               <span>
                 {publishNotifMutation.isPending || publishJadwalMutation.isPending
                   ? "Mengirim..."
@@ -940,10 +983,10 @@ export default function JadwalPage() {
             <Button
               onClick={() => { setResetMode("all"); setResetOpen(true) }}
               disabled={resetting}
-              className="flex items-center justify-center font-bold px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 w-full lg:w-auto"
+              className="w-full lg:w-auto flex items-center justify-center font-black px-4 py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-950 dark:text-rose-200 dark:border-rose-800/60 shadow-2xs rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer backdrop-blur-xs"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              <span>Reset Jadwal</span>
+              <RotateCcw className="w-4 h-4 mr-2 text-rose-700 dark:text-rose-300 shrink-0" />
+              <span>Reset Mapel / Jadwal</span>
             </Button>
           )}
         </div>
@@ -973,7 +1016,7 @@ export default function JadwalPage() {
           ))}
         </div>
       ) : timelineRecords.length === 0 ? (
-        <div className="neumo-card bg-background p-12 rounded-3xl text-center flex flex-col items-center justify-center border-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 p-12 rounded-3xl text-center flex flex-col items-center justify-center shadow-sm">
           <Settings className="h-12 w-12 text-slate-350 mb-2" />
           <h4 className="text-sm font-black text-slate-850 uppercase tracking-wider">Timeline Jam Belum Dibuat</h4>
           <p className="text-xs text-slate-400 font-bold max-w-sm mt-1 uppercase">
@@ -982,21 +1025,21 @@ export default function JadwalPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Day selection tab buttons - Enhanced with Neumorphism card style */}
+          {/* Day selection tab buttons - mengikuti prototipe */}
           {(scheduleViewMode === "harian" || kelasId === "semua") && (
-            <div className="neumo-card bg-background p-4 rounded-3xl text-left space-y-2 border-0">
-              <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest block">
-                {kelasId === "semua" ? "Pilih Hari Matriks" : "Saring Berdasarkan Hari Kerja"}
+            <div className="bg-slate-50/80 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl text-left space-y-2.5">
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                {kelasId === "semua" ? "Pilih Hari Matriks" : "Saring Hari (Klik hari untuk filter satu/beberapa hari secara fleksibel)"}
               </span>
-              <div className="flex gap-2 overflow-x-auto pb-1 whitespace-nowrap">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar scroll-smooth whitespace-nowrap">
                 {kelasId !== "semua" && (
                   <button
                     type="button"
                     onClick={() => setSelectedDays([])}
-                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                       selectedDays.length === 0
-                        ? "bg-teal-600 text-white neumo-sm"
-                        : "bg-background text-slate-600 neumo-sm hover:scale-[1.01]"
+                        ? "bg-teal-600 border-teal-600 text-white shadow-sm shadow-teal-100"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
                     Semua Hari
@@ -1021,10 +1064,10 @@ export default function JadwalPage() {
                           }
                         }
                       }}
-                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                         isSel
-                          ? "bg-teal-600 text-white neumo-sm"
-                          : "bg-background text-slate-600 neumo-sm hover:scale-[1.01]"
+                          ? "bg-teal-600 border-teal-600 text-white shadow-sm shadow-teal-100"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                       }`}
                     >
                       {DAY_LABEL[day]}
@@ -1055,15 +1098,18 @@ export default function JadwalPage() {
                 const jpItems = dayItems.filter((t) => t.tipe === "jp")
 
                 return (
-                  <div key={day} className="neumo-card bg-background rounded-3xl p-5 border-0 space-y-4">
+                  <div key={day} className="bg-white dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-2xl shadow-sm p-5 w-full flex flex-col space-y-4">
                     {/* Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm animate-pulse" />
+                    <div className="flex items-center justify-between pb-2.5 mb-1 border-b border-slate-150 dark:border-slate-800">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm flex-shrink-0" />
                         <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">
                           {DAY_LABEL[day]}
                         </h4>
                       </div>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md flex-shrink-0">
+                        KBM
+                      </span>
                       {canEdit && (
                         <button
                           onClick={() => openAdd(day)}
@@ -1082,48 +1128,48 @@ export default function JadwalPage() {
                       ) : (
                         dayItems.map((item) => {
                           if (item.tipe !== "jp") {
-                            // Non-JP Agenda Item - Styled Inset
+                            // Non-JP Agenda Item - dashed card (mengikuti prototipe)
                             let Icon = Clock
                             let iconColor = "text-slate-500 bg-slate-50 dark:bg-slate-900"
-                            let cardStyle = "bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] text-slate-700 dark:text-slate-300"
+                            let cardStyle = "bg-slate-50/50 border-slate-200/50 text-slate-700 dark:text-slate-300"
 
                             if (item.tipe === "upacara") {
                               Icon = Flag
                               iconColor = "text-amber-600 bg-amber-50 dark:bg-slate-900"
-                              cardStyle = "bg-amber-50/40 dark:bg-[oklch(0.14_0.01_250)] text-amber-900 dark:text-amber-300"
+                              cardStyle = "bg-amber-50/40 border-amber-200/40 text-amber-900 dark:text-amber-300"
                             } else if (item.tipe === "pembiasaan") {
                               Icon = BookOpen
                               iconColor = "text-emerald-600 bg-emerald-50 dark:bg-slate-900"
-                              cardStyle = "bg-emerald-50/40 dark:bg-[oklch(0.14_0.01_250)] text-emerald-900 dark:text-emerald-300"
+                              cardStyle = "bg-emerald-50/40 border-emerald-200/40 text-emerald-900 dark:text-emerald-300"
                             } else if (item.tipe === "istirahat") {
                               Icon = Coffee
                               iconColor = "text-indigo-600 bg-indigo-50 dark:bg-slate-900"
-                              cardStyle = "bg-indigo-50/40 dark:bg-[oklch(0.14_0.01_250)] text-indigo-900 dark:text-indigo-300"
+                              cardStyle = "bg-indigo-50/40 border-indigo-200/40 text-indigo-900 dark:text-indigo-300"
                             } else if (item.tipe === "sholat") {
                               Icon = Sparkles
                               iconColor = "text-purple-600 bg-purple-50 dark:bg-slate-900"
-                              cardStyle = "bg-purple-50/40 dark:bg-[oklch(0.14_0.01_250)] text-purple-900 dark:text-purple-300"
+                              cardStyle = "bg-purple-50/40 border-purple-200/40 text-purple-900 dark:text-purple-300"
                             }
 
                             return (
                               <div
                                 key={item.id}
-                                className={`p-3 rounded-2xl border-0 flex items-center justify-between gap-3 text-left neumo-inset ${cardStyle}`}
+                                className={`p-3.5 rounded-xl border border-dashed flex flex-col justify-between gap-1.5 text-left ${cardStyle}`}
                               >
-                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                  <div className={`p-2 rounded-xl shrink-0 ${iconColor} border-0 shadow-xs`}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className={`p-2 rounded-lg shrink-0 ${iconColor}`}>
                                     <Icon size={14} />
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <span className="text-[8px] font-black opacity-60 uppercase tracking-widest block">Agenda</span>
+                                    <span className="text-[10px] font-black opacity-60 uppercase tracking-wider block">Agenda</span>
                                     <h5 className="text-xs font-black truncate leading-tight uppercase">
                                       {item.label || item.tipe}
                                     </h5>
                                   </div>
                                 </div>
-                                <span className="font-mono text-[9px] font-extrabold opacity-75 whitespace-nowrap">
+                                <div className="text-[11px] font-mono font-bold opacity-75 mt-1 text-right">
                                   {item.jamMulai} - {item.jamSelesai}
-                                </span>
+                                </div>
                               </div>
                             )
                           } else {
@@ -1153,49 +1199,57 @@ export default function JadwalPage() {
                               return (
                                 <div
                                   key={`jp-${item.id}`}
-                                  className={`group relative p-3 ${color.bg} border-l-4 ${color.border} rounded-2xl hover:scale-[1.01] transition-all flex flex-col justify-between text-left shadow-xs hover:shadow-md`}
+                                  className={`group relative p-3.5 bg-white dark:bg-slate-900 hover:bg-slate-50/40 dark:hover:bg-slate-800/60 border ${!isStart ? "border-teal-200/80 bg-teal-50/20 dark:bg-teal-950/20" : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"} border-l-4 ${color.border} rounded-xl transition-all flex flex-col justify-between text-left shadow-sm hover:shadow-md`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className={`px-2 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-black uppercase tracking-wider`}>
-                                      JP {academicJp}
+                                    <span className={`${color.bg} ${color.text} border border-slate-100/40 dark:border-slate-800/60 rounded px-2 py-0.5 text-[10px] font-black tracking-wider uppercase flex items-center gap-1`}>
+                                      <span>JP {academicJp}</span>
+                                      {entry.jpCount! > 1 && (
+                                        <span className="text-[9px] font-mono font-bold bg-white/60 dark:bg-slate-800 px-1 py-0.2 rounded">
+                                          {academicJp - entry.jpMulai! + 1}/{entry.jpCount} JP
+                                        </span>
+                                      )}
                                     </span>
-                                    <span className="text-[9px] font-mono font-bold text-slate-400">
+                                    <span className="text-[10px] font-mono font-bold text-slate-400">
                                       {tStart} - {tEnd}
                                     </span>
                                   </div>
 
                                   <div className="mt-2 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} border-0 rounded text-[9px] font-mono font-black uppercase`}>
+                                      <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[10px] font-mono font-black uppercase tracking-wider`}>
                                         {mapel?.kodeMapel || "MAPEL"}
                                       </span>
-                                      <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
+                                      <span className="text-[11px] font-bold text-slate-500 truncate flex-1 block">
                                         {isTeacherView
                                           ? formatKelasLabel(kelas)
                                           : (teacher?.namaLengkap || "Guru")}
                                       </span>
                                     </div>
-                                    <h5 className="text-xs font-black text-slate-850 dark:text-slate-200 mt-1 line-clamp-2 leading-tight uppercase">
+                                    <h5 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 mt-1.5 line-clamp-2 leading-snug uppercase">
                                       {mapel?.namaMapel || "—"}
                                     </h5>
                                   </div>
 
-                                  <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800/80 flex items-center justify-end">
+                                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between min-h-[32px]">
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                      {entry.jpCount! > 1 ? `${entry.jpCount} JP (${academicJp - entry.jpMulai! + 1}/${entry.jpCount})` : "1 JP"}
+                                    </span>
                                     {isStart ? (
-                                      <div className="flex space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="flex space-x-1.5">
                                         {canEdit && (
                                           <>
                                             <button
                                               onClick={() => openEdit(entry)}
-                                              className="p-1.5 bg-background hover:bg-teal-50 dark:hover:bg-slate-800 text-slate-400 hover:text-teal-655 rounded-lg border-0 neumo-sm cursor-pointer"
-                                              title="Edit Jadwal"
+                                              className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 rounded-lg transition-all border border-transparent hover:border-teal-100 dark:hover:border-teal-800 cursor-pointer"
+                                              title="Edit"
                                             >
                                               <Pencil size={11} />
                                             </button>
                                             <button
                                               onClick={() => setDeleteId(entry.id)}
-                                              className="p-1.5 bg-background hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-400 hover:text-rose-600 rounded-lg border-0 neumo-sm cursor-pointer"
-                                              title="Hapus Jadwal"
+                                              className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 rounded-lg transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-800 cursor-pointer"
+                                              title="Hapus"
                                             >
                                               <Trash2 size={11} />
                                             </button>
@@ -1203,7 +1257,7 @@ export default function JadwalPage() {
                                         )}
                                       </div>
                                     ) : (
-                                      <span className="text-[9px] font-black text-teal-400 dark:text-teal-400 uppercase tracking-widest">
+                                      <span className="text-[10px] font-black text-teal-500 dark:text-teal-400 uppercase tracking-wider">
                                         Lanjutan
                                       </span>
                                     )}
@@ -1241,24 +1295,24 @@ export default function JadwalPage() {
                                 })
                                 .filter(Boolean) as string[]
 
-                              // Empty JP slot - Sunken style
+                              // Empty JP slot - dashed style (mengikuti prototipe)
                               return (
                                 <div
                                   key={`jp-empty-${item.id}`}
-                                  className="p-3 bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl flex flex-col justify-between text-left neumo-inset space-y-1.5"
+                                  className="p-3.5 bg-slate-50/30 dark:bg-slate-900/40 hover:bg-teal-50/10 dark:hover:bg-teal-950/20 border border-dashed border-slate-200/80 dark:border-slate-700 hover:border-teal-200 dark:hover:border-teal-800 rounded-xl transition-all flex flex-col justify-between text-left group"
                                 >
-                                  <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center justify-between gap-1">
                                     <div>
-                                      <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
-                                      <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">
+                                      <span className="text-slate-400 text-[10px] font-black uppercase">JP {academicJp}</span>
+                                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">
                                         {isTeacherView ? "Tidak Mengajar" : "Sesi Kosong"}
                                       </span>
                                     </div>
                                     {canEdit && (
                                       <button
                                         onClick={() => openAdd(day, academicJp)}
-                                        className="p-1.5 bg-background hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer shrink-0"
-                                        title="Isi Jadwal JP"
+                                        className="p-1.5 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-lg transition-all border border-teal-100/30 dark:border-teal-900/60 cursor-pointer"
+                                        title="Isi Jadwal"
                                       >
                                         <Plus className="w-3.5 h-3.5" />
                                       </button>
@@ -1300,11 +1354,11 @@ export default function JadwalPage() {
                 const jpItems = dayItems.filter((t) => t.tipe === "jp")
 
                 return (
-                  <div key={day} className="neumo-card bg-background rounded-3xl p-6 border-0 space-y-4">
+                  <div key={day} className="bg-white dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-3xl shadow-sm p-6 space-y-4">
                     <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-50 dark:border-slate-800">
-                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm animate-pulse" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm" />
                       <h4 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">{DAY_LABEL[day]}</h4>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-150/40 dark:bg-slate-850 px-2.5 py-0.5 rounded-md uppercase">
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md uppercase">
                         Hari KBM Aktif
                       </span>
                     </div>
@@ -1315,47 +1369,48 @@ export default function JadwalPage() {
                       ) : (
                         dayItems.map((item) => {
                           if (item.tipe !== "jp") {
-                            // Non-JP timeline item - Inset
+                            // Non-JP timeline item - dashed (mengikuti prototipe)
                             let Icon = Clock
-                            let iconColor = "text-slate-500 bg-slate-50 dark:bg-slate-900"
-                            let badgeStyle = "text-slate-800 bg-slate-50 dark:bg-slate-900 border-0"
+                            let iconColor = "text-slate-500 bg-slate-100 dark:bg-slate-900"
+                            let badgeStyle = "text-slate-850 bg-slate-50 dark:bg-slate-900 border-slate-200"
 
                             if (item.tipe === "upacara") {
                               Icon = Flag
                               iconColor = "text-amber-600 bg-amber-50 dark:bg-slate-900"
-                              badgeStyle = "text-amber-900 bg-amber-50 dark:bg-slate-900 border-0"
+                              badgeStyle = "text-amber-900 bg-amber-50 dark:bg-slate-900 border-amber-200/50"
                             } else if (item.tipe === "pembiasaan") {
                               Icon = BookOpen
                               iconColor = "text-emerald-600 bg-emerald-50 dark:bg-slate-900"
-                              badgeStyle = "text-emerald-900 bg-emerald-50 dark:bg-slate-900 border-0"
+                              badgeStyle = "text-emerald-900 bg-emerald-50 dark:bg-slate-900 border-emerald-200/50"
                             } else if (item.tipe === "istirahat") {
                               Icon = Coffee
                               iconColor = "text-indigo-600 bg-indigo-50 dark:bg-slate-900"
-                              badgeStyle = "text-indigo-900 bg-indigo-50 dark:bg-slate-900 border-0"
+                              badgeStyle = "text-indigo-900 bg-indigo-50 dark:bg-slate-900 border-indigo-200/50"
                             } else if (item.tipe === "sholat") {
                               Icon = Sparkles
                               iconColor = "text-purple-600 bg-purple-50 dark:bg-slate-900"
-                              badgeStyle = "text-purple-900 bg-purple-50 dark:bg-slate-900 border-0"
+                              badgeStyle = "text-purple-900 bg-purple-50 dark:bg-slate-900 border-purple-200/50"
                             }
 
                             return (
                               <div
                                 key={item.id}
-                                className="relative p-3.5 bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left neumo-inset"
+                                className="relative p-3.5 sm:p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-left"
                               >
-                                <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full bg-slate-350 border-2 border-white dark:border-slate-900" />
-                                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                  <div className={`p-2.5 rounded-xl shrink-0 ${iconColor} border-0 shadow-xs`}>
-                                    <Icon className="w-4 h-4" />
+                                <div className="absolute -left-[21px] top-4 w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white dark:border-slate-900" />
+                                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-100/80 dark:border-slate-800">
+                                  <div className="flex items-center space-x-2.5 min-w-0">
+                                    <div className={`p-1.5 rounded-lg flex-shrink-0 ${iconColor}`}>
+                                      <Icon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-wider block truncate">Agenda Khusus</span>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Agenda</span>
-                                    <h5 className="text-xs font-black text-slate-850 dark:text-slate-250 truncate leading-none uppercase">{item.label || item.tipe}</h5>
+                                  <div className={`inline-flex items-center h-7 px-2.5 rounded-lg border font-mono text-xs font-bold shrink-0 ${badgeStyle}`}>
+                                    <Clock className="w-3 h-3 mr-1.5 text-slate-400" />
+                                    <span>{item.jamMulai} - {item.jamSelesai}</span>
                                   </div>
                                 </div>
-                                <div className={`px-2.5 py-1 rounded-xl font-mono text-[10px] font-bold ${badgeStyle} shadow-inner`}>
-                                  {item.jamMulai} - {item.jamSelesai}
-                                </div>
+                                <h5 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200 break-words">{item.label || item.tipe}</h5>
                               </div>
                             )
                           } else {
@@ -1369,95 +1424,100 @@ export default function JadwalPage() {
                             )
 
                             return entry ? (
-                              // Filled JP slot timeline item - Raised style
+                              // Filled JP slot timeline item - mengikuti prototipe
                               <div
                                 key={item.id}
-                                className="relative p-4 bg-background dark:bg-slate-900 border-0 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all neumo-sm"
+                                className={`relative p-3 sm:p-4 bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/60 rounded-2xl border ${entry.jpMulai !== academicJp ? "border-teal-200/80 bg-teal-50/15 dark:bg-teal-950/20" : "border-slate-100 dark:border-slate-800"} transition-all text-left shadow-2xs`}
                               >
-                                <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 bg-teal-500" />
-                                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                  <span className="px-2.5 py-1 rounded-xl font-bold text-xs bg-teal-50 dark:bg-slate-850 text-teal-700 dark:text-teal-400 shrink-0">
-                                    JP {academicJp}
-                                  </span>
-
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      <span className="px-1.5 py-0.5 bg-teal-50 dark:bg-slate-850 text-teal-705 dark:text-teal-400 border-0 rounded text-[9px] font-mono font-black uppercase">
+                                <div className={`absolute -left-[21px] top-4 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${entry.jpMulai !== academicJp ? "bg-teal-400" : "bg-teal-500"}`} />
+                                <div className="flex items-center justify-between gap-1.5 sm:gap-2 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+                                  <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-hidden">
+                                    <span className={`px-2 py-0.5 rounded-lg font-bold text-[11px] sm:text-xs shrink-0 flex items-center gap-1 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-100/55 dark:border-teal-900/60`}>
+                                      <span>JP {academicJp}</span>
+                                      {entry.jpCount! > 1 && (
+                                        <span className="text-[10px] font-mono px-1.5 py-0.2 bg-teal-100/80 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 rounded font-bold">
+                                          {academicJp - entry.jpMulai! + 1}/{entry.jpCount} JP
+                                        </span>
+                                      )}
+                                    </span>
+                                    {entry.jpMulai === academicJp && (
+                                      <span className="px-2 py-0.5 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-100/50 dark:border-teal-900/60 rounded-md text-[10px] font-mono font-black uppercase tracking-wider">
                                         {mapelMap.get(entry.mataPelajaranId)?.kodeMapel || "MAPEL"}
                                       </span>
-                                      <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
-                                        {isTeacherView
-                                          ? formatKelasLabel(kelasRecords.find((k) => k.id === entry.kelasId))
-                                          : (guruMap.get(entry.guruId)?.namaLengkap || "—")}
-                                      </span>
-                                    </div>
-                                    <h5 className="text-xs sm:text-sm font-black text-slate-850 dark:text-slate-200 mt-1 leading-tight uppercase">
-                                      {mapelMap.get(entry.mataPelajaranId)?.namaMapel || "—"}
-                                    </h5>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2.5 sm:pt-0 border-t border-slate-50 dark:border-slate-800/80 sm:border-t-0">
-                                  <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 border-0 px-2.5 py-1 rounded-lg shadow-inner">
-                                    {item.jamMulai} - {item.jamSelesai}
-                                  </span>
-
-                                  <div className="flex space-x-1 shrink-0">
-                                    {entry.jpMulai === academicJp && canEdit && (
-                                      <>
-                                        <button
-                                          onClick={() => openEdit(entry)}
-                                          className="p-1.5 bg-background hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-655 border-0 neumo-sm cursor-pointer"
-                                          title="Edit"
-                                        >
-                                          <Pencil className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          onClick={() => setDeleteId(entry.id)}
-                                          className="p-1.5 bg-background hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-600 border-0 neumo-sm cursor-pointer"
-                                          title="Hapus"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </>
                                     )}
                                   </div>
+                                  <div className="inline-flex items-center h-6 sm:h-7 px-2 sm:px-2.5 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 rounded-lg text-[10px] sm:text-xs font-mono font-bold shrink-0">
+                                    <Clock className="w-3 h-3 mr-1 text-slate-400" />
+                                    <span>{item.jamMulai} - {item.jamSelesai}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 min-w-0">
+                                  <div className="min-w-0 flex-1">
+                                    <h5 className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-200 tracking-tight leading-snug break-words uppercase">
+                                      {mapelMap.get(entry.mataPelajaranId)?.namaMapel || "—"}
+                                    </h5>
+                                    <p className="text-xs font-bold text-slate-500 mt-0.5 break-words">
+                                      {isTeacherView
+                                        ? `Rombel: ${formatKelasLabel(kelasRecords.find((k) => k.id === entry.kelasId))}`
+                                        : (guruMap.get(entry.guruId)?.namaLengkap || "—")}
+                                    </p>
+                                  </div>
+                                  {entry.jpMulai === academicJp && canEdit && (
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <button
+                                        onClick={() => openEdit(entry)}
+                                        className="h-8 w-8 inline-flex items-center justify-center bg-slate-100/80 dark:bg-slate-800 hover:bg-teal-500 hover:text-white text-slate-500 dark:text-slate-300 rounded-lg transition-all border border-slate-200/80 dark:border-slate-700 hover:border-teal-500 cursor-pointer shadow-2xs"
+                                        title="Edit"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteId(entry.id)}
+                                        className="h-8 w-8 inline-flex items-center justify-center bg-slate-100/80 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-500 dark:text-slate-300 rounded-lg transition-all border border-slate-200/80 dark:border-slate-700 hover:border-rose-500 cursor-pointer shadow-2xs"
+                                        title="Hapus"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ) : (
-                              // Empty JP slot timeline item - Sunken style
+                              // Empty JP slot timeline item - dashed (mengikuti prototipe)
                               <div
                                 key={item.id}
-                                className="relative p-4 bg-[oklch(0.94_0.01_250)] dark:bg-[oklch(0.14_0.01_250)] border-0 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left neumo-inset"
+                                className="relative p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-left"
                               >
-                                <div className="absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 bg-slate-350" />
-                                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                  <span className="px-2.5 py-1 rounded-xl font-bold text-xs bg-slate-50 dark:bg-slate-850 text-slate-400 shrink-0">
-                                    JP {academicJp}
-                                  </span>
+                                <div className="absolute -left-[21px] top-4 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 bg-slate-300" />
+                                <div className="flex items-center justify-between gap-1.5 sm:gap-2 pb-2 mb-2 border-b border-slate-100/80 dark:border-slate-800">
+                                  <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                                    <span className="px-2 py-0.5 rounded-lg font-bold text-[11px] sm:text-xs shrink-0 bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700">
+                                      JP {academicJp}
+                                    </span>
+                                  </div>
+                                  <div className="inline-flex items-center h-6 sm:h-7 px-2 sm:px-2.5 bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 rounded-lg text-[10px] sm:text-xs font-mono font-bold shrink-0">
+                                    <Clock className="w-3 h-3 mr-1 text-slate-400" />
+                                    <span>{item.jamMulai} - {item.jamSelesai}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 min-w-0">
                                   <div className="min-w-0 flex-1 text-left">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block">
                                       {isTeacherView ? "Tidak Mengajar" : "Sesi Kosong"}
                                     </span>
-                                    <span className="text-[11px] font-semibold text-slate-455 dark:text-slate-500 block mt-0.5">
+                                    <span className="text-xs sm:text-sm font-semibold text-slate-400 block mt-0.5">
                                       {isTeacherView ? "Waktu luang / koordinasi" : "Dapat diisi jadwal pelajaran"}
                                     </span>
                                   </div>
-                                </div>
-
-                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2.5 sm:pt-0 border-0">
-                                  <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 dark:bg-slate-800 border-0 px-2.5 py-1 rounded-lg shadow-inner">
-                                    {item.jamMulai} - {item.jamSelesai}
-                                  </span>
-
                                   {canEdit && (
                                     <button
                                       onClick={() => openAdd(day, academicJp)}
                                       disabled={mapelRecords.length === 0}
-                                      className="p-1.5 bg-background hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 rounded-xl border-0 shadow-sm neumo-sm cursor-pointer text-[10px] font-bold"
+                                      className="h-8 px-2.5 inline-flex items-center justify-center gap-1 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-600 text-teal-700 dark:text-teal-300 hover:text-white rounded-lg transition-all border border-teal-200/80 dark:border-teal-900/60 cursor-pointer text-xs font-bold shrink-0"
                                       title="Isi Jadwal"
                                     >
                                       <Plus className="w-3.5 h-3.5" />
+                                      <span className="text-xs">Tambah</span>
                                     </button>
                                   )}
                                 </div>
@@ -1667,9 +1727,9 @@ function MatrixView({
   }
 
   return (
-    <div className="neumo-card bg-background rounded-3xl p-6 border-0 overflow-x-auto shadow-md">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100/80 dark:border-slate-800 overflow-x-auto shadow-sm">
       <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm animate-pulse" />
+        <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shadow-sm" />
         <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm uppercase tracking-wider">
           Matriks Jadwal Hari {day.toUpperCase()} (Semua Rombel)
         </h4>

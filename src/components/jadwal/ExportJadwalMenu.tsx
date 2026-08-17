@@ -190,15 +190,15 @@ export default function ExportJadwalMenu({ onCetak, disabled }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={disabled || exporting}
-        className="flex items-center justify-center font-bold px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full lg:w-auto flex items-center justify-center font-black px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-950 dark:text-emerald-200 dark:border-emerald-800/60 shadow-2xs rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer backdrop-blur-xs disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {exporting ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         ) : (
-          <FileSpreadsheet className="w-4 h-4 mr-2" />
+          <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-700 dark:text-emerald-300 shrink-0" />
         )}
         <span>{exporting ? "Mengexport..." : "Export / Cetak"}</span>
-        <ChevronDown className="w-4 h-4 ml-1" />
+        <ChevronDown className="w-3.5 h-3.5 ml-1.5 text-emerald-700 dark:text-emerald-300 shrink-0" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem onClick={onCetak} className="cursor-pointer py-2.5">
