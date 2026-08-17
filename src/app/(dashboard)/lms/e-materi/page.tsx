@@ -193,14 +193,17 @@ export default function EMateriPage() {
   const [previewMaterial, setPreviewMaterial] = useState<MateriItem | null>(null)
   const [isFullscreenPreview, setIsFullscreenPreview] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  // Konteks mapel saat membuka form (dari tombol "+" di card mapel, tanpa masuk layar detail)
+  const [formContextMapelId, setFormContextMapelId] = useState<string | null>(null)
 
   const debouncedSearchMapel = useDebounce(searchQuery)
 
-  // tRPC Queries — search di-server; filter tingkat di-client (normalisasi angka/romawi)
+  // tRPC Queries — search di-server; filter tingkat di-client (normalisasi angka/romawi).
+  // limit 200 ≠ cache default (100) → selalu fresh dari DB, sinkron realtime dengan page mapel.
   const { data: mapelList, isLoading: isLoadingMapel } = api.mapel.getAll.useQuery({
     search: debouncedSearchMapel || undefined,
     limit: 200,
-  })
+  }, { refetchOnWindowFocus: true })
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 200 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
 
@@ -369,6 +372,13 @@ export default function EMateriPage() {
     setIsFullscreenPreview(false)
     setIsCopied(false)
     incrementViewsMutation.mutate({ id: item.id })
+  }
+
+  // Buka form tambah untuk mapel tertentu (dari tombol "+" di card mapel)
+  const handleOpenAddForMapel = (mapelId: string) => {
+    setEditingItem(null)
+    setFormContextMapelId(mapelId)
+    setFormOpen(true)
   }
 
   const handleCopyLink = (url: string) => {
@@ -564,7 +574,7 @@ export default function EMateriPage() {
       <div
         key={mat.id}
         onClick={() => handleOpenPreview(mat)}
-        className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-3 shadow-2xs hover:shadow-md hover:border-teal-300/80 dark:hover:border-teal-800 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+        className="group neumo-card bg-background rounded-[26px] p-3 hover:shadow-xl hover:border-teal-300/50 dark:hover:border-teal-800/50 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
       >
         <div className="space-y-2.5">
           {renderMaterialCover(mat)}
@@ -588,6 +598,7 @@ export default function EMateriPage() {
                   onClick={(e) => {
                     e.stopPropagation()
                     setEditingItem(mat as any)
+                    setFormContextMapelId(null)
                     setFormOpen(true)
                   }}
                   title="Edit Materi"
@@ -662,19 +673,6 @@ export default function EMateriPage() {
               : "Pilih mata pelajaran untuk mengakses modul ajar digital dari Guru"}
           </p>
         </div>
-
-        {canManage && !selectedMapelId && (
-          <Button
-            onClick={() => {
-              setEditingItem(null)
-              setFormOpen(true)
-            }}
-            className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-teal-500/10 cursor-pointer shrink-0"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah e-Materi
-          </Button>
-        )}
       </div>
 
       {/* Tab Navigation khusus Guru: Materi Saya vs Jelajahi Mapel */}
@@ -719,7 +717,7 @@ export default function EMateriPage() {
       {isGuru && !selectedMapelId && guruActiveTab === "my-materials" ? (
         <div className="space-y-6">
           {/* Header banner */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="neumo-card bg-background rounded-[26px] p-3.5 sm:p-4 md:p-5 border-0 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-teal-50 dark:bg-teal-950/50 text-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -734,20 +732,10 @@ export default function EMateriPage() {
                 Kelola dan unggah materi pembelajaran digital (E-Book, Video, LKS, Infografis) untuk kelas Anda.
               </p>
             </div>
-            <Button
-              onClick={() => {
-                setEditingItem(null)
-                setFormOpen(true)
-              }}
-              className="px-4 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all inline-flex items-center justify-center space-x-2 cursor-pointer shadow-sm shadow-teal-600/15 flex-shrink-0 self-start sm:self-center"
-            >
-              <Plus size={14} />
-              <span>Tambah e-Materi</span>
-            </Button>
           </div>
 
           {/* Search + filter tipe */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col sm:flex-row gap-3">
+          <div className="neumo-card bg-background rounded-[22px] p-4 border-0 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <Input
@@ -780,14 +768,14 @@ export default function EMateriPage() {
           </div>
 
           {myMaterials.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] py-16 text-center shadow-2xs space-y-4">
+            <div className="neumo-card bg-background rounded-[26px] py-16 text-center border-0 space-y-4">
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                 <FolderOpen size={32} />
               </div>
               <div className="space-y-1">
                 <p className="font-extrabold text-slate-700 dark:text-slate-200 text-sm">Belum Ada Materi Terunggah</p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Mulai unggah materi pertama Anda dengan menekan tombol &quot;Tambah e-Materi&quot; di atas.
+                  Mulai unggah materi pertama Anda dari tab &quot;Jelajahi Mapel&quot;, klik tombol &quot;+&quot; pada kartu mata pelajaran.
                 </p>
               </div>
             </div>
@@ -802,7 +790,7 @@ export default function EMateriPage() {
            VIEW 2: Pilih Mapel (Portal / Jelajahi Mapel)
            ───────────────────────────────────────────── */
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+          <div className="neumo-card bg-background rounded-[26px] p-3.5 sm:p-4 md:p-5 border-0 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-teal-50 dark:bg-teal-950/50 text-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -833,7 +821,7 @@ export default function EMateriPage() {
           </div>
 
           {/* Filtering */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col sm:flex-row gap-3">
+          <div className="neumo-card bg-background rounded-[22px] p-4 border-0 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <Input
@@ -886,7 +874,7 @@ export default function EMateriPage() {
                 ))}
               </div>
             ) : filteredSubjects.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] py-16 text-center shadow-2xs space-y-4">
+              <div className="neumo-card bg-background rounded-[26px] py-16 text-center border-0 space-y-4">
                 <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                   <BookOpen size={32} />
                 </div>
@@ -911,8 +899,7 @@ export default function EMateriPage() {
                   return (
                     <div
                       key={sub.id}
-                      onClick={() => setSelectedMapelId(sub.id)}
-                      className="group bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-800 rounded-[2rem] p-6 shadow-2xs hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between hover:-translate-y-1 relative overflow-hidden"
+                      className="neumo-card bg-background rounded-[28px] p-6 hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-5 group relative overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-teal-500/5 to-transparent rounded-bl-full transition-all group-hover:from-teal-500/10" />
 
@@ -942,14 +929,29 @@ export default function EMateriPage() {
                         </div>
                       </div>
 
-                      <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-6 flex items-center justify-between relative z-10">
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between relative z-10">
                         <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-bold">
                           <FolderOpen size={14} className="text-slate-400" />
                           <span>{count === 0 ? "Belum Ada" : `${count} File`} Materi</span>
                         </div>
-                        <span className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-950/40 group-hover:text-teal-600 dark:group-hover:text-teal-400 text-slate-400 flex items-center justify-center transition-colors">
-                          <ChevronRight size={16} />
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleOpenAddForMapel(sub.id)
+                              }}
+                              title={`Tambah e-Materi ${sub.namaMapel}`}
+                              className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-600 hover:text-white text-teal-600 dark:text-teal-400 flex items-center justify-center transition-all shadow-sm neumo-sm cursor-pointer"
+                            >
+                              <Plus size={15} />
+                            </button>
+                          )}
+                          <span className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-950/40 group-hover:text-teal-600 dark:group-hover:text-teal-400 text-slate-400 flex items-center justify-center transition-colors">
+                            <ChevronRight size={16} />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )
@@ -981,7 +983,7 @@ export default function EMateriPage() {
           {(() => {
             const selectedMapel = mapelRecords.find((m) => m.id === selectedMapelId)
             return (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-xs flex items-center justify-between gap-3 sm:gap-4">
+              <div className="neumo-card bg-background rounded-[26px] p-3.5 sm:p-4 md:p-5 border-0 flex items-center justify-between gap-3 sm:gap-4">
                 <div className="space-y-1 sm:space-y-1.5 flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
                     <span className="px-2 py-0.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-900 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
@@ -1026,7 +1028,7 @@ export default function EMateriPage() {
           })()}
 
           {/* Search & filter */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-3.5 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center gap-2.5 sm:gap-3">
+          <div className="neumo-card bg-background rounded-[22px] p-3 sm:p-3.5 border-0 flex flex-col md:flex-row items-stretch md:items-center gap-2.5 sm:gap-3">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <Input
@@ -1063,6 +1065,7 @@ export default function EMateriPage() {
                 <Button
                   onClick={() => {
                     setEditingItem(null)
+                    setFormContextMapelId(null)
                     setFormOpen(true)
                   }}
                   className="px-3.5 sm:px-4 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all inline-flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm shadow-teal-600/15 flex-shrink-0 whitespace-nowrap"
@@ -1085,7 +1088,7 @@ export default function EMateriPage() {
               ))}
             </div>
           ) : filteredMaterials.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] py-16 text-center shadow-2xs space-y-4">
+            <div className="neumo-card bg-background rounded-[26px] py-16 text-center border-0 space-y-4">
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                 <FolderOpen size={32} />
               </div>
@@ -1112,11 +1115,12 @@ export default function EMateriPage() {
         onClose={() => {
           setFormOpen(false)
           setEditingItem(null)
+          setFormContextMapelId(null)
         }}
         onSubmit={handleSubmitForm}
         initial={editingItem}
         saving={createMutation.isPending || updateMutation.isPending}
-        contextMapelId={selectedMapelId}
+        contextMapelId={formContextMapelId ?? selectedMapelId}
         assignedMapel={isGuru ? teacherAssignedMapel : null}
       />
 
@@ -1270,6 +1274,7 @@ export default function EMateriPage() {
                               const mat = previewMaterial
                               setPreviewMaterial(null)
                               setEditingItem(mat as any)
+                              setFormContextMapelId(null)
                               setFormOpen(true)
                             }}
                             className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold inline-flex items-center space-x-1.5 transition-colors cursor-pointer shadow-xs"
@@ -1416,6 +1421,7 @@ export default function EMateriPage() {
                             const mat = previewMaterial
                             setPreviewMaterial(null)
                             setEditingItem(mat as any)
+                            setFormContextMapelId(null)
                             setFormOpen(true)
                           }}
                           className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 hover:text-teal-700 dark:hover:text-teal-300 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center space-x-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
