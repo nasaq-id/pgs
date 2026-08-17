@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { mataPelajaran } from "./mata-pelajaran"
 import { kelas } from "./kelas"
-import { users } from "./users"
+import { guru } from "./guru"
 
 export const eMateri = pgTable("e_materi", {
   id: text("id").primaryKey(),
@@ -14,15 +14,12 @@ export const eMateri = pgTable("e_materi", {
   judul: text("judul").notNull(),
   bab: text("bab"),
   deskripsi: text("deskripsi"),
-  tipeMateri: text("tipe_materi", { enum: ["dokumen", "video", "link_eksternal", "teks_artikel"] }).notNull().default("dokumen"),
-  fileUrl: text("file_url"),
-  fileName: text("file_name"),
-  fileSize: text("file_size"),
-  videoUrl: text("video_url"),
-  linkUrl: text("link_url"),
-  kontenTeks: text("konten_teks"),
+  tipeMateri: text("tipe_materi", { enum: ["dokumen", "video", "gambar", "link"] }).notNull().default("dokumen"),
+  url: text("url"),
+  coverUrl: text("cover_url"),
+  guruId: text("guru_id").references(() => guru.id, { onDelete: "set null" }),
   status: text("status", { enum: ["terbit", "draf", "arsip"] }).notNull().default("terbit"),
-  pembuatId: text("pembuat_id").references(() => users.id, { onDelete: "set null" }),
+  pembuatId: text("pembuat_id"),
   pembuatNama: text("pembuat_nama"),
   viewsCount: integer("views_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -36,5 +33,5 @@ export const eMateriRelations = relations(eMateri, ({ one }) => ({
   sekolah: one(sekolah, { fields: [eMateri.sekolahId], references: [sekolah.id] }),
   mataPelajaran: one(mataPelajaran, { fields: [eMateri.mataPelajaranId], references: [mataPelajaran.id] }),
   kelas: one(kelas, { fields: [eMateri.kelasId], references: [kelas.id] }),
-  pembuat: one(users, { fields: [eMateri.pembuatId], references: [users.id] }),
+  guru: one(guru, { fields: [eMateri.guruId], references: [guru.id] }),
 }))

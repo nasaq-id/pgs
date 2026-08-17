@@ -2,7 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { eq, and, or, like, desc, sql } from "drizzle-orm"
 import { db } from "@/server/db"
-import { eMateri } from "@/server/db/schema"
+import { eMateri, guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
@@ -17,21 +17,29 @@ const eMateriSchema = z.object({
   judul: z.string().min(2, "Judul materi terlalu pendek"),
   bab: z.string().nullable().optional(),
   deskripsi: z.string().nullable().optional(),
-  tipeMateri: z.enum(["dokumen", "video", "link_eksternal", "teks_artikel"]).default("dokumen"),
-  fileUrl: z.string().nullable().optional(),
-  fileName: z.string().nullable().optional(),
-  fileSize: z.string().nullable().optional(),
-  videoUrl: z.string().nullable().optional(),
-  linkUrl: z.string().nullable().optional(),
-  kontenTeks: z.string().nullable().optional(),
+  tipeMateri: z.enum(["dokumen", "video", "gambar", "link"]).default("dokumen"),
+  url: z.string().nullable().optional(),
+  coverUrl: z.string().nullable().optional(),
+  guruId: z.string().nullable().optional(),
   status: z.enum(["terbit", "draf", "arsip"]).default("terbit"),
   pembuatId: z.string().nullable().optional(),
   pembuatNama: z.string().nullable().optional(),
 })
 
-const E_MATERI_CACHE_LIMITS = [25, 50, 100, 200]
+const E_MATERI_CACHE_LIMITS = [25, 50, 100, 200, 1000]
 const eMateriCacheKeys = (sekolahId: string | null) =>
   E_MATERI_CACHE_LIMITS.map((l) => cacheKey("e-materi:getAll", sekolahId || "all", `l${l}`))
+
+/** Cari guru.id milik session user (role guru) — untuk RBAC kepemilikan materi. */
+async function getSessionGuruId(ctx: { session: { user: { id: string; email?: string | null } } }): Promise<string | null> {
+  const email = ctx.session.user.email
+  if (!email) return null
+  const found = await db.query.guru.findFirst({
+    where: or(eq(guru.email, email), eq(guru.usernameGuru, email)),
+    columns: { id: true },
+  })
+  return found?.id ?? null
+}
 
 export const eMateriRouter = router({
   getAll: protectedProcedure
@@ -87,7 +95,7 @@ export const eMateriRouter = router({
           with: {
             mataPelajaran: true,
             kelas: true,
-            pembuat: true,
+            guru: true,
           },
         })
 
@@ -114,14 +122,14 @@ export const eMateriRouter = router({
         with: {
           mataPelajaran: true,
           kelas: true,
-          pembuat: true,
+          guru: true,
         },
       })
       if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Materi pembelajaran tidak ditemukan" })
       return result
     }),
 
-  create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
+  create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru", "kepsek"])
     .input(sanitized(eMateriSchema))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
@@ -131,15 +139,28 @@ export const eMateriRouter = router({
       const pembuatId = input.pembuatId || ctx.session.user.id
       const pembuatNama = input.pembuatNama || ctx.session.user.name || "Pengajar"
 
+      const values: Record<string, unknown> = {
+        ...input,
+        id,
+        sekolahId,
+        pembuatId,
+        pembuatNama,
+      }
+      // Guru: paksa guruId = guru.id miliknya sendiri (dari session user)
+      if (ctx.session.user.role === "guru") {
+        const sessionGuruId = await getSessionGuruId(ctx)
+        if (!sessionGuruId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akun guru tidak terhubung ke data guru" })
+        }
+        values.guruId = sessionGuruId
+      } else {
+        // Non-guru boleh kosong (tidak terikat ke guru tertentu)
+        values.guruId = input.guruId ?? null
+      }
+
       const result = await db
         .insert(eMateri)
-        .values({
-          ...input,
-          id,
-          sekolahId,
-          pembuatId,
-          pembuatNama,
-        } as any)
+        .values(values as any)
         .returning()
 
       await logAudit(ctx, {
@@ -151,12 +172,26 @@ export const eMateriRouter = router({
       return result[0]
     }),
 
-  update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
+  update: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru", "kepsek"])
     .input(sanitized(z.object({ id: z.string(), data: eMateriSchema.partial() })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       await invalidateCache(eMateriCacheKeys(sekolahId))
       const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
+
+      // Guru hanya boleh mengedit materinya sendiri (berdasarkan guru.id)
+      if (ctx.session.user.role === "guru") {
+        const sessionGuruId = await getSessionGuruId(ctx)
+        if (!sessionGuruId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akun guru tidak terhubung ke data guru" })
+        }
+        conditions.push(eq(eMateri.guruId, sessionGuruId))
+        const allowedData: Record<string, unknown> = {}
+        for (const [k, v] of Object.entries(input.data)) {
+          if (!["guruId", "pembuatId", "pembuatNama"].includes(k)) allowedData[k] = v
+        }
+        input.data = allowedData as any
+      }
 
       const result = await db
         .update(eMateri)
@@ -178,14 +213,24 @@ export const eMateriRouter = router({
       return result[0]
     }),
 
-  remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru"])
+  remove: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu", "guru", "kepsek"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
       await invalidateCache(eMateriCacheKeys(sekolahId))
       const conditions = [eq(eMateri.id, input.id), eq(eMateri.sekolahId, sekolahId)]
 
+      // Guru hanya boleh menghapus materinya sendiri (berdasarkan guru.id)
+      if (ctx.session.user.role === "guru") {
+        const sessionGuruId = await getSessionGuruId(ctx)
+        if (!sessionGuruId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Akun guru tidak terhubung ke data guru" })
+        }
+        conditions.push(eq(eMateri.guruId, sessionGuruId))
+      }
+
       const result = await db.delete(eMateri).where(and(...conditions)).returning()
+      if (!result[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Materi pembelajaran tidak ditemukan" })
       await logAudit(ctx, {
         action: "delete",
         entity: "e_materi",

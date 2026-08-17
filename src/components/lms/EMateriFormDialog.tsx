@@ -1,15 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Loader2, FileText, Video, Link2, BookOpen, Upload } from "lucide-react"
+import { useState, useEffect, useMemo, useRef } from "react"
+import { Loader2, FileText, Video, ImageIcon, Link2, Upload, ImagePlus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { api } from "@/lib/trpc/client"
 import { cn } from "@/lib/utils"
+import { compressImage } from "@/lib/imageUtils"
+import { useSession } from "next-auth/react"
 
 export interface EMateriFormData {
   id?: string
@@ -19,14 +22,25 @@ export interface EMateriFormData {
   judul: string
   bab?: string | null
   deskripsi?: string | null
-  tipeMateri: "dokumen" | "video" | "link_eksternal" | "teks_artikel"
-  fileUrl?: string | null
-  fileName?: string | null
-  fileSize?: string | null
-  videoUrl?: string | null
-  linkUrl?: string | null
-  kontenTeks?: string | null
+  tipeMateri: "dokumen" | "video" | "gambar" | "link"
+  url?: string | null
+  coverUrl?: string | null
+  guruId?: string | null
   status: "terbit" | "draf" | "arsip"
+}
+
+interface MapelOption {
+  id: string
+  namaMapel: string
+  kodeMapel?: string | null
+  tingkat?: string | null
+  kategori?: string | null
+}
+
+interface KelasOption {
+  id: string
+  namaKelas: string
+  tingkat: string | null
 }
 
 interface Props {
@@ -35,6 +49,10 @@ interface Props {
   onSubmit: (data: EMateriFormData) => Promise<void>
   initial?: EMateriFormData | null
   saving?: boolean
+  /** Mapel yang sedang dibuka (dari layar detail mapel) — terkunci otomatis */
+  contextMapelId?: string | null
+  /** Daftar mapel yang diploting ke guru yang sedang login */
+  assignedMapel?: MapelOption[] | null
 }
 
 export function formatTingkatLabel(tingkat?: string | null): string {
@@ -45,37 +63,52 @@ export function formatTingkatLabel(tingkat?: string | null): string {
   return `Kelas ${clean}`
 }
 
-export default function EMateriFormDialog({ open, onClose, onSubmit, initial, saving }: Props) {
-  const [mataPelajaranId, setMataPelajaranId] = useState("")
-  const [kelasId, setKelasId] = useState("")
+const TIPE_OPTIONS = [
+  { type: "dokumen" as const, label: "Dokumen", sub: "PDF, Word, PPT", icon: FileText },
+  { type: "video" as const, label: "Video", sub: "YouTube / MP4", icon: Video },
+  { type: "gambar" as const, label: "Gambar", sub: "Bagan / Infografis", icon: ImageIcon },
+  { type: "link" as const, label: "Link", sub: "Web / Drive", icon: Link2 },
+]
+
+export default function EMateriFormDialog({
+  open,
+  onClose,
+  onSubmit,
+  initial,
+  saving,
+  contextMapelId,
+  assignedMapel,
+}: Props) {
+  const { data: session } = useSession()
+  const userRole = session?.user?.role
+
+  const [mataPelajaranId, setMataPelajaranId] = useState(contextMapelId || "")
+  const [kelasId, setKelasId] = useState("all")
   const [judul, setJudul] = useState("")
   const [bab, setBab] = useState("")
   const [deskripsi, setDeskripsi] = useState("")
-  const [tipeMateri, setTipeMateri] = useState<"dokumen" | "video" | "link_eksternal" | "teks_artikel">("dokumen")
-  const [fileUrl, setFileUrl] = useState("")
-  const [fileName, setFileName] = useState("")
-  const [videoUrl, setVideoUrl] = useState("")
-  const [linkUrl, setLinkUrl] = useState("")
-  const [kontenTeks, setKontenTeks] = useState("")
+  const [tipeMateri, setTipeMateri] = useState<EMateriFormData["tipeMateri"]>("dokumen")
+  const [url, setUrl] = useState("")
+  const [coverUrl, setCoverUrl] = useState("")
   const [status, setStatus] = useState<"terbit" | "draf" | "arsip">("terbit")
   const [submitting, setSubmitting] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement>(null)
 
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 100 }, { enabled: open })
   const { data: kelasList } = api.kelas.getAll.useQuery({ limit: 100 }, { enabled: open })
 
-  const mapelOptions = (mapelList ?? []).map((m) => ({
-    value: m.id,
-    label: `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`,
-  }))
+  const mapelRecords = useMemo(() => (mapelList ?? []) as MapelOption[], [mapelList])
+  const kelasRecords = useMemo(() => (kelasList ?? []) as KelasOption[], [kelasList])
 
-  const kelasOptions = [
-    { value: "all", label: "Semua Kelas (Umum)" },
-    ...(kelasList ?? []).map((k) => ({
-      value: k.id,
-      label: `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`,
-    })),
-  ]
+  // Mapel yang tersedia untuk dipilih — guru dibatasi ke ploting tugasnya
+  const availableMapel = useMemo(() => {
+    const isAdmin = userRole === "super_admin" || userRole === "admin_sekolah" || userRole === "tu"
+    if (isAdmin) return mapelRecords
+    if (assignedMapel && assignedMapel.length > 0) return assignedMapel
+    return mapelRecords
+  }, [userRole, assignedMapel, mapelRecords])
 
+  // Pilih mapel default saat form dibuka
   useEffect(() => {
     if (!open) return
     if (initial) {
@@ -85,34 +118,54 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
       setBab(initial.bab ?? "")
       setDeskripsi(initial.deskripsi ?? "")
       setTipeMateri(initial.tipeMateri ?? "dokumen")
-      setFileUrl(initial.fileUrl ?? "")
-      setFileName(initial.fileName ?? "")
-      setVideoUrl(initial.videoUrl ?? "")
-      setLinkUrl(initial.linkUrl ?? "")
-      setKontenTeks(initial.kontenTeks ?? "")
+      setUrl(initial.url ?? "")
+      setCoverUrl(initial.coverUrl ?? "")
       setStatus(initial.status ?? "terbit")
     } else {
-      setMataPelajaranId("")
+      setMataPelajaranId(contextMapelId || "")
       setKelasId("all")
       setJudul("")
       setBab("")
       setDeskripsi("")
       setTipeMateri("dokumen")
-      setFileUrl("")
-      setFileName("")
-      setVideoUrl("")
-      setLinkUrl("")
-      setKontenTeks("")
+      setUrl("")
+      setCoverUrl("")
       setStatus("terbit")
     }
-  }, [open, initial])
+  }, [open, initial, contextMapelId])
+
+  const isMapelLocked = !!contextMapelId
+
+  // Mapel tunggal untuk guru — terkunci otomatis
+  useEffect(() => {
+    if (!open || initial || isMapelLocked) return
+    if (userRole === "guru" && availableMapel.length === 1 && !mataPelajaranId) {
+      setMataPelajaranId(availableMapel[0].id)
+    }
+  }, [open, initial, isMapelLocked, userRole, availableMapel, mataPelajaranId])
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const compressed = await compressImage(file, 500, 500, 0.65)
+      setCoverUrl(compressed)
+    } catch {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        setCoverUrl(base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!mataPelajaranId || !judul.trim()) return
 
-    const selectedKelasObj = kelasList?.find((k) => k.id === kelasId)
-    const tingkat = selectedKelasObj?.tingkat ?? null
+    const selectedKelasObj = kelasRecords.find((k) => k.id === kelasId)
+    const tingkat = selectedKelasObj?.tingkat ?? (kelasId !== "all" ? kelasId : null)
 
     setSubmitting(true)
     try {
@@ -125,11 +178,8 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
         bab: bab || null,
         deskripsi: deskripsi || null,
         tipeMateri,
-        fileUrl: fileUrl || null,
-        fileName: fileName || null,
-        videoUrl: videoUrl || null,
-        linkUrl: linkUrl || null,
-        kontenTeks: kontenTeks || null,
+        url: url.trim() || null,
+        coverUrl: coverUrl.trim() || null,
         status,
       })
       onClose()
@@ -140,12 +190,8 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
     }
   }
 
-  const TIPE_MATERI_OPTIONS = [
-    { type: "dokumen", label: "Dokumen / File", icon: FileText, desc: "PDF, Word, PPT, Excel" },
-    { type: "video", label: "Video", icon: Video, desc: "Link YouTube / Embed MP4" },
-    { type: "link_eksternal", label: "Link Web", icon: Link2, desc: "Tautan Web / Drive" },
-    { type: "teks_artikel", label: "Catatan Teks", icon: BookOpen, desc: "Artikel / Rangkuman" },
-  ] as const
+  const selectedMapelObj = mapelRecords.find((m) => m.id === mataPelajaranId)
+  const urlRequired = tipeMateri !== "gambar"
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
@@ -153,71 +199,55 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
         <DialogHeader className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <DialogTitle className="text-xl font-extrabold tracking-tight">
-              {initial ? "Edit e-Materi Pembelajaran" : "Tambah e-Materi Pembelajaran"}
+              {initial ? "Ubah Materi Pembelajaran" : "Unggah Materi Baru"}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Lengkapi informasi materi digital untuk diakses oleh siswa
+              {selectedMapelObj
+                ? `MAPEL: ${selectedMapelObj.namaMapel}${selectedMapelObj.tingkat ? ` (${formatTingkatLabel(selectedMapelObj.tingkat)})` : ""}`
+                : "Lengkapi informasi materi digital untuk diakses oleh siswa"}
             </p>
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmitForm} className="space-y-5 pt-3">
-          {/* Row 1: Mata Pelajaran & Target Kelas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Mata Pelajaran <span className="text-rose-500">*</span>
-              </Label>
-              <Select
-                value={mataPelajaranId}
-                onValueChange={(v) => setMataPelajaranId(v ?? "")}
-                options={mapelOptions}
-              >
-                <SelectTrigger className="rounded-2xl h-10">
-                  <SelectValue placeholder="Pilih Mata Pelajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(mapelList ?? []).map((m) => (
-                    <SelectItem
-                      key={m.id}
-                      value={m.id}
-                      label={`${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}`}
-                    >
-                      {m.namaMapel} {m.kodeMapel ? `(${m.kodeMapel})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Target Kelas / Tingkat <span className="text-slate-400 font-normal">(Opsional)</span>
-              </Label>
-              <Select
-                value={kelasId}
-                onValueChange={(v) => setKelasId(v ?? "all")}
-                options={kelasOptions}
-              >
-                <SelectTrigger className="rounded-2xl h-10">
-                  <SelectValue placeholder="Semua Kelas (Umum)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" label="Semua Kelas (Umum)">Semua Kelas (Umum)</SelectItem>
-                  {(kelasList ?? []).map((k) => {
-                    const labelStr = `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`
-                    return (
-                      <SelectItem key={k.id} value={k.id} label={labelStr}>
-                        {labelStr}
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Mata Pelajaran */}
+          <div className="space-y-1.5">
+            {isMapelLocked || (userRole === "guru" && availableMapel.length === 1) ? (
+              <div className="bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/60 rounded-xl p-3 flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-black text-teal-600 uppercase tracking-wider block">Mata Pelajaran Target</span>
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    {selectedMapelObj?.namaMapel || "Mata Pelajaran"}{" "}
+                    {selectedMapelObj?.tingkat ? `(${formatTingkatLabel(selectedMapelObj.tingkat)})` : ""}
+                  </span>
+                </div>
+                <span className="text-[10px] font-extrabold text-teal-700 bg-teal-100/80 dark:bg-teal-900/60 px-2.5 py-1 rounded-lg">
+                  {selectedMapelObj?.kategori || "Mapel"}
+                </span>
+              </div>
+            ) : (
+              <>
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Mata Pelajaran <span className="text-rose-500">*</span>
+                 {userRole === "guru" && <span className="text-teal-600 font-bold normal-case"> (Mapel Ploting Tugas Anda)</span>}
+                 {(userRole === "admin_sekolah" || userRole === "kepsek") && <span className="text-teal-600 font-bold normal-case"> (Akses Admin — Semua Mapel)</span>}
+                </Label>
+                <SearchableSelect
+                  options={availableMapel.map((m) => ({
+                    value: m.id,
+                    label: `${m.namaMapel}${m.kodeMapel ? ` (${m.kodeMapel})` : ""}${m.tingkat ? ` • ${formatTingkatLabel(m.tingkat)}` : ""}`,
+                  }))}
+                  value={mataPelajaranId}
+                  onValueChange={(v) => setMataPelajaranId(v)}
+                  placeholder="-- Pilih Mata Pelajaran --"
+                  searchPlaceholder="Cari mata pelajaran..."
+                  className="rounded-2xl h-10"
+                />
+              </>
+            )}
           </div>
 
-          {/* Row 2: Judul Materi & Bab */}
+          {/* Judul & Bab */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -244,7 +274,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
             </div>
           </div>
 
-          {/* Row 3: Deskripsi Singkat */}
+          {/* Deskripsi */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Ringkasan / Pengantar Materi
@@ -258,13 +288,13 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
             />
           </div>
 
-          {/* Row 4: Tipe Materi (Interactive Cards) */}
+          {/* Tipe Materi */}
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Format / Tipe Konten <span className="text-rose-500">*</span>
+              Jenis Materi <span className="text-rose-500">*</span>
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {TIPE_MATERI_OPTIONS.map((opt) => {
+              {TIPE_OPTIONS.map((opt) => {
                 const Icon = opt.icon
                 const isSelected = tipeMateri === opt.type
                 return (
@@ -284,7 +314,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
                     </div>
                     <div>
                       <h5 className="font-extrabold text-xs leading-tight">{opt.label}</h5>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{opt.sub}</p>
                     </div>
                   </button>
                 )
@@ -292,80 +322,120 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
             </div>
           </div>
 
-          {/* Dynamic Content Inputs based on Tipe Materi */}
-          <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-4">
-            {tipeMateri === "dokumen" && (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">URL File / Dokumen (PDF, PPT, DOCX)</Label>
-                  <div className="relative">
-                    <Upload className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      placeholder="https://drive.google.com/... atau URL file dokumen"
-                      value={fileUrl}
-                      onChange={(e) => setFileUrl(e.target.value)}
-                      className="pl-10 rounded-xl h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Nama Tampilan File <span className="text-slate-400 font-normal">(Opsional)</span></Label>
-                  <Input
-                    placeholder="Contoh: Modul_Trigonometri_Kelas_10.pdf"
-                    value={fileName}
-                    onChange={(e) => setFileName(e.target.value)}
-                    className="rounded-xl h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                  />
-                </div>
-              </div>
-            )}
-
-            {tipeMateri === "video" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Link Video Learning (YouTube / Embed URL)</Label>
-                <div className="relative">
-                  <Video className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="https://www.youtube.com/watch?v=... atau link mp4"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    className="pl-10 rounded-xl h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 pl-1">Siswa dapat langsung menonton video pembelajaran ini di dalam aplikasi.</p>
-              </div>
-            )}
-
-            {tipeMateri === "link_eksternal" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Tautan Web / Sumber Eksternal</Label>
-                <div className="relative">
-                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="https://kemdikbud.go.id/... atau link artikel"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    className="pl-10 rounded-xl h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                  />
-                </div>
-              </div>
-            )}
-
-            {tipeMateri === "teks_artikel" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Isi Catatan / Rangkuman Pembelajaran</Label>
-                <Textarea
-                  rows={6}
-                  placeholder="Tuliskan materi pembelajaran lengkap di sini..."
-                  value={kontenTeks}
-                  onChange={(e) => setKontenTeks(e.target.value)}
-                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm font-sans leading-relaxed"
-                />
-              </div>
+          {/* Target Kelas */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Kelas Penerima / Target <span className="text-slate-400 font-normal">(Opsional)</span>
+            </Label>
+            <Select value={kelasId} onValueChange={(v) => setKelasId(v ?? "all")}>
+              <SelectTrigger className="rounded-2xl h-10">
+                <SelectValue placeholder="Semua Tingkat" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" label="Semua Tingkat">Semua Tingkat</SelectItem>
+                {kelasRecords.map((k) => {
+                  const labelStr = `${k.namaKelas}${k.tingkat ? ` (${formatTingkatLabel(k.tingkat)})` : ""}`
+                  return (
+                    <SelectItem key={k.id} value={k.id} label={labelStr}>
+                      {labelStr}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+            {kelasId === "all" && (
+              <p className="text-[10px] text-slate-400 pl-1">
+                Materi akan terlihat untuk semua tingkat kelas mapel ini. Pilih kelas spesifik untuk membatasi.
+              </p>
             )}
           </div>
 
-          {/* Row 5: Status Publikasi */}
+          {/* URL */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Tautan Materi (URL / Drive / Video){" "}
+              {!urlRequired && <span className="text-amber-500 font-bold lowercase text-[9px]">(opsional)</span>}
+            </Label>
+            <Input
+              required={urlRequired}
+              placeholder={
+                tipeMateri === "gambar"
+                  ? "https://... (Kosongkan untuk tampilan visual buku)"
+                  : tipeMateri === "video"
+                    ? "https://youtube.com/watch?v=... atau https://...mp4"
+                    : "https://drive.google.com/... atau https://..."
+              }
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="rounded-2xl h-10 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
+
+          {/* Cover Upload */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Cover Materi <span className="text-slate-400 font-normal">(Opsional)</span>
+              </Label>
+              {coverUrl && (
+                <button
+                  type="button"
+                  onClick={() => setCoverUrl("")}
+                  className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 size={11} />
+                  Hapus Cover
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {coverUrl ? (
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 shadow-xs flex-shrink-0 bg-slate-100 group">
+                  <img src={coverUrl} alt="Preview Cover" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => coverInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold cursor-pointer"
+                  >
+                    Ganti
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => coverInputRef.current?.click()}
+                  className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-500 bg-slate-50 hover:bg-teal-50/30 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors flex-shrink-0 text-slate-400 hover:text-teal-600"
+                >
+                  <ImagePlus size={22} />
+                  <span className="text-[9px] font-bold">Unggah</span>
+                </div>
+              )}
+
+              <div className="flex-1 space-y-1.5 w-full">
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  onChange={handleCoverUpload}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="rounded-xl text-xs font-bold h-9"
+                >
+                  <Upload size={13} className="mr-1.5" />
+                  {coverUrl ? "Ganti File Gambar" : "Pilih Gambar Cover"}
+                </Button>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Mendukung format PNG, JPG, atau WEBP (dikompres otomatis). Cover ini akan ditampilkan di daftar e-materi.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Status */}
           <div className="flex items-center justify-between pt-2">
             <div className="space-y-0.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Status Publikasi</Label>
@@ -411,7 +481,7 @@ export default function EMateriFormDialog({ open, onClose, onSubmit, initial, sa
             </Button>
             <Button
               type="submit"
-              disabled={submitting || saving || !mataPelajaranId || !judul.trim()}
+              disabled={submitting || saving || !mataPelajaranId || !judul.trim() || (urlRequired && !url.trim())}
               className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer"
             >
               {(submitting || saving) ? (
