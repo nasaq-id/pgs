@@ -69,6 +69,45 @@ export const pengaturanJadwalRouter = router({
       return result[0]
     }),
 
+  /**
+   * Tandai jadwal sebagai baru terbit / diperbarui (set lastPublishedAt = now).
+   * Dipanggil dari tombol "Kirim Pemberitahuan / Kirim Pembaruan" di halaman
+   * jadwal — meniru perilaku prototipe akademik. Role dibatasi sama dengan
+   * router notifikasi.create (hanya admin yang boleh publish + kirim notif).
+   */
+  publish: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const existing = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (existing) {
+        const result = await db
+          .update(pengaturanJadwal)
+          .set({ lastPublishedAt: new Date(), version: sql`${pengaturanJadwal.version} + 1` })
+          .where(eq(pengaturanJadwal.id, existing.id))
+          .returning()
+        await logAudit(ctx, { action: "publish", entity: "pengaturan_jadwal", entityId: existing.id, metadata: {} })
+        await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+        return result[0]
+      }
+      const id = crypto.randomUUID()
+      const result = await db
+        .insert(pengaturanJadwal)
+        .values({
+          id,
+          sekolahId,
+          lastPublishedAt: new Date(),
+          version: 2,
+        })
+        .returning()
+      await logAudit(ctx, { action: "publish", entity: "pengaturan_jadwal", entityId: id, metadata: {} })
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+      return result[0]
+    }),
+
   getTimeline: protectedProcedure
     .input(z.object({ hari: z.string().optional() }))
     .query(async ({ ctx, input }) => {

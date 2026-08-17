@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { toast } from "sonner"
 import {
   Pencil,
@@ -15,8 +15,13 @@ import {
   Coffee,
   RotateCcw,
   BarChart2,
+  Users,
+  Bell,
+  Printer,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -118,6 +123,7 @@ interface KelasRecord {
   id: string
   namaKelas: string
   tingkat: string | null
+  waliKelasId?: string | null
 }
 
 interface MapelRecord {
@@ -129,6 +135,9 @@ interface MapelRecord {
 interface GuruRecord {
   id: string
   namaLengkap: string
+  nipnuptk?: string | null
+  email?: string | null
+  kategoriPegawai?: string | null
 }
 
 interface PengaturanData {
@@ -136,6 +145,7 @@ interface PengaturanData {
   sekolahId: string
   durasiJP: number
   jamMulai: string
+  lastPublishedAt?: string | null
 }
 
 interface TimelineRecord {
@@ -205,6 +215,8 @@ export default function JadwalPage() {
 
   // Role permissions checks
   const canEdit = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "kurikulum"
+  // Publish notifikasi hanya untuk role yang diizinkan oleh router notifikasi.create
+  const canPublish = role === "super_admin" || role === "admin_sekolah"
   const canViewAll = role === "super_admin" || role === "admin_sekolah" || role === "tu" || role === "kurikulum" || role === "yayasan" || role === "kepala_sekolah" || role === "kepsek"
   const isGuru = role === "guru"
   const isSiswa = role === "siswa"
@@ -218,6 +230,7 @@ export default function JadwalPage() {
   const [addJpMulai, setAddJpMulai] = useState<number | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [cetakOpen, setCetakOpen] = useState(false)
+  const [cetakGuruId, setCetakGuruId] = useState<string | null>(null)
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -227,6 +240,14 @@ export default function JadwalPage() {
   // Filters & Modes states
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [scheduleViewMode, setScheduleViewMode] = useState<'mingguan' | 'harian'>('mingguan')
+
+  // Mode filter admin: Filter Rombel (per kelas) vs Cari Jadwal Guru (per guru)
+  const [adminFilterMode, setAdminFilterMode] = useState<'kelas' | 'guru'>('kelas')
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("")
+
+  // Tampilan "jadwal per guru" — berlaku untuk guru (role guru) maupun admin
+  // dalam mode Cari Jadwal Guru. Menentukan label di kartu JP (Rombel vs Guru).
+  const isTeacherView = isGuru || (!isSiswa && adminFilterMode === "guru")
 
   // Top-level tabs (mengikuti struktur prototipe: Pengaturan Jadwal vs Distribusi Jadwal)
   const [activeMainTab, setActiveMainTab] = useState<'pengaturan' | 'distribusi'>('distribusi')
@@ -250,6 +271,26 @@ export default function JadwalPage() {
   const { data: mapelList } = api.mapel.getAll.useQuery({ limit: 500 })
   const { data: guruList } = api.guru.getAll.useQuery({ limit: 500 })
 
+  const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
+
+  // Auto-pilih guru pertama saat masuk mode Cari Jadwal Guru (mirip prototipe)
+  useEffect(() => {
+    if (!isGuru && !isSiswa && adminFilterMode === "guru" && !selectedTeacherId && guruRecords.length > 0) {
+      setSelectedTeacherId(guruRecords[0].id)
+    }
+  }, [adminFilterMode, isGuru, isSiswa, guruRecords, selectedTeacherId])
+
+  const selectedTeacherObj = useMemo(() => {
+    if (isGuru) {
+      return (guruRecords.find((g) => g.id === (profile?.id as string)) ||
+        (profile?.namaLengkap ? { id: (profile?.id as string) || "", namaLengkap: profile.namaLengkap as string } : null)) || null
+    }
+    if (selectedTeacherId) {
+      return guruRecords.find((g) => g.id === selectedTeacherId) || null
+    }
+    return guruRecords[0] || null
+  }, [isGuru, guruRecords, profile, selectedTeacherId])
+
   // Query is dynamically filtered by teacher ID if logged in as a teacher
   const { data: jadwalList, isLoading } = api.jadwal.getAll.useQuery(
     isGuru
@@ -263,8 +304,48 @@ export default function JadwalPage() {
   )
   const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({})
   const { data: timelineList } = api.pengaturanJadwal.getTimeline.useQuery({})
+  const { data: tahunAjaranData } = api.lembaga.getActiveTahunAjaran.useQuery(undefined, {
+    enabled: isSiswa,
+  })
 
   const utils = api.useUtils()
+
+  const publishNotifMutation = api.notifikasi.create.useMutation()
+
+  const publishJadwalMutation = api.pengaturanJadwal.publish.useMutation({
+    onSuccess: () => {
+      utils.pengaturanJadwal.get.invalidate()
+      toast.success("Jadwal pelajaran berhasil diterbitkan / diperbarui")
+    },
+    onError: (err) => toast.error(err.message || "Gagal memperbarui status terbit jadwal"),
+  })
+
+  const handlePublishSchedule = async () => {
+    const isUpdate = !!pengaturanData?.lastPublishedAt
+    const judul = isUpdate ? "Jadwal Pelajaran Diperbarui" : "Jadwal Pelajaran Terbit"
+    const pesan = isUpdate
+      ? "Jadwal pembelajaran telah diperbarui oleh Administrator. Silakan cek perubahan terbaru."
+      : "Jadwal pelajaran baru telah terbit dan sudah dapat diakses."
+    // Publish status & kirim notifikasi berjalan independen — gagalnya notifikasi
+    // tidak menghalangi update lastPublishedAt (mirip prototipe).
+    const notifPromise = publishNotifMutation
+      .mutateAsync({
+        judul,
+        pesan,
+        tipe: "info",
+        targetRoles: ["guru", "siswa", "tu", "yayasan"],
+        link: "/akademik/jadwal",
+      })
+      .catch((err) => {
+        toast.error(err?.message || "Gagal mengirim pemberitahuan")
+      })
+    try {
+      await publishJadwalMutation.mutateAsync({})
+    } catch {
+      // toast ditangani di onError mutation
+    }
+    await notifPromise
+  }
 
   const clearAllMutation = api.jadwal.clearAll.useMutation({
     onSuccess: (res) => {
@@ -333,26 +414,54 @@ export default function JadwalPage() {
         jpCount: record.jpCount ?? 1,
         clientVersion: pengaturan?.version ?? 1,
       })
-    } catch (err) {
+    } catch {
       // toast is handled in mutation
     }
   }
 
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
-  const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => {
+    if (adminFilterMode === "guru" && canViewAll) {
+      // Mode Cari Jadwal Guru: tampilkan jadwal milik guru terpilih di semua rombel
+      if (!selectedTeacherId) return [] as JadwalRecord[]
+      return ((allJadwalList ?? []) as JadwalRecord[]).filter((e) => e.guruId === selectedTeacherId)
+    }
     if (kelasId === "semua") {
       return (allJadwalList ?? []) as JadwalRecord[]
     }
     return (jadwalList ?? []) as JadwalRecord[]
-  }, [kelasId, allJadwalList, jadwalList])
-  const pengaturanData = (pengaturan ?? null) as PengaturanData | null
+  }, [kelasId, allJadwalList, jadwalList, adminFilterMode, canViewAll, selectedTeacherId])
+  const pengaturanData = (pengaturan ?? null) as (PengaturanData & { lastPublishedAt?: string | null }) | null
   const timelineRecords = useMemo(() => (timelineList ?? []) as TimelineRecord[], [timelineList])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
     [mapelRecords]
   )
+
+  // Statistik guru untuk kartu info (mode Cari Jadwal Guru)
+  const teacherStats = useMemo(() => {
+    const list = (allJadwalList ?? []) as JadwalRecord[]
+    const targetId = isGuru ? (profile?.id as string) : selectedTeacherId
+    const teacherScheds = list.filter((s) => s.guruId === targetId)
+    const classSet = new Set<string>()
+    const subjectSet = new Set<string>()
+    let totalJP = 0
+    for (const s of teacherScheds) {
+      const cls = kelasRecords.find((c) => c.id === s.kelasId)
+      if (cls) classSet.add(cls.namaKelas)
+      else if (s.kelasId) classSet.add(s.kelasId)
+      const sub = mapelMap.get(s.mataPelajaranId)
+      if (sub) subjectSet.add(sub.namaMapel)
+      totalJP += s.jpCount ?? 1
+    }
+    return {
+      totalJP,
+      classesTaught: Array.from(classSet),
+      subjectsTaught: Array.from(subjectSet),
+      schedCount: teacherScheds.length,
+    }
+  }, [allJadwalList, isGuru, profile, selectedTeacherId, kelasRecords, mapelMap])
 
   const guruMap = useMemo(
     () => new Map(guruRecords.map((g) => [g.id, g])),
@@ -510,13 +619,17 @@ export default function JadwalPage() {
         <>
       {/* Premium selection panel */}
       <div className="bg-gradient-to-tr from-slate-800 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
+        <div className="min-w-0">
           <span className="text-[9px] font-black text-teal-400 uppercase tracking-widest bg-teal-950/80 px-2.5 py-1 rounded-full border border-teal-500/20">
-            {isGuru ? "Jadwal Mengajar Anda" : isSiswa ? "Jadwal Belajar Kelas Anda" : "Panel Distribusi Jadwal"}
+            {isGuru ? "Jadwal Mengajar Anda" : isSiswa ? "Jadwal Belajar Kelas Anda" : adminFilterMode === "guru" ? "Cari Jadwal Guru" : "Panel Distribusi Jadwal"}
           </span>
           <h3 className="text-xl lg:text-2xl font-extrabold tracking-tight mt-3">
             {isGuru ? (
               <span>Tinjau Agenda: <span className="text-teal-400">{(profile?.namaLengkap as string) || "Guru"}</span></span>
+            ) : isSiswa ? (
+              <span>Jadwal Kelas: <span className="text-teal-400">{selectedKelasMain || "Pilih Rombel"}</span></span>
+            ) : adminFilterMode === "guru" ? (
+              <span>Jadwal Mengajar Guru: <span className="text-indigo-400">{selectedTeacherObj?.namaLengkap || "Pilih Guru"}</span></span>
             ) : kelasId === "semua" ? (
               <span>Matriks Sekolah: <span className="text-teal-400">Semua Rombel</span></span>
             ) : (
@@ -526,14 +639,79 @@ export default function JadwalPage() {
           <p className="text-slate-300 text-xs mt-1.5 max-w-md font-medium">
             {isGuru
               ? "Tinjauan lengkap jam pelajaran mengajar Anda yang terdaftar secara resmi di sekolah."
-              : "Silakan filter rombel kelas dan pilih hari untuk melihat jadwal kegiatan belajar mengajar secara sistematis."}
+              : isSiswa
+                ? "Silakan cek jadwal kegiatan belajar mengajar kelas Anda secara lengkap."
+                : adminFilterMode === "guru"
+                  ? "Cari nama guru untuk menampilkan informasi jadwal mengajar lengkap di seluruh kelas."
+                  : "Silakan filter rombel kelas dan pilih hari untuk melihat jadwal kegiatan belajar mengajar secara sistematis."}
           </p>
+          {isSiswa && (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <div className="flex items-center gap-1.5 bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-200 px-3 py-1.5 rounded-xl border border-teal-100 dark:border-teal-900 font-bold">
+                <Users className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <span className="text-[11px]">
+                  Wali Kelas:{" "}
+                  <strong className="font-extrabold">
+                    {(() => {
+                      const cls = kelasRecords.find((k) => k.id === (profile?.kelasId as string))
+                      if (!cls) return "Belum Ditentukan"
+                      const wali = guruMap.get(cls.waliKelasId || "")
+                      return wali?.namaLengkap || "Belum Ditentukan"
+                    })()}
+                  </strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold">
+                <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span className="text-[11px]">
+                  Tahun Ajaran:{" "}
+                  <strong className="font-bold">
+                    {tahunAjaranData?.namaTahunAjaran || "2025/2026"}{" "}
+                    {tahunAjaranData?.semester ? `(${String(tahunAjaranData.semester).toUpperCase()})` : ""}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Class, Day & View Mode pickers */}
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
-          {/* Hide rombel picker for students and teachers */}
+          {/* Admin filter mode toggle: Filter Rombel vs Cari Jadwal Guru */}
           {!isSiswa && !isGuru && (
+            <div className="w-full sm:w-auto">
+              <label className="block text-[11px] font-medium text-slate-300 mb-1">Mode Filter</label>
+              <div className="flex bg-slate-800/80 p-1 border border-slate-700/80 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setAdminFilterMode("kelas")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    adminFilterMode === "kelas"
+                      ? "bg-teal-500 text-white shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Filter Rombel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminFilterMode("guru")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    adminFilterMode === "guru"
+                      ? "bg-indigo-500 text-white shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Cari Jadwal Guru
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Rombel picker (mode kelas) — hide for students and teachers */}
+          {!isSiswa && !isGuru && adminFilterMode === "kelas" && (
             <div className="w-full sm:w-auto">
               <label className="block text-[11px] font-medium text-slate-300 mb-1">Rombel Kelas</label>
               <Select
@@ -558,6 +736,25 @@ export default function JadwalPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {/* Teacher picker (mode guru) */}
+          {!isSiswa && !isGuru && adminFilterMode === "guru" && (
+            <div className="w-full sm:w-auto min-w-[220px] sm:min-w-[280px]">
+              <label className="block text-[11px] font-medium text-slate-300 mb-1">Pilih / Cari Guru</label>
+              <SearchableSelect
+                options={guruRecords.map((t) => ({
+                  value: t.id,
+                  label: `${t.namaLengkap}${t.nipnuptk ? ` (${t.nipnuptk})` : ""}`,
+                }))}
+                value={selectedTeacherId || (selectedTeacherObj?.id ?? "")}
+                onValueChange={(v) => v && setSelectedTeacherId(v)}
+                placeholder="Cari Nama Guru / NIP..."
+                searchPlaceholder="Cari nama / NIP guru..."
+                contentClassName="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl !text-popover-foreground"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+              />
             </div>
           )}
 
@@ -621,6 +818,72 @@ export default function JadwalPage() {
         </div>
       </div>
 
+      {/* Teacher Info Card — mode Cari Jadwal Guru (admin) */}
+      {!isSiswa && !isGuru && adminFilterMode === "guru" && selectedTeacherObj && (
+        <div className="bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/60 rounded-3xl p-5 shadow-md neumo-sm flex flex-col md:flex-row md:items-center justify-between gap-5 animate-in fade-in duration-200">
+          <div className="flex items-center space-x-4 min-w-0">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black rounded-2xl flex items-center justify-center text-xl shadow-md uppercase shrink-0">
+              {selectedTeacherObj.namaLengkap?.charAt(0) || "G"}
+            </div>
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight">{selectedTeacherObj.namaLengkap}</h4>
+                {selectedTeacherObj.kategoriPegawai && (
+                  <span className="px-2.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    {selectedTeacherObj.kategoriPegawai}
+                  </span>
+                )}
+                <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-extrabold rounded-lg border border-amber-100 dark:border-amber-900">
+                  Beban Mengajar: {teacherStats.totalJP} JP / Minggu
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                NIP/NUPTK: <span className="font-bold text-slate-700 dark:text-slate-300">{selectedTeacherObj.nipnuptk || "-"}</span>
+                {selectedTeacherObj.email && (
+                  <>
+                    {" "}&bull; Email: <span className="font-bold text-slate-700 dark:text-slate-300">{selectedTeacherObj.email}</span>
+                  </>
+                )}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Rombel Mengajar:</span>
+                {teacherStats.classesTaught.length > 0 ? (
+                  teacherStats.classesTaught.map((clsName, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 border border-indigo-100 dark:border-indigo-800 rounded-md text-[10px] font-extrabold">
+                      {clsName}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-400 italic font-medium">Belum ada jadwal rombel</span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Mapel Diajar:</span>
+                {teacherStats.subjectsTaught.length > 0 ? (
+                  teacherStats.subjectsTaught.map((subjName, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-teal-50/80 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border border-teal-100 dark:border-teal-800 rounded-md text-[10px] font-extrabold">
+                      {subjName}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-400 italic font-medium">Belum ada mapel dijadwalkan</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+            <Button
+              onClick={() => { setCetakGuruId(selectedTeacherObj.id); setCetakOpen(true) }}
+              className="flex items-center justify-center font-bold px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              <span>Cetak Jadwal Guru</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions Bar - Enhanced with Neumorphism card style */}
       {(canEdit || canViewAll) && (
         <div className="grid grid-cols-2 gap-3 mb-6 neumo-card bg-background p-4 rounded-3xl border-0 lg:flex lg:flex-wrap lg:justify-end">
@@ -644,9 +907,31 @@ export default function JadwalPage() {
             </>
           )}
 
+          {canPublish && (
+            <Button
+              onClick={handlePublishSchedule}
+              disabled={publishNotifMutation.isPending || publishJadwalMutation.isPending}
+              className="flex items-center justify-center font-bold px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer !h-10 shadow-md neumo-sm w-full lg:w-auto"
+              title={
+                pengaturanData?.lastPublishedAt
+                  ? "Kirim pembaruan jadwal"
+                  : "Kirim pemberitahuan jadwal"
+              }
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              <span>
+                {publishNotifMutation.isPending || publishJadwalMutation.isPending
+                  ? "Mengirim..."
+                  : pengaturanData?.lastPublishedAt
+                    ? "Kirim Pembaruan"
+                    : "Kirim Pemberitahuan"}
+              </span>
+            </Button>
+          )}
+
           {canViewAll && (
             <ExportJadwalMenu
-              onCetak={() => setCetakOpen(true)}
+              onCetak={() => { setCetakGuruId(null); setCetakOpen(true) }}
               disabled={!kelasId || !hasData}
             />
           )}
@@ -885,7 +1170,7 @@ export default function JadwalPage() {
                                         {mapel?.kodeMapel || "MAPEL"}
                                       </span>
                                       <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
-                                        {isGuru
+                                        {isTeacherView
                                           ? formatKelasLabel(kelas)
                                           : (teacher?.namaLengkap || "Guru")}
                                       </span>
@@ -966,7 +1251,7 @@ export default function JadwalPage() {
                                     <div>
                                       <span className="text-[9px] font-black text-slate-400 uppercase">JP {academicJp}</span>
                                       <span className="text-[10px] text-slate-350 font-bold block mt-0.5 uppercase tracking-wide">
-                                        {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
+                                        {isTeacherView ? "Tidak Mengajar" : "Sesi Kosong"}
                                       </span>
                                     </div>
                                     {canEdit && (
@@ -980,7 +1265,7 @@ export default function JadwalPage() {
                                     )}
                                   </div>
 
-                                  {!isGuru && (
+                                  {!isTeacherView && (
                                     <div className="text-[8px] text-slate-400 font-medium leading-tight border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5 mt-1">
                                       {busyTeachers.length > 0 ? (
                                         <>
@@ -1101,7 +1386,7 @@ export default function JadwalPage() {
                                         {mapelMap.get(entry.mataPelajaranId)?.kodeMapel || "MAPEL"}
                                       </span>
                                       <span className="text-[10px] font-bold text-slate-500 truncate flex-1 block">
-                                        {isGuru
+                                        {isTeacherView
                                           ? formatKelasLabel(kelasRecords.find((k) => k.id === entry.kelasId))
                                           : (guruMap.get(entry.guruId)?.namaLengkap || "—")}
                                       </span>
@@ -1152,10 +1437,10 @@ export default function JadwalPage() {
                                   </span>
                                   <div className="min-w-0 flex-1 text-left">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase block">
-                                      {isGuru ? "Tidak Mengajar" : "Sesi Kosong"}
+                                      {isTeacherView ? "Tidak Mengajar" : "Sesi Kosong"}
                                     </span>
                                     <span className="text-[11px] font-semibold text-slate-455 dark:text-slate-500 block mt-0.5">
-                                      {isGuru ? "Waktu luang / koordinasi" : "Dapat diisi jadwal pelajaran"}
+                                      {isTeacherView ? "Waktu luang / koordinasi" : "Dapat diisi jadwal pelajaran"}
                                     </span>
                                   </div>
                                 </div>
@@ -1321,7 +1606,8 @@ export default function JadwalPage() {
       {canViewAll && (
         <CetakJadwal
           open={cetakOpen}
-          onClose={() => setCetakOpen(false)}
+          onClose={() => { setCetakOpen(false); setCetakGuruId(null) }}
+          initialGuruId={cetakGuruId}
         />
       )}
 

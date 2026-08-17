@@ -133,18 +133,24 @@ const DAY_COLOR_STYLES: Record<
 interface Props {
   open: boolean
   onClose: () => void
+  /** Jika diisi, cetak otomatis masuk mode "Per Guru" untuk guru tersebut */
+  initialGuruId?: string | null
 }
 
-export default function CetakJadwal({ open, onClose }: Props) {
-  const [cetakMode, setCetakMode] = useState<"per-kelas" | "keseluruhan">("keseluruhan")
+export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
+  const [cetakMode, setCetakMode] = useState<"per-kelas" | "per-guru" | "keseluruhan">(
+    initialGuruId ? "per-guru" : "keseluruhan"
+  )
   const [selectedKelasId, setSelectedKelasId] = useState("semua")
+  const [selectedGuruId, setSelectedGuruId] = useState<string>(initialGuruId || "")
 
   useEffect(() => {
     if (!open) {
-      setCetakMode("keseluruhan")
+      setCetakMode(initialGuruId ? "per-guru" : "keseluruhan")
       setSelectedKelasId("semua")
+      setSelectedGuruId(initialGuruId || "")
     }
-  }, [open])
+  }, [open, initialGuruId])
 
   const { data: sekolahData } = api.lembaga.getSekolah.useQuery(undefined, {
     enabled: open,
@@ -167,6 +173,13 @@ export default function CetakJadwal({ open, onClose }: Props) {
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => (allJadwal ?? []) as JadwalRecord[], [allJadwal])
   const timelineRecords = useMemo(() => (timelineList ?? []) as TimelineRecord[], [timelineList])
+
+  // Auto-pilih guru pertama saat mode "per-guru" tanpa preset
+  useEffect(() => {
+    if (cetakMode === "per-guru" && !selectedGuruId && guruRecords.length > 0) {
+      setSelectedGuruId(guruRecords[0].id)
+    }
+  }, [cetakMode, selectedGuruId, guruRecords])
 
   const mapelMap = useMemo(
     () => new Map(mapelRecords.map((m) => [m.id, m])),
@@ -235,11 +248,12 @@ export default function CetakJadwal({ open, onClose }: Props) {
     return map
   }, [aktifDays, totalJpSlots, timelineByDay])
 
-  const getEntry = (kelasId: string, hari: string, jpSlot: number): JadwalRecord | null => {
+  const getEntry = (kelasId: string, hari: string, jpSlot: number, guruFilterId?: string | null): JadwalRecord | null => {
     const academicJp = academicJpMap.get(`${hari}-${jpSlot}`)
     if (academicJp === null || academicJp === undefined) return null
     const entries = jadwalRecords.filter(
       (e) => e.kelasId === kelasId && e.hari === hari && e.jpMulai !== null && e.jpCount !== null
+        && (guruFilterId ? e.guruId === guruFilterId : true)
     )
     for (const entry of entries) {
       const start = entry.jpMulai!
@@ -270,7 +284,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
     return v === undefined || v === null ? null : v
   }
 
-  const getBlocksForKelas = (kelasId: string, day: string): PrintBlock[] => {
+  const getBlocksForKelas = (kelasId: string, day: string, guruFilterId?: string | null): PrintBlock[] => {
     const blocks: PrintBlock[] = []
     let jpSlot = 1
     while (jpSlot <= totalJpSlots) {
@@ -286,12 +300,12 @@ export default function CetakJadwal({ open, onClose }: Props) {
         continue
       }
 
-      const entry = getEntry(kelasId, day, jpSlot)
+      const entry = getEntry(kelasId, day, jpSlot, guruFilterId)
       if (entry) {
         let endSlot = jpSlot
         while (endSlot < totalJpSlots) {
           if (getAgenda(day, endSlot + 1)) break
-          const nextEntry = getEntry(kelasId, day, endSlot + 1)
+          const nextEntry = getEntry(kelasId, day, endSlot + 1, guruFilterId)
           if (nextEntry && nextEntry.id === entry.id) endSlot++
           else break
         }
@@ -315,7 +329,7 @@ export default function CetakJadwal({ open, onClose }: Props) {
         let endSlot = jpSlot
         while (endSlot < totalJpSlots) {
           if (getAgenda(day, endSlot + 1)) break
-          if (getEntry(kelasId, day, endSlot + 1)) break
+          if (getEntry(kelasId, day, endSlot + 1, guruFilterId)) break
           endSlot++
         }
         const startJp = academicJpOf(day, jpSlot)
@@ -380,6 +394,15 @@ export default function CetakJadwal({ open, onClose }: Props) {
       s ? ` • Semester ${s.charAt(0).toUpperCase() + s.slice(1)}` : ""
     }`
   }, [tahunAjaran])
+
+  const guruKelasIds = useMemo(() => {
+    if (!selectedGuruId) return []
+    const ids = new Set<string>()
+    for (const j of jadwalRecords) {
+      if (j.guruId === selectedGuruId) ids.add(j.kelasId)
+    }
+    return Array.from(ids)
+  }, [selectedGuruId, jadwalRecords])
 
   if (!open) return null
 
@@ -785,6 +808,143 @@ export default function CetakJadwal({ open, onClose }: Props) {
     </div>
   )
 
+  // ── Mode Per Guru (Jadwal Mengajar seorang guru di semua rombel) ──
+  const selectedGuruObj = guruRecords.find((g) => g.id === selectedGuruId) || null
+
+  const renderPerGuru = () => {
+    if (!selectedGuruId || !selectedGuruObj) {
+      return (
+        <div className="text-center py-12 text-slate-400 font-bold uppercase text-sm">
+          Pilih guru terlebih dahulu
+        </div>
+      )
+    }
+    const guruClasses = sortedKelas.filter((c) => guruKelasIds.includes(c.id))
+
+    if (guruClasses.length === 0) {
+      return (
+        <div className="text-center py-12 text-slate-400 font-bold uppercase text-sm">
+          Belum ada jadwal mengajar untuk guru ini
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-12 text-left">
+        {guruClasses.map((c, index) => {
+          return (
+            <div key={c.id} className={`${index < guruClasses.length - 1 ? "break-after-page" : ""} avoid-break space-y-3 print:space-y-1.5 text-left`}>
+              {renderKopHeader()}
+
+              <div className="text-center mt-2 print:mt-0 mb-3 print:mb-1 space-y-1 print:space-y-0.5">
+                <div>
+                  <span className="inline-block px-4 py-1 print:px-3 print:py-0.5 rounded-full bg-slate-100 print:bg-slate-200/80 border border-slate-200/80 text-slate-700 print:text-slate-900 font-extrabold text-xs print:text-[9px]">
+                    {taLabel}
+                  </span>
+                </div>
+                <div>
+                  <span className="inline-block px-5 py-1.5 print:px-4 print:py-0.5 rounded-full bg-indigo-600 print:bg-indigo-700 text-white font-black text-xs print:text-[10px] uppercase tracking-wider shadow-xs">
+                    JADWAL MENGAJAR: {selectedGuruObj?.namaLengkap.toUpperCase() || "GURU"}
+                  </span>
+                </div>
+                <div>
+                  <span className="inline-block px-5 py-1.5 print:px-4 print:py-0.5 rounded-full bg-slate-800 print:bg-slate-900 text-white font-black text-xs print:text-[10px] uppercase tracking-wider shadow-xs">
+                    KELAS: {kelasShort(c).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${aktifDays.length}, minmax(0, 1fr))`,
+                  gap: 8,
+                }}
+              >
+                {aktifDays.map((day) => {
+                  const blocks = getBlocksForKelas(c.id, day, selectedGuruId)
+                  if (blocks.length === 0) return null
+                  const dayStyle = DAY_COLOR_STYLES[day] || DAY_COLOR_STYLES.senin
+
+                  return (
+                    <div
+                      key={day}
+                      className="bg-white print:bg-white rounded-xl print:rounded-lg border border-slate-200 print:border-slate-300 overflow-hidden shadow-2xs flex flex-col justify-start"
+                    >
+                      <div className={`${dayStyle.headerBg} px-2 py-1.5 print:py-1 text-center font-black text-xs print:text-[9.5px] uppercase tracking-wider`}>
+                        {DAY_LABEL[day].toUpperCase()}
+                      </div>
+                      <div className="p-2 print:p-1 space-y-1.5 print:space-y-1 flex-1">
+                        {blocks.map((block, bIdx) => {
+                          if (block.type === "AGENDA") {
+                            return (
+                              <div
+                                key={bIdx}
+                                className="bg-[#fef9c3] print:bg-[#fef08a] border border-amber-200/90 print:border-amber-300 rounded-lg p-1.5 print:p-1 text-center shadow-2xs"
+                              >
+                                <div className="text-[9.5px] print:text-[7.5px] font-mono font-bold text-amber-900 leading-tight">
+                                  {block.startTime}–{block.endTime}
+                                </div>
+                                <div className="text-[10.5px] print:text-[8px] font-black text-amber-950 uppercase tracking-wide mt-0.5 leading-tight">
+                                  {block.label}
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (block.type === "KBM") {
+                            return (
+                              <div
+                                key={bIdx}
+                                className="bg-white print:bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2 print:p-1 shadow-2xs space-y-1"
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] print:text-[7px] font-black ${dayStyle.jpBadgeBg} ${dayStyle.jpBadgeText} border ${dayStyle.jpBadgeBorder} leading-none`}>
+                                    {block.jpLabel}
+                                  </span>
+                                  <span className="font-mono text-[9px] print:text-[7px] text-slate-500 font-bold leading-none">
+                                    {block.startTime}–{block.endTime}
+                                  </span>
+                                </div>
+                                <div className="font-extrabold text-[11px] print:text-[8.5px] text-slate-900 leading-tight">
+                                  {block.mapelName}
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <div key={bIdx} className="bg-slate-50/70 print:bg-slate-50 border border-dashed border-slate-200 print:border-slate-300 rounded-lg p-1.5 print:p-0.5 text-center">
+                              <div className="flex items-center justify-between text-[8.5px] print:text-[6.5px] font-mono text-slate-400">
+                                <span>{block.jpLabel}</span>
+                                <span>
+                                  {block.startTime}–{block.endTime}
+                                </span>
+                              </div>
+                              <div className="text-[9px] print:text-[7px] font-medium text-slate-300 italic mt-0.5">
+                                — Kosong —
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {renderSignatures()}
+
+              {index < guruClasses.length - 1 && (
+                <hr className="my-6 border-dashed border-slate-300 print:hidden" />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return createPortal(
     <div
       onClick={(e) => {
@@ -961,6 +1121,17 @@ export default function CetakJadwal({ open, onClose }: Props) {
                   >
                     Cetak Per Kelas
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setCetakMode("per-guru")}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      cetakMode === "per-guru"
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Cetak Per Guru
+                  </button>
                 </div>
               </div>
 
@@ -986,12 +1157,34 @@ export default function CetakJadwal({ open, onClose }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">
+                  Pilihan Guru:
+                </span>
+                <Select
+                  value={selectedGuruId}
+                  onValueChange={(v) => v && setSelectedGuruId(v)}
+                  disabled={cetakMode !== "per-guru"}
+                >
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Pilih Guru" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {guruRecords.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.namaLengkap}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           {/* Printable Area */}
           <div className="print-area bg-white p-2 print:p-0.5 text-slate-900 font-sans">
-            {cetakMode === "keseluruhan" ? renderKeseluruhan() : renderPerKelas()}
+            {cetakMode === "keseluruhan" ? renderKeseluruhan() : cetakMode === "per-guru" ? renderPerGuru() : renderPerKelas()}
           </div>
         </div>
       )}

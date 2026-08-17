@@ -8,6 +8,7 @@ export const pengaturanJadwal = pgTable("pengaturan_jadwal", {
   durasiJP: integer("durasi_jp").notNull().default(40),
   jamMulai: text("jam_mulai").notNull().default("07:00"),
   teacherExceptionsJson: json("teacher_exceptions_json").default("{}"),
+  lastPublishedAt: timestamp("last_published_at"),
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
