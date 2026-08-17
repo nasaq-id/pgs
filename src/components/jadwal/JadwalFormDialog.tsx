@@ -154,11 +154,10 @@ export default function JadwalFormDialog({
     return mapelList.filter((m) => {
       // If editing, always allow the currently selected mapel
       if (initial && initial.mataPelajaranId === m.id) return true
-      const sisa = sisaJpMap.get(m.id) ?? 0
       const adaGuru = pengampuMap.has(m.id)
-      return sisa > 0 && adaGuru
+      return adaGuru
     })
-  }, [mapelList, sisaJpMap, pengampuMap, initial])
+  }, [mapelList, pengampuMap, initial])
 
   const hasGuru = mataPelajaranId && pengampuMap.has(mataPelajaranId)
 
@@ -173,7 +172,7 @@ export default function JadwalFormDialog({
     const baseSisa = initial && initial.mataPelajaranId === mataPelajaranId
       ? sisa + (initial.jpCount ?? 0)
       : sisa
-    return Math.max(1, baseSisa)
+    return Math.max(10, baseSisa)
   }, [sisaForSelected, initial, mataPelajaranId])
 
   const occupiedJpSlots = useMemo(() => {
@@ -217,7 +216,7 @@ export default function JadwalFormDialog({
       const baseSisa = initial && initial.mataPelajaranId === mataPelajaranId
         ? sisa + (initial.jpCount ?? 0)
         : sisa
-      const maxJp = Math.max(1, baseSisa)
+      const maxJp = Math.max(10, baseSisa)
       if (jpCount > maxJp) {
         setJpCount(1)
       }
@@ -256,11 +255,8 @@ export default function JadwalFormDialog({
         return "Slot yang dipilih bertabrakan dengan jadwal lain"
       }
     }
-    if (computedJpCount > maxJpCount) {
-      return `Melebihi sisa alokasi (maks ${maxJpCount} JP)`
-    }
     return null
-  }, [selectedJpMulai, computedJpCount, occupiedJpSlots, maxJpCount, mataPelajaranId, pengampuMap])
+  }, [selectedJpMulai, computedJpCount, occupiedJpSlots, mataPelajaranId, pengampuMap])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

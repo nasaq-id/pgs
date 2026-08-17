@@ -306,6 +306,38 @@ export default function JadwalPage() {
     ...useOptimisticRemove({ queryKey: [["jadwal", "getAll"]] }),
   })
 
+  const saveDraftSlotMutation = api.jadwal.saveDraftSlot.useMutation({
+    onSuccess: () => {
+      utils.jadwal.getAll.invalidate()
+      utils.jadwal.getTimelineWithJadwal.invalidate()
+      utils.pengaturanJadwal.get.invalidate()
+      toast.success("Jadwal berhasil dipindahkan secara manual")
+    },
+    onError: (err) => {
+      toast.error(err.message || "Gagal memindahkan jadwal")
+    }
+  })
+
+  const handleDragDropMove = async (draggedId: string, targetKelasId: string, targetHari: string, targetJp: number) => {
+    const list = allJadwalList ?? []
+    const record = list.find((r) => r.id === draggedId)
+    if (!record) return
+    try {
+      await saveDraftSlotMutation.mutateAsync({
+        id: record.id,
+        kelasId: targetKelasId,
+        mataPelajaranId: record.mataPelajaranId,
+        guruId: record.guruId,
+        hari: targetHari as "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu",
+        jpMulai: targetJp,
+        jpCount: record.jpCount ?? 1,
+        clientVersion: pengaturan?.version ?? 1,
+      })
+    } catch (err) {
+      // toast is handled in mutation
+    }
+  }
+
   const mapelRecords = useMemo(() => (mapelList ?? []) as MapelRecord[], [mapelList])
   const guruRecords = useMemo(() => (guruList ?? []) as GuruRecord[], [guruList])
   const jadwalRecords = useMemo(() => {
@@ -727,6 +759,8 @@ export default function JadwalPage() {
               jadwalRecords={jadwalRecords}
               mapelMap={mapelMap}
               guruMap={guruMap}
+              canEdit={canEdit}
+              onDragDropMove={handleDragDropMove}
             />
           ) : scheduleViewMode === "mingguan" ? (
             /* ================= WEEKLY GRID VIEW ================= */
@@ -1324,6 +1358,8 @@ function MatrixView({
   jadwalRecords,
   mapelMap,
   guruMap,
+  canEdit,
+  onDragDropMove,
 }: {
   day: string
   dayItems: TimelineRecord[]
@@ -1331,6 +1367,8 @@ function MatrixView({
   jadwalRecords: JadwalRecord[]
   mapelMap: Map<string, MapelRecord>
   guruMap: Map<string, GuruRecord>
+  canEdit: boolean
+  onDragDropMove: (draggedId: string, targetKelasId: string, targetHari: string, targetJp: number) => Promise<void>
 }) {
   const jpItems = dayItems.filter((t) => t.tipe === "jp")
 
@@ -1432,14 +1470,27 @@ function MatrixView({
                         .filter(Boolean) as string[]
 
                       return (
-                        <TableCell key={k.id} className="p-3 border border-dashed border-slate-100 dark:border-slate-800/60 bg-slate-50/10 dark:bg-slate-900/5 text-center">
+                        <TableCell
+                          key={k.id}
+                          className="p-3 border border-dashed border-slate-100 dark:border-slate-800/60 bg-slate-50/10 dark:bg-slate-900/5 text-center transition-all hover:bg-slate-100/50 cursor-pointer"
+                          onDragOver={(e) => {
+                            if (canEdit) e.preventDefault()
+                          }}
+                          onDrop={async (e) => {
+                            if (!canEdit) return
+                            const draggedId = e.dataTransfer.getData("text/plain")
+                            if (draggedId) {
+                              await onDragDropMove(draggedId, k.id, day, academicJp)
+                            }
+                          }}
+                        >
                           <span className="text-[10px] font-bold text-slate-350 uppercase tracking-wider block">Kosong</span>
                           {busyTeachers.length > 0 ? (
                              <div className="mt-1.5 text-[8px] text-slate-400 font-medium leading-tight">
                                <span className="font-bold text-slate-400/80 uppercase block mb-0.5 text-[7px] tracking-wide">Guru Sibuk:</span>
                                {busyTeachers.map((t, idx) => (
                                  <span key={idx} className="block truncate max-w-[125px] mx-auto text-slate-455">{t}</span>
-                               ))}
+                                ))}
                              </div>
                            ) : (
                              <span className="text-[7px] font-bold text-emerald-650 dark:text-emerald-400 block mt-1 uppercase tracking-wider">
@@ -1464,24 +1515,47 @@ function MatrixView({
                     const hasClash = concurrentClasses.length > 0
                     const color = getMapelColor(entry.mataPelajaranId)
 
-                    return (
-                      <TableCell key={k.id} className={`p-3 text-center border-r border-b border-slate-100 dark:border-slate-800/50 ${hasClash ? "bg-rose-50/30 dark:bg-rose-950/15 border-l-4 border-l-rose-500" : `${color.bg} border-l-4 ${color.border}`} transition-all`}>
-                        <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-mono font-black uppercase`}>
-                          {mapel?.kodeMapel || "MAPEL"}
-                        </span>
-                        <h6 className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase line-clamp-1">
-                          {mapel?.namaMapel || "—"}
-                        </h6>
-                        <span className="text-[10px] text-slate-500 font-bold block mt-0.5 truncate max-w-[120px] mx-auto">
-                          {teacher?.namaLengkap || "—"}
-                        </span>
-                        {hasClash && (
-                          <span className="text-[8px] font-black text-rose-500 block mt-1 uppercase tracking-wider">
-                            Bentrok: {concurrentClasses.join(", ")}
-                          </span>
-                        )}
-                      </TableCell>
-                    )
+                     return (
+                       <TableCell
+                         key={k.id}
+                         className={`p-3 text-center border-r border-b border-slate-100 dark:border-slate-800/50 ${hasClash ? "bg-rose-50/30 dark:bg-rose-950/15 border-l-4 border-l-rose-500" : `${color.bg} border-l-4 ${color.border}`} transition-all cursor-grab active:cursor-grabbing`}
+                         onDragOver={(e) => {
+                           if (canEdit) e.preventDefault()
+                         }}
+                         onDrop={async (e) => {
+                           if (!canEdit) return
+                           const draggedId = e.dataTransfer.getData("text/plain")
+                           if (draggedId && draggedId !== entry.id) {
+                             await onDragDropMove(draggedId, k.id, day, academicJp)
+                           }
+                         }}
+                       >
+                         <div
+                           draggable={canEdit}
+                           onDragStart={(e) => {
+                             e.dataTransfer.setData("text/plain", entry.id)
+                             e.dataTransfer.effectAllowed = "move"
+                           }}
+                           className="w-full h-full"
+                         >
+                           <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-mono font-black uppercase`}>
+                             {mapel?.kodeMapel || "MAPEL"}
+                           </span>
+                           <h6 className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase line-clamp-1">
+                             {mapel?.namaMapel || "—"}
+                           </h6>
+                           <span className="text-[10px] text-slate-500 font-bold block mt-0.5 truncate max-w-[120px] mx-auto">
+                             {teacher?.namaLengkap || "—"}
+                           </span>
+                           {hasClash && (
+                             <span className="text-[8px] font-black text-rose-500 block mt-1 uppercase tracking-wider">
+                               Bentrok: {concurrentClasses.join(", ")}
+                             </span>
+                           )}
+                         </div>
+                       </TableCell>
+                     )
+
                   })}
                 </TableRow>
               )

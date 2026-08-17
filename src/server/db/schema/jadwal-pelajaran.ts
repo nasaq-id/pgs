@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, index } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer, index, boolean } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { sekolah } from "./sekolah"
 import { kelas } from "./kelas"
@@ -16,9 +16,12 @@ export const jadwalPelajaran = pgTable("jadwal_pelajaran", {
   jamSelesai: timestamp("jam_selesai"),
   jpMulai: integer("jp_mulai"),
   jpCount: integer("jp_count"),
-  status: text("status", { enum: ["DRAFT", "PUBLISHED"] }).notNull().default("PUBLISHED"),
+  status: text("status", { enum: ["DRAFT", "PUBLISHED", "ARCHIVED"] }).notNull().default("PUBLISHED"),
   batchId: text("batch_id"),
+  unresolved: boolean("unresolved").notNull().default(false),
+  locked: boolean("locked").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("jadwal_pelajaran_sekolah_id_idx").on(table.sekolahId),
   index("jadwal_pelajaran_kelas_id_hari_idx").on(table.kelasId, table.hari),

@@ -28,6 +28,7 @@ export const pengaturanJadwalRouter = router({
       id: z.string().optional(),
       durasiJP: z.number().min(15).max(120),
       jamMulai: z.string(),
+      teacherExceptionsJson: z.any().optional(),
     })))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
@@ -39,7 +40,11 @@ export const pengaturanJadwalRouter = router({
         const wasChanged = existing.durasiJP !== input.durasiJP || existing.jamMulai !== input.jamMulai
         const result = await db
           .update(pengaturanJadwal)
-          .set({ durasiJP: input.durasiJP, jamMulai: input.jamMulai })
+          .set({
+            durasiJP: input.durasiJP,
+            jamMulai: input.jamMulai,
+            teacherExceptionsJson: input.teacherExceptionsJson ?? existing.teacherExceptionsJson
+          })
           .where(eq(pengaturanJadwal.id, existing.id))
           .returning()
         if (wasChanged) {
@@ -51,7 +56,13 @@ export const pengaturanJadwalRouter = router({
       const id = input.id || crypto.randomUUID()
       const result = await db
         .insert(pengaturanJadwal)
-        .values({ id, sekolahId, durasiJP: input.durasiJP, jamMulai: input.jamMulai })
+        .values({
+          id,
+          sekolahId,
+          durasiJP: input.durasiJP,
+          jamMulai: input.jamMulai,
+          teacherExceptionsJson: input.teacherExceptionsJson ?? {}
+        })
         .returning()
       await logAudit(ctx, { action: "create", entity: "pengaturan_jadwal", entityId: result[0]?.id, metadata: {} })
       await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])

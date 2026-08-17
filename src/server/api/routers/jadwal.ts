@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, asc, inArray } from "drizzle-orm"
+import { eq, and, asc, inArray, ne } from "drizzle-orm"
 import { db } from "@/server/db"
 import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataPelajaran, guru, tahunAjaran } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
@@ -200,6 +200,15 @@ export const jadwalRouter = router({
         kelasId: z.string(),
         tahunAjaranId: z.string().optional(),
         hariLibur: z.array(z.string()).optional(),
+        constraints: z.array(
+          z.object({
+            guruId: z.string(),
+            hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+            jpMulai: z.number().min(1),
+            jpSelesai: z.number().min(1),
+            isFullDay: z.boolean().optional(),
+          })
+        ).optional().default([]),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -228,6 +237,7 @@ export const jadwalRouter = router({
           kelasId: input.kelasId,
           tahunAjaranId,
           hariLibur: input.hariLibur,
+          constraints: input.constraints,
         })
         return {
           success: true as const,
@@ -250,6 +260,15 @@ export const jadwalRouter = router({
     .input(z.object({
       tahunAjaranId: z.string().optional(),
       hariLibur: z.array(z.string()).optional(),
+      constraints: z.array(
+        z.object({
+          guruId: z.string(),
+          hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+          jpMulai: z.number().min(1),
+          jpSelesai: z.number().min(1),
+          isFullDay: z.boolean().optional(),
+        })
+      ).optional().default([]),
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
@@ -275,6 +294,7 @@ export const jadwalRouter = router({
       const result = await service.generateForSekolah({
         tahunAjaranId,
         hariLibur: input.hariLibur,
+        constraints: input.constraints,
       })
       return {
         success: result.gagal.length === 0,
@@ -300,6 +320,8 @@ export const jadwalRouter = router({
           jpCount: jadwalPelajaran.jpCount,
           jamMulai: jadwalPelajaran.jamMulai,
           jamSelesai: jadwalPelajaran.jamSelesai,
+          unresolved: jadwalPelajaran.unresolved,
+          locked: jadwalPelajaran.locked,
         })
         .from(jadwalPelajaran)
         .innerJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
@@ -327,13 +349,31 @@ export const jadwalRouter = router({
         jpCount: r.jpCount,
         jamMulai: r.jamMulai ? r.jamMulai.toISOString() : null,
         jamSelesai: r.jamSelesai ? r.jamSelesai.toISOString() : null,
+        unresolved: r.unresolved,
+        locked: r.locked,
       }))
     }),
 
-  publishBatch: protectedProcedure
-    .input(z.object({ batchId: z.string() }))
+  publishBatch: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      batchId: z.string(),
+      clientVersion: z.number(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
+      }
+      if (pengaturan.version > input.clientVersion) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Jadwal telah diperbarui oleh pengguna lain. Silakan muat ulang halaman.",
+        })
+      }
+
       const draftRows = await db
         .select({ id: jadwalPelajaran.id, kelasId: jadwalPelajaran.kelasId })
         .from(jadwalPelajaran)
@@ -350,6 +390,7 @@ export const jadwalRouter = router({
       }
 
       const uniqueKelasIds = [...new Set(draftRows.map((r) => r.kelasId))]
+      const newVersion = pengaturan.version + 1
 
       await db.transaction(async (tx) => {
         // 1. Delete published schedules for affected classes
@@ -374,16 +415,47 @@ export const jadwalRouter = router({
               eq(jadwalPelajaran.status, "DRAFT")
             )
           )
+
+        // 3. Increment settings version
+        await tx
+          .update(pengaturanJadwal)
+          .set({ version: newVersion })
+          .where(eq(pengaturanJadwal.id, pengaturan.id))
       })
 
-      return { success: true, kelasTerpengaruh: uniqueKelasIds.length, jumlahJP: draftRows.length }
+      await logAudit(ctx, {
+        action: "JadwalPublished",
+        entity: "jadwal_pelajaran",
+        entityId: input.batchId,
+        metadata: {
+          uniqueKelasIds,
+          jumlahJP: draftRows.length,
+          newVersion,
+        },
+      })
+
+      return { success: true, kelasTerpengaruh: uniqueKelasIds.length, jumlahJP: draftRows.length, newVersion }
     }),
 
-  discardBatch: protectedProcedure
-    .input(z.object({ batchId: z.string() }))
+  discardBatch: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(z.object({
+      batchId: z.string(),
+      clientVersion: z.number().optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
-      await db
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+
+      if (pengaturan && input.clientVersion !== undefined && pengaturan.version > input.clientVersion) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Jadwal telah diperbarui oleh pengguna lain. Silakan muat ulang halaman.",
+        })
+      }
+
+      const deleted = await db
         .delete(jadwalPelajaran)
         .where(
           and(
@@ -392,7 +464,187 @@ export const jadwalRouter = router({
             eq(jadwalPelajaran.status, "DRAFT")
           )
         )
+        .returning()
+
+      if (pengaturan) {
+        const newVersion = pengaturan.version + 1
+        await db
+          .update(pengaturanJadwal)
+          .set({ version: newVersion })
+          .where(eq(pengaturanJadwal.id, pengaturan.id))
+      }
+
+      await logAudit(ctx, {
+        action: "JadwalDraftDiscarded",
+        entity: "jadwal_pelajaran",
+        entityId: input.batchId,
+        metadata: {
+          deletedCount: deleted.length,
+        },
+      })
+
       return { success: true }
+    }),
+
+  saveDraftSlot: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
+    .input(sanitized(z.object({
+      id: z.string().optional(),
+      kelasId: z.string(),
+      mataPelajaranId: z.string(),
+      guruId: z.string(),
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+      jpMulai: z.number().nullable(),
+      jpCount: z.number().nullable(),
+      locked: z.boolean().default(false),
+      unresolved: z.boolean().default(false),
+      status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
+      batchId: z.string().optional().nullable(),
+      clientVersion: z.number(),
+    })))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = requireSekolahId(ctx)
+      const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        where: eq(pengaturanJadwal.sekolahId, sekolahId),
+      })
+      if (!pengaturan) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pengaturan jadwal belum dibuat" })
+      }
+      if (pengaturan.version > input.clientVersion) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Jadwal telah diperbarui oleh pengguna lain. Silakan muat ulang halaman.",
+        })
+      }
+
+      // Revalidate conflicts on server
+      let hasConflict = false
+      const conflictDetails: string[] = []
+
+      if (input.jpMulai !== null && input.jpCount !== null) {
+        const currentRange = Array.from({ length: input.jpCount }, (_, i) => input.jpMulai! + i)
+
+        // Fetch other slots for the same class and day (excluding this slot)
+        const otherClassSlots = await db.query.jadwalPelajaran.findMany({
+          where: and(
+            eq(jadwalPelajaran.sekolahId, sekolahId),
+            eq(jadwalPelajaran.kelasId, input.kelasId),
+            eq(jadwalPelajaran.hari, input.hari as any),
+            input.id ? ne(jadwalPelajaran.id, input.id) : undefined
+          )
+        })
+
+        for (const s of otherClassSlots) {
+          if (s.jpMulai !== null && s.jpCount !== null) {
+            const range = Array.from({ length: s.jpCount }, (_, i) => s.jpMulai! + i)
+            const overlap = range.some((val) => currentRange.includes(val))
+            if (overlap) {
+              hasConflict = true
+              conflictDetails.push(`Bentrok dengan kelas ${input.kelasId} di JP ${s.jpMulai}`)
+            }
+          }
+        }
+
+        // Fetch other slots for the same teacher and day (excluding this slot)
+        const otherTeacherSlots = await db.query.jadwalPelajaran.findMany({
+          where: and(
+            eq(jadwalPelajaran.sekolahId, sekolahId),
+            eq(jadwalPelajaran.guruId, input.guruId),
+            eq(jadwalPelajaran.hari, input.hari as any),
+            input.id ? ne(jadwalPelajaran.id, input.id) : undefined
+          )
+        })
+
+        for (const s of otherTeacherSlots) {
+          if (s.jpMulai !== null && s.jpCount !== null) {
+            const range = Array.from({ length: s.jpCount }, (_, i) => s.jpMulai! + i)
+            const overlap = range.some((val) => currentRange.includes(val))
+            if (overlap) {
+              hasConflict = true
+              conflictDetails.push(`Bentrok dengan jadwal Guru ${input.guruId} di kelas ${s.kelasId} JP ${s.jpMulai}`)
+            }
+          }
+        }
+      }
+
+      // Calculate real start and end times based on settings
+      let jamMulai: Date | null = null
+      let jamSelesai: Date | null = null
+      if (input.jpMulai !== null && input.jpCount !== null) {
+        const computed = await computeTimesForJadwal(pengaturan.id, input.hari, input.jpMulai, input.jpCount)
+        jamMulai = computed.jamMulai
+        jamSelesai = computed.jamSelesai
+      }
+
+      const id = input.id || crypto.randomUUID()
+      const newVersion = pengaturan.version + 1
+
+      const savedData = {
+        id,
+        sekolahId,
+        kelasId: input.kelasId,
+        mataPelajaranId: input.mataPelajaranId,
+        guruId: input.guruId,
+        hari: input.hari,
+        jpMulai: input.jpMulai,
+        jpCount: input.jpCount,
+        jamMulai,
+        jamSelesai,
+        locked: input.locked,
+        unresolved: hasConflict ? true : input.unresolved,
+        status: input.status,
+        batchId: input.batchId,
+      }
+
+      let resultSlot
+      await db.transaction(async (tx) => {
+        if (input.id) {
+          const [updated] = await tx
+            .update(jadwalPelajaran)
+            .set(savedData)
+            .where(eq(jadwalPelajaran.id, input.id))
+            .returning()
+          resultSlot = updated
+        } else {
+          const [inserted] = await tx
+            .insert(jadwalPelajaran)
+            .values(savedData)
+            .returning()
+          resultSlot = inserted
+        }
+
+        // Increment settings version
+        await tx
+          .update(pengaturanJadwal)
+          .set({ version: newVersion })
+          .where(eq(pengaturanJadwal.id, pengaturan.id))
+      })
+
+      // Log manual adjustment
+      await logAudit(ctx, {
+        action: "JadwalSlotManuallyAdjusted",
+        entity: "jadwal_pelajaran",
+        entityId: id,
+        metadata: {
+          slotLama: input.id ? "MODIFIED" : "NEW",
+          slotBaru: savedData,
+          newVersion,
+        },
+      })
+
+      // Log conflict override if conflict was ignored
+      if (hasConflict) {
+        await logAudit(ctx, {
+          action: "JadwalConflictOverridden",
+          entity: "jadwal_pelajaran",
+          entityId: id,
+          metadata: {
+            detailKonflik: conflictDetails,
+            savedData,
+          },
+        })
+      }
+
+      return { success: true, slot: resultSlot, newVersion }
     }),
 
   getTimelineWithJadwal: protectedProcedure

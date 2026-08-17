@@ -14,6 +14,7 @@ import { Loader2, Plus, Trash2, Copy, Clock, BookOpen, Flag, Coffee, Sparkles, C
 import { api } from "@/lib/trpc/client"
 import { timeToMinutes, minutesToTime } from "./constants"
 import { toast } from "sonner"
+import { TeacherAvailabilityConfigurator } from "./TeacherAvailabilityConfigurator"
 
 const ALL_DAYS = [
   { value: "senin", label: "Senin" },
@@ -127,6 +128,10 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
     Object.fromEntries(ALL_DAYS.map((d) => [d.value, true]))
   )
 
+  const { data: teachers = [] } = api.guru.getAll.useQuery({})
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([])
+  const [teacherExceptions, setTeacherExceptions] = useState<Record<string, { excludedDays: string[]; jpExceptions: Record<string, number[]> }>>({})
+
   const [showInsertForm, setShowInsertForm] = useState(false)
   const [insertHari, setInsertHari] = useState("senin")
   const [insertType, setInsertType] = useState("istirahat")
@@ -144,6 +149,9 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
     if (pengaturan) {
       setDurasiJP(pengaturan.durasiJP)
       setJamMulai(pengaturan.jamMulai)
+      if (pengaturan.teacherExceptionsJson) {
+        setTeacherExceptions(pengaturan.teacherExceptionsJson as any)
+      }
     }
   }, [pengaturan])
 
@@ -250,7 +258,11 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
   const handleSavePengaturan = async () => {
     setSaving(true)
     try {
-      await upsertPengaturan.mutateAsync({ durasiJP, jamMulai })
+      await upsertPengaturan.mutateAsync({
+        durasiJP,
+        jamMulai,
+        teacherExceptionsJson: teacherExceptions,
+      })
       
       // Recalculate all days in database to reflect new global settings!
       for (const day of ALL_DAYS) {
@@ -825,6 +837,68 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+
+          {/* Ketersediaan Guru Section */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4">
+            <div>
+              <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Settings className="h-4.5 w-4.5 text-teal-500 animate-spin-slow" />
+                Konfigurasi Ketersediaan Guru (Custom Request)
+              </h4>
+              <p className="text-xs text-slate-400 font-semibold mt-1">
+                Atur hari libur mengajar atau jam pelajaran kosong khusus untuk masing-masing guru sebelum menjalankan penyusunan otomatis AI.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="flex-1 space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Pilih Guru Untuk Dikonfigurasi
+                </Label>
+                <select
+                  className="h-10 w-full rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 cursor-pointer"
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val && !selectedTeacherIds.includes(val)) {
+                      setSelectedTeacherIds((prev) => [...prev, val])
+                    }
+                    e.target.value = ""
+                  }}
+                  value=""
+                >
+                  <option value="" disabled>-- Pilih Guru --</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>{t.namaLengkap}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {selectedTeacherIds.length > 0 && (
+              <TeacherAvailabilityConfigurator
+                teachers={teachers.map(t => ({ id: t.id, nama: t.namaLengkap, nipNuptk: t.nipnuptk }))}
+                selectedTeacherIds={selectedTeacherIds}
+                setSelectedTeacherIds={setSelectedTeacherIds}
+                teacherExceptions={teacherExceptions as any}
+                setTeacherExceptions={setTeacherExceptions as any}
+                onSave={async () => {
+                  setSaving(true)
+                  try {
+                    await upsertPengaturan.mutateAsync({
+                      durasiJP,
+                      jamMulai,
+                      teacherExceptionsJson: teacherExceptions,
+                    })
+                    toast.success("Ketersediaan guru berhasil disimpan")
+                  } catch {
+                    toast.error("Gagal menyimpan ketersediaan guru")
+                  } finally {
+                    setSaving(false)
+                  }
+                }}
+              />
+            )}
           </div>
         </div>
       )}

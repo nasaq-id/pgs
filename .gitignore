@@ -60,3 +60,10 @@ e2e/.auth/
 # Lighthouse artifacts (regen via scripts/lighthouse-audit.mjs)
 performance/lighthouse/*.json
 !performance/lighthouse/summary.json
+
+
+migrations/meta/0026_snapshot.json
+igrations/0026_huge_scorpion.sql
+igrations/0025_jadwal_unresolved_locked.sql
+src/server/db/migrations/
+src/server/db/migrations/meta/

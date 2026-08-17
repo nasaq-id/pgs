@@ -1,4 +1,4 @@
-import { eq, and, or, isNull, inArray, asc, desc } from "drizzle-orm"
+import { eq, and, or, isNull, inArray, notInArray, ne, asc, desc } from "drizzle-orm"
 import { db } from "@/server/db"
 import {
   jadwalPelajaran,
@@ -52,6 +52,16 @@ interface Assignment {
   jpCount: number
   jamMulai: string
   jamSelesai: string
+  unresolved: boolean
+  locked: boolean
+}
+
+export interface GuruConstraint {
+  guruId: string
+  hari: HariType
+  jpMulai: number
+  jpSelesai: number
+  isFullDay?: boolean
 }
 
 interface QueueItem {
@@ -99,7 +109,7 @@ function findConsecutiveWindows(
   for (let i = 0; i < sorted.length; i++) {
     const slot = sorted[i]
     const prev = sorted[i - 1]
-    if (prev && slot.jamKe === prev.jamKe + 1) {
+    if (prev && timeStringToDate(prev.jamSelesai).getTime() === timeStringToDate(slot.jamMulai).getTime()) {
       current.push(slot)
     } else {
       if (current.length) runs.push(current)
@@ -137,16 +147,22 @@ export class JadwalGeneratorService {
     batchId?: string
     guruOccupancy?: Map<string, Set<string>> // guruId -> Set<"${hari}-${jamKe}">
     hariLibur?: string[]
-  }): Promise<{ batchId: string; assignments: Assignment[] }> {
+    constraints?: GuruConstraint[]
+    excludeLocked?: boolean
+  }): Promise<{ batchId: string; assignments: Assignment[]; unresolvedCount: number }> {
     const batchId = params.batchId ?? crypto.randomUUID()
-    const guruOccupancy = params.guruOccupancy ?? (await this.loadGuruOccupancy(params.tahunAjaranId))
+    const guruOccupancy =
+      params.guruOccupancy ??
+      (await this.loadGuruOccupancy(params.tahunAjaranId, [params.kelasId]))
+
+    await this.cleanupStaleDrafts(batchId)
 
     // 1. Load active slots (timelineItem where tipe = "jp")
     let allSlotsRaw = await db
       .select({
         id: timelineItem.id,
         hari: timelineItem.hari,
-        jamKe: timelineItem.urutan,
+        urutan: timelineItem.urutan,
         jamMulai: timelineItem.jamMulai,
         jamSelesai: timelineItem.jamSelesai,
       })
@@ -167,18 +183,78 @@ export class JadwalGeneratorService {
       )
     }
 
-    const allSlots: SlotWaktuDTO[] = allSlotsRaw.map((s) => ({
-      id: s.id,
-      hari: s.hari as HariType,
-      jamKe: s.jamKe,
-      jamMulai: s.jamMulai,
-      jamSelesai: s.jamSelesai,
-    }))
+    const urutanPerHari = new Map<string, number>()
+    const allSlots: SlotWaktuDTO[] = allSlotsRaw
+      .slice()
+      .sort((a, b) =>
+        a.hari === b.hari ? a.urutan - b.urutan : a.hari.localeCompare(b.hari)
+      )
+      .map((s) => {
+        const next = (urutanPerHari.get(s.hari) ?? 0) + 1
+        urutanPerHari.set(s.hari, next)
+        return {
+          id: s.id,
+          hari: s.hari as HariType,
+          jamKe: next,
+          jamMulai: s.jamMulai,
+          jamSelesai: s.jamSelesai,
+        }
+      })
 
     if (allSlots.length === 0) {
       throw new JadwalGenerationError(
         "Tidak ada slot pelajaran (Timeline Item tipe JP) yang dikonfigurasi. Harap atur timeline pelajaran terlebih dahulu."
       )
+    }
+
+    this.cachedAllSlots = allSlots
+
+    // Load manually locked slots for this class to keep them fixed
+    const lockedSlots: Assignment[] = []
+    const kelasGrid = new Set<string>() // format: "${hari}-${jamKe}"
+
+    if (params.excludeLocked !== false) {
+      const dbLocked = await db
+        .select()
+        .from(jadwalPelajaran)
+        .where(
+          and(
+            eq(jadwalPelajaran.sekolahId, this.sekolahId),
+            eq(jadwalPelajaran.kelasId, params.kelasId),
+            eq(jadwalPelajaran.locked, true)
+          )
+        )
+
+      for (const row of dbLocked) {
+        if (!row.jpMulai || !row.jpCount || !row.hari) continue
+        const firstSlot = allSlots.find((s) => s.hari === row.hari && s.jamKe === row.jpMulai)
+        const lastSlot = allSlots.find((s) => s.hari === row.hari && s.jamKe === row.jpMulai! + row.jpCount! - 1)
+        
+        const assignment: Assignment = {
+          kelasMataPelajaranId: row.id, // reference existing row or mapel plotting ID
+          kelasId: row.kelasId,
+          guruId: row.guruId,
+          mataPelajaranId: row.mataPelajaranId,
+          hari: row.hari as HariType,
+          jpMulai: row.jpMulai,
+          jpCount: row.jpCount,
+          jamMulai: firstSlot?.jamMulai ?? row.jamMulai?.toISOString() ?? "07:00",
+          jamSelesai: lastSlot?.jamSelesai ?? row.jamSelesai?.toISOString() ?? "07:40",
+          unresolved: row.unresolved ?? false,
+          locked: true,
+        }
+        lockedSlots.push(assignment)
+
+        // Block these slots in classroom grid and teacher occupancy
+        for (let i = 0; i < row.jpCount; i++) {
+          const key = `${row.hari}-${row.jpMulai + i}`
+          kelasGrid.add(key)
+          if (!guruOccupancy.has(row.guruId)) {
+            guruOccupancy.set(row.guruId, new Set())
+          }
+          guruOccupancy.get(row.guruId)!.add(key)
+        }
+      }
     }
 
     // 2. Load requirements from pengampu table
@@ -213,24 +289,33 @@ export class JadwalGeneratorService {
       )
     }
 
-    const kmpList: KelasMataPelajaranDTO[] = kmpRaw.map((k) => ({
-      id: k.id,
-      kelasId: k.kelasId,
-      mataPelajaranId: k.mataPelajaranId,
-      mataPelajaranNama: k.mataPelajaranNama,
-      guruId: k.guruId,
-      guruNama: k.guruNama,
-      totalJPPerMinggu: k.totalJPPerMinggu,
-      maxJPPerPertemuan: k.maxJPPerPertemuan,
-    }))
+    // Subtract locked hours from the required total JP
+    const kmpList: KelasMataPelajaranDTO[] = kmpRaw
+      .map((k) => {
+        const lockedJpForKmp = lockedSlots
+          .filter((ls) => ls.mataPelajaranId === k.mataPelajaranId && ls.guruId === k.guruId)
+          .reduce((sum, ls) => sum + ls.jpCount, 0)
+
+        return {
+          id: k.id,
+          kelasId: k.kelasId,
+          mataPelajaranId: k.mataPelajaranId,
+          mataPelajaranNama: k.mataPelajaranNama,
+          guruId: k.guruId,
+          guruNama: k.guruNama,
+          totalJPPerMinggu: Math.max(0, k.totalJPPerMinggu - lockedJpForKmp),
+          maxJPPerPertemuan: k.maxJPPerPertemuan,
+        }
+      })
+      .filter((k) => k.totalJPPerMinggu > 0) // only queue remaining hours
 
     // 3. Validate overall capacity
     const totalJPDibutuhkan = kmpList.reduce((sum, k) => sum + k.totalJPPerMinggu, 0)
-    const totalSlotsAvailable = allSlots.length
+    const totalSlotsAvailable = allSlots.length - kelasGrid.size
     if (totalJPDibutuhkan > totalSlotsAvailable) {
       throw new JadwalGenerationError(
-        `Kelas ini membutuhkan ${totalJPDibutuhkan} JP/minggu, tetapi slot pelajaran yang tersedia hanya ${totalSlotsAvailable} JP. ` +
-          "Kurangi alokasi JP atau tambah slot timeline."
+        `Kelas ini membutuhkan ${totalJPDibutuhkan} JP sisa/minggu, tetapi slot pelajaran kosong yang tersedia hanya ${totalSlotsAvailable} JP. ` +
+          "Kurangi alokasi JP atau buka kunci slot manual."
       )
     }
 
@@ -246,30 +331,94 @@ export class JadwalGeneratorService {
         return sisaA - sisaB
       })
 
-    // 5. Backtracking solver
-    this.cachedAllSlots = allSlots
-    const kelasGrid = new Set<string>() // format: "${hari}-${jamKe}"
-    const assignments: Assignment[] = []
-    const failureLog: string[] = []
-
-    let berhasil = this.backtrack(queue, 0, kelasGrid, guruOccupancy, assignments, failureLog, true)
-    if (!berhasil) {
-      berhasil = this.backtrack(queue, 0, kelasGrid, guruOccupancy, assignments, failureLog, false)
+    // 4.5 Terjemahkan constraints guru menjadi set slot terblokir
+    const blockedByConstraint = new Set<string>() // "${guruId}|${hari}-${jamKe}"
+    for (const c of params.constraints ?? []) {
+      for (const slot of allSlots) {
+        if (slot.hari !== c.hari) continue
+        if (c.isFullDay || (slot.jamKe >= c.jpMulai && slot.jamKe <= c.jpSelesai)) {
+          blockedByConstraint.add(`${c.guruId}|${slot.hari}-${slot.jamKe}`)
+        }
+      }
     }
 
+    // 5. Backtracking solver with safety guards
+    const newAssignments: Assignment[] = []
+    const failureLog: string[] = []
+    const startTime = Date.now()
+    const timeoutMs = 3000 // 3-second timeout
+
+    let berhasil = this.backtrack(
+      queue,
+      0,
+      kelasGrid,
+      guruOccupancy,
+      newAssignments,
+      failureLog,
+      true,
+      { count: 0 },
+      blockedByConstraint,
+      startTime,
+      timeoutMs
+    )
+
     if (!berhasil) {
-      throw new JadwalGenerationError(
-        "Gagal menyusun jadwal secara penuh untuk kelas ini.",
-        { failureLog }
+      // Retry without strict compact grouping
+      berhasil = this.backtrack(
+        queue,
+        0,
+        kelasGrid,
+        guruOccupancy,
+        newAssignments,
+        failureLog,
+        false,
+        { count: 0 },
+        blockedByConstraint,
+        startTime,
+        timeoutMs
       )
     }
+
+    let unresolvedCount = 0
+
+    if (!berhasil) {
+      // Fallback: Greedy relaxed solver to place remaining items as UNRESOLVED
+      const assignedKmps = new Set(newAssignments.map(a => a.kelasMataPelajaranId))
+      const remainingQueue = queue.filter(q => !assignedKmps.has(q.kmp.id))
+      
+      console.log(`[Solver Fallback] Strict backtrack failed or timed out. Placing remaining ${remainingQueue.length} mapel greedily with 'unresolved: true' flag.`)
+
+      for (const item of remainingQueue) {
+        for (const blockSize of item.blocks) {
+          const placed = this.placeGreedily(
+            item.kmp,
+            blockSize,
+            kelasGrid,
+            guruOccupancy,
+            newAssignments,
+            blockedByConstraint
+          )
+          if (!placed) {
+            unresolvedCount += blockSize
+          } else {
+            const lastAdded = newAssignments[newAssignments.length - 1]
+            if (lastAdded) {
+              lastAdded.unresolved = true
+              unresolvedCount += blockSize
+            }
+          }
+        }
+      }
+    }
+
+    const assignments = [...lockedSlots, ...newAssignments]
 
     // 6. Persist draft into database
     try {
       await this.persistDraft(assignments, batchId)
     } catch (err) {
       // Rollback memory changes on DB persist failure
-      for (const a of assignments) {
+      for (const a of newAssignments) {
         const occupiedKeys = Array.from({ length: a.jpCount }, (_, i) => `${a.hari}-${a.jpMulai + i}`)
         for (const key of occupiedKeys) {
           guruOccupancy.get(a.guruId)?.delete(key)
@@ -281,29 +430,83 @@ export class JadwalGeneratorService {
       )
     }
 
-    return { batchId, assignments }
+    return { batchId, assignments, unresolvedCount }
   }
 
   async generateForSekolah(params: {
     tahunAjaranId: string
     hariLibur?: string[]
+    constraints?: GuruConstraint[]
+    excludeLocked?: boolean
   }): Promise<{
     batchId: string
-    hasil: { kelasId: string; jumlahJPTerjadwal: number }[]
+    hasil: { kelasId: string; jumlahJPTerjadwal: number; unresolvedCount: number }[]
     gagal: { kelasId: string; error: string }[]
     tanpaPlotting: { kelasId: string; namaKelas: string }[]
   }> {
     const batchId = crypto.randomUUID()
-    const guruOccupancy = await this.loadGuruOccupancy(params.tahunAjaranId)
+    const classJPList = await this.loadClassJPList(params.tahunAjaranId)
 
-    // Load all classes in the school
+    const activeClasses = classJPList.filter((c) => c.totalJP > 0)
+    const tanpaPlotting = classJPList
+      .filter((c) => c.totalJP === 0)
+      .map((c) => ({ kelasId: c.kelasId, namaKelas: c.namaKelas }))
+
+    const guruOccupancy = await this.loadGuruOccupancy(
+      params.tahunAjaranId,
+      activeClasses.map((c) => c.kelasId)
+    )
+
+    await this.cleanupStaleDrafts(batchId)
+
+    const urutanKelas = activeClasses
+      .sort((a, b) => b.totalJP - a.totalJP)
+      .map((k) => k.kelasId)
+
+    const hasil: { kelasId: string; jumlahJPTerjadwal: number; unresolvedCount: number }[] = []
+    const gagal: { kelasId: string; error: string }[] = []
+
+    for (const kelasId of urutanKelas) {
+      try {
+        const { assignments, unresolvedCount } = await this.generateForKelas({
+          kelasId,
+          tahunAjaranId: params.tahunAjaranId,
+          batchId,
+          guruOccupancy,
+          hariLibur: params.hariLibur,
+          constraints: params.constraints,
+          excludeLocked: params.excludeLocked,
+        })
+        const totalJp = assignments.reduce((sum, a) => sum + a.jpCount, 0)
+        hasil.push({ kelasId, jumlahJPTerjadwal: totalJp, unresolvedCount })
+      } catch (err) {
+        const message = err instanceof JadwalGenerationError ? err.message : String(err)
+        gagal.push({ kelasId, error: message })
+      }
+    }
+
+    if (gagal.length > 0) {
+      await db
+        .delete(jadwalPelajaran)
+        .where(
+          and(
+            eq(jadwalPelajaran.sekolahId, this.sekolahId),
+            eq(jadwalPelajaran.batchId, batchId),
+            eq(jadwalPelajaran.status, "DRAFT")
+          )
+        )
+    }
+
+    return { batchId, hasil, gagal, tanpaPlotting }
+  }
+
+  private async loadClassJPList(tahunAjaranId: string) {
     const rombela = await db
       .select({ id: kelas.id, namaKelas: kelas.namaKelas })
       .from(kelas)
       .where(eq(kelas.sekolahId, this.sekolahId))
 
-    // Sum JP per class to sort by total required JP (largest load first)
-    const classJPList = await Promise.all(
+    return Promise.all(
       rombela.map(async (k) => {
         const rows = await db
           .select({ jumlahJam: pengampu.jumlahJam })
@@ -313,7 +516,7 @@ export class JadwalGeneratorService {
               eq(pengampu.sekolahId, this.sekolahId),
               eq(pengampu.kelasId, k.id),
               or(
-                eq(pengampu.tahunAjaranId, params.tahunAjaranId),
+                eq(pengampu.tahunAjaranId, tahunAjaranId),
                 isNull(pengampu.tahunAjaranId)
               )
             )
@@ -322,44 +525,32 @@ export class JadwalGeneratorService {
         return { kelasId: k.id, namaKelas: k.namaKelas, totalJP: sum }
       })
     )
-
-    const activeClasses = classJPList.filter((c) => c.totalJP > 0)
-    const tanpaPlotting = classJPList
-      .filter((c) => c.totalJP === 0)
-      .map((c) => ({ kelasId: c.kelasId, namaKelas: c.namaKelas }))
-
-    const urutanKelas = activeClasses
-      .sort((a, b) => b.totalJP - a.totalJP)
-      .map((k) => k.kelasId)
-
-    const hasil: { kelasId: string; jumlahJPTerjadwal: number }[] = []
-    const gagal: { kelasId: string; error: string }[] = []
-
-    for (const kelasId of urutanKelas) {
-      try {
-        const { assignments } = await this.generateForKelas({
-          kelasId,
-          tahunAjaranId: params.tahunAjaranId,
-          batchId,
-          guruOccupancy,
-          hariLibur: params.hariLibur,
-        })
-        const totalJp = assignments.reduce((sum, a) => sum + a.jpCount, 0)
-        hasil.push({ kelasId, jumlahJPTerjadwal: totalJp })
-      } catch (err) {
-        const message = err instanceof JadwalGenerationError ? err.message : String(err)
-        gagal.push({ kelasId, error: message })
-      }
-    }
-
-    return { batchId, hasil, gagal, tanpaPlotting }
   }
 
-  // ---------------------------------------------------------------------
-  // Internal Solver Core
-  // ---------------------------------------------------------------------
+  private async cleanupStaleDrafts(currentBatchId: string): Promise<void> {
+    await db
+      .delete(jadwalPelajaran)
+      .where(
+        and(
+          eq(jadwalPelajaran.sekolahId, this.sekolahId),
+          eq(jadwalPelajaran.status, "DRAFT"),
+          ne(jadwalPelajaran.batchId, currentBatchId)
+        )
+      )
+  }
 
-  private async loadGuruOccupancy(tahunAjaranId: string): Promise<Map<string, Set<string>>> {
+  private async loadGuruOccupancy(
+    tahunAjaranId: string,
+    excludeKelasIds: string[] = []
+  ): Promise<Map<string, Set<string>>> {
+    const conditions = [
+      eq(jadwalPelajaran.sekolahId, this.sekolahId),
+      eq(kelas.tahunAjaranId, tahunAjaranId),
+      eq(jadwalPelajaran.status, "PUBLISHED"),
+    ]
+    if (excludeKelasIds.length > 0) {
+      conditions.push(notInArray(jadwalPelajaran.kelasId, excludeKelasIds))
+    }
     const existing = await db
       .select({
         guruId: jadwalPelajaran.guruId,
@@ -369,13 +560,7 @@ export class JadwalGeneratorService {
       })
       .from(jadwalPelajaran)
       .innerJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
-      .where(
-        and(
-          eq(jadwalPelajaran.sekolahId, this.sekolahId),
-          eq(kelas.tahunAjaranId, tahunAjaranId),
-          eq(jadwalPelajaran.status, "PUBLISHED")
-        )
-      )
+      .where(and(...conditions))
 
     const map = new Map<string, Set<string>>()
     for (const row of existing) {
@@ -427,10 +612,8 @@ export class JadwalGeneratorService {
       const minIndex = indices[0]
       const maxIndex = indices[indices.length - 1]
 
-      // Rule 1: Must start at Academic JP 1 (index 0)
       if (minIndex !== 0) return true
 
-      // Rule 2: Must be contiguous
       const uniqueIndices = new Set(indices)
       if (uniqueIndices.size !== maxIndex + 1) return true
     }
@@ -446,11 +629,14 @@ export class JadwalGeneratorService {
     assignments: Assignment[],
     failureLog: string[],
     strictCompact = false,
-    steps = { count: 0 }
+    steps = { count: 0 },
+    blockedByConstraint: Set<string> = new Set(),
+    startTime: number,
+    timeoutMs: number
   ): boolean {
     steps.count++
-    if (strictCompact && steps.count > 5000) {
-      return false // Early abort in strict mode to keep scheduler lightning fast!
+    if (Date.now() - startTime > timeoutMs || (strictCompact && steps.count > 4000)) {
+      return false // timeout or iteration limit reached
     }
 
     if (index === queue.length) {
@@ -461,19 +647,21 @@ export class JadwalGeneratorService {
     }
 
     const { kmp, blocks } = queue[index]
-    const kandidat = this.cariKandidatPlacement(blocks, kmp.guruId, kelasGrid, guruOccupancy)
+    const kandidat = this.cariKandidatPlacement(blocks, kmp.guruId, kelasGrid, guruOccupancy, blockedByConstraint)
 
     if (kandidat.length === 0) {
+      const pantangan = [...blockedByConstraint].some((k) => k.startsWith(`${kmp.guruId}|`))
       failureLog.push(
         `${kmp.mataPelajaranNama} (guru: ${kmp.guruNama}) - tidak ada kombinasi slot yang muat ` +
-          `(butuh ${blocks.length} pertemuan, detail blok: [${blocks.join(", ")}]).`
+          `(butuh ${blocks.length} pertemuan, detail blok: [${blocks.join(", ")}])` +
+          (pantangan ? " — periksa pembatasan hari/JP guru ini." : "")
       )
     }
 
     for (const placement of kandidat) {
       const applied = this.terapkanPlacement(placement, kmp, kelasGrid, guruOccupancy, assignments)
 
-      if (this.backtrack(queue, index + 1, kelasGrid, guruOccupancy, assignments, failureLog, strictCompact, steps)) {
+      if (this.backtrack(queue, index + 1, kelasGrid, guruOccupancy, assignments, failureLog, strictCompact, steps, blockedByConstraint, startTime, timeoutMs)) {
         return true
       }
 
@@ -487,16 +675,17 @@ export class JadwalGeneratorService {
     blocks: number[],
     guruId: string,
     kelasGrid: Set<string>,
-    guruOccupancy: Map<string, Set<string>>
+    guruOccupancy: Map<string, Set<string>>,
+    blockedByConstraint: Set<string> = new Set()
   ): FullPlacement[] {
     const results: FullPlacement[] = []
 
-    // Group available slots by day
     const slotsByHari = new Map<HariType, SlotWaktuDTO[]>()
     for (const slot of this.cachedAllSlots) {
       const key = `${slot.hari}-${slot.jamKe}`
       if (kelasGrid.has(key)) continue
       if (guruOccupancy.get(guruId)?.has(key)) continue
+      if (blockedByConstraint.has(`${guruId}|${key}`)) continue
       if (!slotsByHari.has(slot.hari)) slotsByHari.set(slot.hari, [])
       slotsByHari.get(slot.hari)!.push(slot)
     }
@@ -536,6 +725,78 @@ export class JadwalGeneratorService {
     return results
   }
 
+  /**
+   * Place block greedily when backtrack fails. Minimizes collision by keeping class grid unique, 
+   * but allowing teacher collision if necessary.
+   */
+  private placeGreedily(
+    kmp: KelasMataPelajaranDTO,
+    blockSize: number,
+    kelasGrid: Set<string>,
+    guruOccupancy: Map<string, Set<string>>,
+    assignments: Assignment[],
+    blockedByConstraint: Set<string>
+  ): boolean {
+    // 1. Group available slots in the class grid by day (ignoring teacher occupancy)
+    const slotsByHari = new Map<HariType, SlotWaktuDTO[]>()
+    for (const slot of this.cachedAllSlots) {
+      const key = `${slot.hari}-${slot.jamKe}`
+      if (kelasGrid.has(key)) continue // Classroom MUST remain free of overlaps
+      if (!slotsByHari.has(slot.hari)) slotsByHari.set(slot.hari, [])
+      slotsByHari.get(slot.hari)!.push(slot)
+    }
+
+    // Try to find consecutive slots first
+    let bestWindow: SlotWaktuDTO[] | null = null
+    let bestScore = Infinity // lower score is better (score = teacher collisions + constraint violations)
+
+    for (const [hari, slotsForHari] of slotsByHari) {
+      const windows = findConsecutiveWindows(slotsForHari, blockSize)
+      for (const window of windows) {
+        let score = 0
+        for (const slot of window) {
+          const key = `${slot.hari}-${slot.jamKe}`
+          if (guruOccupancy.get(kmp.guruId)?.has(key)) score += 10
+          if (blockedByConstraint.has(`${kmp.guruId}|${key}`)) score += 1
+        }
+        if (score < bestScore) {
+          bestScore = score
+          bestWindow = window
+        }
+      }
+    }
+
+    if (bestWindow) {
+      // Place it
+      const firstSlot = bestWindow[0]
+      const lastSlot = bestWindow[bestWindow.length - 1]
+
+      for (const slot of bestWindow) {
+        const key = `${slot.hari}-${slot.jamKe}`
+        kelasGrid.add(key)
+        if (!guruOccupancy.has(kmp.guruId)) guruOccupancy.set(kmp.guruId, new Set())
+        guruOccupancy.get(kmp.guruId)!.add(key)
+      }
+
+      assignments.push({
+        kelasMataPelajaranId: kmp.id,
+        kelasId: kmp.kelasId,
+        guruId: kmp.guruId,
+        mataPelajaranId: kmp.mataPelajaranId,
+        hari: firstSlot.hari,
+        jpMulai: firstSlot.jamKe,
+        jpCount: bestWindow.length,
+        jamMulai: firstSlot.jamMulai,
+        jamSelesai: lastSlot.jamSelesai,
+        unresolved: bestScore > 0,
+        locked: false,
+      })
+      return true
+    }
+
+    return false // completely full
+  }
+
   private terapkanPlacement(
     placement: FullPlacement,
     kmp: KelasMataPelajaranDTO,
@@ -549,7 +810,6 @@ export class JadwalGeneratorService {
       const firstSlot = block.slots[0]
       const lastSlot = block.slots[block.slots.length - 1]
 
-      // Fill occupation sets
       for (const slot of block.slots) {
         const key = `${slot.hari}-${slot.jamKe}`
         kelasGrid.add(key)
@@ -567,6 +827,8 @@ export class JadwalGeneratorService {
         jpCount: block.slots.length,
         jamMulai: firstSlot.jamMulai,
         jamSelesai: lastSlot.jamSelesai,
+        unresolved: false,
+        locked: false,
       }
       assignments.push(assignment)
       applied.push(assignment)
@@ -607,6 +869,8 @@ export class JadwalGeneratorService {
       jpCount: a.jpCount,
       status: "DRAFT" as const,
       batchId,
+      unresolved: a.unresolved,
+      locked: a.locked,
     }))
 
     await db.insert(jadwalPelajaran).values(insertData)

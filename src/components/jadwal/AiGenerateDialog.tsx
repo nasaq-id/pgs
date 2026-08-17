@@ -277,10 +277,23 @@ export default function AiGenerateDialog({
     enabled: open,
   })
 
+  // Fetch pengaturan for optimistic version
+  const { data: pengaturan } = api.pengaturanJadwal.get.useQuery({}, {
+    enabled: open,
+  })
+
   // Fetch weekly holiday setting to prefill (still editable per generation)
   const { data: kaldikSetting } = api.pengaturanKalender.get.useQuery(undefined, {
     enabled: open,
   })
+
+  const { data: draftSlots } = api.jadwal.previewBatch.useQuery({
+    batchId: activeBatchId ?? ""
+  }, {
+    enabled: !!activeBatchId,
+  })
+
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false)
 
   const maxJpPerDay = useMemo(() => {
     const map = new Map<string, number>()
@@ -518,14 +531,14 @@ export default function AiGenerateDialog({
       isFullDay: boolean
     }[] = []
 
-    // 1. Add day exclusions (full day off)
+    // 1. Add day exclusions (full day off) — jpSelesai tinggi agar mencakup timeline berapa pun slotnya
     Object.entries(teacherExceptions).forEach(([guruId, days]) => {
       days.forEach((day) => {
         constraints.push({
           guruId,
           hari: day as any,
           jpMulai: 1,
-          jpSelesai: 12,
+          jpSelesai: 99,
           isFullDay: true,
         })
       })
@@ -564,6 +577,15 @@ export default function AiGenerateDialog({
       return
     }
 
+    if (isOverload) {
+      toast.error(
+        `Beban ${bebanCek} JP/minggu melebihi kapasitas realistis ${kapasitasPerMinggu} JP/minggu. Kurangi JP di Plotting Pengajar, tambah slot JP, atau kurangi hari libur.`
+      )
+      return
+    }
+
+    const constraints = buildConstraints()
+
     setProgressModalOpen(true)
     setProgressStatus("processing")
     setProgressPercent(10)
@@ -571,6 +593,9 @@ export default function AiGenerateDialog({
     setProgressLogs([
       "[Sistem] Menginisialisasi AI Auto-Scheduler...",
       "[Sistem] Membaca data timeline & plotting pengajar...",
+      ...(constraints.length > 0
+        ? [`[Sistem] Menerapkan ${constraints.length} pembatasan ketersediaan guru...`]
+        : []),
       "[Sistem] Menjalankan backtracking search dengan heuristic MRV...",
     ])
 
@@ -583,6 +608,7 @@ export default function AiGenerateDialog({
         res = await generateSekolahMutation.mutateAsync({
           tahunAjaranId: activeTahunAjaranId,
           hariLibur: hariLibur,
+          constraints,
         })
       } else {
         const targetKelasName = kelasRecords.find(k => k.id === targetKelasId)?.namaKelas || targetKelasId
@@ -591,6 +617,7 @@ export default function AiGenerateDialog({
           kelasId: targetKelasId,
           tahunAjaranId: activeTahunAjaranId,
           hariLibur: hariLibur,
+          constraints,
         })
       }
 
@@ -629,14 +656,26 @@ export default function AiGenerateDialog({
 
   const handlePublish = async () => {
     if (!activeBatchId) return
+
+    const unresolvedCount = draftSlots?.filter((s) => s.unresolved).length ?? 0
+    if (unresolvedCount > 0 && !showPublishConfirm) {
+      setShowPublishConfirm(true)
+      return
+    }
+
     setProgressStatus("processing")
     setProgressLogs((prev) => [...prev, "[Sistem] Menerbitkan draf jadwal ke database...", "[Sistem] Menghapus jadwal lama untuk kelas terpengaruh..."])
     try {
-      const res = await publishBatchMutation.mutateAsync({ batchId: activeBatchId })
+      const res = await publishBatchMutation.mutateAsync({
+        batchId: activeBatchId,
+        clientVersion: pengaturan?.version ?? 1
+      })
       toast.success(`Jadwal pelajaran berhasil diterbitkan! (${res.kelasTerpengaruh} kelas diperbarui)`)
       utils.jadwal.getAll.invalidate()
       utils.jadwal.getTimelineWithJadwal.invalidate()
+      utils.pengaturanJadwal.get.invalidate()
       setProgressModalOpen(false)
+      setShowPublishConfirm(false)
       onClose()
     } catch (err: any) {
       toast.error(err.message || "Gagal menerbitkan jadwal.")
@@ -649,10 +688,14 @@ export default function AiGenerateDialog({
     setProgressStatus("processing")
     setProgressLogs((prev) => [...prev, "[Sistem] Membatalkan draf jadwal...", "[Sistem] Menghapus entri draf dari database..."])
     try {
-      await discardBatchMutation.mutateAsync({ batchId: activeBatchId })
+      await discardBatchMutation.mutateAsync({
+        batchId: activeBatchId,
+        clientVersion: pengaturan?.version
+      })
       toast.info("Draf jadwal dibuang.")
       setProgressModalOpen(false)
       setActiveBatchId(null)
+      setShowPublishConfirm(false)
     } catch (err: any) {
       toast.error(err.message || "Gagal membuang draf jadwal.")
       setProgressStatus("success")
@@ -1053,7 +1096,7 @@ export default function AiGenerateDialog({
               <Button
                 type="button"
                 onClick={handleGenerate}
-                disabled={filteredPengampu.length === 0}
+                disabled={filteredPengampu.length === 0 || isOverload}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl px-6 cursor-pointer shadow-md"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -1353,6 +1396,16 @@ export default function AiGenerateDialog({
                 Hasil draf jadwal pelajaran sementara disimpan di server. Apakah Anda ingin mempublikasikan draf ini atau membatalkannya?
               </p>
 
+              {showPublishConfirm && (
+                <div className="w-full mt-5 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold leading-relaxed space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-black uppercase text-[10px] tracking-wider mb-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    Perhatian: Publish Gating
+                  </div>
+                  Terdapat <strong className="text-rose-600">{draftSlots?.filter(s => s.unresolved).length} slot</strong> yang memiliki konflik atau belum terselesaikan secara otomatis oleh solver. Guru atau ruang kelas mungkin bentrok pada jam tersebut. Apakah Anda tetap ingin menerbitkan jadwal?
+                </div>
+              )}
+
               <div className="w-full mt-6 text-left">
                 <div className="bg-slate-950 rounded-2xl p-4 font-mono text-[11px] text-slate-300 space-y-1.5 leading-relaxed border border-slate-800 shadow-inner">
                   <div className="text-emerald-400 font-extrabold">[Success] Penyusunan jadwal draf berhasil difinalisasi!</div>
@@ -1367,14 +1420,14 @@ export default function AiGenerateDialog({
                   className="flex-1 py-3 rounded-xl text-xs font-extrabold uppercase cursor-pointer text-rose-600 border-rose-200 hover:bg-rose-50"
                   disabled={publishBatchMutation.isPending || discardBatchMutation.isPending}
                 >
-                  Discard (Batal)
+                  {showPublishConfirm ? "Batal (Discard)" : "Discard (Batal)"}
                 </Button>
                 <Button
                   onClick={handlePublish}
                   className="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-lg"
                   disabled={publishBatchMutation.isPending || discardBatchMutation.isPending}
                 >
-                  {publishBatchMutation.isPending ? "Publishing..." : "Publish (Simpan)"}
+                  {publishBatchMutation.isPending ? "Publishing..." : showPublishConfirm ? "Ya, Tetap Publish" : "Publish (Simpan)"}
                 </Button>
               </div>
             </div>
