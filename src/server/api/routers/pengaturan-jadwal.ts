@@ -15,11 +15,25 @@ export const pengaturanJadwalRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       return getOrSetCache(cacheKey("pengaturanJadwal:get", sekolahId), async () => {
-        const result = await db.query.pengaturanJadwal.findFirst({
+        let result = await db.query.pengaturanJadwal.findFirst({
           where: eq(pengaturanJadwal.sekolahId, sekolahId),
           orderBy: [asc(pengaturanJadwal.createdAt)],
         })
-        return result ?? null
+        if (!result) {
+          const id = crypto.randomUUID()
+          const inserted = await db
+            .insert(pengaturanJadwal)
+            .values({
+              id,
+              sekolahId,
+              durasiJP: 40,
+              jamMulai: "07:00",
+              teacherExceptionsJson: {},
+            })
+            .returning()
+          result = inserted[0] ?? null
+        }
+        return result
       }, 300)
     }),
 
@@ -115,10 +129,24 @@ export const pengaturanJadwalRouter = router({
       if (!sekolahId) return []
 
       const runQuery = async () => {
-        const pengaturan = await db.query.pengaturanJadwal.findFirst({
+        let pengaturan = await db.query.pengaturanJadwal.findFirst({
           where: eq(pengaturanJadwal.sekolahId, sekolahId),
           orderBy: [asc(pengaturanJadwal.createdAt)],
         })
+        if (!pengaturan) {
+          const id = crypto.randomUUID()
+          const inserted = await db
+            .insert(pengaturanJadwal)
+            .values({
+              id,
+              sekolahId,
+              durasiJP: 40,
+              jamMulai: "07:00",
+              teacherExceptionsJson: {},
+            })
+            .returning()
+          pengaturan = inserted[0] ?? null
+        }
         if (!pengaturan) return []
         const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]
         if (input.hari) conditions.push(eq(timelineItem.hari, input.hari as any))
