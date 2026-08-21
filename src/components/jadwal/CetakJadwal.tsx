@@ -650,11 +650,15 @@ export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
                         {sortedKelas.map((c) => {
                           const entry = getEntry(c.id, day, sIdx + 1)
                           if (entry) {
+                            const entryAcademicJp = academicJpMap.get(`${day}-${sIdx + 1}`) ?? sIdx + 1
+                            if (entryAcademicJp !== null && entryAcademicJp > entry.jpMulai!) {
+                              return null
+                            }
                             const mapel = mapelMap.get(entry.mataPelajaranId)
                             const mapelCode = mapel?.kodeMapel || mapel?.namaMapel || "MAPEL"
                             const tCode = getKode(entry)
                             return (
-                              <td key={c.id} className="py-1.5 px-1 print:py-0.5 print:px-0.5 border-r border-slate-100 print:border-slate-200 text-center align-middle">
+                              <td key={c.id} rowSpan={entry.jpCount ?? 1} className="py-1.5 px-1 print:py-0.5 print:px-0.5 border-r border-slate-100 print:border-slate-200 text-center align-middle">
                                 <div className="flex flex-col items-center justify-center gap-0.5">
                                   <span className={`inline-block px-2 py-0.5 rounded-md ${dayStyle.headerBg} font-black text-[10px] print:text-[7.5px] leading-none uppercase tracking-wider shadow-2xs`}>
                                     {mapelCode}
