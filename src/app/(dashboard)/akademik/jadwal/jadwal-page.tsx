@@ -974,8 +974,17 @@ export default function JadwalPage() {
 
           {canViewAll && (
             <ExportJadwalMenu
-              onCetak={() => { setCetakGuruId(null); setCetakOpen(true) }}
+              onCetak={() => {
+                if (adminFilterMode === "guru" && selectedTeacherId) {
+                  setCetakGuruId(selectedTeacherId)
+                } else {
+                  setCetakGuruId(null)
+                }
+                setCetakOpen(true)
+              }}
               disabled={!kelasId || !hasData}
+              filterGuruId={adminFilterMode === "guru" ? selectedTeacherId : null}
+              filterGuruNama={adminFilterMode === "guru" ? selectedTeacherObj?.namaLengkap : null}
             />
           )}
 
@@ -1847,6 +1856,10 @@ function MatrixView({
                       )
                     }
 
+                    if (academicJp > entry.jpMulai!) {
+                      return null
+                    }
+
                     const mapel = mapelMap.get(entry.mataPelajaranId)
                     const teacher = guruMap.get(entry.guruId)
                     
@@ -1864,6 +1877,7 @@ function MatrixView({
                      return (
                        <TableCell
                          key={k.id}
+                         rowSpan={entry.jpCount ?? 1}
                          className={`p-3 text-center border-r border-b border-slate-100 dark:border-slate-800/50 ${hasClash ? "bg-rose-50/30 dark:bg-rose-950/15 border-l-4 border-l-rose-500" : `${color.bg} border-l-4 ${color.border}`} transition-all cursor-grab active:cursor-grabbing`}
                          onDragOver={(e) => {
                            if (canEdit) e.preventDefault()
@@ -1882,12 +1896,12 @@ function MatrixView({
                              e.dataTransfer.setData("text/plain", entry.id)
                              e.dataTransfer.effectAllowed = "move"
                            }}
-                           className="w-full h-full"
+                           className="w-full h-full flex flex-col justify-center min-h-[48px]"
                          >
-                           <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-mono font-black uppercase`}>
+                           <span className={`px-1.5 py-0.5 ${color.bg} ${color.text} rounded text-[9px] font-mono font-black uppercase w-fit mx-auto`}>
                              {mapel?.kodeMapel || "MAPEL"}
                            </span>
-                           <h6 className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase line-clamp-1">
+                           <h6 className="text-[11px] font-black text-slate-800 dark:text-slate-200 mt-1 uppercase line-clamp-2">
                              {mapel?.namaMapel || "—"}
                            </h6>
                            <span className="text-[10px] text-slate-500 font-bold block mt-0.5 truncate max-w-[120px] mx-auto">
