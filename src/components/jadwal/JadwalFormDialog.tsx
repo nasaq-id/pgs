@@ -172,8 +172,9 @@ export default function JadwalFormDialog({
     const baseSisa = initial && initial.mataPelajaranId === mataPelajaranId
       ? sisa + (initial.jpCount ?? 0)
       : sisa
-    return Math.max(10, baseSisa)
-  }, [sisaForSelected, initial, mataPelajaranId])
+    const kurikulumJP = pengampuMap.get(mataPelajaranId)?.jumlahJam ?? 0
+    return kurikulumJP > 0 ? Math.max(1, Math.min(kurikulumJP, baseSisa)) : Math.max(1, baseSisa)
+  }, [sisaForSelected, initial, mataPelajaranId, pengampuMap])
 
   const occupiedJpSlots = useMemo(() => {
     const occupied = new Set<number>()
