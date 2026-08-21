@@ -52,9 +52,11 @@ interface TimelineRecord {
 interface Props {
   onCetak: () => void
   disabled?: boolean
+  filterGuruId?: string | null
+  filterGuruNama?: string | null
 }
 
-export default function ExportJadwalMenu({ onCetak, disabled }: Props) {
+export default function ExportJadwalMenu({ onCetak, disabled, filterGuruId, filterGuruNama }: Props) {
   const [exporting, setExporting] = useState(false)
   const utils = api.useUtils()
 
@@ -79,8 +81,13 @@ export default function ExportJadwalMenu({ onCetak, disabled }: Props) {
       const kelasRecords = (kelas ?? []) as KelasRecord[]
       const mapelRecords = (mapel ?? []) as MapelRecord[]
       const guruRecords = (guru ?? []) as GuruRecord[]
-      const jadwalRecords = (jadwal ?? []) as JadwalRecord[]
+      const rawJadwalRecords = (jadwal ?? []) as JadwalRecord[]
       const timelineRecords = (timeline ?? []) as TimelineRecord[]
+
+      // Filter by teacher if filterGuruId is present
+      const jadwalRecords = filterGuruId
+        ? rawJadwalRecords.filter((e) => e.guruId === filterGuruId)
+        : rawJadwalRecords
 
       const mapelMap = new Map(mapelRecords.map((m) => [m.id, m]))
       const guruMap = new Map(guruRecords.map((g) => [g.id, g]))
@@ -131,6 +138,7 @@ export default function ExportJadwalMenu({ onCetak, disabled }: Props) {
 
       let csvContent =
         `${(sekolah as any)?.namaSekolah || "SEKOLAH"}\t${taLabel}\n` +
+        (filterGuruNama ? `Jadwal Mengajar Guru: ${filterGuruNama}\n` : "") +
         "Hari\tWaktu / JP\t" +
         sortedKelas.map((k) => formatKelasLabel(k)).join("\t") +
         "\n"
