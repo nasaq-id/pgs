@@ -84,10 +84,10 @@ const menuItems: MenuItem[] = [
   { 
     icon: BookOpen, 
     label: "Akademik", 
-    allowedRoles: ["super_admin", "admin_sekolah", "tu"],
+    allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"],
     children: [
-      { label: "Mata Pelajaran", path: "/akademik/mapel" },
-      { label: "Jadwal Pelajaran", path: "/akademik/jadwal" },
+      { label: "Mata Pelajaran", path: "/akademik/mapel", allowedRoles: ["super_admin", "admin_sekolah", "tu"] },
+      { label: "Jadwal Pelajaran", path: "/akademik/jadwal", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"] },
     ]
   },
   { 
