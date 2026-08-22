@@ -260,9 +260,8 @@ export const pengaturanJadwalRouter = router({
       ]
       if (input.tipe) conditions.push(eq(timelineItem.tipe, input.tipe))
 
-      const deleted = await db.delete(timelineItem).where(and(...conditions)).returning()
+      const deleted = await db.delete(timelineItem).where(and(...conditions)).returning({ id: timelineItem.id })
 
-      // Recalculate jam JP sekali saja — hanya jika masih ada JP tersisa di hari itu
       const sisaJp = await db.query.timelineItem.findFirst({
         where: and(
           eq(timelineItem.pengaturanJadwalId, pengaturan.id),
@@ -289,7 +288,7 @@ export const pengaturanJadwalRouter = router({
       const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
 
-      const deleted = await db.delete(timelineItem).where(eq(timelineItem.pengaturanJadwalId, pengaturan.id)).returning()
+      const deleted = await db.delete(timelineItem).where(eq(timelineItem.pengaturanJadwalId, pengaturan.id)).returning({ id: timelineItem.id })
 
       await logAudit(ctx, { action: "clear_all_timeline", entity: "timeline_item", metadata: { count: deleted.length } })
       await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
@@ -317,7 +316,7 @@ export const pengaturanJadwalRouter = router({
       const deleted = await db.delete(timelineItem).where(and(
         eq(timelineItem.pengaturanJadwalId, pengaturan.id),
         inArray(timelineItem.hari, hari),
-      )).returning()
+      )).returning({ id: timelineItem.id })
 
       await logAudit(ctx, { action: "clear_timeline_days", entity: "timeline_item", metadata: { hari, count: deleted.length } })
       await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
@@ -344,18 +343,24 @@ export const pengaturanJadwalRouter = router({
         ))
         .orderBy(asc(timelineItem.urutan))
 
-      for (const target of input.targetHari) {
-        if (target === input.sourceHari) continue
-        await db.delete(timelineItem).where(and(
-          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
-          eq(timelineItem.hari, target as any),
-        ))
+      const validTargets = input.targetHari.filter((t) => t !== input.sourceHari)
+      if (validTargets.length === 0 || sourceItems.length === 0) {
+        return { success: true }
+      }
+
+      await db.delete(timelineItem).where(and(
+        eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+        inArray(timelineItem.hari, validTargets as any),
+      ))
+
+      const newRows = []
+      for (const target of validTargets) {
         for (const item of sourceItems) {
-          await db.insert(timelineItem).values({
+          newRows.push({
             id: crypto.randomUUID(),
             sekolahId,
             pengaturanJadwalId: pengaturan.id,
-            hari: target,
+            hari: target as any,
             tipe: item.tipe,
             label: item.label,
             jamMulai: item.jamMulai,
@@ -364,6 +369,10 @@ export const pengaturanJadwalRouter = router({
             warna: item.warna,
           })
         }
+      }
+
+      if (newRows.length > 0) {
+        await db.insert(timelineItem).values(newRows)
       }
 
       await logAudit(ctx, { action: "apply_template", entity: "timeline_item", entityId: input.sourceHari, metadata: { targetHari: input.targetHari } })
