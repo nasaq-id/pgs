@@ -478,8 +478,14 @@ export default function JadwalPage() {
 
   const aktifDays = useMemo(() => {
     const daysInTimeline = new Set(timelineRecords.map((t) => t.hari))
-    return DAYS.filter((day) => daysInTimeline.has(day))
-  }, [timelineRecords])
+    const baseDays = DAYS.filter((day) => daysInTimeline.has(day))
+    if (isTeacherView) {
+      return baseDays.filter((day) =>
+        jadwalRecords.some((e) => e.hari === day)
+      )
+    }
+    return baseDays
+  }, [timelineRecords, isTeacherView, jadwalRecords])
 
   const timelineByDay = useMemo(() => {
     const map = new Map<string, TimelineRecord[]>()
