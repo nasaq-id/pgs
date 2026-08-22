@@ -34,6 +34,7 @@ interface MapelItem {
   id: string
   namaMapel: string
   kodeMapel?: string | null
+  jumlahJam?: number | null
 }
 
 interface GuruItem {
@@ -166,15 +167,32 @@ export default function JadwalFormDialog({
     return sisaJpMap.get(mataPelajaranId) ?? 0
   }, [mataPelajaranId, sisaJpMap])
 
+  const targetMapel = useMemo(() => {
+    return mapelList.find((m) => m.id === mataPelajaranId)
+  }, [mapelList, mataPelajaranId])
+
+  const kurikulumJP = useMemo(() => {
+    if (!mataPelajaranId) return 0
+    const pJam = pengampuMap.get(mataPelajaranId)?.jumlahJam
+    if (pJam && pJam > 0) return pJam
+    const mJam = targetMapel?.jumlahJam
+    if (mJam && mJam > 0) return mJam
+    return 0
+  }, [mataPelajaranId, pengampuMap, targetMapel])
+
   const maxJpCount = useMemo(() => {
+    if (!mataPelajaranId) return 1
     const sisa = sisaForSelected
-    // If editing, add back currently allocated JP
     const baseSisa = initial && initial.mataPelajaranId === mataPelajaranId
       ? sisa + (initial.jpCount ?? 0)
       : sisa
-    const kurikulumJP = pengampuMap.get(mataPelajaranId)?.jumlahJam ?? 0
-    return kurikulumJP > 0 ? Math.max(1, Math.min(kurikulumJP, baseSisa)) : Math.max(1, baseSisa)
-  }, [sisaForSelected, initial, mataPelajaranId, pengampuMap])
+
+    const limitJP = kurikulumJP > 0 ? kurikulumJP : 4
+    if (baseSisa > 0) {
+      return Math.max(1, Math.min(limitJP, baseSisa))
+    }
+    return Math.max(1, limitJP)
+  }, [mataPelajaranId, kurikulumJP, sisaForSelected, initial])
 
   const occupiedJpSlots = useMemo(() => {
     const occupied = new Set<number>()

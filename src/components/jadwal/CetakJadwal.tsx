@@ -858,84 +858,91 @@ export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${aktifDays.length}, minmax(0, 1fr))`,
-                  gap: 8,
-                }}
-              >
-                {aktifDays.map((day) => {
-                  const blocks = getBlocksForKelas(c.id, day, selectedGuruId)
-                  if (blocks.length === 0) return null
-                  const dayStyle = DAY_COLOR_STYLES[day] || DAY_COLOR_STYLES.senin
+              {(() => {
+                const teacherActiveDays = aktifDays.filter((d) =>
+                  jadwalRecords.some((e) => e.guruId === selectedGuruId && e.hari === d)
+                )
+                return (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: `repeat(${Math.max(1, teacherActiveDays.length)}, minmax(0, 1fr))`,
+                      gap: 8,
+                    }}
+                  >
+                    {teacherActiveDays.map((day) => {
+                      const blocks = getBlocksForKelas(c.id, day, selectedGuruId)
+                      if (blocks.length === 0) return null
+                      const dayStyle = DAY_COLOR_STYLES[day] || DAY_COLOR_STYLES.senin
 
-                  return (
-                    <div
-                      key={day}
-                      className="bg-white print:bg-white rounded-xl print:rounded-lg border border-slate-200 print:border-slate-300 overflow-hidden shadow-2xs flex flex-col justify-start"
-                    >
-                      <div className={`${dayStyle.headerBg} px-2 py-1.5 print:py-1 text-center font-black text-xs print:text-[9.5px] uppercase tracking-wider`}>
-                        {DAY_LABEL[day].toUpperCase()}
-                      </div>
-                      <div className="p-2 print:p-1 space-y-1.5 print:space-y-1 flex-1">
-                        {blocks.map((block, bIdx) => {
-                          if (block.type === "AGENDA") {
-                            return (
-                              <div
-                                key={bIdx}
-                                className="bg-[#fef9c3] print:bg-[#fef08a] border border-amber-200/90 print:border-amber-300 rounded-lg p-1.5 print:p-1 text-center shadow-2xs"
-                              >
-                                <div className="text-[9.5px] print:text-[7.5px] font-mono font-bold text-amber-900 leading-tight">
-                                  {block.startTime}–{block.endTime}
-                                </div>
-                                <div className="text-[10.5px] print:text-[8px] font-black text-amber-950 uppercase tracking-wide mt-0.5 leading-tight">
-                                  {block.label}
-                                </div>
-                              </div>
-                            )
-                          }
+                      return (
+                        <div
+                          key={day}
+                          className="bg-white print:bg-white rounded-xl print:rounded-lg border border-slate-200 print:border-slate-300 overflow-hidden shadow-2xs flex flex-col justify-start"
+                        >
+                          <div className={`${dayStyle.headerBg} px-2 py-1.5 print:py-1 text-center font-black text-xs print:text-[9.5px] uppercase tracking-wider`}>
+                            {DAY_LABEL[day].toUpperCase()}
+                          </div>
+                          <div className="p-2 print:p-1 space-y-1.5 print:space-y-1 flex-1">
+                            {blocks.map((block, bIdx) => {
+                              if (block.type === "AGENDA") {
+                                return (
+                                  <div
+                                    key={bIdx}
+                                    className="bg-[#fef9c3] print:bg-[#fef08a] border border-amber-200/90 print:border-amber-300 rounded-lg p-1.5 print:p-1 text-center shadow-2xs"
+                                  >
+                                    <div className="text-[9.5px] print:text-[7.5px] font-mono font-bold text-amber-900 leading-tight">
+                                      {block.startTime}–{block.endTime}
+                                    </div>
+                                    <div className="text-[10.5px] print:text-[8px] font-black text-amber-950 uppercase tracking-wide mt-0.5 leading-tight">
+                                      {block.label}
+                                    </div>
+                                  </div>
+                                )
+                              }
 
-                          if (block.type === "KBM") {
-                            return (
-                              <div
-                                key={bIdx}
-                                className="bg-white print:bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2 print:p-1 shadow-2xs space-y-1"
-                              >
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] print:text-[7px] font-black ${dayStyle.jpBadgeBg} ${dayStyle.jpBadgeText} border ${dayStyle.jpBadgeBorder} leading-none`}>
-                                    {block.jpLabel}
-                                  </span>
-                                  <span className="font-mono text-[9px] print:text-[7px] text-slate-500 font-bold leading-none">
-                                    {block.startTime}–{block.endTime}
-                                  </span>
-                                </div>
-                                <div className="font-extrabold text-[11px] print:text-[8.5px] text-slate-900 leading-tight">
-                                  {block.mapelName}
-                                </div>
-                              </div>
-                            )
-                          }
+                              if (block.type === "KBM") {
+                                return (
+                                  <div
+                                    key={bIdx}
+                                    className="bg-white print:bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2 print:p-1 shadow-2xs space-y-1"
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className={`px-1.5 py-0.5 rounded-md text-[9px] print:text-[7px] font-black ${dayStyle.jpBadgeBg} ${dayStyle.jpBadgeText} border ${dayStyle.jpBadgeBorder} leading-none`}>
+                                        {block.jpLabel}
+                                      </span>
+                                      <span className="font-mono text-[9px] print:text-[7px] text-slate-500 font-bold leading-none">
+                                        {block.startTime}–{block.endTime}
+                                      </span>
+                                    </div>
+                                    <div className="font-extrabold text-[11px] print:text-[8.5px] text-slate-900 leading-tight">
+                                      {block.mapelName}
+                                    </div>
+                                  </div>
+                                )
+                              }
 
-                          return (
-                            <div key={bIdx} className="bg-slate-50/70 print:bg-slate-50 border border-dashed border-slate-200 print:border-slate-300 rounded-lg p-1.5 print:p-0.5 text-center">
-                              <div className="flex items-center justify-between text-[8.5px] print:text-[6.5px] font-mono text-slate-400">
-                                <span>{block.jpLabel}</span>
-                                <span>
-                                  {block.startTime}–{block.endTime}
-                                </span>
-                              </div>
-                              <div className="text-[9px] print:text-[7px] font-medium text-slate-300 italic mt-0.5">
-                                — Kosong —
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                              return (
+                                <div key={bIdx} className="bg-slate-50/70 print:bg-slate-50 border border-dashed border-slate-200 print:border-slate-300 rounded-lg p-1.5 print:p-0.5 text-center">
+                                  <div className="flex items-center justify-between text-[8.5px] print:text-[6.5px] font-mono text-slate-400">
+                                    <span>{block.jpLabel}</span>
+                                    <span>
+                                      {block.startTime}–{block.endTime}
+                                    </span>
+                                  </div>
+                                  <div className="text-[9px] print:text-[7px] font-medium text-slate-300 italic mt-0.5">
+                                    — Kosong —
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
 
               {renderSignatures()}
 

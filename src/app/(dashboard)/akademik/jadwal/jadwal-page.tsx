@@ -1102,7 +1102,13 @@ export default function JadwalPage() {
           ) : scheduleViewMode === "mingguan" ? (
             /* ================= WEEKLY GRID VIEW ================= */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
-              {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {
+              {DAYS.filter((day) => {
+                if (selectedDays.length > 0 && !selectedDays.includes(day)) return false
+                if (isTeacherView) {
+                  return jadwalRecords.some((e) => e.hari === day)
+                }
+                return true
+              }).map((day) => {
                 const dayItems = timelineByDay.get(day) ?? []
                 const jpItems = dayItems.filter((t) => t.tipe === "jp")
 
@@ -1194,6 +1200,8 @@ export default function JadwalPage() {
 
                             if (entry) {
                               const isStart = entry.jpMulai === academicJp
+                              if (!isStart) return null
+
                               const mapel = mapelMap.get(entry.mataPelajaranId)
                               const teacher = guruMap.get(entry.guruId)
                               const kelas = kelasRecords.find((k) => k.id === entry.kelasId)
@@ -1208,16 +1216,14 @@ export default function JadwalPage() {
                               return (
                                 <div
                                   key={`jp-${item.id}`}
-                                  className={`group relative p-3.5 bg-white dark:bg-slate-900 hover:bg-slate-50/40 dark:hover:bg-slate-800/60 border ${!isStart ? "border-teal-200/80 bg-teal-50/20 dark:bg-teal-950/20" : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"} border-l-4 ${color.border} rounded-xl transition-all flex flex-col justify-between text-left shadow-sm hover:shadow-md`}
+                                  className={`group relative p-3.5 bg-white dark:bg-slate-900 hover:bg-slate-50/40 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 border-l-4 ${color.border} rounded-xl transition-all flex flex-col justify-between text-left shadow-sm hover:shadow-md`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
                                     <span className={`${color.bg} ${color.text} border border-slate-100/40 dark:border-slate-800/60 rounded px-2 py-0.5 text-[10px] font-black tracking-wider uppercase flex items-center gap-1`}>
-                                      <span>JP {academicJp}</span>
-                                      {entry.jpCount! > 1 && (
-                                        <span className="text-[9px] font-mono font-bold bg-white/60 dark:bg-slate-800 px-1 py-0.2 rounded">
-                                          {academicJp - entry.jpMulai! + 1}/{entry.jpCount} JP
-                                        </span>
-                                      )}
+                                      <span>
+                                        JP {entry.jpMulai}
+                                        {entry.jpCount! > 1 ? `–${entry.jpMulai! + entry.jpCount! - 1}` : ""}
+                                      </span>
                                     </span>
                                     <span className="text-[10px] font-mono font-bold text-slate-400">
                                       {tStart} - {tEnd}
@@ -1242,38 +1248,34 @@ export default function JadwalPage() {
 
                                   <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between min-h-[32px]">
                                     <span className="text-[10px] font-bold text-slate-400">
-                                      {entry.jpCount! > 1 ? `${entry.jpCount} JP (${academicJp - entry.jpMulai! + 1}/${entry.jpCount})` : "1 JP"}
+                                      {entry.jpCount! > 1 ? `${entry.jpCount} JP` : "1 JP"}
                                     </span>
-                                    {isStart ? (
-                                      <div className="flex space-x-1.5">
-                                        {canEdit && (
-                                          <>
-                                            <button
-                                              onClick={() => openEdit(entry)}
-                                              className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 rounded-lg transition-all border border-transparent hover:border-teal-100 dark:hover:border-teal-800 cursor-pointer"
-                                              title="Edit"
-                                            >
-                                              <Pencil size={11} />
-                                            </button>
-                                            <button
-                                              onClick={() => setDeleteId(entry.id)}
-                                              className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 rounded-lg transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-800 cursor-pointer"
-                                              title="Hapus"
-                                            >
-                                              <Trash2 size={11} />
-                                            </button>
-                                          </>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <span className="text-[10px] font-black text-teal-500 dark:text-teal-400 uppercase tracking-wider">
-                                        Lanjutan
-                                      </span>
-                                    )}
+                                    <div className="flex space-x-1.5">
+                                      {canEdit && (
+                                        <>
+                                          <button
+                                            onClick={() => openEdit(entry)}
+                                            className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-400 hover:text-teal-600 rounded-lg transition-all border border-transparent hover:border-teal-100 dark:hover:border-teal-800 cursor-pointer"
+                                            title="Edit"
+                                          >
+                                            <Pencil size={11} />
+                                          </button>
+                                          <button
+                                            onClick={() => setDeleteId(entry.id)}
+                                            className="p-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 rounded-lg transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-800 cursor-pointer"
+                                            title="Hapus"
+                                          >
+                                            <Trash2 size={11} />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               )
                             } else {
+                              if (isTeacherView) return null
+
                               // Find other slots occupied by a teacher in this day/JP to check for clashes
                               const findTeacherOccupancy = (guruId: string, jpIndex: number) => {
                                 return (allJadwalList ?? []).filter(
@@ -1314,7 +1316,7 @@ export default function JadwalPage() {
                                     <div>
                                       <span className="text-slate-400 text-[10px] font-black uppercase">JP {academicJp}</span>
                                       <span className="text-[10px] text-slate-400 font-bold block mt-0.5 uppercase tracking-wide">
-                                        {isTeacherView ? "Tidak Mengajar" : "Sesi Kosong"}
+                                        Sesi Kosong
                                       </span>
                                     </div>
                                     {canEdit && (
@@ -1328,22 +1330,20 @@ export default function JadwalPage() {
                                     )}
                                   </div>
 
-                                  {!isTeacherView && (
-                                    <div className="text-[8px] text-slate-400 font-medium leading-tight border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5 mt-1">
-                                      {busyTeachers.length > 0 ? (
-                                        <>
-                                          <span className="font-bold text-slate-450 uppercase block mb-0.5 text-[7px] tracking-wide">Guru Sibuk:</span>
-                                          {busyTeachers.map((t, idx) => (
-                                            <span key={idx} className="block truncate text-slate-500">{t}</span>
-                                          ))}
-                                        </>
-                                      ) : (
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-[7px] uppercase tracking-wider">
-                                          ✓ Guru Free
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
+                                  <div className="text-[8px] text-slate-400 font-medium leading-tight border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5 mt-1">
+                                    {busyTeachers.length > 0 ? (
+                                      <>
+                                        <span className="font-bold text-slate-450 uppercase block mb-0.5 text-[7px] tracking-wide">Guru Sibuk:</span>
+                                        {busyTeachers.map((t, idx) => (
+                                          <span key={idx} className="block truncate text-slate-500">{t}</span>
+                                        ))}
+                                      </>
+                                    ) : (
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-[7px] uppercase tracking-wider">
+                                        ✓ Guru Free
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )
                             }

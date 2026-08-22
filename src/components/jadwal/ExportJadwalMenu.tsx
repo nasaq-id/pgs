@@ -143,26 +143,48 @@ export default function ExportJadwalMenu({ onCetak, disabled, filterGuruId, filt
         sortedKelas.map((k) => formatKelasLabel(k)).join("\t") +
         "\n"
 
-      activeDays.forEach((day) => {
+      const filteredActiveDays = activeDays.filter((d) => {
+        if (!filterGuruId) return true
+        return rawJadwalRecords.some((e) => e.guruId === filterGuruId && e.hari === d)
+      })
+
+      filteredActiveDays.forEach((day) => {
         const dayItems = timelineByDay.get(day) ?? []
         dayItems.forEach((item, idx) => {
           if (item.tipe !== "jp") {
-            csvContent += `${DAY_LABEL[day]}\t${item.label || item.tipe} (${item.jamMulai}-${item.jamSelesai})\t` +
-              sortedKelas.map(() => item.label || item.tipe).join("\t") +
-              "\n"
+            if (!filterGuruId) {
+              csvContent += `${DAY_LABEL[day]}\t${item.label || item.tipe} (${item.jamMulai}-${item.jamSelesai})\t` +
+                sortedKelas.map(() => item.label || item.tipe).join("\t") +
+                "\n"
+            }
           } else {
             const academicJp = academicJpMap.get(`${day}-${idx + 1}`) ?? idx + 1
+            const hasTeacherEntry = filterGuruId
+              ? rawJadwalRecords.some(
+                  (e) =>
+                    e.guruId === filterGuruId &&
+                    e.hari === day &&
+                    e.jpMulai !== null &&
+                    e.jpCount !== null &&
+                    e.jpMulai <= academicJp &&
+                    academicJp < e.jpMulai + e.jpCount
+                )
+              : true
+
+            if (!hasTeacherEntry) return
+
             csvContent += `${DAY_LABEL[day]}\tJP ${academicJp} (${item.jamMulai}-${item.jamSelesai})\t`
             csvContent += sortedKelas
               .map((k) => {
-                const entry = jadwalRecords.find(
+                const entry = rawJadwalRecords.find(
                   (e) =>
                     e.kelasId === k.id &&
                     e.hari === day &&
                     e.jpMulai !== null &&
                     e.jpCount !== null &&
                     e.jpMulai <= academicJp &&
-                    academicJp < e.jpMulai + e.jpCount
+                    academicJp < e.jpMulai + e.jpCount &&
+                    (!filterGuruId || e.guruId === filterGuruId)
                 )
                 if (entry) {
                   const m = mapelMap.get(entry.mataPelajaranId)
