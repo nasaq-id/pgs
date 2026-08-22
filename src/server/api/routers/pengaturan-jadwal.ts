@@ -8,6 +8,43 @@ import { logAudit } from "@/server/audit"
 import { requireSekolahId } from "@/server/api/tenant"
 import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
+async function getPengaturanJadwal(sekolahId: string) {
+  const allSettings = await db.query.pengaturanJadwal.findMany({
+    where: eq(pengaturanJadwal.sekolahId, sekolahId),
+    orderBy: [asc(pengaturanJadwal.createdAt)],
+  })
+
+  if (allSettings.length === 0) {
+    const id = crypto.randomUUID()
+    const inserted = await db
+      .insert(pengaturanJadwal)
+      .values({
+        id,
+        sekolahId,
+        durasiJP: 40,
+        jamMulai: "07:00",
+        teacherExceptionsJson: {},
+      })
+      .returning()
+    return inserted[0]!
+  }
+
+  const primary = allSettings[0]!
+
+  if (allSettings.length > 1) {
+    const duplicateIds = allSettings.slice(1).map((s) => s.id)
+    await db
+      .update(timelineItem)
+      .set({ pengaturanJadwalId: primary.id })
+      .where(inArray(timelineItem.pengaturanJadwalId, duplicateIds))
+    await db
+      .delete(pengaturanJadwal)
+      .where(inArray(pengaturanJadwal.id, duplicateIds))
+  }
+
+  return primary
+}
+
 export const pengaturanJadwalRouter = router({
   get: protectedProcedure
     .input(z.object({ sekolahId: z.string().optional() }))
@@ -15,25 +52,7 @@ export const pengaturanJadwalRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
       return getOrSetCache(cacheKey("pengaturanJadwal:get", sekolahId), async () => {
-        let result = await db.query.pengaturanJadwal.findFirst({
-          where: eq(pengaturanJadwal.sekolahId, sekolahId),
-          orderBy: [asc(pengaturanJadwal.createdAt)],
-        })
-        if (!result) {
-          const id = crypto.randomUUID()
-          const inserted = await db
-            .insert(pengaturanJadwal)
-            .values({
-              id,
-              sekolahId,
-              durasiJP: 40,
-              jamMulai: "07:00",
-              teacherExceptionsJson: {},
-            })
-            .returning()
-          result = inserted[0] ?? null
-        }
-        return result
+        return getPengaturanJadwal(sekolahId)
       }, 300)
     }),
 
@@ -47,9 +66,7 @@ export const pengaturanJadwalRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const existing = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const existing = await getPengaturanJadwal(sekolahId)
       if (existing) {
         const wasChanged = existing.durasiJP !== input.durasiJP || existing.jamMulai !== input.jamMulai
         const result = await db
@@ -94,9 +111,7 @@ export const pengaturanJadwalRouter = router({
     .mutation(async ({ ctx }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const existing = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const existing = await getPengaturanJadwal(sekolahId)
       if (existing) {
         const result = await db
           .update(pengaturanJadwal)
@@ -129,24 +144,7 @@ export const pengaturanJadwalRouter = router({
       if (!sekolahId) return []
 
       const runQuery = async () => {
-        let pengaturan = await db.query.pengaturanJadwal.findFirst({
-          where: eq(pengaturanJadwal.sekolahId, sekolahId),
-          orderBy: [asc(pengaturanJadwal.createdAt)],
-        })
-        if (!pengaturan) {
-          const id = crypto.randomUUID()
-          const inserted = await db
-            .insert(pengaturanJadwal)
-            .values({
-              id,
-              sekolahId,
-              durasiJP: 40,
-              jamMulai: "07:00",
-              teacherExceptionsJson: {},
-            })
-            .returning()
-          pengaturan = inserted[0] ?? null
-        }
+        const pengaturan = await getPengaturanJadwal(sekolahId)
         if (!pengaturan) return []
         const conditions = [eq(timelineItem.pengaturanJadwalId, pengaturan.id)]
         if (input.hari) conditions.push(eq(timelineItem.hari, input.hari as any))
@@ -177,9 +175,7 @@ export const pengaturanJadwalRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
       if (input.id) {
         const result = await db
@@ -255,9 +251,7 @@ export const pengaturanJadwalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
 
       const conditions = [
@@ -292,9 +286,7 @@ export const pengaturanJadwalRouter = router({
     .input(z.object({}))
     .mutation(async ({ ctx }) => {
       const sekolahId = requireSekolahId(ctx)
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
 
       const deleted = await db.delete(timelineItem).where(eq(timelineItem.pengaturanJadwalId, pengaturan.id)).returning()
@@ -314,9 +306,7 @@ export const pengaturanJadwalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const sekolahId = requireSekolahId(ctx)
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
 
       const hari = (input.hari ?? []).filter((h): h is "senin" | "selasa" | "rabu" | "kamis" | "jumat" | "sabtu" | "minggu" => Boolean(h))
@@ -342,9 +332,7 @@ export const pengaturanJadwalRouter = router({
     .mutation(async ({ ctx, input }) => {
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
-      const pengaturan = await db.query.pengaturanJadwal.findFirst({
-        where: eq(pengaturanJadwal.sekolahId, sekolahId),
-      })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
       if (!pengaturan) throw new TRPCError({ code: "NOT_FOUND", message: "Pengaturan jadwal belum dibuat" })
 
       const sourceItems = await db
