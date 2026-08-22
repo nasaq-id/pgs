@@ -6,7 +6,6 @@ import { Loader2, Plus, X, ChevronDown, Check, Search } from "lucide-react"
 import { api } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 
 interface AssignmentRow {
   guruId: string
@@ -276,20 +275,7 @@ export default function PengampuDialog({ open, onClose, mataPelajaranId, mataPel
 
                     {row.guruId && (
                       <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-slate-500">Jumlah JP per Kelas</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={20}
-                            value={row.jumlahJam}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value)
-                              if (v >= 1 && v <= 20) updateRow(i, { jumlahJam: v })
-                            }}
-                            className="h-9 px-3 text-xs font-bold rounded-xl"
-                          />
-                        </div>
+
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
