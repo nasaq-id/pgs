@@ -121,6 +121,18 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
     },
   })
 
+  const addJpItem = api.pengaturanJadwal.addJpItem.useMutation({
+    onSuccess: () => {
+      utils.pengaturanJadwal.getTimeline.invalidate()
+    },
+  })
+
+  const insertActivityItem = api.pengaturanJadwal.insertActivityItem.useMutation({
+    onSuccess: () => {
+      utils.pengaturanJadwal.getTimeline.invalidate()
+    },
+  })
+
   const [durasiJP, setDurasiJP] = useState(40)
   const [jamMulai, setJamMulai] = useState("07:00")
   const [saving, setSaving] = useState(false)
@@ -196,16 +208,15 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
   }
 
   const handleAddJp = async (hari: string) => {
-    const items = itemsByDay.get(hari) ?? []
-    const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
-    const { jamMulai: jm, jamSelesai: js } = getNextJpTime(hari)
-    await upsertTimeline.mutateAsync({
-      hari: hari as any,
-      tipe: "jp",
-      jamMulai: jm,
-      jamSelesai: js,
-      urutan: maxUrutan + 1,
-    })
+    setSaving(true)
+    try {
+      await addJpItem.mutateAsync({ hari: hari as any })
+      toast.success("Jam Pelajaran (JP) berhasil ditambahkan")
+    } catch {
+      toast.error("Gagal menambahkan JP")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleInsertActivity = async () => {
@@ -214,46 +225,16 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
 
     setSaving(true)
     try {
-      const items = itemsByDay.get(insertHari) ?? []
       const label = insertType === "pembiasaan" ? insertLabel.trim() : undefined
 
-      if (insertAfterUrutan !== null) {
-        // 1. Shift all subsequent items (urutan >= targetUrutan)
-        for (const item of items) {
-          if (item.urutan >= insertAfterUrutan && item.id) {
-            await upsertTimeline.mutateAsync({
-              id: item.id,
-              hari: item.hari as any,
-              tipe: item.tipe as any,
-              label: item.label ?? undefined,
-              jamMulai: item.jamMulai,
-              jamSelesai: item.jamSelesai,
-              urutan: item.urutan + 1,
-              warna: item.warna ?? undefined,
-            })
-          }
-        }
-
-        // 2. Insert new activity at target urutan
-        await upsertTimeline.mutateAsync({
-          hari: insertHari as any,
-          tipe: insertType as any,
-          label,
-          jamMulai: insertJamMulai,
-          jamSelesai: insertJamSelesai,
-          urutan: insertAfterUrutan,
-        })
-      } else {
-        const maxUrutan = items.length > 0 ? Math.max(...items.map((i) => i.urutan)) : 0
-        await upsertTimeline.mutateAsync({
-          hari: insertHari as any,
-          tipe: insertType as any,
-          label,
-          jamMulai: insertJamMulai,
-          jamSelesai: insertJamSelesai,
-          urutan: maxUrutan + 1,
-        })
-      }
+      await insertActivityItem.mutateAsync({
+        hari: insertHari as any,
+        tipe: insertType as any,
+        label: label || undefined,
+        jamMulai: insertJamMulai,
+        jamSelesai: insertJamSelesai,
+        insertAfterUrutan,
+      })
 
       setShowInsertForm(false)
       setInsertLabel("")
@@ -268,36 +249,17 @@ export default function PengaturanJadwalDialog({ open, onClose }: Props) {
   }
 
   const handleInsertAfter = async (hari: string, afterItem: TimelineFormData, tipe: string) => {
-    const items = itemsByDay.get(hari) ?? []
     const targetUrutan = afterItem.urutan + 1
 
     if (tipe === "jp") {
       setSaving(true)
       try {
-        // 1. Shift all subsequent items
-        for (const item of items) {
-          if (item.urutan >= targetUrutan && item.id) {
-            await upsertTimeline.mutateAsync({
-              id: item.id,
-              hari: item.hari as any,
-              tipe: item.tipe as any,
-              label: item.label ?? undefined,
-              jamMulai: item.jamMulai,
-              jamSelesai: item.jamSelesai,
-              urutan: item.urutan + 1,
-              warna: item.warna ?? undefined,
-            })
-          }
-        }
-
-        // 2. Insert new JP
-        const { jamMulai: jm, jamSelesai: js } = getNextJpTime(hari)
-        await upsertTimeline.mutateAsync({
+        await insertActivityItem.mutateAsync({
           hari: hari as any,
           tipe: "jp",
-          jamMulai: jm,
-          jamSelesai: js,
-          urutan: targetUrutan,
+          jamMulai: "00:00",
+          jamSelesai: "00:00",
+          insertAfterUrutan: afterItem.urutan,
         })
         toast.success("Jam Pelajaran (JP) berhasil disisipkan")
       } catch {

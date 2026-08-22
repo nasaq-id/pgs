@@ -119,6 +119,18 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
     },
   })
 
+  const addJpItem = api.pengaturanJadwal.addJpItem.useMutation({
+    onSuccess: () => {
+      utils.pengaturanJadwal.getTimeline.invalidate()
+    },
+  })
+
+  const insertActivityItem = api.pengaturanJadwal.insertActivityItem.useMutation({
+    onSuccess: () => {
+      utils.pengaturanJadwal.getTimeline.invalidate()
+    },
+  })
+
   const [durasiJP, setDurasiJP] = useState(40)
   const [jamMulai, setJamMulai] = useState("07:00")
   const [saving, setSaving] = useState(false)
@@ -282,21 +294,9 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
   }
 
   const handleAddJp = async (hari: string) => {
-    const items = itemsByDay.get(hari) ?? []
-    const newItems = [
-      ...items,
-      {
-        hari,
-        tipe: "jp",
-        label: null,
-        jamMulai: "00:00", // will be recalculated
-        jamSelesai: "00:00", // will be recalculated
-        urutan: items.length + 1,
-      }
-    ]
     setSaving(true)
     try {
-      await recalculateAndSaveTimeline(hari, newItems)
+      await addJpItem.mutateAsync({ hari: hari as any })
       toast.success("Jam Pelajaran (JP) berhasil ditambahkan")
     } catch {
       toast.error("Gagal menambahkan JP")
@@ -311,34 +311,16 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
 
     setSaving(true)
     try {
-      const items = itemsByDay.get(insertHari) ?? []
       const label = insertType === "pembiasaan" ? insertLabel.trim() : undefined
 
-      const newItem = {
-        hari: insertHari,
-        tipe: insertType,
-        label: label || null,
+      await insertActivityItem.mutateAsync({
+        hari: insertHari as any,
+        tipe: insertType as any,
+        label: label || undefined,
         jamMulai: insertJamMulai,
         jamSelesai: insertJamSelesai,
-        urutan: insertAfterUrutan !== null ? insertAfterUrutan : items.length + 1,
-      }
-
-      let newItems: Omit<TimelineFormData, "id">[] | TimelineFormData[] = []
-
-      if (insertAfterUrutan !== null) {
-        // Shift items after target urutan
-        newItems = items.map((item) => {
-          if (item.urutan >= insertAfterUrutan) {
-            return { ...item, urutan: item.urutan + 1 }
-          }
-          return item
-        })
-        newItems.push(newItem)
-      } else {
-        newItems = [...items, newItem]
-      }
-
-      await recalculateAndSaveTimeline(insertHari, newItems)
+        insertAfterUrutan,
+      })
 
       setShowInsertForm(false)
       setInsertLabel("")
@@ -353,28 +335,18 @@ export default function PengaturanJadwalPanel({ onDone }: Props) {
   }
 
   const handleInsertAfter = async (hari: string, afterItem: TimelineFormData, tipe: string) => {
-    const items = itemsByDay.get(hari) ?? []
     const targetUrutan = afterItem.urutan + 1
 
     if (tipe === "jp") {
       setSaving(true)
       try {
-        const newItems = items.map((item) => {
-          if (item.urutan >= targetUrutan) {
-            return { ...item, urutan: item.urutan + 1 }
-          }
-          return item
-        })
-        newItems.push({
-          hari,
+        await insertActivityItem.mutateAsync({
+          hari: hari as any,
           tipe: "jp",
-          label: null,
-          jamMulai: "00:00", // will be recalculated
-          jamSelesai: "00:00", // will be recalculated
-          urutan: targetUrutan,
+          jamMulai: "00:00",
+          jamSelesai: "00:00",
+          insertAfterUrutan: afterItem.urutan,
         })
-
-        await recalculateAndSaveTimeline(hari, newItems)
         toast.success("Jam Pelajaran (JP) berhasil disisipkan")
       } catch {
         toast.error("Gagal menyisipkan JP")

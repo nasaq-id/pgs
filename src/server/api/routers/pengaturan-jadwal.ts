@@ -217,6 +217,112 @@ export const pengaturanJadwalRouter = router({
       return result[0]
     }),
 
+  addJpItem: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(z.object({
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
+
+      const existingItems = await db
+        .select()
+        .from(timelineItem)
+        .where(and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, input.hari as any),
+        ))
+        .orderBy(asc(timelineItem.urutan))
+
+      const durasi = pengaturan.durasiJP ?? 40
+      const startMinutes = timeToMinutes(pengaturan.jamMulai ?? "07:00")
+
+      let nextStartMinutes = startMinutes
+      if (existingItems.length > 0) {
+        const lastItem = existingItems[existingItems.length - 1]
+        nextStartMinutes = timeToMinutes(lastItem.jamSelesai)
+      }
+
+      const nextEndMinutes = nextStartMinutes + durasi
+      const newUrutan = existingItems.length + 1
+      const id = crypto.randomUUID()
+
+      const [inserted] = await db
+        .insert(timelineItem)
+        .values({
+          id,
+          sekolahId,
+          pengaturanJadwalId: pengaturan.id,
+          hari: input.hari,
+          tipe: "jp",
+          label: null,
+          jamMulai: minutesToTime(nextStartMinutes),
+          jamSelesai: minutesToTime(nextEndMinutes),
+          urutan: newUrutan,
+        })
+        .returning()
+
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+      return inserted
+    }),
+
+  insertActivityItem: roleProtectedProcedure(["super_admin", "admin_sekolah"])
+    .input(sanitized(z.object({
+      hari: z.enum(["senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu"]),
+      tipe: z.enum(["jp", "pembiasaan", "upacara", "istirahat", "sholat", "lainnya"]),
+      label: z.string().optional(),
+      jamMulai: z.string(),
+      jamSelesai: z.string(),
+      insertAfterUrutan: z.number().nullable().optional(),
+    })))
+    .mutation(async ({ ctx, input }) => {
+      const sekolahId = ctx.session.user.sekolahId
+      if (!sekolahId) throw new TRPCError({ code: "BAD_REQUEST", message: "Sekolah ID required" })
+      const pengaturan = await getPengaturanJadwal(sekolahId)
+
+      const existingItems = await db
+        .select()
+        .from(timelineItem)
+        .where(and(
+          eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+          eq(timelineItem.hari, input.hari as any),
+        ))
+        .orderBy(asc(timelineItem.urutan))
+
+      let targetUrutan = existingItems.length + 1
+      if (input.insertAfterUrutan !== null && input.insertAfterUrutan !== undefined) {
+        targetUrutan = input.insertAfterUrutan + 1
+        await db.update(timelineItem)
+          .set({ urutan: sql`${timelineItem.urutan} + 1` })
+          .where(and(
+            eq(timelineItem.pengaturanJadwalId, pengaturan.id),
+            eq(timelineItem.hari, input.hari as any),
+            sql`${timelineItem.urutan} >= ${targetUrutan}`,
+          ))
+      }
+
+      const id = crypto.randomUUID()
+      const [inserted] = await db
+        .insert(timelineItem)
+        .values({
+          id,
+          sekolahId,
+          pengaturanJadwalId: pengaturan.id,
+          hari: input.hari,
+          tipe: input.tipe,
+          label: input.label,
+          jamMulai: input.jamMulai,
+          jamSelesai: input.jamSelesai,
+          urutan: targetUrutan,
+        })
+        .returning()
+
+      await recalculateJpTimes(pengaturan.id)
+      await invalidateCache([cacheKey("pengaturanJadwal:get", sekolahId), cacheKey("pengaturanJadwal:getTimeline", sekolahId)])
+      return inserted
+    }),
+
   deleteTimeline: roleProtectedProcedure(["super_admin", "admin_sekolah"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -416,4 +522,17 @@ async function recalculateJpTimes(pengaturanJadwalId: string) {
     ) jp
     WHERE t.id = jp.id
   `)
+}
+
+function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0
+  const [h, m] = timeStr.split(":").map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+function minutesToTime(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${pad(h)}:${pad(m)}`
 }
