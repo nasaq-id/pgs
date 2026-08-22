@@ -859,9 +859,12 @@ export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
               </div>
 
               {(() => {
-                const teacherActiveDays = aktifDays.filter((d) =>
-                  jadwalRecords.some((e) => e.guruId === selectedGuruId && e.hari === d)
-                )
+                const teacherActiveDays = aktifDays.filter((d) => {
+                  const blocks = getBlocksForKelas(c.id, d, selectedGuruId)
+                  return blocks.some((b) => b.type === "KBM")
+                })
+                if (teacherActiveDays.length === 0) return null
+
                 return (
                   <div
                     style={{
@@ -872,7 +875,8 @@ export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
                   >
                     {teacherActiveDays.map((day) => {
                       const blocks = getBlocksForKelas(c.id, day, selectedGuruId)
-                      if (blocks.length === 0) return null
+                      const hasKbm = blocks.some((b) => b.type === "KBM")
+                      if (!hasKbm) return null
                       const dayStyle = DAY_COLOR_STYLES[day] || DAY_COLOR_STYLES.senin
 
                       return (
@@ -1102,96 +1106,109 @@ export default function CetakJadwal({ open, onClose, initialGuruId }: Props) {
           </div>
 
           {/* Print Options Control Panel */}
-          <div className="bg-slate-50 border border-slate-100/70 rounded-2xl p-4 mb-6 print:hidden text-left">
-            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-2.5">
-              Pengaturan Format Hasil Cetak:
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">Tipe Cetak:</span>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setCetakMode("keseluruhan")}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      cetakMode === "keseluruhan"
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
+          {!initialGuruId ? (
+            <div className="bg-slate-50 border border-slate-100/70 rounded-2xl p-4 mb-6 print:hidden text-left">
+              <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-2.5">
+                Pengaturan Format Hasil Cetak:
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">Tipe Cetak:</span>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setCetakMode("keseluruhan")}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                        cetakMode === "keseluruhan"
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      Cetak Keseluruhan (Master Roster)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCetakMode("per-kelas")}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                        cetakMode === "per-kelas"
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      Cetak Per Kelas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCetakMode("per-guru")}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                        cetakMode === "per-guru"
+                          ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      Cetak Per Guru
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">
+                    Pilihan Kelas:
+                  </span>
+                  <Select
+                    value={selectedKelasId}
+                    onValueChange={(v) => v && setSelectedKelasId(v)}
+                    disabled={cetakMode !== "per-kelas"}
                   >
-                    Cetak Keseluruhan (Master Roster)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCetakMode("per-kelas")}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      cetakMode === "per-kelas"
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Pilih Kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="semua">Semua Kelas (Halaman Terpisah)</SelectItem>
+                      {sortedKelas.map((k) => (
+                        <SelectItem key={k.id} value={k.id}>
+                          {formatKelasLabel(k)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">
+                    Pilihan Guru:
+                  </span>
+                  <Select
+                    value={selectedGuruId}
+                    onValueChange={(v) => v && setSelectedGuruId(v)}
+                    disabled={cetakMode !== "per-guru"}
                   >
-                    Cetak Per Kelas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCetakMode("per-guru")}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      cetakMode === "per-guru"
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Cetak Per Guru
-                  </button>
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Pilih Guru" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {guruRecords.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.namaLengkap}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-
-              <div>
-                <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">
-                  Pilihan Kelas:
+            </div>
+          ) : (
+            <div className="bg-indigo-50/60 border border-indigo-100/80 rounded-2xl p-3.5 mb-6 print:hidden flex items-center justify-between text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-indigo-900 uppercase tracking-wider">
+                  Format Hasil Cetak:
                 </span>
-                <Select
-                  value={selectedKelasId}
-                  onValueChange={(v) => v && setSelectedKelasId(v)}
-                  disabled={cetakMode !== "per-kelas"}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Pilih Kelas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="semua">Semua Kelas (Halaman Terpisah)</SelectItem>
-                    {sortedKelas.map((k) => (
-                      <SelectItem key={k.id} value={k.id}>
-                        {formatKelasLabel(k)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-extrabold text-slate-400 block mb-1.5 uppercase">
-                  Pilihan Guru:
+                <span className="text-xs font-bold text-indigo-700 bg-white px-3 py-1 rounded-xl border border-indigo-200 shadow-2xs">
+                  Cetak Jadwal Mengajar Guru ({guruMap.get(initialGuruId)?.namaLengkap || "Guru Terpilih"})
                 </span>
-                <Select
-                  value={selectedGuruId}
-                  onValueChange={(v) => v && setSelectedGuruId(v)}
-                  disabled={cetakMode !== "per-guru"}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Pilih Guru" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {guruRecords.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        {g.namaLengkap}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Printable Area */}
           <div className="print-area bg-white p-2 print:p-0.5 text-slate-900 font-sans">
