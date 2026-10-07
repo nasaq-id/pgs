@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 Rekomendasi saya: targetkan Pragmatic Modular Monolith, bukan DDD penuh.
 Urutan yang aman:
 1. Pisahkan komponen UI monolith menjadi Table, Filters, Dialogs, Export, dan hooks.

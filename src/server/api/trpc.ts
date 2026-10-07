@@ -6,19 +6,47 @@ import { z } from "zod"
 import { stripHtml } from "@/server/security"
 import { checkRateLimit } from "@/server/rate-limit"
 
+import { eq } from "drizzle-orm"
+import { users } from "@/server/db/schema"
+
 export const createTRPCContext = async () => {
   const session = await auth()
 
   let impersonatedSekolahId: string | null = null
+  let impersonatedUserId: string | null = null
+  let impersonatedRole: string | null = null
+
   try {
     const cookieStore = await cookies()
     impersonatedSekolahId = cookieStore.get("impersonated_sekolah_id")?.value || null
+    impersonatedUserId = cookieStore.get("impersonated_user_id")?.value || null
+    impersonatedRole = cookieStore.get("impersonated_role")?.value || null
   } catch {
     // Catch silently in non-request contexts
   }
 
-  if (session?.user && session.user.role === "super_admin" && impersonatedSekolahId) {
+  if (session?.user && (session.user.role === "super_admin" || session.user.originalRole === "super_admin") && impersonatedSekolahId) {
     session.user.sekolahId = impersonatedSekolahId
+    session.user.isImpersonating = true
+    session.user.originalRole = "super_admin"
+
+    if (impersonatedUserId && impersonatedRole) {
+      // Lookup target user in users table to retrieve authentic identity & credentials
+      const targetUser = await db.query.users.findFirst({
+        where: eq(users.id, impersonatedUserId),
+      })
+
+      if (targetUser) {
+        session.user.id = targetUser.id
+        session.user.role = impersonatedRole
+        session.user.email = targetUser.email
+        session.user.name = `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim() || targetUser.email
+        session.user.sekolahId = targetUser.sekolahId || impersonatedSekolahId
+        session.user.impersonatedTargetName = session.user.name
+      }
+    } else {
+      session.user.role = "admin_sekolah"
+    }
   }
 
   return {

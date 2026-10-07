@@ -7,6 +7,9 @@ declare module "next-auth" {
       role: string
       sekolahId: string | null
       photo?: string | null
+      isImpersonating?: boolean
+      originalRole?: string
+      impersonatedTargetName?: string
     } & DefaultSession["user"]
   }
 
@@ -14,6 +17,9 @@ declare module "next-auth" {
     role: string
     sekolahId: string | null
     photo?: string | null
+    isImpersonating?: boolean
+    originalRole?: string
+    impersonatedTargetName?: string
   }
 }
 
@@ -23,5 +29,9 @@ declare module "next-auth/jwt" {
     role: string
     sekolahId: string | null
     photo?: string | null
+    isImpersonating?: boolean
+    originalRole?: string
+    impersonatedTargetName?: string
   }
 }
+

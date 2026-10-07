@@ -86,7 +86,7 @@ const menuItems: MenuItem[] = [
     label: "Akademik", 
     allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"],
     children: [
-      { label: "Mata Pelajaran", path: "/akademik/mapel", allowedRoles: ["super_admin", "admin_sekolah", "tu"] },
+      { label: "Mata Pelajaran", path: "/akademik/mapel", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru"] },
       { label: "Jadwal Pelajaran", path: "/akademik/jadwal", allowedRoles: ["super_admin", "admin_sekolah", "tu", "guru", "siswa"] },
     ]
   },
@@ -282,9 +282,9 @@ export default function Sidebar({ onClose, isMinimized = false, setIsMinimized }
   const initials = (displayName[0] || "A").toUpperCase()
   const userPhoto = (profile?.photo as string) || session?.user?.photo
 
-  const isSuperAdmin = role === "super_admin"
-  const isImpersonating = role === "super_admin" && !!impersonatedId
-  const schoolName = isSuperAdmin && !isImpersonating ? "SaaS Platform" : (sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
+  const isImpersonating = !!session?.user?.isImpersonating || (role === "super_admin" && !!impersonatedId)
+  const isSuperAdmin = (role === "super_admin" || session?.user?.originalRole === "super_admin") && !isImpersonating
+  const schoolName = isSuperAdmin ? "SaaS Platform" : (sekolahData?.namaSingkat || (sekolahData?.namaSekolah || "SIM Sekolah")
     .replace(/SMP Negeri/gi, "SMPN")
     .replace(/SMA Negeri/gi, "SMAN")
     .replace(/SMK Negeri/gi, "SMKN"))

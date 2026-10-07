@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs"
 import { db } from "./server/db"
 import { users } from "./server/db/schema"
 import { eq } from "drizzle-orm"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import { checkRateLimit } from "./server/rate-limit"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -70,7 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      return {
+      const updatedSession = {
         ...session,
         user: {
           ...session.user,
@@ -78,8 +78,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: token.role as string,
           sekolahId: token.sekolahId as string | null,
           photo: token.photo as string | undefined,
+          isImpersonating: false as boolean | undefined,
+          originalRole: undefined as string | undefined,
+          impersonatedTargetName: undefined as string | undefined,
         },
       }
+
+      if (token.role === "super_admin") {
+        try {
+          const cookieStore = await cookies()
+          const impSekolah = cookieStore.get("impersonated_sekolah_id")?.value
+          const impUser = cookieStore.get("impersonated_user_id")?.value
+          const impRole = cookieStore.get("impersonated_role")?.value
+
+          if (impSekolah) {
+            updatedSession.user.sekolahId = impSekolah
+            updatedSession.user.isImpersonating = true
+            updatedSession.user.originalRole = "super_admin"
+
+            if (impUser && impRole) {
+              const targetUser = await db.query.users.findFirst({
+                where: eq(users.id, impUser),
+              })
+              if (targetUser) {
+                updatedSession.user.id = targetUser.id
+                updatedSession.user.role = impRole
+                updatedSession.user.email = targetUser.email
+                updatedSession.user.name = `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim() || targetUser.email
+                updatedSession.user.sekolahId = targetUser.sekolahId || impSekolah
+                updatedSession.user.impersonatedTargetName = updatedSession.user.name
+              }
+            } else {
+              updatedSession.user.role = "admin_sekolah"
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      return updatedSession
     },
     async redirect({ url, baseUrl }) {
       let host = null

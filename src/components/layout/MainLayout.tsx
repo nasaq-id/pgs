@@ -159,15 +159,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }, [])
 
   const { data: sekolahInfo } = api.lembaga.getSekolah.useQuery(undefined, {
-    enabled: session?.user?.role === "super_admin" && !!impersonatedId,
+    enabled: (session?.user?.role === "super_admin" || !!session?.user?.isImpersonating) && !!impersonatedId,
   })
 
   const handleExitImpersonate = () => {
     document.cookie = "impersonated_sekolah_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+    document.cookie = "impersonated_user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+    document.cookie = "impersonated_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
     window.location.href = "/super-admin"
   }
 
-  const isImpersonating = session?.user?.role === "super_admin" && !!impersonatedId
+  const isImpersonating = session?.user?.isImpersonating || (session?.user?.role === "super_admin" && !!impersonatedId)
+  const impersonatedTargetName = session?.user?.impersonatedTargetName
 
   return (
     <div className={cn("min-h-screen relative", isImpersonating && "pt-11")}>
@@ -177,7 +180,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-4.5 w-4.5 shrink-0 animate-pulse text-amber-100" />
             <span className="text-xs font-black uppercase tracking-wider">
-              Mode Superadmin: <span className="font-extrabold normal-case bg-amber-600 dark:bg-amber-700/80 px-2.5 py-0.5 rounded-lg border border-amber-400/40 ml-1">{sekolahInfo?.namaSekolah || "Memuat..."}</span>
+              Mode Impersonate: <span className="font-extrabold normal-case bg-amber-600 dark:bg-amber-700/80 px-2.5 py-0.5 rounded-lg border border-amber-400/40 ml-1">{impersonatedTargetName ? `${impersonatedTargetName} (${session?.user?.role})` : (sekolahInfo?.namaSekolah || "Kelola Sekolah")}</span>
             </span>
           </div>
           <button

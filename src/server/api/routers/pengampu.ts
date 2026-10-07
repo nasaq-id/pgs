@@ -5,7 +5,7 @@ import { router, protectedProcedure, roleProtectedProcedure } from "../trpc"
 import { db } from "@/server/db"
 import { pengampu, kelas, guru, mataPelajaran } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
-import { cacheKey, invalidateCache } from "@/lib/cache"
+import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
 
 export const pengampuRouter = router({
   getAll: protectedProcedure
@@ -35,44 +35,48 @@ export const pengampuRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-      const data = await db.query.pengampu.findMany({
-        where: and(
-          eq(pengampu.mataPelajaranId, input.mataPelajaranId),
-          eq(pengampu.sekolahId, sekolahId),
-        ),
-        with: {
-          guru: true,
-          kelas: true,
-        },
-      })
+      return getOrSetCache(cacheKey("pengampu:getByMapel", sekolahId, input.mataPelajaranId), async () => {
+        // 4 query independen dijalankan paralel (bukan berurutan) — biaya dominan
+        // adalah RTT ke Supabase pooler, jadi mengurangi round-trip paralel lebih
+        // cepat daripada mengefisienkan SQL.
+        const [mapel, assignments, allKelas, allGuru] = await Promise.all([
+          db.query.mataPelajaran.findFirst({
+            where: eq(mataPelajaran.id, input.mataPelajaranId),
+          }),
+          db.query.pengampu.findMany({
+            where: and(
+              eq(pengampu.mataPelajaranId, input.mataPelajaranId),
+              eq(pengampu.sekolahId, sekolahId),
+            ),
+            with: {
+              guru: { columns: { namaLengkap: true } },
+              kelas: { columns: { namaKelas: true } },
+            },
+          }),
+          db
+            .select({ id: kelas.id, namaKelas: kelas.namaKelas, tingkat: kelas.tingkat })
+            .from(kelas)
+            .where(eq(kelas.sekolahId, sekolahId)),
+          db
+            .select({ id: guru.id, namaLengkap: guru.namaLengkap, nipnuptk: guru.nipnuptk })
+            .from(guru)
+            .where(eq(guru.sekolahId, sekolahId)),
+        ])
 
-      const allKelas = await db
-        .select({ id: kelas.id, namaKelas: kelas.namaKelas, tingkat: kelas.tingkat })
-        .from(kelas)
-        .where(eq(kelas.sekolahId, sekolahId))
-
-      const allGuru = await db
-        .select({ id: guru.id, namaLengkap: guru.namaLengkap, nipnuptk: guru.nipnuptk })
-        .from(guru)
-        .where(eq(guru.sekolahId, sekolahId))
-
-      const mapel = await db.query.mataPelajaran.findFirst({
-        where: eq(mataPelajaran.id, input.mataPelajaranId),
-      })
-
-      return {
-        mapel,
-        allKelas,
-        allGuru,
-        assignments: data.map((d) => ({
-          id: d.id,
-          guruId: d.guruId,
-          guruNama: d.guru.namaLengkap,
-          kelasId: d.kelasId,
-          kelasNama: d.kelas.namaKelas,
-          jumlahJam: d.jumlahJam,
-        })),
-      }
+        return {
+          mapel,
+          allKelas,
+          allGuru,
+          assignments: assignments.map((d) => ({
+            id: d.id,
+            guruId: d.guruId,
+            guruNama: d.guru.namaLengkap,
+            kelasId: d.kelasId,
+            kelasNama: d.kelas.namaKelas,
+            jumlahJam: d.jumlahJam,
+          })),
+        }
+      }, 300)
     }),
 
   getByKelas: protectedProcedure
@@ -149,6 +153,7 @@ export const pengampuRouter = router({
         cacheKey("mapel:getAll", sekolahId),
         cacheKey("guru:getAll", sekolahId),
         cacheKey("pengampu:getAll", sekolahId),
+        cacheKey("pengampu:getByMapel", sekolahId, mataPelajaranId),
       ])
 
       return { success: true, count: values.length }

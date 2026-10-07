@@ -1107,8 +1107,19 @@ export default function JadwalPage() {
             />
           ) : scheduleViewMode === "mingguan" ? (
             /* ================= WEEKLY GRID VIEW ================= */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
-              {DAYS.filter((day) => {
+            isTeacherView && jadwalRecords.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-12 rounded-3xl text-center flex flex-col items-center justify-center shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 border border-indigo-100 dark:border-indigo-900">
+                  <BookOpen size={28} />
+                </div>
+                <h4 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Belum Ada Jadwal Mengajar</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-md mt-1.5 leading-relaxed">
+                  Anda belum memiliki jam mengajar yang terplot di rombongan belajar manapun untuk semester ini. Silakan hubungi bagian Kurikulum atau Admin Sekolah jika terdapat kekeliruan.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+                {DAYS.filter((day) => {
                 if (selectedDays.length > 0 && !selectedDays.includes(day)) return false
                 if (isTeacherView) {
                   return jadwalRecords.some((e) => e.hari === day)
@@ -1361,7 +1372,7 @@ export default function JadwalPage() {
                 )
               })}
             </div>
-          ) : (
+          )) : (
             /* ================= HARIAN/TIMELINE LIST VIEW ================= */
             <div className="space-y-6">
               {DAYS.filter((day) => selectedDays.length === 0 || selectedDays.includes(day)).map((day) => {

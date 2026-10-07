@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 # PGS Performance Roadmap
 
 Dokumen kerja lintas sesi untuk optimasi performance Portal Guna Sekolah.
@@ -504,6 +507,22 @@ Catatan saat ini: folder referensi lama `scratch/` sudah dihapus. `pnpm lint` ha
 - Quick wins Fase 0 selesai.
 - Perbaikan service worker chunk/RSC selesai.
 - Next session disarankan mulai dari authenticated Lighthouse/Playwright dan audit cache API.
+
+### Sesi Optimasi Query Lambat per Halaman - 22 Agustus 2026
+
+- **Fase/Task**: Fase 3 lanjutan (database & API latency) — tutup query lambat yang masih muncul di log `[api:query:...] SLOW`.
+- **Baseline**: log dev `[api:query:x] SLOW`: `pengampu.getByMapel` 8.0s (sekali 500), `notifikasi.getAll` 7.9s, `notifikasi.getRecent` 2.6s, `guru.getLookup` 3.0s, `jadwal.getAll` 0.9s. Root cause sama seperti Fase 3: biaya dominan = jumlah round-trip ke Supabase pooler (~205ms/query) + key cache yang belum ada untuk query ini.
+- **Perubahan**:
+  1. `src/lib/cache.ts`: tambah `invalidateCachePrefix(prefix)` — invalidasi via SCAN+DEL untuk key yang parameternya bervariasi (limit/offset/unreadOnly) tanpa perlu enumerasikan kombinasi. Belum ada di kode sebelumnya; dipakai oleh notifikasi & jadwal.
+  2. `src/server/api/routers/pengampu.ts` (`getByMapel`): 4 query independen dijalankan `Promise.all` (sebelumnya berurutan) + dibungkus `getOrSetCache` (key `pengampu:getByMapel:<sekolahId>:<mapelId>`, TTL 300). Relasi `guru`/`kelas` diproyeksi ke kolom minimal; di-invalidate saat `save`.
+  3. `src/server/api/routers/guru.ts` (`getLookup`): dropdown guru sering dipanggil di banyak halaman → `getOrSetCache` untuk varian tanpa search (key ikut limit, TTL 300). `guruCacheKeys` sekarang juga meng-invalidate key `getLookup`.
+  4. `src/server/api/routers/notifikasi.ts`: `getRecent`/`getAll`/`getUnreadCount` di-cache per-sekolah (TTL 30s), `getAll` menjalankan data+total paralel + `COUNT(*)` (bukan select semua id), `getUnreadCount` pakai `COUNT(*)`. Invalidasi prefix `cache:notifikasi:<sekolahId>` pada `create`/`remove`/`markAsRead`/`markAllAsRead`.
+  5. `src/server/api/routers/jadwal.ts` (`getAll`): varian tanpa filter (jadwal lengkap, limit besar) dicache (key ikut limit, TTL 60). Invalidasi prefix di `publishBatch`/`create`/`update`/`remove`/`clearAll`.
+  6. `src/server/api/routers/super-admin.ts` (`listSekolah`): 9 round-trip berurutan (sekolah + 8 query `count(*) group by sekolah_id`) → 2 round-trip PARALEL. Delapan count di-pivot jadi 1 SQL `SELECT sekolah_id, SUM(CASE...)` dengan subquery `UNION ALL` per tabel. Di-validasi hasil identik per sekolah (MATCH) terhadap count individual; cache-miss 10.6s → ~1s (warm 0.6s).
+  7. **Root cause koneksi DB baru ditemukan** — `src/server/db/index.ts`: `DATABASE_URL` menunjuk **transaction pooler** Supabase (port **6543**, pgbouncer multiplex), bukan session pooler (5432, ~15 session). `idleTimeoutMillis: 8000` menutup semua koneksi tiap jeda >8s; re-establish ke pooler terukur **~6.5s**. Inilah biang log `[api:query:x] SLOW` multi-detik di SEMUA query (bahkan yang sudah di-cache) — tiap page load bayar re-establish koneksi. Diubah: `idleTimeoutMillis 8000→60000` (koneksi hangat antar-navigasi; transaction pooler aman), `connectionTimeoutMillis 8000→15000` (margin saat burst). `src/server/api/routers/dashboard.ts`: `getOverview` TTL 30→60s (agregat berat, beranda).
+- **Verification**: `pnpm exec tsc --noEmit` (0 error), `pnpm exec eslint` (lint pass), `git diff --check` bersih. Bench scan-invalidate Upstash diverifikasi (`[cursor,[keys]]`). Bench kombinasi query `listSekolah` diverifikasi MATCH vs count individual. Bench pool: idle 8s → re-establish setelah 10s idle = **6552ms**; idle 60s → koneksi tetap hangat (~ratusan ms) — konfirmasi akar masalah.
+- **Hasil metrik**: query yang sebelumnya uncached jadi cache-hit (~80ms) setelah warm; cache-miss turun karena round-trip paralel.
+- **Follow-up**: `dashboard.getOverview` masih cache-miss ~1.4-3.7s (agregasi berat, TTL 30s) — pertimbangkan pre-warm atau TTL lebih panjang. `jadwal.getAll` TTL 60s + invalidasi hanya di 5 mutation; mutasi lain (generate draft) tidak menyentuh row PUBLISHED sehingga aman.
 
 ### Template Sesi Berikutnya
 

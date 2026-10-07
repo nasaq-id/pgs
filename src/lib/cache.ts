@@ -123,6 +123,30 @@ export async function invalidateCache(keys: string[]): Promise<void> {
 }
 
 /**
+ * Hapus SEMUA key yang cocok dengan prefix (mis. `cache:notifikasi:getAll:<sekolahId>`).
+ * Dipakai untuk invalidasi cache yang key-nya tergantung params (limit/offset/unreadOnly)
+ * sehingga kombinasi params tidak perlu di-enumerasi satu-satu.
+ * Menggunakan SCAN + DEL (bukan KEYS) agar aman pada dataset besar.
+ */
+export async function invalidateCachePrefix(prefix: string): Promise<void> {
+  try {
+    let cursor = 0
+    let loops = 0
+    do {
+      const res = await redis.scan(cursor, { match: `${prefix}*`, count: 200 })
+      cursor = Number(res[0] as string) || 0
+      const keys = res[1]
+      if (Array.isArray(keys) && keys.length > 0) {
+        await redis.del(...(keys as string[]))
+      }
+      loops++
+    } while (cursor !== 0 && loops < 50)
+  } catch (error) {
+    console.error(`[Cache] Invalidate prefix error untuk "${prefix}":`, error)
+  }
+}
+
+/**
  * Mengambil data dari cache. Jika tidak ditemukan, memanggil fetchFn
  * untuk mengambil data segar, lalu menyimpannya di cache sebelum mengembalikannya.
  * Menggunakan fail-open: jika Redis gagal, langsung memanggil fetchFn.

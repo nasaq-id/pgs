@@ -8,8 +8,8 @@ import * as dbSchema from "@/server/db/schema"
 import bcrypt from "bcryptjs"
 import { db } from "@/server/db"
 import {
-  sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs, siswa, guru, kelas,
-  mataPelajaran, absensiSiswa, absensiGuru, absensiHari, pengajuanIzin, invoice, jurnalMengajar, poinSikap
+  sekolah, users, pengaturanAbsensi, pengaturanJadwal, auditLogs,
+  absensiSiswa, absensiGuru, absensiHari, pengajuanIzin
 } from "@/server/db/schema"
 import { router, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { cacheKey, getOrSetCache, invalidateCache } from "@/lib/cache"
@@ -253,6 +253,28 @@ export const superAdminRouter = router({
         ))
         .orderBy(users.email)
     }),
+
+  listUsersBySekolah: roleProtectedProcedure(["super_admin"])
+    .input(z.object({ sekolahId: z.string(), role: z.enum(["guru", "siswa"]) }))
+    .query(async ({ input }) => {
+      return db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+        })
+        .from(users)
+        .where(and(
+          eq(users.sekolahId, input.sekolahId),
+          eq(users.role, input.role),
+          eq(users.active, true)
+        ))
+        .orderBy(users.firstName)
+        .limit(100)
+    }),
+
 
   resetAdminPassword: roleProtectedProcedure(["super_admin"])
     .input(sanitized(z.object({
@@ -571,106 +593,113 @@ export const superAdminRouter = router({
 })
 
 async function listSekolahInner() {
-      // 1. Get raw schools
-      const schools = await db
-        .select()
-        .from(sekolah)
-        .orderBy(desc(sekolah.createdAt))
+  // 1. Ambil sekolah + hitung agregat per sekolah dalam 1 roundtrip SQL
+  //    (9 roundtrip → 2 paralel). Tiap query count terpisah menanggung biaya
+  //    RTT ke pooler Supabase (~200ms), sehingga listSekolah bisa >10s.
+  //    Granular "sumber" di-pivot via SUM(CASE) sehingga satu panggilan
+  //    mengembalikan 8 metrik sekaligus.
+  const countsSql = sql`
+    SELECT
+      sekolah_id,
+      SUM(CASE WHEN sumber = 'siswa' THEN jumlah ELSE 0 END) AS siswa,
+      SUM(CASE WHEN sumber = 'guru' THEN jumlah ELSE 0 END) AS guru,
+      SUM(CASE WHEN sumber = 'kelas' THEN jumlah ELSE 0 END) AS kelas,
+      SUM(CASE WHEN sumber = 'mapel' THEN jumlah ELSE 0 END) AS mapel,
+      SUM(CASE WHEN sumber = 'absensi' THEN jumlah ELSE 0 END) AS absensi,
+      SUM(CASE WHEN sumber = 'invoice' THEN jumlah ELSE 0 END) AS invoice,
+      SUM(CASE WHEN sumber = 'jurnal' THEN jumlah ELSE 0 END) AS jurnal,
+      SUM(CASE WHEN sumber = 'poin' THEN jumlah ELSE 0 END) AS poin
+    FROM (
+      SELECT sekolah_id, 'siswa' AS sumber, count(*) AS jumlah FROM siswa GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'guru', count(*) FROM guru GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'kelas', count(*) FROM kelas GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'mapel', count(*) FROM mata_pelajaran GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'absensi', count(*) FROM absensi_siswa GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'invoice', count(*) FROM invoice GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'jurnal', count(*) FROM jurnal_mengajar GROUP BY sekolah_id
+      UNION ALL SELECT sekolah_id, 'poin', count(*) FROM poin_sikap GROUP BY sekolah_id
+    ) agg
+    GROUP BY sekolah_id
+  `
 
-      // 2. Fetch aggregates grouped by sekolahId
-      const siswaCounts = await db
-        .select({ sekolahId: siswa.sekolahId, count: sql<number>`count(*)` })
-        .from(siswa)
-        .groupBy(siswa.sekolahId)
+  // 2 roundtrip dijalankan PARALEL (1 RTT efektif), bukan 9 berurutan.
+  const [schools, counts] = await Promise.all([
+    db.select().from(sekolah).orderBy(desc(sekolah.createdAt)),
+    db.execute(countsSql).then((r) => r.rows as {
+      sekolah_id: string
+      siswa: number | string
+      guru: number | string
+      kelas: number | string
+      mapel: number | string
+      absensi: number | string
+      invoice: number | string
+      jurnal: number | string
+      poin: number | string
+    }[]),
+  ])
 
-      const guruCounts = await db
-        .select({ sekolahId: guru.sekolahId, count: sql<number>`count(*)` })
-        .from(guru)
-        .groupBy(guru.sekolahId)
+  // Map counts by school ID for O(1) lookups
+  const num = (v: number | string) => Number(v ?? 0)
+  const countBySchool = new Map<string, Partial<Record<"siswa" | "guru" | "kelas" | "mapel" | "absensi" | "invoice" | "jurnal" | "poin", number>>>(
+    counts.map((c) => [c.sekolah_id, {
+      siswa: num(c.siswa),
+      guru: num(c.guru),
+      kelas: num(c.kelas),
+      mapel: num(c.mapel),
+      absensi: num(c.absensi),
+      invoice: num(c.invoice),
+      jurnal: num(c.jurnal),
+      poin: num(c.poin),
+    }])
+  )
+  const getStat = (sekolahId: string, key: "siswa" | "guru" | "kelas" | "mapel" | "absensi" | "invoice" | "jurnal" | "poin") =>
+    countBySchool.get(sekolahId)?.[key] ?? 0
 
-      const kelasCounts = await db
-        .select({ sekolahId: kelas.sekolahId, count: sql<number>`count(*)` })
-        .from(kelas)
-        .groupBy(kelas.sekolahId)
+  // Compute stats for each school
+  return schools.map(s => {
+    const totalSiswa = getStat(s.id, "siswa")
+    const totalGuru = getStat(s.id, "guru")
+    const totalKelas = getStat(s.id, "kelas")
+    const totalMapel = getStat(s.id, "mapel")
+    const totalAbsensi = getStat(s.id, "absensi")
+    const totalInvoice = getStat(s.id, "invoice")
+    const totalJurnal = getStat(s.id, "jurnal")
+    const totalPoin = getStat(s.id, "poin")
 
-      const mapelCounts = await db
-        .select({ sekolahId: mataPelajaran.sekolahId, count: sql<number>`count(*)` })
-        .from(mataPelajaran)
-        .groupBy(mataPelajaran.sekolahId)
+    const totalDbRows = totalSiswa + totalGuru + totalKelas + totalMapel + totalAbsensi + totalInvoice + totalJurnal + totalPoin
 
-      const absensiCounts = await db
-        .select({ sekolahId: absensiSiswa.sekolahId, count: sql<number>`count(*)` })
-        .from(absensiSiswa)
-        .groupBy(absensiSiswa.sekolahId)
+    // Calculate health state:
+    // - "abu" : suspended/inactive
+    // - "merah" : active but has 0 students
+    // - "kuning" : active but has 0 teachers
+    // - "hijau" : active and has both students & teachers
+    let health: "hijau" | "kuning" | "merah" | "abu" = "hijau"
+    if (!s.active) {
+      health = "abu"
+    } else if (totalSiswa === 0) {
+      health = "merah"
+    } else if (totalGuru === 0) {
+      health = "kuning"
+    }
 
-      const invoiceCounts = await db
-        .select({ sekolahId: invoice.sekolahId, count: sql<number>`count(*)` })
-        .from(invoice)
-        .groupBy(invoice.sekolahId)
-
-      const jurnalCounts = await db
-        .select({ sekolahId: jurnalMengajar.sekolahId, count: sql<number>`count(*)` })
-        .from(jurnalMengajar)
-        .groupBy(jurnalMengajar.sekolahId)
-
-      const poinCounts = await db
-        .select({ sekolahId: poinSikap.sekolahId, count: sql<number>`count(*)` })
-        .from(poinSikap)
-        .groupBy(poinSikap.sekolahId)
-
-      // Map counts by school ID for O(1) lookups
-      const siswaMap = new Map(siswaCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const guruMap = new Map(guruCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const kelasMap = new Map(kelasCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const mapelMap = new Map(mapelCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const absensiMap = new Map(absensiCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const invoiceMap = new Map(invoiceCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const jurnalMap = new Map(jurnalCounts.map(c => [c.sekolahId, Number(c.count)]))
-      const poinMap = new Map(poinCounts.map(c => [c.sekolahId, Number(c.count)]))
-
-      // Compute stats for each school
-      return schools.map(s => {
-        const totalSiswa = siswaMap.get(s.id) ?? 0
-        const totalGuru = guruMap.get(s.id) ?? 0
-        const totalKelas = kelasMap.get(s.id) ?? 0
-        const totalMapel = mapelMap.get(s.id) ?? 0
-        const totalAbsensi = absensiMap.get(s.id) ?? 0
-        const totalInvoice = invoiceMap.get(s.id) ?? 0
-        const totalJurnal = jurnalMap.get(s.id) ?? 0
-        const totalPoin = poinMap.get(s.id) ?? 0
-
-        const totalDbRows = totalSiswa + totalGuru + totalKelas + totalMapel + totalAbsensi + totalInvoice + totalJurnal + totalPoin
-
-        // Calculate health state:
-        // - "abu" : suspended/inactive
-        // - "merah" : active but has 0 students
-        // - "kuning" : active but has 0 teachers
-        // - "hijau" : active and has both students & teachers
-        let health: "hijau" | "kuning" | "merah" | "abu" = "hijau"
-        if (!s.active) {
-          health = "abu"
-        } else if (totalSiswa === 0) {
-          health = "merah"
-        } else if (totalGuru === 0) {
-          health = "kuning"
-        }
-
-        return {
-          ...s,
-          stats: {
-            siswa: totalSiswa,
-            guru: totalGuru,
-            kelas: totalKelas,
-            mapel: totalMapel,
-            absensi: totalAbsensi,
-            invoice: totalInvoice,
-             jurnal: totalJurnal,
-             poin: totalPoin,
-             dbRows: totalDbRows,
-             health,
-           }
-         }
-       })
+    return {
+      ...s,
+      stats: {
+        siswa: totalSiswa,
+        guru: totalGuru,
+        kelas: totalKelas,
+        mapel: totalMapel,
+        absensi: totalAbsensi,
+        invoice: totalInvoice,
+         jurnal: totalJurnal,
+         poin: totalPoin,
+         dbRows: totalDbRows,
+         health,
+       }
+     }
+   })
 }
 
 const invalidateSekolahCache = () => invalidateCache([cacheKey("superAdmin:listSekolah")])
+
+

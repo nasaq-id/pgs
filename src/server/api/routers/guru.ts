@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs"
 import { guru } from "@/server/db/schema"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized, strictRateLimit, moderateRateLimit } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
-import { cacheKey, getCache, setCache, invalidateCache } from "@/lib/cache"
+import { cacheKey, getCache, setCache, getOrSetCache, invalidateCache } from "@/lib/cache"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
 import { syncUserCredentials } from "@/server/credentials"
 
@@ -42,7 +42,10 @@ const guruUpdateSchema = guruCreateSchema.partial()
 
 
 const GURU_CACHE_LIMITS = [1, 50, 100, 200, 500, 1000]
-const guruCacheKeys = (sekolahId: string) => GURU_CACHE_LIMITS.map((l) => cacheKey("guru:getAll", sekolahId, `l${l}`))
+const guruCacheKeys = (sekolahId: string) => [
+  ...GURU_CACHE_LIMITS.map((l) => cacheKey("guru:getAll", sekolahId, `l${l}`)),
+  ...GURU_CACHE_LIMITS.map((l) => cacheKey("guru:getLookup", sekolahId, `l${l}`, "o0")),
+]
 
 export const guruRouter = router({
   getAll: protectedProcedure
@@ -126,29 +129,42 @@ export const guruRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions = []
-      if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
-      if (input.search) {
-        conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
+      const runQuery = async () => {
+        const conditions = []
+        if (sekolahIdFilter) conditions.push(eq(guru.sekolahId, sekolahIdFilter))
+        if (input.search) {
+          conditions.push(or(like(guru.namaLengkap, `%${input.search}%`), like(guru.nipnuptk, `%${input.search}%`)))
+        }
+        return db
+          .select({
+            id: guru.id,
+            sekolahId: guru.sekolahId,
+            nipnuptk: guru.nipnuptk,
+            namaLengkap: guru.namaLengkap,
+            foto: guru.foto,
+            statusKepegawaian: guru.statusKepegawaian,
+            kategoriPegawai: guru.kategoriPegawai,
+            tugasUtama: guru.tugasUtama,
+            jp: guru.jp,
+            active: guru.active,
+          })
+          .from(guru)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(asc(guru.namaLengkap))
+          .limit(input.limit)
+          .offset(input.offset)
       }
-      return db
-        .select({
-          id: guru.id,
-          sekolahId: guru.sekolahId,
-          nipnuptk: guru.nipnuptk,
-          namaLengkap: guru.namaLengkap,
-          foto: guru.foto,
-          statusKepegawaian: guru.statusKepegawaian,
-          kategoriPegawai: guru.kategoriPegawai,
-          tugasUtama: guru.tugasUtama,
-          jp: guru.jp,
-          active: guru.active,
-        })
-        .from(guru)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(asc(guru.namaLengkap))
-        .limit(input.limit)
-        .offset(input.offset)
+
+      // Dropdown guru dipanggil di banyak halaman (mapel, jadwal, kelas, dll).
+      // Varian tanpa search adalah yang paling sering → cache (per limit).
+      if (!input.search && input.offset === 0) {
+        return getOrSetCache(
+          cacheKey("guru:getLookup", sekolahIdFilter || "all", `l${input.limit}`, "o0"),
+          runQuery,
+          300,
+        )
+      }
+      return runQuery()
     }),
 
   getById: protectedProcedure

@@ -26,6 +26,7 @@ import ResetPasswordDialog from "./_components/ResetPasswordDialog"
 import DeleteSekolahDialog from "./_components/DeleteSekolahDialog"
 import DetailSekolahDialog from "./_components/DetailSekolahDialog"
 import ResetAbsensiDialog from "./_components/ResetAbsensiDialog"
+import ImpersonateSelectorDialog from "./_components/ImpersonateSelectorDialog"
 
 export default function SuperAdminPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -38,6 +39,7 @@ export default function SuperAdminPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [resetAbsensiModalOpen, setResetAbsensiModalOpen] = useState(false)
+  const [impersonateModalOpen, setImpersonateModalOpen] = useState(false)
 
   // Selected school states
   const [selectedSekolahForEdit, setSelectedSekolahForEdit] = useState<any>(null)
@@ -45,6 +47,8 @@ export default function SuperAdminPage() {
   const [selectedSekolahForDelete, setSelectedSekolahForDelete] = useState<any>(null)
   const [selectedSekolahForDetail, setSelectedSekolahForDetail] = useState<any>(null)
   const [selectedSekolahForResetAbsensi, setSelectedSekolahForResetAbsensi] = useState<any>(null)
+  const [selectedSekolahForImpersonate, setSelectedSekolahForImpersonate] = useState<any>(null)
+
 
   // Queries & Mutations
   const utils = api.useUtils()
@@ -86,10 +90,10 @@ export default function SuperAdminPage() {
     setResetAbsensiModalOpen(true)
   }
 
-  const handleImpersonate = (sekolahId: string) => {
-    document.cookie = `impersonated_sekolah_id=${sekolahId}; path=/; max-age=${7 * 24 * 60 * 60}`
-    toast.success("Masuk ke mode pengelolaan sekolah")
-    window.location.href = "/"
+  const handleImpersonate = (sekolah: any) => {
+    const sekolahObj = typeof sekolah === "string" ? sekolahList.find((s: any) => s.id === sekolah) : sekolah
+    setSelectedSekolahForImpersonate(sekolahObj)
+    setImpersonateModalOpen(true)
   }
 
   // Filter List — memoized + debounced untuk dataset besar
@@ -452,9 +456,9 @@ export default function SuperAdminPage() {
                               <span>Detail Sumber Daya</span>
                             </DropdownMenuItem>
                             {item.active && (
-                              <DropdownMenuItem onClick={() => handleImpersonate(item.id)} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
+                              <DropdownMenuItem onClick={() => handleImpersonate(item)} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
                                 <Building size={14} className="text-teal-650" />
-                                <span>Kelola Sekolah</span>
+                                <span>Kelola / Impersonate</span>
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem onClick={() => handleEditClick(item)} className="cursor-pointer font-bold text-xs rounded-xl flex items-center gap-2 text-slate-700 py-2">
@@ -679,6 +683,12 @@ export default function SuperAdminPage() {
         onResetPassword={handleResetPasswordClick}
         onImpersonate={handleImpersonate}
         onDelete={handleDeleteClick}
+      />
+
+      <ImpersonateSelectorDialog
+        open={impersonateModalOpen}
+        onOpenChange={setImpersonateModalOpen}
+        sekolah={selectedSekolahForImpersonate}
       />
     </div>
   )

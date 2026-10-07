@@ -1,10 +1,11 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { eq, and, desc, inArray } from "drizzle-orm"
+import { eq, and, desc, inArray, count } from "drizzle-orm"
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "../trpc"
 import { db } from "@/server/db"
 import { notifikasi, pushSubscriptions, users } from "@/server/db/schema"
 import { logAudit } from "@/server/audit"
+import { cacheKey, getOrSetCache, invalidateCachePrefix } from "@/lib/cache"
 import webpush from "web-push"
 
 // Configure web-push
@@ -19,6 +20,13 @@ if (vapidPublicKey && vapidPrivateKey) {
   )
 }
 
+// Cache per sekolah (read-state `dibaca` bersifat per sekolah, bukan per user —
+// aman utk satu key dibagi antar user sekolah). schoolId sengaja jadi segmen
+// pertama setelah scope supaya invalidasi pakai prefix `cache:notifikasi:<sekolahId>`.
+const notifKey = (sekolahId: string, ...parts: (string | number)[]) =>
+  cacheKey("notifikasi", sekolahId, ...parts)
+const notifPrefix = (sekolahId: string) => `cache:notifikasi:${sekolahId}`
+
 export const notifikasiRouter = router({
   getRecent: protectedProcedure
     .input(z.object({ limit: z.number().optional().default(5) }))
@@ -26,14 +34,16 @@ export const notifikasiRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-      const data = await db
-        .select()
-        .from(notifikasi)
-        .where(eq(notifikasi.sekolahId, sekolahId))
-        .orderBy(desc(notifikasi.createdAt))
-        .limit(input.limit)
+      return getOrSetCache(notifKey(sekolahId, "recent", input.limit), async () => {
+        const data = await db
+          .select()
+          .from(notifikasi)
+          .where(eq(notifikasi.sekolahId, sekolahId))
+          .orderBy(desc(notifikasi.createdAt))
+          .limit(input.limit)
 
-      return data
+        return data
+      }, 30)
     }),
 
   getAll: protectedProcedure
@@ -48,35 +58,42 @@ export const notifikasiRouter = router({
       const sekolahId = ctx.session.user.sekolahId
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-      const conditions = [eq(notifikasi.sekolahId, sekolahId)]
-      if (input.unreadOnly) conditions.push(eq(notifikasi.dibaca, false))
+      return getOrSetCache(notifKey(sekolahId, "getAll", String(input.unreadOnly), input.limit, input.offset), async () => {
+        const conditions = [eq(notifikasi.sekolahId, sekolahId)]
+        if (input.unreadOnly) conditions.push(eq(notifikasi.dibaca, false))
 
-      const data = await db
-        .select()
-        .from(notifikasi)
-        .where(and(...conditions))
-        .orderBy(desc(notifikasi.createdAt))
-        .limit(input.limit)
-        .offset(input.offset)
+        // Data + total dijalankan paralel (2 RTT → 1), dan total pakai COUNT(*)
+        // bukan select semua id lalu .length.
+        const [data, totalResult] = await Promise.all([
+          db
+            .select()
+            .from(notifikasi)
+            .where(and(...conditions))
+            .orderBy(desc(notifikasi.createdAt))
+            .limit(input.limit)
+            .offset(input.offset),
+          db
+            .select({ count: count() })
+            .from(notifikasi)
+            .where(and(...conditions)),
+        ])
 
-      const total = await db
-        .select({ count: notifikasi.id })
-        .from(notifikasi)
-        .where(and(...conditions))
-
-      return { data, total: total.length }
+        return { data, total: Number(totalResult[0]?.count ?? 0) }
+      }, 30)
     }),
 
   getUnreadCount: protectedProcedure.query(async ({ ctx }) => {
     const sekolahId = ctx.session.user.sekolahId
     if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
-    const result = await db
-      .select({ count: notifikasi.id })
-      .from(notifikasi)
-      .where(and(eq(notifikasi.sekolahId, sekolahId), eq(notifikasi.dibaca, false)))
+    return getOrSetCache(notifKey(sekolahId, "unread"), async () => {
+      const [result] = await db
+        .select({ count: count() })
+        .from(notifikasi)
+        .where(and(eq(notifikasi.sekolahId, sekolahId), eq(notifikasi.dibaca, false)))
 
-    return { count: result.length }
+      return { count: Number(result?.count ?? 0) }
+    }, 30)
   }),
 
   markAsRead: protectedProcedure
@@ -86,6 +103,7 @@ export const notifikasiRouter = router({
       if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
       const [updated] = await db.update(notifikasi).set({ dibaca: true }).where(eq(notifikasi.id, input.id)).returning()
       if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
+      await invalidateCachePrefix(notifPrefix(sekolahId))
       return { success: true }
     }),
 
@@ -94,6 +112,7 @@ export const notifikasiRouter = router({
     if (!sekolahId) throw new TRPCError({ code: "NOT_FOUND", message: "Sekolah tidak ditemukan" })
 
     await db.update(notifikasi).set({ dibaca: true }).where(eq(notifikasi.sekolahId, sekolahId))
+    await invalidateCachePrefix(notifPrefix(sekolahId))
     return { success: true }
   }),
 
@@ -242,6 +261,7 @@ export const notifikasiRouter = router({
       }
 
       await logAudit(ctx, { action: "create", entity: "notifikasi", entityId: created.id, metadata: { judul: input.judul } })
+      await invalidateCachePrefix(notifPrefix(sekolahId))
       return created
     }),
 
@@ -254,6 +274,7 @@ export const notifikasiRouter = router({
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Notifikasi tidak ditemukan" })
 
       await logAudit(ctx, { action: "delete", entity: "notifikasi", entityId: input.id })
+      await invalidateCachePrefix(notifPrefix(sekolahId))
       return { success: true }
     }),
 })

@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 # Regression Checklist — Performance (Fase 7)
 
 Checklist wajib sebelum deploy perubahan besar. Jalankan per item; semua harus lulus.

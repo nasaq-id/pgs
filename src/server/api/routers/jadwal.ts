@@ -6,7 +6,16 @@ import { jadwalPelajaran, kelas, pengaturanJadwal, timelineItem, pengampu, mataP
 import { router, protectedProcedure, roleProtectedProcedure, sanitized } from "@/server/api/trpc"
 import { logAudit } from "@/server/audit"
 import { getSekolahIdFilter, requireSekolahId } from "@/server/api/tenant"
+import { cacheKey, getOrSetCache, invalidateCachePrefix } from "@/lib/cache"
 import { JadwalGeneratorService, JadwalGenerationError } from "./jadwal-generator.service"
+
+// Jadwal PUBLISHED relatif statis di antara aksi publish/edit — cache getAll.
+// Invalidate via prefix (key tergantung param limit/filter, jadi SCAN+DEL).
+const jadwalAllPrefix = (sekolahId: string) => `cache:jadwal:getAll:${sekolahId}`
+const invalidateJadwalAll = async (sekolahId: string) => {
+  await invalidateCachePrefix(jadwalAllPrefix(sekolahId))
+  await invalidateCachePrefix(jadwalAllPrefix("all"))
+}
 
 const jadwalCreateSchema = z.object({
   id: z.string().optional(),
@@ -434,6 +443,8 @@ export const jadwalRouter = router({
         },
       })
 
+      await invalidateJadwalAll(sekolahId)
+
       return { success: true, kelasTerpengaruh: uniqueKelasIds.length, jumlahJP: draftRows.length, newVersion }
     }),
 
@@ -741,41 +752,54 @@ export const jadwalRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const sekolahIdFilter = getSekolahIdFilter(ctx)
-      const conditions: any[] = [
-        eq(jadwalPelajaran.kelasId, kelas.id),
-        eq(jadwalPelajaran.status, "PUBLISHED")
-      ]
+      const runQuery = async () => {
+        const conditions: any[] = [
+          eq(jadwalPelajaran.kelasId, kelas.id),
+          eq(jadwalPelajaran.status, "PUBLISHED")
+        ]
 
-      if (input.kelasId) {
-        conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
-      }
-      if (input.guruId) {
-        conditions.push(eq(jadwalPelajaran.guruId, input.guruId))
-      }
-      if (input.hari) {
-        conditions.push(eq(jadwalPelajaran.hari, input.hari as any))
-      }
-      if (sekolahIdFilter) {
-        conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
+        if (input.kelasId) {
+          conditions.push(eq(jadwalPelajaran.kelasId, input.kelasId))
+        }
+        if (input.guruId) {
+          conditions.push(eq(jadwalPelajaran.guruId, input.guruId))
+        }
+        if (input.hari) {
+          conditions.push(eq(jadwalPelajaran.hari, input.hari as any))
+        }
+        if (sekolahIdFilter) {
+          conditions.push(eq(kelas.sekolahId, sekolahIdFilter))
+        }
+
+        const result = await db
+          .select()
+          .from(jadwalPelajaran)
+          .leftJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
+          .where(and(...conditions))
+          .orderBy(
+            asc(jadwalPelajaran.kelasId),
+            asc(jadwalPelajaran.hari),
+            asc(jadwalPelajaran.jpMulai),
+            asc(jadwalPelajaran.id)
+          )
+          .limit(input.limit)
+
+        return result.map((r) => ({
+          ...r.jadwal_pelajaran,
+          kelas: r.kelas,
+        }))
       }
 
-      const result = await db
-        .select()
-        .from(jadwalPelajaran)
-        .leftJoin(kelas, eq(jadwalPelajaran.kelasId, kelas.id))
-        .where(and(...conditions))
-        .orderBy(
-          asc(jadwalPelajaran.kelasId),
-          asc(jadwalPelajaran.hari),
-          asc(jadwalPelajaran.jpMulai),
-          asc(jadwalPelajaran.id)
+      // Varian tanpa filter = tampilan jadwal lengkap (limit besar). Query ini
+      // JOIN kelas + return banyak row → cache. Varian berfilter tetap pakai DB.
+      if (!input.kelasId && !input.guruId && !input.hari) {
+        return getOrSetCache(
+          cacheKey("jadwal:getAll", sekolahIdFilter || "all", `l${input.limit}`),
+          runQuery,
+          60,
         )
-        .limit(input.limit)
-
-      return result.map((r) => ({
-        ...r.jadwal_pelajaran,
-        kelas: r.kelas,
-      }))
+      }
+      return runQuery()
     }),
 
   create: roleProtectedProcedure(["super_admin", "admin_sekolah", "tu"])
@@ -861,6 +885,7 @@ export const jadwalRouter = router({
       } as any).returning()
 
       await logAudit(ctx, { action: "create", entity: "jadwal_pelajaran", entityId: result[0]?.id, metadata: { kelasId: input.kelasId } })
+      await invalidateJadwalAll(sekolahId)
       return result[0]
     }),
 
@@ -921,6 +946,7 @@ export const jadwalRouter = router({
         .returning()
 
       await logAudit(ctx, { action: "update", entity: "jadwal_pelajaran", entityId: result[0]?.id, metadata: { fields: Object.keys(input.data) } })
+      await invalidateJadwalAll(sekolahId)
       return result[0]
     }),
 
@@ -938,6 +964,7 @@ export const jadwalRouter = router({
       }
       await db.delete(jadwalPelajaran).where(eq(jadwalPelajaran.id, input.id))
       await logAudit(ctx, { action: "delete", entity: "jadwal_pelajaran", entityId: input.id })
+      await invalidateJadwalAll(sekolahId)
       return { success: true }
     }),
 
@@ -952,6 +979,7 @@ export const jadwalRouter = router({
       const durationMs = Math.round(performance.now() - t0)
       console.log(`[jadwal] clearAll selesai: ${durationMs}ms, ${deleted.length} entri dihapus${input.kelasId ? ` (kelas ${input.kelasId})` : " (semua kelas)"}`)
       await logAudit(ctx, { action: "clear_all", entity: "jadwal_pelajaran", metadata: { kelasId: input.kelasId ?? null, count: deleted.length } })
+      await invalidateJadwalAll(sekolahId)
       return { success: true, count: deleted.length, durationMs }
     }),
 

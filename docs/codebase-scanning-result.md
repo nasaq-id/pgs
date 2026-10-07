@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 Baik, saya akan explore codebase secara menyeluruh untuk memahami arsitektur, struktur, dan pola yang digunakan. Ini akan membantu saya ketika mulai implementasi roadmap performance nanti.
 ✓Explore Task — Explore project structure
 ↳ 34 toolcalls · 2m 21s

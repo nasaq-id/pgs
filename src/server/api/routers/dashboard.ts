@@ -56,8 +56,9 @@ export const dashboardRouter = router({
       const tahun = input.tahun ?? now.getFullYear()
       const bulan = input.bulan ?? now.getMonth() + 1
 
-      // Cache 30 detik. Student data must be isolated per user; admin data is
-      // shared per school and role.
+      // Cache 60 detik. Student data must be isolated per user; admin data is
+      // shared per school and role. Aggregate ini berat (beberapa tabel) —
+      // TTL 30s dulu membuat cache-miss ~1.4s muncul tiap 30 detik di beranda.
       const cacheIdentity = isSiswa
         ? (ctx.session.user.id || ctx.session.user.email || "unknown")
         : role
@@ -69,7 +70,7 @@ export const dashboardRouter = router({
       )
       return getOrSetCache(cacheKeyOverview, async () => {
         return getOverviewInner(ctx, role, isSiswa, tahun, bulan)
-      }, 30)
+      }, 60)
     }),
 })
 
